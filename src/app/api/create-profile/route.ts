@@ -1,16 +1,23 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
   try {
-    const { user_id, email } = await req.json();
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!user_id || !email) {
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not logged in" },
+        { status: 401 }
+      );
+    }
+
+    const { email } = await req.json();
+
+    if (!email) {
       return NextResponse.json(
         { error: "Missing user data" },
         { status: 400 }
@@ -19,7 +26,7 @@ export async function POST(req: Request) {
 
     const { error } = await supabase.from("profiles").upsert(
       {
-        user_id,
+        user_id: user.id,
         email,
         plan: "free",
       },

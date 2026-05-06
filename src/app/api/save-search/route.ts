@@ -1,18 +1,25 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not logged in" },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
-    const { user_id, email, name, preferences, games } = body;
+    const { email, name, preferences, games } = body;
 
-    if (!user_id || !email) {
+    if (!email) {
       return NextResponse.json(
         { error: "User not logged in" },
         { status: 401 }
@@ -23,7 +30,7 @@ export async function POST(req: Request) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("plan")
-      .eq("user_id", user_id)
+      .eq("user_id", user.id)
       .single();
 
     const plan = profile?.plan || "free";
@@ -32,7 +39,7 @@ export async function POST(req: Request) {
     const { count } = await supabase
       .from("search_profiles")
       .select("*", { count: "exact", head: true })
-      .eq("user_id", user_id);
+      .eq("user_id", user.id);
 
     // 🔥 limite
     const limit = plan === "premium" ? 3 : 1;
@@ -46,7 +53,7 @@ export async function POST(req: Request) {
 
     // salva
     const { error } = await supabase.from("search_profiles").insert({
-      user_id,
+      user_id: user.id,
       email,
       name,
       preferences,

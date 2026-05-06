@@ -25,6 +25,7 @@ export default function LoginPage() {
     if (user) {
       await fetch("/api/create-profile", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

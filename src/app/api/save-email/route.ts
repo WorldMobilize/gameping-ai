@@ -1,16 +1,23 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not logged in" },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
-    const { email, preferences, games, user_id } = body;
+    const { email, preferences, games } = body;
 
     if (!email) {
       return NextResponse.json(
@@ -24,7 +31,7 @@ export async function POST(req: Request) {
         email,
         preferences,
         games,
-        user_id,
+        user_id: user.id,
         created_at: new Date().toISOString(),
       },
       {

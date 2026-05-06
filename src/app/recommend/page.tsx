@@ -287,6 +287,7 @@ export default function RecommendPage() {
     try {
       const res = await fetch("/api/save-search", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

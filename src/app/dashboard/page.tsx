@@ -44,6 +44,7 @@ export default function Dashboard() {
 
       const res = await fetch("/api/get-searches", {
         method: "POST",
+        credentials: "include",
         body: JSON.stringify({ user_id: user.id }),
       });
 
@@ -63,6 +64,7 @@ export default function Dashboard() {
 
     const res = await fetch("/api/delete-search", {
       method: "POST",
+      credentials: "include",
       body: JSON.stringify({
         id,
         user_id: userId,
