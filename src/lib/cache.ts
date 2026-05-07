@@ -26,16 +26,17 @@ function getCacheClient() {
 function stableStringify(value: unknown) {
   const seen = new WeakSet<object>()
 
-  const sortValue = (v: any): any => {
+  const sortValue = (v: unknown): unknown => {
     if (v === null || typeof v !== "object") return v
     if (v instanceof Date) return v.toISOString()
     if (Array.isArray(v)) return v.map(sortValue)
     if (seen.has(v)) return "[Circular]"
-    seen.add(v)
-    return Object.keys(v)
+    const obj = v as Record<string, unknown>
+    seen.add(obj)
+    return Object.keys(obj)
       .sort()
-      .reduce<Record<string, any>>((acc, key) => {
-        acc[key] = sortValue(v[key])
+      .reduce<Record<string, unknown>>((acc, key) => {
+        acc[key] = sortValue(obj[key])
         return acc
       }, {})
   }
