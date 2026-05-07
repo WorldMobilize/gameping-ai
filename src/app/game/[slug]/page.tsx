@@ -283,7 +283,7 @@ export default async function GameDetailPage({
           <div className="grid gap-10 pt-10 pb-8 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
               <p className="mb-5 text-sm uppercase tracking-[0.45em] text-cyan-300">
-                GamePing premium pick
+                GamePing pick
               </p>
 
               <h1 className="max-w-4xl text-5xl font-black leading-tight md:text-7xl">
@@ -549,9 +549,6 @@ export default async function GameDetailPage({
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-xs text-white/45">
-                Redirects via CheapShark to the store.
-              </p>
             </div>
           )}
         </div>

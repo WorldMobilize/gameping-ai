@@ -4,8 +4,10 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { useToast } from "@/components/ToastProvider";
 
 export default function LoginPage() {
+  const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -16,7 +18,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      alert(error.message);
+      showToast({ variant: "error", message: error.message });
       return;
     }
 
@@ -36,8 +38,13 @@ export default function LoginPage() {
       });
     }
 
-    alert("Account creato!");
-    window.location.href = "/";
+    showToast({
+      variant: "success",
+      message: "Account created. Redirecting…",
+    });
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 500);
   };
 
   const signIn = async () => {
@@ -47,10 +54,15 @@ export default function LoginPage() {
     });
 
     if (error) {
-      alert(error.message);
+      showToast({ variant: "error", message: error.message });
     } else {
-      alert("Login effettuato!");
-      window.location.href = "/";
+      showToast({
+        variant: "success",
+        message: "Signed in. Redirecting…",
+      });
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 500);
     }
   };
 

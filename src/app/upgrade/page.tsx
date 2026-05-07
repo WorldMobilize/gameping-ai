@@ -39,7 +39,7 @@ export default function UpgradePage() {
                 Premium <span className="text-cyan-300">+</span>
               </h2>
               <p className="mt-2 text-sm font-bold text-cyan-200">
-                Premium — €4.99/month, coming soon
+                Premium — $4.99/month when billing is enabled
               </p>
               <p className="mt-2 text-sm text-white/55">
                 For people who want alerts that actually feel useful.
@@ -62,7 +62,9 @@ export default function UpgradePage() {
                   Upgrade with Stripe
                 </button>
 
-                <span className="text-sm text-white/55">Stripe checkout coming soon</span>
+                <span className="text-sm text-white/55">
+                  Stripe checkout will appear here when billing opens.
+                </span>
               </div>
             </div>
           </div>

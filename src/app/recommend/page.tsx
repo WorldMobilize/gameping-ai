@@ -1,6 +1,7 @@
 "use client";
 
 import Navbar from "@/components/Navbar";
+import { useToast } from "@/components/ToastProvider";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -79,7 +80,7 @@ const tagGroups = [
   {
     key: "genres",
     title: "What do you want to play?",
-    subtitle: "Scegli il tipo di gioco. Bastano 2-4 tag.",
+    subtitle: "Pick a genre. 2–4 tags are enough.",
     tags: [
       "RPG",
       "Action",
@@ -106,7 +107,7 @@ const tagGroups = [
   {
     key: "playStyles",
     title: "How do you want to play?",
-    subtitle: "Solo, con amici, competitivo o tranquillo.",
+    subtitle: "Solo, with friends, competitive, or chill.",
     tags: [
       "Singleplayer",
       "Multiplayer",
@@ -124,7 +125,7 @@ const tagGroups = [
   {
     key: "vibes",
     title: "What vibe are you looking for?",
-    subtitle: "Qui GamePing capisce l’atmosfera che cerchi.",
+    subtitle: "Help GamePing understand the vibe you want.",
     tags: [
       "Cozy",
       "Dark",
@@ -149,7 +150,7 @@ const tagGroups = [
   {
     key: "mechanics",
     title: "What should the game feel like?",
-    subtitle: "Meccaniche, ritmo e sensazione di gioco.",
+    subtitle: "Mechanics, pacing, and feel.",
     tags: [
       "Open World",
       "Linear",
@@ -172,6 +173,7 @@ const tagGroups = [
 ] as const;
 
 export default function RecommendPage() {
+  const { showToast } = useToast();
   const resultsRef = useRef<HTMLDivElement | null>(null);
 
   const [form, setForm] = useState({
@@ -262,7 +264,10 @@ export default function RecommendPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert("Errore AI 😢");
+        showToast({
+          variant: "error",
+          message: "We couldn’t get recommendations. Try again in a moment.",
+        });
         setLoading(false);
         return;
       }
@@ -275,7 +280,10 @@ export default function RecommendPage() {
       }, 100);
     } catch (err) {
       console.error(err);
-      alert("Errore server 😢");
+      showToast({
+        variant: "error",
+        message: "Something went wrong. Check your connection and try again.",
+      });
       setLoading(false);
     }
   }
@@ -285,7 +293,10 @@ export default function RecommendPage() {
     setLimitReached(null);
 
     if (!loggedUserEmail) {
-      alert("Fai login per salvare la ricerca.");
+      showToast({
+        variant: "info",
+        message: "Log in to save this search and get deal alerts.",
+      });
       return;
     }
 
@@ -309,6 +320,10 @@ export default function RecommendPage() {
 
       if (res.ok) {
         setEmailSaved(true);
+        showToast({
+          variant: "success",
+          message: "Search saved. We’ll watch for deals that match your taste.",
+        });
       } else {
         if (result.error === "limit_reached") {
           setLimitReached({
@@ -317,13 +332,26 @@ export default function RecommendPage() {
               "Upgrade to Premium to save more searches",
             limit: typeof result.limit === "number" ? result.limit : undefined,
           });
+          showToast({
+            variant: "info",
+            title: "Saved search limit reached",
+            message:
+              result.message ||
+              "You’ve used all saved searches on your current plan. Upgrade to save more.",
+          });
         } else {
-          alert("Errore nel salvataggio 😢");
+          showToast({
+            variant: "error",
+            message: "Couldn’t save your search. Please try again.",
+          });
         }
       }
     } catch (err) {
       console.error(err);
-      alert("Errore server 😢");
+      showToast({
+        variant: "error",
+        message: "Couldn’t save your search. Please try again.",
+      });
     }
   }
 
@@ -333,7 +361,7 @@ export default function RecommendPage() {
       .join("\n");
 
     navigator.clipboard.writeText(`My GamePing AI results:\n\n${text}`);
-    alert("Copied to clipboard 🚀");
+    showToast({ variant: "info", message: "Results copied to your clipboard." });
   }
 
   function buildOutboundUrl(game: Game) {
@@ -370,8 +398,8 @@ export default function RecommendPage() {
               </h1>
 
               <p className="mt-5 max-w-2xl text-lg leading-8 text-white/60">
-                Scrivi cosa cerchi oppure scegli qualche tag. Niente quiz infinito:
-                GamePing capisce la vibe e ti trova giochi con prezzi reali.
+                Write one sentence or pick a few tags—no endless quiz.
+                GamePing understands your vibe and finds games with real prices.
               </p>
             </div>
 
@@ -381,10 +409,10 @@ export default function RecommendPage() {
               </p>
 
               <div className="mt-5 space-y-4 text-sm text-white/70">
-                <p>✔ Scrivi 1 frase se hai già un’idea</p>
-                <p>✔ Scegli 3-8 tag massimo</p>
-                <p>✔ Imposta budget e piattaforma</p>
-                <p>✔ Lascia vuoto ciò che non ti interessa</p>
+                <p>✔ Write one sentence if you already have an idea</p>
+                <p>✔ Pick 3–8 tags max</p>
+                <p>✔ Set budget and platform</p>
+                <p>✔ Leave anything blank if you don’t care</p>
               </div>
             </div>
           </div>
@@ -396,20 +424,20 @@ export default function RecommendPage() {
               </p>
 
               <h2 className="mt-3 text-3xl font-black">
-                Dimmi a parole tue cosa cerchi
-                <span className="text-white/40"> (facoltativo)</span>
+                Describe what you want to play
+                <span className="text-white/40"> (optional)</span>
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-white/50">
-                Questo è il modo più semplice. Anche una frase basta.
+                This is the easiest way to get great picks.
               </p>
 
               <textarea
-                placeholder={`Esempi:
-"Vorrei qualcosa come Stardew Valley ma con più azione"
-"Cerco un gioco dark, narrativo, sotto i 20€"
-"Qualcosa tipo Elden Ring ma meno frustrante"
-"Un gioco cozy da giocare la sera per sessioni brevi"`}
+                placeholder={`Examples:
+"Something like Stardew Valley but with more action"
+"A dark, story-rich game under $20"
+"Like Elden Ring, but less punishing"
+"A cozy game for short evening sessions"`}
                 className="mt-6 min-h-44 w-full rounded-3xl border border-white/10 bg-black/40 p-5 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-cyan-400/70 focus:shadow-[0_0_30px_rgba(34,211,238,0.12)]"
                 value={form.userPrompt}
                 onChange={(e) => updateField("userPrompt", e.target.value)}
@@ -422,7 +450,7 @@ export default function RecommendPage() {
               </p>
 
               <h2 className="mt-3 text-2xl font-black">
-                Parti da una vibe già pronta
+                Start from a preset vibe
               </h2>
 
               <div className="mt-6 grid gap-4 md:grid-cols-4">
@@ -448,7 +476,7 @@ export default function RecommendPage() {
                   Platform
                 </p>
 
-                <h2 className="mt-3 text-2xl font-black">Dove vuoi giocare?</h2>
+                <h2 className="mt-3 text-2xl font-black">Where do you want to play?</h2>
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   {platforms.map((platform) => (
@@ -484,7 +512,7 @@ export default function RecommendPage() {
                 </p>
 
                 <h2 className="mt-3 text-2xl font-black">
-                  Quanto vuoi spendere massimo?
+                  What’s your max budget?
                 </h2>
 
                 <div className="mt-8 rounded-3xl border border-white/10 bg-black/30 p-5">
@@ -525,11 +553,11 @@ export default function RecommendPage() {
                   </p>
 
                   <h2 className="mt-3 text-2xl font-black">
-                    Scegli qualche tag
+                    Pick a few tags
                   </h2>
 
                   <p className="mt-2 text-sm text-white/50">
-                    Non devi compilarli tutti. 3-8 tag sono perfetti.
+                    You don’t need all of them. 3–8 tags is perfect.
                   </p>
                 </div>
 
@@ -584,7 +612,8 @@ export default function RecommendPage() {
                     Ready to analyze your taste?
                   </p>
                   <p className="mt-1 text-sm text-white/50">
-                    Riceverai 5 giochi con match, motivo e prezzo migliore trovato.
+                    You’ll get five picks with match scores, tailored explanations, and the
+                    best tracked price we found.
                   </p>
                 </div>
 
@@ -663,7 +692,7 @@ export default function RecommendPage() {
 
                       <h2 className="text-2xl font-black">{game.title}</h2>
 
-                      <p className="mt-4 min-h-[72px] text-sm leading-6 text-white/70">
+                      <p className="mt-4 min-h-[7.5rem] text-sm leading-6 text-white/70 md:min-h-[6.5rem]">
                         💡 {game.reason}
                       </p>
 
@@ -711,16 +740,16 @@ export default function RecommendPage() {
                 className="mt-10 rounded-3xl border border-purple-500/40 bg-purple-500/10 p-6"
               >
                 <h2 className="text-2xl font-black">
-                  Vuoi ricevere smart alerts?
+                  Want smart price alerts?
                 </h2>
 
                 <p className="mt-2 text-white/60">
-                  Salva questa ricerca e GamePing potrà monitorare i prezzi per te.
+                  Save this search and GamePing will track deals for you.
                 </p>
 
                 {loggedUserEmail && (
                   <p className="mt-4 text-sm text-cyan-300">
-                    Salveremo questa ricerca per: {loggedUserEmail}
+                    We’ll save this search for: {loggedUserEmail}
                   </p>
                 )}
 
@@ -730,23 +759,17 @@ export default function RecommendPage() {
                       type="submit"
                       className="rounded-full bg-purple-500 px-8 py-4 font-bold text-white transition hover:bg-purple-400"
                     >
-                      Salva ricerca
+                      Save search
                     </button>
                   ) : (
                     <a
                       href="/login"
                       className="inline-block rounded-full bg-cyan-400 px-8 py-4 font-bold text-black transition hover:bg-cyan-300"
                     >
-                      Login / Sign up per salvare
+                      Log in / Sign up to save
                     </a>
                   )}
                 </div>
-
-                {emailSaved && (
-                  <p className="mt-4 text-sm text-cyan-300">
-                    ✅ Perfetto! Ricerca salvata per gli alert.
-                  </p>
-                )}
 
                 {limitReached && (
                   <div className="mt-5 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-4">
@@ -768,7 +791,7 @@ export default function RecommendPage() {
 
               {!emailSaved && (
                 <p className="mt-4 text-sm text-white/50">
-                  Free plan: 1 saved search • Upgrade to unlock more
+                  Free plan: up to 3 saved searches • Upgrade to unlock more
                 </p>
               )}
             </div>

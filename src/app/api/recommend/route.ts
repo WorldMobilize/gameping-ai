@@ -230,22 +230,23 @@ Return ONLY valid JSON in this exact format:
       "id": 123,
       "title": "Game name",
       "match": 95,
-      "reason": "Short reason why this game matches the user.",
+      "reason": "Two or three sentences explaining fit and audience.",
       "price": "unknown"
     }
   ]
 }
 
 Rules:
-- Recommend exactly 10 games.
+- Recommend exactly 5 games (final list shown to the user).
 - Match must be a number from 0 to 100.
-- Reason must be short, specific and personal.
+- Each "reason" must be 2–3 concise sentences in plain English (no markdown, no bullet symbols).
+- In those sentences: (1) why this pick fits the user's stated request and intent, (2) what kind of player or playstyle it suits best. Be specific to this title (avoid generic praise).
 - If a candidate pool is provided, you MUST pick games from that list and must not invent titles.
 - Prioritize truly intent-matching games (including indie/niche), not only famous titles.
 - Penalize games that match negativeKeywords.
 - Avoid generic matches (e.g. only "simulator" without the core subject).
 - Prefer games available on the selected platform.
-- Consider the budget, but do not invent prices.
+- Consider the budget in spirit, but never invent or quote dollar amounts inside "reason"—prices are filled in separately.
 - Do not include markdown.
 - Do not include extra text.
 `,

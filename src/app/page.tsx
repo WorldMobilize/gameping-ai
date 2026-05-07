@@ -184,8 +184,8 @@ export default function Home() {
             </h2>
 
             <p className="mt-4 text-white/55">
-              GamePing non prova solo a mostrarti giochi famosi. Combina preferenze,
-              prezzo e contesto per aiutarti a trovare qualcosa che ha davvero senso.
+              GamePing goes beyond surfacing the usual bestsellers. It blends your taste,
+              budget, and context so recommendations actually feel worth playing.
             </p>
           </div>
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ToastProvider";
 
 type NavbarProps = {
   ctaLabel?: string;
@@ -13,6 +14,7 @@ export default function Navbar({
   ctaLabel = "Try it",
   ctaHref = "/recommend",
 }: NavbarProps) {
+  const { showToast } = useToast();
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,7 +39,10 @@ export default function Navbar({
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUserEmail(null);
-    window.location.href = "/";
+    showToast({ variant: "success", message: "You’re logged out." });
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 500);
   };
 
   return (

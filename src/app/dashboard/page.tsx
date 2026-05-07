@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import { useToast } from "@/components/ToastProvider";
 import Link from "next/link";
 
 type Game = {
@@ -27,6 +28,7 @@ type SearchProfile = {
 };
 
 export default function Dashboard() {
+  const { showToast } = useToast();
   const [searches, setSearches] = useState<SearchProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -60,7 +62,7 @@ export default function Dashboard() {
   async function deleteSearch(id: string) {
     if (!userId) return;
 
-    const confirmDelete = confirm("Vuoi eliminare questa ricerca?");
+    const confirmDelete = confirm("Delete this saved search?");
     if (!confirmDelete) return;
 
     const res = await fetch("/api/delete-search", {
@@ -75,7 +77,10 @@ export default function Dashboard() {
     if (res.ok) {
       setSearches((prev) => prev.filter((search) => search.id !== id));
     } else {
-      alert("Errore durante eliminazione 😢");
+      showToast({
+        variant: "error",
+        message: "Couldn’t delete that saved search. Try again.",
+      });
     }
   }
 
@@ -106,7 +111,7 @@ export default function Dashboard() {
 
           {!loading && searches.length === 0 && (
             <div className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-8">
-              <h2 className="text-2xl font-black">Nessuna ricerca salvata</h2>
+              <h2 className="text-2xl font-black">No saved searches yet</h2>
               <p className="mt-3 text-white/60">
                 Create your first search to start tracking deals.
               </p>
