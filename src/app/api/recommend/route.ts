@@ -5,6 +5,8 @@ import {
   hashNormalizedInput,
   setCachedAiRecommendation,
 } from "@/lib/cache";
+import { rateLimit } from "@/lib/rate-limit";
+import { createClient as createCookieClient } from "@/lib/supabase/server";
 import {
   dedupeCandidates,
   fetchRawgCandidates,
@@ -65,6 +67,36 @@ function normalizeIntentFallback(input: {
 
 export async function POST(req: Request) {
   try {
+    // Rate limit: 10 requests / 10 minutes per user (fallback to IP).
+    let userId: string | null = null;
+    try {
+      const supabase = await createCookieClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      userId = user?.id ?? null;
+    } catch {}
+
+    const rl = await rateLimit({
+      req,
+      action: "recommend",
+      limit: 10,
+      windowMs: 10 * 60 * 1000,
+      userId,
+    });
+
+    if (!rl.allowed) {
+      return NextResponse.json(
+        {
+          error: "Rate limit exceeded",
+          action: "recommend",
+          limit: rl.limit,
+          resetAt: rl.resetAt,
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
 
     const {

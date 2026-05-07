@@ -41,12 +41,18 @@ export async function POST(req: Request) {
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id);
 
-    // 🔥 limite
-    const limit = plan === "premium" ? 3 : 1;
+    // 🔥 limite (MVP)
+    // free: 3 saved searches
+    // premium: 25 saved searches
+    const limit = plan === "premium" ? 25 : 3;
 
     if ((count || 0) >= limit) {
       return NextResponse.json(
-        { error: "Upgrade to Premium to save more searches" },
+        {
+          error: "limit_reached",
+          message: "Upgrade to Premium to save more searches",
+          limit,
+        },
         { status: 403 }
       );
     }

@@ -186,6 +186,10 @@ export default function RecommendPage() {
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [emailSaved, setEmailSaved] = useState(false);
+  const [limitReached, setLimitReached] = useState<{
+    message: string;
+    limit?: number;
+  } | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -278,6 +282,7 @@ export default function RecommendPage() {
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setLimitReached(null);
 
     if (!loggedUserEmail) {
       alert("Fai login per salvare la ricerca.");
@@ -306,7 +311,12 @@ export default function RecommendPage() {
         setEmailSaved(true);
       } else {
         if (result.error === "limit_reached") {
-          alert("🚀 Free limit reached. Upgrade to Premium to save more searches.");
+          setLimitReached({
+            message:
+              result.message ||
+              "Upgrade to Premium to save more searches",
+            limit: typeof result.limit === "number" ? result.limit : undefined,
+          });
         } else {
           alert("Errore nel salvataggio 😢");
         }
@@ -736,6 +746,23 @@ export default function RecommendPage() {
                   <p className="mt-4 text-sm text-cyan-300">
                     ✅ Perfetto! Ricerca salvata per gli alert.
                   </p>
+                )}
+
+                {limitReached && (
+                  <div className="mt-5 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-4">
+                    <p className="text-sm font-bold text-cyan-200">
+                      {limitReached.message}
+                      {typeof limitReached.limit === "number"
+                        ? ` (limit: ${limitReached.limit})`
+                        : ""}
+                    </p>
+                    <a
+                      href="/upgrade"
+                      className="mt-3 inline-block rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black transition hover:bg-cyan-300"
+                    >
+                      Upgrade to Premium →
+                    </a>
+                  </div>
                 )}
               </form>
 
