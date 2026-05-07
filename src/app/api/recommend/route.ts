@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import {
+  getCachedAiRecommendation,
+  hashNormalizedInput,
+  setCachedAiRecommendation,
+} from "@/lib/cache";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -18,6 +23,26 @@ export async function POST(req: Request) {
       platform,
       budget,
     } = body;
+
+    const normalizedInput = {
+      userPrompt: typeof userPrompt === "string" ? userPrompt.trim() : "",
+      genres: typeof genres === "string" ? genres.trim() : "",
+      playStyles: typeof playStyles === "string" ? playStyles.trim() : "",
+      vibes: typeof vibes === "string" ? vibes.trim() : "",
+      mechanics: typeof mechanics === "string" ? mechanics.trim() : "",
+      platform: typeof platform === "string" ? platform.trim() : "",
+      budget: typeof budget === "string" ? budget.trim() : String(budget ?? "").trim(),
+    };
+
+    const inputHash = hashNormalizedInput(normalizedInput);
+    const cached = await getCachedAiRecommendation<{
+      games: any[];
+      usage?: any;
+    }>(inputHash);
+
+    if (cached) {
+      return NextResponse.json(cached);
+    }
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -137,10 +162,21 @@ ${budget || "not specified"}
       finalGames = underBudget.length >= 3 ? underBudget : enrichedGames;
     }
 
-    return NextResponse.json({
+    const payload = {
       games: finalGames.slice(0, 5),
       usage: response.usage,
-    });
+    };
+
+    // Best-effort cache: do not block response on failures.
+    try {
+      await setCachedAiRecommendation({
+        inputHash,
+        inputNormalized: normalizedInput,
+        responseJson: payload,
+      });
+    } catch {}
+
+    return NextResponse.json(payload);
   } catch (error) {
     console.error("OpenAI error:", error);
 

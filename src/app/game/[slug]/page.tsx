@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { getCachedRawgGame, setCachedRawgGame } from "@/lib/cache";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -85,6 +86,10 @@ async function getStores(): Promise<StoreInfo[]> {
 
 async function getRawgGame(title: string): Promise<RawgGame | null> {
   try {
+    const slug = encodeURIComponent(title.trim().toLowerCase());
+    const cached = await getCachedRawgGame<RawgGame>(slug);
+    if (cached) return cached;
+
     const searchRes = await fetch(
       `https://api.rawg.io/api/games?key=${
         process.env.RAWG_API_KEY
@@ -102,7 +107,17 @@ async function getRawgGame(title: string): Promise<RawgGame | null> {
       { cache: "no-store" }
     );
 
-    return await detailRes.json();
+    const payload = await detailRes.json();
+
+    try {
+      await setCachedRawgGame({
+        slug,
+        title,
+        rawgPayload: payload,
+      });
+    } catch {}
+
+    return payload;
   } catch {
     return null;
   }
