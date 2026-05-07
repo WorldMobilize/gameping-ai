@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import Link from "next/link";
 
 type Game = {
   title: string;
@@ -96,8 +97,7 @@ export default function Dashboard() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-white/60">
-            Qui trovi le tue ricerche salvate. In futuro GamePing controllerà
-            prezzi e nuove uscite per mandarti alert intelligenti.
+            Your saved searches and alerts live here.
           </p>
 
           {loading && (
@@ -108,8 +108,14 @@ export default function Dashboard() {
             <div className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-8">
               <h2 className="text-2xl font-black">Nessuna ricerca salvata</h2>
               <p className="mt-3 text-white/60">
-                Vai nella pagina recommend e salva la tua prima ricerca.
+                Create your first search to start tracking deals.
               </p>
+              <Link
+                href="/recommend"
+                className="mt-6 inline-block rounded-full bg-cyan-400 px-8 py-4 font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
+              >
+                Create your first search →
+              </Link>
             </div>
           )}
 

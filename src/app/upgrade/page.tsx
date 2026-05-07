@@ -38,6 +38,9 @@ export default function UpgradePage() {
               <h2 className="text-2xl font-black">
                 Premium <span className="text-cyan-300">+</span>
               </h2>
+              <p className="mt-2 text-sm font-bold text-cyan-200">
+                Premium — €4.99/month, coming soon
+              </p>
               <p className="mt-2 text-sm text-white/55">
                 For people who want alerts that actually feel useful.
               </p>
@@ -60,6 +63,36 @@ export default function UpgradePage() {
                 </button>
 
                 <span className="text-sm text-white/55">Stripe checkout coming soon</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-12 rounded-3xl border border-white/10 bg-white/[0.04] p-8">
+            <p className="text-xs font-black uppercase tracking-[0.35em] text-purple-300">
+              FAQ
+            </p>
+            <h2 className="mt-3 text-3xl font-black">Quick answers</h2>
+
+            <div className="mt-6 space-y-5 text-white/70">
+              <div>
+                <p className="font-black text-white">What is a saved search?</p>
+                <p className="mt-2 text-sm leading-6 text-white/60">
+                  A saved search stores your taste + budget so GamePing can keep an eye on deals for you.
+                </p>
+              </div>
+
+              <div>
+                <p className="font-black text-white">How do price alerts work?</p>
+                <p className="mt-2 text-sm leading-6 text-white/60">
+                  When a tracked game drops under your budget, GamePing sends you a notification.
+                </p>
+              </div>
+
+              <div>
+                <p className="font-black text-white">When will Stripe checkout be available?</p>
+                <p className="mt-2 text-sm leading-6 text-white/60">
+                  Soon. This page is ready for Stripe checkout integration.
+                </p>
               </div>
             </div>
           </div>

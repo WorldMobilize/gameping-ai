@@ -50,7 +50,7 @@ export default function Navbar({
         <div className="flex items-center gap-4">
           <Link
             href="/upgrade"
-            className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-5 py-2 text-sm font-black text-cyan-200 transition hover:border-cyan-400/60 hover:bg-cyan-400/15"
+            className="rounded-full border border-white/15 bg-white/[0.04] px-4 py-1.5 text-xs font-bold text-white/70 transition hover:border-cyan-400/40 hover:text-cyan-200"
           >
             Premium
           </Link>

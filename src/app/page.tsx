@@ -26,17 +26,17 @@ const features = [
   {
     label: "01",
     title: "Describe your taste",
-    text: "Scrivi una frase o scegli qualche tag. GamePing capisce mood, generi, budget e piattaforma.",
+    text: "Write one sentence or pick a few tags. GamePing understands mood, genres, budget, and platform.",
   },
   {
     label: "02",
     title: "Get smarter picks",
-    text: "Ricevi giochi con match score, motivazione chiara e prezzo reale trovato online.",
+    text: "Get picks with a match score, a clear reason, and real prices found online.",
   },
   {
     label: "03",
     title: "Track better deals",
-    text: "Salva la ricerca e ricevi alert quando un gioco scende sotto il tuo budget.",
+    text: "Save a search and get alerts when a game drops under your budget.",
   },
 ];
 
@@ -75,9 +75,8 @@ export default function Home() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/65">
-              Basta scrolling infinito tra store, offerte random e wishlist dimenticate.
-              Scrivi cosa vuoi giocare e GamePing AI ti trova giochi personalizzati,
-              prezzi reali e deal da monitorare.
+              Stop endless scrolling through stores and random deals.
+              Tell GamePing what you feel like playing and get tailored picks with real prices.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -217,7 +216,7 @@ export default function Home() {
             <p className="text-4xl font-black text-cyan-300">5</p>
             <p className="mt-2 font-black">personalized picks</p>
             <p className="mt-2 text-sm text-white/50">
-              Non una lista infinita: pochi risultati, più mirati.
+              Not an endless list—just the best matches.
             </p>
           </div>
 
@@ -225,7 +224,7 @@ export default function Home() {
             <p className="text-4xl font-black text-cyan-300">Live</p>
             <p className="mt-2 font-black">price checks</p>
             <p className="mt-2 text-sm text-white/50">
-              Prezzi reali trovati tramite store/deal provider.
+              Real prices found via deal providers.
             </p>
           </div>
 
@@ -233,7 +232,7 @@ export default function Home() {
             <p className="text-4xl font-black text-cyan-300">AI</p>
             <p className="mt-2 font-black">taste matching</p>
             <p className="mt-2 text-sm text-white/50">
-              Puoi scrivere a parole tue cosa vuoi giocare.
+              Describe your vibe in plain language.
             </p>
           </div>
         </div>
@@ -253,8 +252,8 @@ export default function Home() {
             </h2>
 
             <p className="mx-auto mt-4 max-w-2xl text-white/60">
-              Scegli una vibe, imposta budget e piattaforma, oppure scrivi una frase.
-              GamePing fa il resto.
+              Pick a vibe, set a budget and platform, or just write one sentence.
+              GamePing does the rest.
             </p>
 
             <Link href="/recommend">

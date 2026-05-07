@@ -321,6 +321,11 @@ export default async function GameDetailPage({
                     No deal available
                   </span>
                 )}
+                {bestDeal?.dealID && (
+                  <p className="w-full text-xs text-white/45">
+                    Redirects via CheapShark to the store.
+                  </p>
+                )}
 
                 {trailer && (
                   <a
@@ -544,6 +549,9 @@ export default async function GameDetailPage({
                   </div>
                 ))}
               </div>
+              <p className="mt-4 text-xs text-white/45">
+                Redirects via CheapShark to the store.
+              </p>
             </div>
           )}
         </div>
