@@ -59,6 +59,19 @@ export default function Dashboard() {
     load();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upgrade") === "success") {
+      showToast({
+        variant: "success",
+        message:
+          "Welcome to Premium. You can save up to 25 searches and unlock full alerts.",
+      });
+      window.history.replaceState(null, "", "/dashboard");
+    }
+  }, [showToast]);
+
   async function deleteSearch(id: string) {
     if (!userId) return;
 
