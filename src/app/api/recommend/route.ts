@@ -721,10 +721,18 @@ function scoreVerifiedCandidates(params: {
 }
 
 export async function POST(req: Request) {
+  let url: URL | null = null;
+  let debugEnabled = false;
+  let noCache = false;
   try {
-    const url = new URL(req.url);
-    const debugEnabled = url.searchParams.get("debug") === "1";
-    const noCache = url.searchParams.get("nocache") === "1";
+    url = new URL(req.url);
+    debugEnabled = url.searchParams.get("debug") === "1";
+    noCache = url.searchParams.get("nocache") === "1";
+  } catch {}
+
+  let stage: "discovery" | "relevance" | "rerank" | "unknown" = "unknown";
+
+  try {
 
     // Rate limit: 10 requests / 10 minutes per user (fallback to IP).
     let userId: string | null = null;
@@ -774,6 +782,7 @@ export async function POST(req: Request) {
     });
 
     // 1) AI-first discovery (titles + intent).
+    stage = "discovery";
     const aiDiscovery = await aiFirstDiscovery({
       openai,
       normalizedInput,
@@ -865,6 +874,7 @@ export async function POST(req: Request) {
         maxToFetch: 18,
       });
 
+      stage = "relevance";
       const rel = await aiSemanticRelevanceFilter({
         openai,
         userQuery: normalizedInput.userPrompt,
@@ -879,6 +889,7 @@ export async function POST(req: Request) {
 
     // 5) Final rerank: AI picks ONLY from verified pool by id.
     const hasCandidatePool = filteredPool.length > 0;
+    stage = "rerank";
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },
@@ -1144,6 +1155,42 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
     return NextResponse.json(payload);
   } catch (error) {
     console.error("OpenAI error:", error);
+    if (debugEnabled) {
+      const err = error as unknown as {
+        message?: unknown;
+        name?: unknown;
+        status?: unknown;
+        code?: unknown;
+        type?: unknown;
+      };
+
+      const key = process.env.OPENAI_API_KEY;
+      const openAiKeyPrefix =
+        typeof key === "string" && key.startsWith("sk-") ? key.slice(0, 7) : null;
+
+      return NextResponse.json(
+        {
+          error: "AI failed",
+          stage,
+          message: typeof err.message === "string" ? err.message : "Unknown error",
+          name: typeof err.name === "string" ? err.name : undefined,
+          status: typeof err.status === "number" ? err.status : undefined,
+          code: typeof err.code === "string" ? err.code : undefined,
+          type: typeof err.type === "string" ? err.type : undefined,
+          hasOpenAiKey: Boolean(process.env.OPENAI_API_KEY),
+          openAiKeyPrefix,
+          runtime: {
+            nodeEnv: process.env.NODE_ENV,
+            vercel: process.env.VERCEL,
+            vercelRegion: process.env.VERCEL_REGION,
+            vercelEnv: process.env.VERCEL_ENV,
+            url: url?.toString() ?? req.url,
+          },
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ error: "AI failed" }, { status: 500 });
   }
 }
