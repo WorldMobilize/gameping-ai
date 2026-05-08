@@ -37,6 +37,7 @@ const openai = new OpenAI({
 type RecommendDebug = {
   cacheHit: boolean;
   inputHash: string;
+  resolvedInput?: string;
   models: {
     discovery: string;
     relevance: string;
@@ -282,6 +283,12 @@ function clamp(n: number, min: number, max: number) {
 function normalizeInput(body: unknown) {
   const {
     userPrompt,
+    query,
+    prompt,
+    input,
+    message,
+    taste,
+    preferences,
     genres,
     playStyles,
     vibes,
@@ -290,8 +297,18 @@ function normalizeInput(body: unknown) {
     budget,
   } = (body ?? {}) as Record<string, unknown>;
 
+  const resolvedUserPrompt =
+    (typeof userPrompt === "string" && userPrompt.trim()) ||
+    (typeof query === "string" && query.trim()) ||
+    (typeof prompt === "string" && prompt.trim()) ||
+    (typeof input === "string" && input.trim()) ||
+    (typeof message === "string" && message.trim()) ||
+    (typeof taste === "string" && taste.trim()) ||
+    (typeof preferences === "string" && preferences.trim()) ||
+    "";
+
   return {
-    userPrompt: typeof userPrompt === "string" ? userPrompt.trim() : "",
+    userPrompt: resolvedUserPrompt,
     genres: typeof genres === "string" ? genres.trim() : "",
     playStyles: typeof playStyles === "string" ? playStyles.trim() : "",
     vibes: typeof vibes === "string" ? vibes.trim() : "",
@@ -498,6 +515,12 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const normalizedInput = normalizeInput(body);
+    if (!normalizedInput.userPrompt) {
+      return NextResponse.json(
+        { error: "Missing recommendation query" },
+        { status: 400 }
+      );
+    }
     const userBlob = inputBlob({
       userPrompt: normalizedInput.userPrompt,
       genres: normalizedInput.genres,
@@ -829,6 +852,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
       payload.debug = {
         cacheHit: Boolean(cached),
         inputHash,
+        resolvedInput: normalizedInput.userPrompt,
         models: {
           discovery: "gpt-4o-mini",
           relevance: "gpt-4o-mini",
