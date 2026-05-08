@@ -38,6 +38,9 @@ type RecommendDebug = {
   cacheHit: boolean;
   inputHash: string;
   resolvedInput?: string;
+  noCache?: boolean;
+  cacheReadSkipped?: boolean;
+  cacheWriteSkipped?: boolean;
   models: {
     discovery: string;
     relevance: string;
@@ -60,6 +63,17 @@ type RecommendDebug = {
     count: number;
     titles: string[];
   };
+  cheapSharkProbe?: {
+    rawgTitle: string;
+    cheapsharkQuery: string;
+    cheapsharkUrl: string;
+    rawCheapSharkResults: string[];
+    scores: Array<{ title: string; score: number; rejected?: string }>;
+    selectedCheapSharkTitle?: string;
+    selectedDealId?: string;
+    selectedPrice?: string;
+    rejectedReason?: string;
+  };
   cheapShark: Array<{
     game: string;
     query: string;
@@ -69,6 +83,12 @@ type RecommendDebug = {
     dealId?: string;
     storeId?: string;
     reason?: string;
+    debug?: {
+      cheapsharkUrl: string;
+      rawResults: Array<{ title: string; cheapest?: string; dealId?: string; storeId?: string }>;
+      scores: Array<{ title: string; score: number; rejected?: string }>;
+      selectedScore?: number;
+    };
   }>;
 };
 
@@ -78,6 +98,224 @@ function safeParseJson<T>(text: string): T | null {
   } catch {
     return null;
   }
+}
+
+type CheapSharkRow = {
+  cheapest?: unknown;
+  cheapestDealID?: unknown;
+  external?: unknown;
+  storeID?: unknown;
+};
+
+const CHEAPSHARK_BAD_WORDS = [
+  "dlc",
+  "soundtrack",
+  "ost",
+  "demo",
+  "expansion",
+  "pack",
+  "bundle",
+] as const;
+
+const TITLE_NOISE_WORDS = [
+  "edition",
+  "definitive",
+  "remastered",
+  "goty",
+  "game",
+  "of",
+  "the",
+  "year",
+  "complete",
+  "ultimate",
+  "deluxe",
+  "collection",
+  "bundle",
+  "pack",
+] as const;
+
+function normalizeTitleForMatch(title: string) {
+  return title
+    .toLowerCase()
+    .replace(/[\u2019']/g, "") // quotes/apostrophes
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function titleTokensForMatch(title: string) {
+  const t = normalizeTitleForMatch(title);
+  if (!t) return [];
+  return t
+    .split(" ")
+    .filter(Boolean)
+    .filter((tok) => !TITLE_NOISE_WORDS.includes(tok as (typeof TITLE_NOISE_WORDS)[number]));
+}
+
+function jaccardTokens(a: string[], b: string[]) {
+  const A = new Set(a);
+  const B = new Set(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let inter = 0;
+  for (const x of A) if (B.has(x)) inter += 1;
+  const union = A.size + B.size - inter;
+  return union === 0 ? 0 : inter / union;
+}
+
+function containsBadWords(title: string) {
+  const t = normalizeTitleForMatch(title);
+  return CHEAPSHARK_BAD_WORDS.some((w) => t.includes(w));
+}
+
+function titleMatchScore(rawgTitle: string, cheapTitle: string) {
+  const aNorm = normalizeTitleForMatch(rawgTitle);
+  const bNorm = normalizeTitleForMatch(cheapTitle);
+  if (!aNorm || !bNorm) return 0;
+  if (aNorm === bNorm) return 1;
+  if (aNorm.length >= 4 && (aNorm.includes(bNorm) || bNorm.includes(aNorm))) return 0.93;
+
+  const aTok = titleTokensForMatch(rawgTitle);
+  const bTok = titleTokensForMatch(cheapTitle);
+  const ja = jaccardTokens(aTok, bTok);
+
+  // Require at least 2 shared tokens for multi-word titles.
+  const shared = aTok.filter((t) => bTok.includes(t)).length;
+  if (aTok.length >= 3 && shared < 2) return Math.min(ja, 0.45);
+  return ja;
+}
+
+async function getCheapSharkEnrichment(rawgTitle: string): Promise<{
+  matched: boolean;
+  price: string;
+  buyLink: string | null;
+  matchedTitle?: string;
+  dealId?: string;
+  storeId?: string;
+  reason?: string;
+  debug?: {
+    cheapsharkUrl: string;
+    rawResults: Array<{ title: string; cheapest?: string; dealId?: string; storeId?: string }>;
+    scores: Array<{ title: string; score: number; rejected?: string }>;
+    selectedScore?: number;
+  };
+}> {
+  const query = rawgTitle;
+  const url = `https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(
+    query
+  )}&limit=5`;
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    return {
+      matched: false,
+      price: "N/A",
+      buyLink: null,
+      reason: `CheapShark HTTP ${res.status}`,
+      debug: {
+        cheapsharkUrl: url,
+        rawResults: [],
+        scores: [],
+      },
+    };
+  }
+
+  const data = (await res.json()) as unknown;
+  if (!Array.isArray(data) || data.length === 0) {
+    return {
+      matched: false,
+      price: "N/A",
+      buyLink: null,
+      reason: "No CheapShark results",
+      debug: {
+        cheapsharkUrl: url,
+        rawResults: [],
+        scores: [],
+      },
+    };
+  }
+
+  let best: { score: number; row: CheapSharkRow } | null = null;
+  const debugRawResults: Array<{
+    title: string;
+    cheapest?: string;
+    dealId?: string;
+    storeId?: string;
+  }> = [];
+  const debugScores: Array<{ title: string; score: number; rejected?: string }> = [];
+
+  for (const item of data) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as CheapSharkRow;
+    const ext = typeof row.external === "string" ? row.external : "";
+    if (!ext) continue;
+    const cheapest = typeof row.cheapest === "string" ? row.cheapest : undefined;
+    const dealId =
+      typeof row.cheapestDealID === "string" ? row.cheapestDealID : undefined;
+    const storeId = typeof row.storeID === "string" ? row.storeID : undefined;
+    debugRawResults.push({ title: ext, cheapest, dealId, storeId });
+
+    if (containsBadWords(ext)) {
+      debugScores.push({ title: ext, score: 0, rejected: "bad_words" });
+      continue;
+    }
+
+    const score = titleMatchScore(rawgTitle, ext);
+    debugScores.push({ title: ext, score });
+    if (!best || score > best.score) {
+      best = { score, row };
+    }
+  }
+
+  if (!best) {
+    return {
+      matched: false,
+      price: "N/A",
+      buyLink: null,
+      reason: "No acceptable match",
+      debug: {
+        cheapsharkUrl: url,
+        rawResults: debugRawResults.slice(0, 5),
+        scores: debugScores.slice(0, 5),
+      },
+    };
+  }
+
+  // Threshold: avoid obvious mismatches.
+  if (best.score < 0.62) {
+    return {
+      matched: false,
+      price: "N/A",
+      buyLink: null,
+      matchedTitle: typeof best.row.external === "string" ? best.row.external : undefined,
+      reason: `Match score too low (${best.score.toFixed(2)})`,
+      debug: {
+        cheapsharkUrl: url,
+        rawResults: debugRawResults.slice(0, 5),
+        scores: debugScores.slice(0, 5),
+        selectedScore: best.score,
+      },
+    };
+  }
+
+  const cheapest = typeof best.row.cheapest === "string" ? best.row.cheapest : "N/A";
+  const dealId = typeof best.row.cheapestDealID === "string" ? best.row.cheapestDealID : undefined;
+  const storeId = typeof best.row.storeID === "string" ? best.row.storeID : undefined;
+
+  return {
+    matched: cheapest !== "N/A" && Boolean(dealId),
+    price: cheapest !== "N/A" ? cheapest : "N/A",
+    buyLink: dealId ? `https://www.cheapshark.com/redirect?dealID=${dealId}` : null,
+    matchedTitle: typeof best.row.external === "string" ? best.row.external : undefined,
+    dealId,
+    storeId,
+    reason: dealId ? undefined : "No dealId on best match",
+    debug: {
+      cheapsharkUrl: url,
+      rawResults: debugRawResults.slice(0, 5),
+      scores: debugScores.slice(0, 5),
+      selectedScore: best.score,
+    },
+  };
 }
 
 type AiRelevanceResult = {
@@ -486,6 +724,7 @@ export async function POST(req: Request) {
   try {
     const url = new URL(req.url);
     const debugEnabled = url.searchParams.get("debug") === "1";
+    const noCache = url.searchParams.get("nocache") === "1";
 
     // Rate limit: 10 requests / 10 minutes per user (fallback to IP).
     let userId: string | null = null;
@@ -553,7 +792,7 @@ export async function POST(req: Request) {
       usage?: unknown;
     }>(inputHash);
 
-    if (cached && !debugEnabled) {
+    if (cached && !debugEnabled && !noCache) {
       return NextResponse.json(cached);
     }
 
@@ -777,46 +1016,25 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
       pickedVerified.map(async (game) => {
         try {
           const query = game.title;
-          const url = `https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(
-            game.title
-          )}&limit=1`;
-          const res = await fetch(url);
-          const data = (await res.json()) as unknown;
-
-          if (
-            Array.isArray(data) &&
-            data.length > 0 &&
-            data[0] &&
-            typeof data[0] === "object"
-          ) {
-            const row = data[0] as Record<string, unknown>;
-            const cheapestDealID =
-              typeof row.cheapestDealID === "string" ? row.cheapestDealID : null;
-            cheapSharkDebug.push({
-              game: game.title,
-              query,
-              matched: true,
-              matchedTitle: typeof row.external === "string" ? row.external : undefined,
-              cheapest: typeof row.cheapest === "string" ? row.cheapest : undefined,
-              dealId: cheapestDealID ?? undefined,
-              storeId: typeof row.storeID === "string" ? row.storeID : undefined,
-            });
-            return {
-              ...game,
-              price: typeof row.cheapest === "string" ? row.cheapest : "N/A",
-              buyLink: cheapestDealID
-                ? `https://www.cheapshark.com/redirect?dealID=${cheapestDealID}`
-                : null,
-            };
-          }
+          const enrich = await getCheapSharkEnrichment(game.title);
 
           cheapSharkDebug.push({
             game: game.title,
             query,
-            matched: false,
-            reason: "No CheapShark results",
+            matched: enrich.matched,
+            matchedTitle: enrich.matchedTitle,
+            cheapest: enrich.price !== "N/A" ? enrich.price : undefined,
+            dealId: enrich.dealId,
+            storeId: enrich.storeId,
+            reason: enrich.reason,
+            debug: debugEnabled ? enrich.debug : undefined,
           });
-          return { ...game, price: "N/A", buyLink: null };
+
+          return {
+            ...game,
+            price: enrich.price,
+            buyLink: enrich.buyLink,
+          };
         } catch {
           cheapSharkDebug.push({
             game: game.title,
@@ -861,6 +1079,9 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
         cacheHit: Boolean(cached),
         inputHash,
         resolvedInput: normalizedInput.userPrompt,
+        noCache,
+        cacheReadSkipped: noCache,
+        cacheWriteSkipped: noCache,
         models: {
           discovery: "gpt-4o-mini",
           relevance: "gpt-4o-mini",
@@ -888,18 +1109,37 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
         },
         cheapShark: cheapSharkDebug,
       };
+
+      // Targeted probe for the reported case.
+      try {
+        const probeTitle = "Terraria";
+        const probe = await getCheapSharkEnrichment(probeTitle);
+        payload.debug.cheapSharkProbe = {
+          rawgTitle: probeTitle,
+          cheapsharkQuery: probeTitle,
+          cheapsharkUrl: probe.debug?.cheapsharkUrl ?? `https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(probeTitle)}&limit=5`,
+          rawCheapSharkResults: (probe.debug?.rawResults ?? []).map((r) => r.title),
+          scores: probe.debug?.scores ?? [],
+          selectedCheapSharkTitle: probe.matchedTitle,
+          selectedDealId: probe.dealId,
+          selectedPrice: probe.price,
+          rejectedReason: probe.reason,
+        };
+      } catch {}
       // Also log in production for quick Vercel inspection.
       console.log("[recommend:debug]", payload.debug);
     }
 
     // Best-effort cache: do not block response on failures.
-    try {
-      await setCachedAiRecommendation({
-        inputHash,
-        inputNormalized: cacheKeyInput,
-        responseJson: payload,
-      });
-    } catch {}
+    if (!noCache) {
+      try {
+        await setCachedAiRecommendation({
+          inputHash,
+          inputNormalized: cacheKeyInput,
+          responseJson: payload,
+        });
+      } catch {}
+    }
 
     return NextResponse.json(payload);
   } catch (error) {
