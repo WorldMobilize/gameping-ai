@@ -100,6 +100,10 @@ function safeParseJson<T>(text: string): T | null {
   }
 }
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
 type CheapSharkRow = {
   cheapest?: unknown;
   cheapestDealID?: unknown;
@@ -204,7 +208,29 @@ async function getCheapSharkEnrichment(rawgTitle: string): Promise<{
     query
   )}&limit=5`;
 
-  const res = await fetch(url);
+  const fetchOnce = async () => fetch(url);
+
+  let res = await fetchOnce();
+
+  // CheapShark can rate-limit Vercel IPs. One retry with a short backoff.
+  if (res.status === 429) {
+    await sleep(800);
+    res = await fetchOnce();
+    if (res.status === 429) {
+      return {
+        matched: false,
+        price: "N/A",
+        buyLink: null,
+        reason: "CheapShark HTTP 429 after retry",
+        debug: {
+          cheapsharkUrl: url,
+          rawResults: [],
+          scores: [],
+        },
+      };
+    }
+  }
+
   if (!res.ok) {
     return {
       matched: false,
@@ -1023,40 +1049,51 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
 
     // 6) CheapShark enrichment: keep RAWG metadata/image; only add price + buyLink.
     const cheapSharkDebug: RecommendDebug["cheapShark"] = [];
-    const enrichedGames = await Promise.all(
-      pickedVerified.map(async (game) => {
-        try {
-          const query = game.title;
-          const enrich = await getCheapSharkEnrichment(game.title);
+    const enrichedGames: Array<
+      (typeof pickedVerified)[number] & {
+        price: string;
+        buyLink: string | null;
+      }
+    > = [];
 
-          cheapSharkDebug.push({
-            game: game.title,
-            query,
-            matched: enrich.matched,
-            matchedTitle: enrich.matchedTitle,
-            cheapest: enrich.price !== "N/A" ? enrich.price : undefined,
-            dealId: enrich.dealId,
-            storeId: enrich.storeId,
-            reason: enrich.reason,
-            debug: debugEnabled ? enrich.debug : undefined,
-          });
+    // Sequential to reduce CheapShark 429 rate-limiting on Vercel.
+    for (let i = 0; i < pickedVerified.length; i++) {
+      const game = pickedVerified[i];
 
-          return {
-            ...game,
-            price: enrich.price,
-            buyLink: enrich.buyLink,
-          };
-        } catch {
-          cheapSharkDebug.push({
-            game: game.title,
-            query: game.title,
-            matched: false,
-            reason: "CheapShark fetch failed",
-          });
-          return { ...game, price: "N/A", buyLink: null };
-        }
-      })
-    );
+      // Small delay between requests.
+      if (i > 0) await sleep(350);
+
+      try {
+        const query = game.title;
+        const enrich = await getCheapSharkEnrichment(game.title);
+
+        cheapSharkDebug.push({
+          game: game.title,
+          query,
+          matched: enrich.matched,
+          matchedTitle: enrich.matchedTitle,
+          cheapest: enrich.price !== "N/A" ? enrich.price : undefined,
+          dealId: enrich.dealId,
+          storeId: enrich.storeId,
+          reason: enrich.reason,
+          debug: debugEnabled ? enrich.debug : undefined,
+        });
+
+        enrichedGames.push({
+          ...game,
+          price: enrich.price,
+          buyLink: enrich.buyLink,
+        });
+      } catch {
+        cheapSharkDebug.push({
+          game: game.title,
+          query: game.title,
+          matched: false,
+          reason: "CheapShark fetch failed",
+        });
+        enrichedGames.push({ ...game, price: "N/A", buyLink: null });
+      }
+    }
 
     // Budget: do not drop highly relevant games just because price is missing.
     const maxBudget = normalizedInput.budget ? Number(normalizedInput.budget) : null;
@@ -1121,22 +1158,30 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
         cheapShark: cheapSharkDebug,
       };
 
-      // Targeted probe for the reported case.
-      try {
-        const probeTitle = "Terraria";
-        const probe = await getCheapSharkEnrichment(probeTitle);
-        payload.debug.cheapSharkProbe = {
-          rawgTitle: probeTitle,
-          cheapsharkQuery: probeTitle,
-          cheapsharkUrl: probe.debug?.cheapsharkUrl ?? `https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(probeTitle)}&limit=5`,
-          rawCheapSharkResults: (probe.debug?.rawResults ?? []).map((r) => r.title),
-          scores: probe.debug?.scores ?? [],
-          selectedCheapSharkTitle: probe.matchedTitle,
-          selectedDealId: probe.dealId,
-          selectedPrice: probe.price,
-          rejectedReason: probe.reason,
-        };
-      } catch {}
+      // Targeted probe for the reported case (disabled in production to avoid extra CheapShark load).
+      if (process.env.NODE_ENV !== "production") {
+        try {
+          const probeTitle = "Terraria";
+          // Probe after enrichment so it doesn't worsen 429s.
+          await sleep(350);
+          const probe = await getCheapSharkEnrichment(probeTitle);
+          payload.debug.cheapSharkProbe = {
+            rawgTitle: probeTitle,
+            cheapsharkQuery: probeTitle,
+            cheapsharkUrl:
+              probe.debug?.cheapsharkUrl ??
+              `https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(
+                probeTitle
+              )}&limit=5`,
+            rawCheapSharkResults: (probe.debug?.rawResults ?? []).map((r) => r.title),
+            scores: probe.debug?.scores ?? [],
+            selectedCheapSharkTitle: probe.matchedTitle,
+            selectedDealId: probe.dealId,
+            selectedPrice: probe.price,
+            rejectedReason: probe.reason,
+          };
+        } catch {}
+      }
       // Also log in production for quick Vercel inspection.
       console.log("[recommend:debug]", payload.debug);
     }
