@@ -34,6 +34,39 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
+type RecommendDebug = {
+  cacheHit: boolean;
+  inputHash: string;
+  models: {
+    discovery: string;
+    relevance: string;
+    rerank: string;
+  };
+  env: {
+    hasOpenAiKey: boolean;
+    hasRawgKey: boolean;
+    nodeEnv?: string;
+    siteUrl?: string;
+  };
+  candidates: {
+    beforeAiFilter: number;
+    afterAiFilter: number;
+  };
+  selected: {
+    titles: string[];
+  };
+  cheapShark: Array<{
+    game: string;
+    query: string;
+    matched: boolean;
+    matchedTitle?: string;
+    cheapest?: string;
+    dealId?: string;
+    storeId?: string;
+    reason?: string;
+  }>;
+};
+
 function safeParseJson<T>(text: string): T | null {
   try {
     return JSON.parse(text) as T;
@@ -154,7 +187,7 @@ async function aiSemanticRelevanceFilter(params: {
     const resp = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },
-      temperature: 0.15,
+      temperature: 0,
       messages: [
         {
           role: "system",
@@ -430,6 +463,9 @@ function scoreVerifiedCandidates(params: {
 
 export async function POST(req: Request) {
   try {
+    const url = new URL(req.url);
+    const debugEnabled = url.searchParams.get("debug") === "1";
+
     // Rate limit: 10 requests / 10 minutes per user (fallback to IP).
     let userId: string | null = null;
     try {
@@ -490,7 +526,7 @@ export async function POST(req: Request) {
       usage?: unknown;
     }>(inputHash);
 
-    if (cached) {
+    if (cached && !debugEnabled) {
       return NextResponse.json(cached);
     }
 
@@ -580,7 +616,7 @@ export async function POST(req: Request) {
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       response_format: { type: "json_object" },
-      temperature: 0.65,
+      temperature: 0,
       messages: [
         {
           role: "system",
@@ -709,9 +745,11 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
       .slice(0, 5);
 
     // 6) CheapShark enrichment: keep RAWG metadata/image; only add price + buyLink.
+    const cheapSharkDebug: RecommendDebug["cheapShark"] = [];
     const enrichedGames = await Promise.all(
       pickedVerified.map(async (game) => {
         try {
+          const query = game.title;
           const url = `https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(
             game.title
           )}&limit=1`;
@@ -727,6 +765,15 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
             const row = data[0] as Record<string, unknown>;
             const cheapestDealID =
               typeof row.cheapestDealID === "string" ? row.cheapestDealID : null;
+            cheapSharkDebug.push({
+              game: game.title,
+              query,
+              matched: true,
+              matchedTitle: typeof row.external === "string" ? row.external : undefined,
+              cheapest: typeof row.cheapest === "string" ? row.cheapest : undefined,
+              dealId: cheapestDealID ?? undefined,
+              storeId: typeof row.storeID === "string" ? row.storeID : undefined,
+            });
             return {
               ...game,
               price: typeof row.cheapest === "string" ? row.cheapest : "N/A",
@@ -736,8 +783,20 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
             };
           }
 
+          cheapSharkDebug.push({
+            game: game.title,
+            query,
+            matched: false,
+            reason: "No CheapShark results",
+          });
           return { ...game, price: "N/A", buyLink: null };
         } catch {
+          cheapSharkDebug.push({
+            game: game.title,
+            query: game.title,
+            matched: false,
+            reason: "CheapShark fetch failed",
+          });
           return { ...game, price: "N/A", buyLink: null };
         }
       })
@@ -754,13 +813,48 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
       finalGames = underBudget.length >= 3 ? underBudget : enrichedGames;
     }
 
-    const payload = {
+    const payload: {
+      games: unknown[];
+      usage: { intent: unknown; rerank: unknown };
+      debug?: RecommendDebug;
+    } = {
       games: finalGames.slice(0, 5),
       usage: {
         intent: aiDiscovery.usage,
         rerank: response.usage,
       },
     };
+
+    if (debugEnabled) {
+      payload.debug = {
+        cacheHit: Boolean(cached),
+        inputHash,
+        models: {
+          discovery: "gpt-4o-mini",
+          relevance: "gpt-4o-mini",
+          rerank: "gpt-4o-mini",
+        },
+        env: {
+          hasOpenAiKey: Boolean(process.env.OPENAI_API_KEY),
+          hasRawgKey: Boolean(process.env.RAWG_API_KEY),
+          nodeEnv: process.env.NODE_ENV,
+          siteUrl:
+            process.env.NEXT_PUBLIC_SITE_URL ??
+            process.env.NEXT_PUBLIC_VERCEL_URL ??
+            process.env.VERCEL_URL,
+        },
+        candidates: {
+          beforeAiFilter: rerankPool.length,
+          afterAiFilter: filteredPool.length,
+        },
+        selected: {
+          titles: finalGames.map((g) => (g as { title?: unknown }).title).filter((t): t is string => typeof t === "string"),
+        },
+        cheapShark: cheapSharkDebug,
+      };
+      // Also log in production for quick Vercel inspection.
+      console.log("[recommend:debug]", payload.debug);
+    }
 
     // Best-effort cache: do not block response on failures.
     try {

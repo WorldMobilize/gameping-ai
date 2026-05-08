@@ -87,7 +87,7 @@ export async function aiFirstDiscovery(params: {
   const resp = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     response_format: { type: "json_object" },
-    temperature: 0.35,
+    temperature: 0,
     messages: [
       {
         role: "system",
