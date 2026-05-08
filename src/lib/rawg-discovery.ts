@@ -4,6 +4,15 @@ export type RawgCandidate = {
   id: number
   name: string
   slug?: string
+  background_image?: string | null
+  released?: string | null
+  rating?: number | null
+  ratings_count?: number | null
+  added?: number | null
+  // Optional metadata (best-effort; may be missing depending on endpoint used)
+  description_raw?: string | null
+  platforms?: string[]
+  stores?: string[]
   genres?: { name: string }[]
   tags?: { name: string }[]
 }
@@ -22,6 +31,7 @@ function normalizeToken(s: string) {
 
 function tokenizeForMatch(text: string) {
   return normalizeToken(text)
+    // Keep basic latin letters + digits. (RAWG names are mostly latin; this keeps matching predictable.)
     .replace(/[^a-z0-9\s-]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
@@ -48,7 +58,7 @@ function jaccard(a: string[], b: string[]) {
 }
 
 // Basic low-quality / non-base-game detectors (title-based).
-const QUALITY_BAD_PATTERNS: Array<{ re: RegExp; penalty: number }> = [
+export const QUALITY_BAD_PATTERNS: Array<{ re: RegExp; penalty: number }> = [
   { re: /\b(dlc|season pass|expansion)\b/i, penalty: 30 },
   { re: /\b(soundtrack|ost)\b/i, penalty: 35 },
   { re: /\b(demo|prologue)\b/i, penalty: 30 },
@@ -87,6 +97,10 @@ function normalizeTitleForDedupe(title: string) {
   return tokens.join(" ").trim()
 }
 
+function normalizeTitleForMatch(title: string) {
+  return normalizeTitleForDedupe(title)
+}
+
 function dedupePreferenceScore(title: string) {
   // Lower is better.
   const t = title.toLowerCase()
@@ -110,6 +124,32 @@ const SUBJECT_CONTEXT: Record<string, string[]> = {
 
 function anyIncludes(blob: string, tokens: string[]) {
   return tokens.some((t) => safeIncludes(blob, t))
+}
+
+function notNull<T>(value: T | null): value is T {
+  return value !== null
+}
+
+export function isLowQualityTitle(name: string) {
+  for (const p of QUALITY_BAD_PATTERNS) {
+    if (p.re.test(name)) return true
+  }
+  return false
+}
+
+export function titleMatchQuality(suggestedTitle: string, rawgName: string) {
+  const a = normalizeTitleForMatch(suggestedTitle)
+  const b = normalizeTitleForMatch(rawgName)
+  if (!a || !b) return 0
+  if (a === b) return 1
+  // Near exact: contains relationship (helps with punctuation differences).
+  if (a.length >= 4 && (a.includes(b) || b.includes(a))) return 0.93
+  const ja = jaccard(titleTokens(a), titleTokens(b))
+  // Very close token sets.
+  if (ja >= 0.9) return 0.9
+  if (ja >= 0.82) return 0.82
+  if (ja >= 0.74) return 0.74
+  return ja
 }
 
 export async function fetchRawgCandidates(params: {
@@ -140,10 +180,31 @@ export async function fetchRawgCandidates(params: {
           const rec = g as Record<string, unknown>
           if (typeof rec.id !== "number" && typeof rec.id !== "string") continue
           if (typeof rec.name !== "string") continue
+          const platforms =
+            Array.isArray(rec.platforms) ?
+              (rec.platforms as Array<{ platform?: { name?: unknown } }>).map((p) =>
+                typeof p?.platform?.name === "string" ? p.platform.name : ""
+              ).filter(Boolean)
+            : undefined
+          const stores =
+            Array.isArray(rec.stores) ?
+              (rec.stores as Array<{ store?: { name?: unknown } }>).map((s) =>
+                typeof s?.store?.name === "string" ? s.store.name : ""
+              ).filter(Boolean)
+            : undefined
           results.push({
             id: Number(rec.id),
             name: rec.name,
             slug: typeof rec.slug === "string" ? rec.slug : undefined,
+            background_image:
+              typeof rec.background_image === "string" ? rec.background_image : null,
+            released: typeof rec.released === "string" ? rec.released : null,
+            rating: typeof rec.rating === "number" ? rec.rating : null,
+            ratings_count:
+              typeof rec.ratings_count === "number" ? rec.ratings_count : null,
+            added: typeof rec.added === "number" ? rec.added : null,
+            platforms: platforms?.length ? platforms.slice(0, 8) : undefined,
+            stores: stores?.length ? stores.slice(0, 8) : undefined,
             genres: Array.isArray(rec.genres) ? (rec.genres as { name: string }[]) : undefined,
             tags: Array.isArray(rec.tags) ? (rec.tags as { name: string }[]) : undefined,
           })
@@ -155,6 +216,101 @@ export async function fetchRawgCandidates(params: {
   )
 
   return results
+}
+
+export async function searchRawgByTitle(params: {
+  rawgApiKey: string
+  title: string
+  pageSize?: number
+}): Promise<RawgCandidate[]> {
+  const q = params.title.trim()
+  if (!q) return []
+  const pageSize = Math.max(3, Math.min(params.pageSize ?? 8, 12))
+  try {
+    const url = `https://api.rawg.io/api/games?key=${params.rawgApiKey}&search=${encodeURIComponent(
+      q
+    )}&page_size=${pageSize}`
+    const res = await fetch(url, { cache: "no-store" })
+    if (!res.ok) return []
+    const data = (await res.json()) as { results?: unknown }
+    const arr = Array.isArray(data?.results) ? (data.results as unknown[]) : []
+    const mapped: Array<RawgCandidate | null> = arr.map((g) => {
+      if (!g || typeof g !== "object") return null
+      const rec = g as Record<string, unknown>
+      if (typeof rec.id !== "number" && typeof rec.id !== "string") return null
+      if (typeof rec.name !== "string") return null
+      const platforms =
+        Array.isArray(rec.platforms) ?
+          (rec.platforms as Array<{ platform?: { name?: unknown } }>).map((p) =>
+            typeof p?.platform?.name === "string" ? p.platform.name : ""
+          ).filter(Boolean)
+        : undefined
+      const stores =
+        Array.isArray(rec.stores) ?
+          (rec.stores as Array<{ store?: { name?: unknown } }>).map((s) =>
+            typeof s?.store?.name === "string" ? s.store.name : ""
+          ).filter(Boolean)
+        : undefined
+      return {
+        id: Number(rec.id),
+        name: rec.name,
+        slug: typeof rec.slug === "string" ? rec.slug : undefined,
+        background_image:
+          typeof rec.background_image === "string" ? rec.background_image : null,
+        released: typeof rec.released === "string" ? rec.released : null,
+        rating: typeof rec.rating === "number" ? rec.rating : null,
+        ratings_count:
+          typeof rec.ratings_count === "number" ? rec.ratings_count : null,
+        added: typeof rec.added === "number" ? rec.added : null,
+        platforms: platforms?.length ? platforms.slice(0, 8) : undefined,
+        stores: stores?.length ? stores.slice(0, 8) : undefined,
+        genres: Array.isArray(rec.genres) ? (rec.genres as { name: string }[]) : undefined,
+        tags: Array.isArray(rec.tags) ? (rec.tags as { name: string }[]) : undefined,
+      } satisfies RawgCandidate
+    })
+
+    return mapped.filter(notNull)
+  } catch {
+    return []
+  }
+}
+
+export async function fetchRawgGameDetails(params: {
+  rawgApiKey: string
+  rawgId: number
+}): Promise<Pick<RawgCandidate, "id" | "description_raw" | "platforms" | "stores"> | null> {
+  try {
+    const url = `https://api.rawg.io/api/games/${params.rawgId}?key=${params.rawgApiKey}`
+    const res = await fetch(url, { cache: "no-store" })
+    if (!res.ok) return null
+    const rec = (await res.json()) as Record<string, unknown>
+
+    const description_raw =
+      typeof rec.description_raw === "string" ? rec.description_raw : null
+
+    const platforms =
+      Array.isArray(rec.platforms) ?
+        (rec.platforms as Array<{ platform?: { name?: unknown } }>).map((p) =>
+          typeof p?.platform?.name === "string" ? p.platform.name : ""
+        ).filter(Boolean)
+      : undefined
+
+    const stores =
+      Array.isArray(rec.stores) ?
+        (rec.stores as Array<{ store?: { name?: unknown } }>).map((s) =>
+          typeof s?.store?.name === "string" ? s.store.name : ""
+        ).filter(Boolean)
+      : undefined
+
+    return {
+      id: params.rawgId,
+      description_raw,
+      platforms: platforms?.length ? platforms.slice(0, 10) : undefined,
+      stores: stores?.length ? stores.slice(0, 10) : undefined,
+    }
+  } catch {
+    return null
+  }
 }
 
 export function dedupeCandidates(candidates: RawgCandidate[]) {
