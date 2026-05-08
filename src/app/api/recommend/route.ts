@@ -56,6 +56,10 @@ type RecommendDebug = {
   selected: {
     titles: string[];
   };
+  finalResponse: {
+    count: number;
+    titles: string[];
+  };
   cheapShark: Array<{
     game: string;
     query: string;
@@ -849,6 +853,10 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
     };
 
     if (debugEnabled) {
+      const responseTitles = payload.games
+        .map((g) => (g as { title?: unknown }).title)
+        .filter((t): t is string => typeof t === "string");
+
       payload.debug = {
         cacheHit: Boolean(cached),
         inputHash,
@@ -873,6 +881,10 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
         },
         selected: {
           titles: finalGames.map((g) => (g as { title?: unknown }).title).filter((t): t is string => typeof t === "string"),
+        },
+        finalResponse: {
+          count: responseTitles.length,
+          titles: responseTitles,
         },
         cheapShark: cheapSharkDebug,
       };

@@ -14,6 +14,12 @@ type Game = {
   image?: string | null;
 };
 
+type RecommendDebug = {
+  resolvedInput?: string;
+  selected?: { titles?: string[] };
+  finalResponse?: { count?: number; titles?: string[] };
+};
+
 const platforms = [
   {
     name: "PC",
@@ -176,6 +182,8 @@ export default function RecommendPage() {
   const { showToast } = useToast();
   const resultsRef = useRef<HTMLDivElement | null>(null);
 
+  const [apiDebug, setApiDebug] = useState<RecommendDebug | null>(null);
+
   const [form, setForm] = useState({
     userPrompt: "",
     genres: "",
@@ -251,9 +259,15 @@ export default function RecommendPage() {
     e.preventDefault();
     setLoading(true);
     setEmailSaved(false);
+    setApiDebug(null);
 
     try {
-      const res = await fetch("/api/recommend", {
+      const debugEnabled =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("debug") === "1";
+      const endpoint = debugEnabled ? "/api/recommend?debug=1" : "/api/recommend";
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -273,6 +287,9 @@ export default function RecommendPage() {
       }
 
       setGames(data.games || []);
+      if (debugEnabled && data?.debug) {
+        setApiDebug(data.debug as RecommendDebug);
+      }
       setLoading(false);
 
       setTimeout(() => {
@@ -658,6 +675,33 @@ export default function RecommendPage() {
                   Copy results
                 </button>
               </div>
+
+              {apiDebug && (
+                <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
+                  <p className="text-xs font-black uppercase tracking-[0.35em] text-white/50">
+                    Debug
+                  </p>
+                  <p className="mt-2">
+                    Resolved input:{" "}
+                    <span className="font-bold text-white">
+                      {apiDebug.resolvedInput || "(none)"}
+                    </span>
+                  </p>
+                  <p className="mt-2">
+                    API finalResponse titles ({apiDebug.finalResponse?.count ?? "?"}
+                    ):{" "}
+                    <span className="text-white/85">
+                      {(apiDebug.finalResponse?.titles || []).join(" • ") || "(none)"}
+                    </span>
+                  </p>
+                  <p className="mt-2">
+                    UI rendered titles ({games.length}):{" "}
+                    <span className="text-white/85">
+                      {games.map((g) => g.title).join(" • ")}
+                    </span>
+                  </p>
+                </div>
+              )}
 
               <section className="mt-6 grid gap-6 md:grid-cols-2">
                 {games.map((game, index) => (
