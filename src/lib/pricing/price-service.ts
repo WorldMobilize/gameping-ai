@@ -35,7 +35,40 @@ export async function lookupBestPrice(params: {
     debugLabel: params.debugLabel,
   })) as CheapSharkBestPrice | null;
 
-  if (bestCheap) {
+  const cheapMatchedTitle =
+    bestCheap && typeof bestCheap.matchedTitle === "string"
+      ? bestCheap.matchedTitle.trim()
+      : "";
+  const cheapPriceRaw =
+    bestCheap && typeof bestCheap.price === "string" ? bestCheap.price.trim() : "";
+  const cheapPriceNum = cheapPriceRaw ? Number(cheapPriceRaw) : NaN;
+  const cheapHasValidPrice = Number.isFinite(cheapPriceNum) && cheapPriceNum > 0;
+  const cheapHasValidMatch = Boolean(cheapMatchedTitle);
+
+  // If CheapShark returns an object but without a usable price/title, treat it as invalid
+  // so fallback providers (e.g. ITAD) can run.
+  const cheapIsValid = Boolean(bestCheap) && cheapHasValidPrice && cheapHasValidMatch;
+
+  if (bestCheap && !cheapIsValid) {
+    if (debug) {
+      console.log("[pricing:service]", params.debugLabel ?? params.title, {
+        event: "cheapshark_result_invalid_fallback_itad",
+        reasons: [
+          ...(cheapHasValidPrice ? [] : ["missing_or_invalid_price"]),
+          ...(cheapHasValidMatch ? [] : ["missing_matchedTitle"]),
+        ],
+        cheapshark: {
+          price: bestCheap.price ?? null,
+          matchedTitle: bestCheap.matchedTitle ?? null,
+          dealId: bestCheap.dealId ?? null,
+          storeId: bestCheap.storeId ?? null,
+          hasDealUrl: Boolean(bestCheap.dealUrl),
+        },
+      });
+    }
+  }
+
+  if (cheapIsValid && bestCheap) {
     let storeName: string | undefined;
     if (bestCheap.storeId) {
       const stores = await cheapSharkGetStores({
