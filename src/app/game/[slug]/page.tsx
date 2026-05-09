@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { getCachedRawgGame, setCachedRawgGame } from "@/lib/cache";
+import { lookupBestPrice, lookupDeals } from "@/lib/pricing/price-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -35,54 +36,11 @@ type RawgMovie = {
   preview?: string;
 };
 
-type CheapDeal = {
-  dealID: string;
-  storeID: string;
-  title: string;
-  salePrice: string;
-  normalPrice: string;
-  savings: string;
-};
-
-type StoreInfo = {
-  storeID: string;
-  storeName: string;
-};
-
 type GameAiDetails = {
   whyYouMayLikeIt: string;
   bestFor: string;
   pros: string[];
 };
-
-async function getCheapSharkDeals(title: string): Promise<CheapDeal[]> {
-  try {
-    const res = await fetch(
-      `https://www.cheapshark.com/api/1.0/deals?title=${encodeURIComponent(
-        title
-      )}&pageSize=5&sortBy=Price`,
-      { cache: "no-store" }
-    );
-
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
-
-async function getStores(): Promise<StoreInfo[]> {
-  try {
-    const res = await fetch("https://www.cheapshark.com/api/1.0/stores", {
-      cache: "no-store",
-    });
-
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
 
 async function getRawgGame(title: string): Promise<RawgGame | null> {
   try {
@@ -233,11 +191,10 @@ export default async function GameDetailPage({
   const rawg = await getRawgGame(title);
   const screenshots = await getRawgScreenshots(rawg?.id);
   const movies = await getRawgMovies(rawg?.id);
-  const deals = await getCheapSharkDeals(title);
-  const stores = await getStores();
+  const bestPrice = await lookupBestPrice({ title });
+  const deals = await lookupDeals({ title, limit: 5 });
   const ai = await getGameAiDetails(title);
 
-  const bestDeal = deals[0];
   const heroImage = rawg?.background_image || screenshots[0]?.image;
   const trailer = movies[0]?.data?.max || movies[0]?.data?.["480"];
   const trailerPoster = movies[0]?.preview || heroImage;
@@ -252,10 +209,6 @@ export default async function GameDetailPage({
     .join(", ");
   const developers = rawg?.developers?.map((d) => d.name).join(", ");
   const publishers = rawg?.publishers?.map((p) => p.name).join(", ");
-
-  function getStoreName(storeID: string) {
-    return stores.find((store) => store.storeID === storeID)?.storeName || "Store";
-  }
 
   return (
     <main className="min-h-screen bg-[#03040a] text-white">
@@ -307,21 +260,21 @@ export default async function GameDetailPage({
               </div>
 
               <div className="mt-10 flex flex-wrap gap-4">
-                {bestDeal?.dealID ? (
+                {bestPrice?.deal?.url ? (
                   <a
-                    href={`https://www.cheapshark.com/redirect?dealID=${bestDeal.dealID}`}
+                    href={bestPrice.deal.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
                   >
-                    Buy now for ${bestDeal.salePrice} →
+                    Buy now for ${bestPrice.price} →
                   </a>
                 ) : (
                   <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/50">
                     No deal available
                   </span>
                 )}
-                {bestDeal?.dealID && (
+                {bestPrice?.deal?.url && (
                   <p className="w-full text-xs text-white/45">
                     Redirects via CheapShark to the store.
                   </p>
@@ -361,7 +314,7 @@ export default async function GameDetailPage({
                         Price
                       </p>
                       <p className="mt-2 text-2xl font-black text-cyan-300">
-                        {bestDeal?.salePrice ? `$${bestDeal.salePrice}` : "N/A"}
+                        {bestPrice?.price ? `$${bestPrice.price}` : "Price unavailable"}
                       </p>
                     </div>
 
@@ -524,11 +477,11 @@ export default async function GameDetailPage({
               <div className="mt-6 space-y-3">
                 {deals.map((deal) => (
                   <div
-                    key={deal.dealID}
+                    key={deal.deal.id}
                     className="grid items-center gap-4 rounded-2xl border border-white/10 bg-black/30 p-4 md:grid-cols-[1fr_auto_auto]"
                   >
                     <div>
-                      <p className="font-black">{getStoreName(deal.storeID)}</p>
+                      <p className="font-black">{deal.store.name || "Store"}</p>
                       <p className="text-sm text-white/45">
                         Normal price: ${deal.normalPrice}
                       </p>
@@ -539,7 +492,7 @@ export default async function GameDetailPage({
                     </p>
 
                     <a
-                      href={`https://www.cheapshark.com/redirect?dealID=${deal.dealID}`}
+                      href={deal.deal.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-full bg-white px-5 py-3 text-center text-sm font-black text-black transition hover:bg-cyan-100"
@@ -579,15 +532,19 @@ export default async function GameDetailPage({
               Deal summary
             </p>
             <h2 className="mt-4 text-4xl font-black">
-              {bestDeal?.salePrice ? `$${bestDeal.salePrice}` : "N/A"}
+              {bestPrice?.price ? `$${bestPrice.price}` : "Price unavailable"}
             </h2>
             <p className="mt-4 text-white/65">
-              Current lowest known price found through CheapShark.
+              {bestPrice
+                ? bestPrice.store?.name
+                  ? `Current lowest known price found via ${bestPrice.provider} (${bestPrice.store.name}).`
+                  : `Current lowest known price found via ${bestPrice.provider}.`
+                : "Price may be unavailable or rate-limited right now. Check again later."}
             </p>
 
-            {bestDeal?.dealID && (
+            {bestPrice?.deal?.url && (
               <a
-                href={`https://www.cheapshark.com/redirect?dealID=${bestDeal.dealID}`}
+                href={bestPrice.deal.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-6 block rounded-full bg-white px-6 py-4 text-center font-black text-black transition hover:bg-cyan-100"
