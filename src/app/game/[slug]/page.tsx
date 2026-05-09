@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import TrackPriceButton from "@/components/TrackPriceButton";
 import { getCachedRawgGame, setCachedRawgGame } from "@/lib/cache";
 import { lookupBestPrice, lookupDeals } from "@/lib/pricing/price-service";
 
@@ -574,6 +575,11 @@ export default async function GameDetailPage({
                 Get the deal →
               </a>
             )}
+
+            <TrackPriceButton
+              title={rawg?.name || title}
+              rawgId={rawg?.id ?? null}
+            />
           </div>
         </aside>
       </section>
