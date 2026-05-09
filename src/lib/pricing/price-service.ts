@@ -11,7 +11,7 @@ import { getCachedPriceQuote, setCachedPriceQuote } from "@/lib/pricing/price-ca
 
 export type BestPriceResult = {
   price: string; // numeric string
-  provider: "cheapshark" | "itad";
+  provider: "cheapshark" | "itad" | "free_to_play";
   store?: {
     id?: string;
     name?: string;
@@ -23,12 +23,56 @@ export type BestPriceResult = {
   matchedTitle?: string;
 };
 
+function normalizeTitleKey(title: string) {
+  return (title || "").trim().toLowerCase();
+}
+
+const FREE_TO_PLAY_TITLES = new Set(
+  [
+    "League of Legends",
+    "Dota 2",
+    "Valorant",
+    "Apex Legends",
+    "Counter-Strike 2",
+    "Counter-Strike: Global Offensive",
+    "Fortnite",
+    "Rocket League",
+    "Team Fortress 2",
+    "Warframe",
+    "Path of Exile",
+  ].map(normalizeTitleKey)
+);
+
+function isKnownFreeToPlayTitle(title: string) {
+  const key = normalizeTitleKey(title);
+  return FREE_TO_PLAY_TITLES.has(key);
+}
+
 export async function lookupBestPrice(params: {
   title: string;
   debug?: boolean;
   debugLabel?: string;
 }): Promise<BestPriceResult | null> {
   const debug = params.debug ?? false;
+
+  // Free-to-play guardrail: do not accidentally attach prices from spinoffs/editions.
+  // Also bypass cache to avoid serving stale/incorrect paid prices for known F2P titles.
+  if (isKnownFreeToPlayTitle(params.title)) {
+    const mapped: BestPriceResult = {
+      price: "Free",
+      provider: "free_to_play",
+      matchedTitle: params.title,
+      deal: { id: undefined, url: undefined },
+      store: { id: undefined, name: undefined },
+    };
+    if (debug) {
+      console.log("[pricing:service]", params.debugLabel ?? params.title, {
+        provider_used: "free_to_play",
+        returningToPage: mapped,
+      });
+    }
+    return mapped;
+  }
 
   const cache = await getCachedPriceQuote({ title: params.title });
   if (debug) {
@@ -147,7 +191,7 @@ export async function lookupBestPrice(params: {
       currency: "USD",
       storeName: storeName ?? null,
       dealUrl: bestCheap.dealUrl ?? null,
-      rawPayload: bestCheap,
+      rawPayload: debug ? bestCheap : null,
     });
 
     if (debug) {
@@ -197,7 +241,7 @@ export async function lookupBestPrice(params: {
     currency: "USD",
     storeName: bestItad.storeName ?? null,
     dealUrl: bestItad.dealUrl ?? null,
-    rawPayload: bestItad,
+    rawPayload: debug ? bestItad : null,
   });
 
   if (debug) {

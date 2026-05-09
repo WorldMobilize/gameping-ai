@@ -280,7 +280,8 @@ export default async function GameDetailPage({
                     rel="noopener noreferrer"
                     className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
                   >
-                    Buy now for ${bestPrice.price} →
+                    Buy now for{" "}
+                    {bestPrice.price === "Free" ? "Free" : `$${bestPrice.price}`} →
                   </a>
                 ) : (
                   <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/50">
@@ -327,7 +328,11 @@ export default async function GameDetailPage({
                         Price
                       </p>
                       <p className="mt-2 text-2xl font-black text-cyan-300">
-                        {bestPrice?.price ? `$${bestPrice.price}` : "Price unavailable"}
+                        {bestPrice?.price
+                          ? bestPrice.price === "Free"
+                            ? "Free"
+                            : `$${bestPrice.price}`
+                          : "Price unavailable"}
                       </p>
                     </div>
 
@@ -545,7 +550,11 @@ export default async function GameDetailPage({
               Deal summary
             </p>
             <h2 className="mt-4 text-4xl font-black">
-              {bestPrice?.price ? `$${bestPrice.price}` : "Price unavailable"}
+              {bestPrice?.price
+                ? bestPrice.price === "Free"
+                  ? "Free"
+                  : `$${bestPrice.price}`
+                : "Price unavailable"}
             </h2>
             <p className="mt-4 text-white/65">
               {bestPrice
