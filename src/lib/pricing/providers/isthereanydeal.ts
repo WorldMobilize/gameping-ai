@@ -28,6 +28,12 @@ type ItadPricesRow = {
   deals?: unknown;
 };
 
+type ItadOverviewRow = {
+  id?: unknown;
+  current?: unknown;
+  urls?: unknown;
+};
+
 export type ItadBestPrice = {
   provider: "itad";
   price: string; // "12.34"
@@ -159,11 +165,17 @@ export async function itadLookupBestPrice(params: {
   }
 
   // 2) Fetch prices.
-  const pricesUrl = `https://api.isthereanydeal.com/games/prices/v3?key=${encodeURIComponent(
+  // NOTE: `deals=true` means "only prices with price cut".
+  // For many games (including Terraria) there may be no cut at the moment, which returns an empty array.
+  // We try deals-only first (prefer actual discounts), then fall back to "all prices".
+  const pricesUrlDealsOnly = `https://api.isthereanydeal.com/games/prices/v3?key=${encodeURIComponent(
     apiKey
   )}&country=${encodeURIComponent(country)}&deals=true&capacity=1`;
+  const pricesUrlAll = `https://api.isthereanydeal.com/games/prices/v3?key=${encodeURIComponent(
+    apiKey
+  )}&country=${encodeURIComponent(country)}&capacity=1`;
 
-  const pricesFetch = await fetchWith429Retry(pricesUrl, {
+  const pricesFetchDealsOnly = await fetchWith429Retry(pricesUrlDealsOnly, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     cache: "no-store",
@@ -172,33 +184,58 @@ export async function itadLookupBestPrice(params: {
 
   if (debug) {
     console.log("[pricing:itad]", debugLabel ?? title, {
-      step: "prices",
-      status: pricesFetch.res.status,
-      retried: pricesFetch.retried,
+      step: "prices_deals_only",
+      status: pricesFetchDealsOnly.res.status,
+      retried: pricesFetchDealsOnly.retried,
     });
   }
 
-  if (!pricesFetch.res.ok) {
-    return null;
-  }
-
-  const pricesJson = (await pricesFetch.res.json()) as unknown;
-  if (debug) {
-    let preview: string;
-    try {
-      preview = JSON.stringify(pricesJson);
-    } catch {
-      preview = String(pricesJson);
+  const parsePricesRows = async (res: Response, step: string) => {
+    const json = (await res.json()) as unknown;
+    if (debug) {
+      let preview: string;
+      try {
+        preview = JSON.stringify(json);
+      } catch {
+        preview = String(json);
+      }
+      console.log("[pricing:itad]", debugLabel ?? title, {
+        step,
+        preview: preview.slice(0, 1200),
+        truncated: preview.length > 1200,
+      });
     }
-    console.log("[pricing:itad]", debugLabel ?? title, {
-      step: "prices_raw_preview",
-      preview: preview.slice(0, 1200),
-      truncated: preview.length > 1200,
-    });
+    const rows: ItadPricesRow[] = Array.isArray(json) ? (json as ItadPricesRow[]) : [];
+    return rows;
+  };
+
+  let rows: ItadPricesRow[] = [];
+
+  if (pricesFetchDealsOnly.res.ok) {
+    rows = await parsePricesRows(pricesFetchDealsOnly.res, "prices_raw_preview_deals_only");
   }
-  const rows: ItadPricesRow[] = Array.isArray(pricesJson)
-    ? (pricesJson as ItadPricesRow[])
-    : [];
+
+  // Fallback: all prices (no "deals only" restriction)
+  if (rows.length === 0) {
+    const pricesFetchAll = await fetchWith429Retry(pricesUrlAll, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify([best.id]),
+    });
+
+    if (debug) {
+      console.log("[pricing:itad]", debugLabel ?? title, {
+        step: "prices_all",
+        status: pricesFetchAll.res.status,
+        retried: pricesFetchAll.retried,
+      });
+    }
+
+    if (pricesFetchAll.res.ok) {
+      rows = await parsePricesRows(pricesFetchAll.res, "prices_raw_preview_all");
+    }
+  }
 
   const row = rows.find((r) => typeof r?.id === "string" && r.id === best.id) ?? rows[0];
   const deals = row && Array.isArray(row.deals) ? (row.deals as ItadDeal[]) : [];
@@ -237,6 +274,85 @@ export async function itadLookupBestPrice(params: {
   const amountRaw = price && typeof price.amount === "number" ? price.amount : NaN;
   const amount = Number.isFinite(amountRaw) ? amountRaw : NaN;
   if (!Number.isFinite(amount)) {
+    // Fallback: Overview endpoint can include a "current" best price even when prices/v3 returns no deals.
+    const overviewUrl = `https://api.isthereanydeal.com/games/overview/v2?key=${encodeURIComponent(
+      apiKey
+    )}&country=${encodeURIComponent(country)}`;
+    const overviewFetch = await fetchWith429Retry(overviewUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify([best.id]),
+    });
+
+    if (debug) {
+      console.log("[pricing:itad]", debugLabel ?? title, {
+        step: "overview",
+        status: overviewFetch.res.status,
+        retried: overviewFetch.retried,
+      });
+    }
+
+    if (overviewFetch.res.ok) {
+      const overviewJson = (await overviewFetch.res.json()) as unknown;
+      if (debug) {
+        let preview: string;
+        try {
+          preview = JSON.stringify(overviewJson);
+        } catch {
+          preview = String(overviewJson);
+        }
+        console.log("[pricing:itad]", debugLabel ?? title, {
+          step: "overview_raw_preview",
+          preview: preview.slice(0, 1200),
+          truncated: preview.length > 1200,
+        });
+      }
+
+      const pricesArr =
+        overviewJson &&
+        typeof overviewJson === "object" &&
+        Array.isArray((overviewJson as { prices?: unknown }).prices)
+          ? ((overviewJson as { prices: unknown[] }).prices as unknown[])
+          : [];
+
+      const firstRow = (pricesArr[0] ?? null) as ItadOverviewRow | null;
+      const current = (firstRow && (firstRow.current as Record<string, unknown> | null)) || null;
+      const currentShop = (current && (current.shop as ItadShop | null)) || null;
+      const currentPrice = (current && (current.price as ItadPriceAmount | null)) || null;
+      const currentUrl =
+        current && typeof (current as Record<string, unknown>).url === "string"
+          ? ((current as Record<string, unknown>).url as string).trim()
+          : "";
+
+      const ovAmountRaw =
+        currentPrice && typeof currentPrice.amount === "number" ? currentPrice.amount : NaN;
+      const ovAmount = Number.isFinite(ovAmountRaw) ? ovAmountRaw : NaN;
+      if (Number.isFinite(ovAmount)) {
+        const ovStoreId =
+          currentShop && (typeof currentShop.id === "number" || typeof currentShop.id === "string")
+            ? String(currentShop.id)
+            : undefined;
+        const ovStoreName = currentShop && typeof currentShop.name === "string" ? currentShop.name : undefined;
+        const mapped: ItadBestPrice = {
+          provider: "itad",
+          price: formatAmount2(ovAmount),
+          storeId: ovStoreId,
+          storeName: ovStoreName,
+          dealUrl: currentUrl || undefined,
+          matchedTitle: best.matchedTitle,
+        };
+        if (debug) {
+          console.log("[pricing:itad]", debugLabel ?? title, {
+            step: "overview_mapped_result",
+            ok: true,
+            mapped,
+          });
+        }
+        return mapped;
+      }
+    }
+
     if (debug) {
       console.log("[pricing:itad]", debugLabel ?? title, {
         step: "prices_parse",
