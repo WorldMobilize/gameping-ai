@@ -115,7 +115,14 @@ export async function lookupBestPrice(params: {
   });
   if (!bestItad) return null;
 
-  return {
+  if (debug) {
+    console.log("[pricing:service]", params.debugLabel ?? params.title, {
+      provider: "itad",
+      receivedFromItad: bestItad,
+    });
+  }
+
+  const mapped: BestPriceResult = {
     price: bestItad.price,
     provider: "itad",
     store: {
@@ -128,6 +135,15 @@ export async function lookupBestPrice(params: {
     },
     matchedTitle: bestItad.matchedTitle,
   };
+
+  if (debug) {
+    console.log("[pricing:service]", params.debugLabel ?? params.title, {
+      provider: "itad",
+      returningToPage: mapped,
+    });
+  }
+
+  return mapped;
 }
 
 export type DealRow = {

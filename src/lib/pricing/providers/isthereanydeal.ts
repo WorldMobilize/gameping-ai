@@ -183,6 +183,19 @@ export async function itadLookupBestPrice(params: {
   }
 
   const pricesJson = (await pricesFetch.res.json()) as unknown;
+  if (debug) {
+    let preview: string;
+    try {
+      preview = JSON.stringify(pricesJson);
+    } catch {
+      preview = String(pricesJson);
+    }
+    console.log("[pricing:itad]", debugLabel ?? title, {
+      step: "prices_raw_preview",
+      preview: preview.slice(0, 1200),
+      truncated: preview.length > 1200,
+    });
+  }
   const rows: ItadPricesRow[] = Array.isArray(pricesJson)
     ? (pricesJson as ItadPricesRow[])
     : [];
@@ -194,6 +207,32 @@ export async function itadLookupBestPrice(params: {
   const shop = (first?.shop ?? null) as ItadShop | null;
   const price = (first?.price ?? null) as ItadPriceAmount | null;
   const url = typeof first?.url === "string" && first.url.trim() ? first.url.trim() : undefined;
+
+  if (debug) {
+    console.log("[pricing:itad]", debugLabel ?? title, {
+      step: "selected_deal",
+      dealsCount: deals.length,
+      selected: {
+        shop: shop
+          ? {
+              id:
+                typeof shop.id === "number" || typeof shop.id === "string"
+                  ? String(shop.id)
+                  : null,
+              name: typeof shop.name === "string" ? shop.name : null,
+            }
+          : null,
+        price: price
+          ? {
+              amount: typeof price.amount === "number" ? price.amount : price.amount ?? null,
+              amountType: typeof price.amount,
+              currency: typeof price.currency === "string" ? price.currency : null,
+            }
+          : null,
+        url: url ?? null,
+      },
+    });
+  }
 
   const amountRaw = price && typeof price.amount === "number" ? price.amount : NaN;
   const amount = Number.isFinite(amountRaw) ? amountRaw : NaN;
@@ -214,19 +253,7 @@ export async function itadLookupBestPrice(params: {
       : undefined;
   const storeName = shop && typeof shop.name === "string" ? shop.name : undefined;
 
-  if (debug) {
-    console.log("[pricing:itad]", debugLabel ?? title, {
-      step: "result",
-      ok: true,
-      matchedTitle: best.matchedTitle,
-      price: formatAmount2(amount),
-      storeId: storeId ?? null,
-      storeName: storeName ?? null,
-      hasDealUrl: Boolean(url),
-    });
-  }
-
-  return {
+  const mapped: ItadBestPrice = {
     provider: "itad",
     price: formatAmount2(amount),
     storeId,
@@ -234,5 +261,15 @@ export async function itadLookupBestPrice(params: {
     dealUrl: url,
     matchedTitle: best.matchedTitle,
   };
+
+  if (debug) {
+    console.log("[pricing:itad]", debugLabel ?? title, {
+      step: "result",
+      ok: true,
+      mapped,
+    });
+  }
+
+  return mapped;
 }
 
