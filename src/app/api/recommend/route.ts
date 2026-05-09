@@ -41,6 +41,8 @@ type RecommendDebug = {
   noCache?: boolean;
   cacheReadSkipped?: boolean;
   cacheWriteSkipped?: boolean;
+  pricingMode?: "details_only" | "live";
+  recommendLivePrices?: boolean;
   models: {
     discovery: string;
     relevance: string;
@@ -188,7 +190,7 @@ function titleMatchScore(rawgTitle: string, cheapTitle: string) {
   return ja;
 }
 
-async function getCheapSharkEnrichment(rawgTitle: string): Promise<{
+async function _getCheapSharkEnrichment(rawgTitle: string): Promise<{
   matched: boolean;
   price: string;
   buyLink: string | null;
@@ -343,6 +345,10 @@ async function getCheapSharkEnrichment(rawgTitle: string): Promise<{
     },
   };
 }
+
+// Keep the helper for future pricing-cache work without enabling live lookups in /api/recommend.
+// Referenced to avoid unused warnings.
+void _getCheapSharkEnrichment;
 
 type AiRelevanceResult = {
   rawgId: number;
@@ -1047,53 +1053,13 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
       .filter((x): x is NonNullable<typeof x> => Boolean(x))
       .slice(0, 5);
 
-    // 6) CheapShark enrichment: keep RAWG metadata/image; only add price + buyLink.
+    // 6) Pricing mode: details-only (no CheapShark live lookups in /api/recommend).
     const cheapSharkDebug: RecommendDebug["cheapShark"] = [];
-    const enrichedGames: Array<
-      (typeof pickedVerified)[number] & {
-        price: string;
-        buyLink: string | null;
-      }
-    > = [];
-
-    // Sequential to reduce CheapShark 429 rate-limiting on Vercel.
-    for (let i = 0; i < pickedVerified.length; i++) {
-      const game = pickedVerified[i];
-
-      // Small delay between requests.
-      if (i > 0) await sleep(350);
-
-      try {
-        const query = game.title;
-        const enrich = await getCheapSharkEnrichment(game.title);
-
-        cheapSharkDebug.push({
-          game: game.title,
-          query,
-          matched: enrich.matched,
-          matchedTitle: enrich.matchedTitle,
-          cheapest: enrich.price !== "N/A" ? enrich.price : undefined,
-          dealId: enrich.dealId,
-          storeId: enrich.storeId,
-          reason: enrich.reason,
-          debug: debugEnabled ? enrich.debug : undefined,
-        });
-
-        enrichedGames.push({
-          ...game,
-          price: enrich.price,
-          buyLink: enrich.buyLink,
-        });
-      } catch {
-        cheapSharkDebug.push({
-          game: game.title,
-          query: game.title,
-          matched: false,
-          reason: "CheapShark fetch failed",
-        });
-        enrichedGames.push({ ...game, price: "N/A", buyLink: null });
-      }
-    }
+    const enrichedGames = pickedVerified.map((game) => ({
+      ...game,
+      price: "N/A",
+      buyLink: null,
+    }));
 
     // Budget: do not drop highly relevant games just because price is missing.
     const maxBudget = normalizedInput.budget ? Number(normalizedInput.budget) : null;
@@ -1130,6 +1096,8 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
         noCache,
         cacheReadSkipped: noCache,
         cacheWriteSkipped: noCache,
+        pricingMode: "details_only",
+        recommendLivePrices: false,
         models: {
           discovery: "gpt-4o-mini",
           relevance: "gpt-4o-mini",
@@ -1158,30 +1126,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
         cheapShark: cheapSharkDebug,
       };
 
-      // Targeted probe for the reported case (disabled in production to avoid extra CheapShark load).
-      if (process.env.NODE_ENV !== "production") {
-        try {
-          const probeTitle = "Terraria";
-          // Probe after enrichment so it doesn't worsen 429s.
-          await sleep(350);
-          const probe = await getCheapSharkEnrichment(probeTitle);
-          payload.debug.cheapSharkProbe = {
-            rawgTitle: probeTitle,
-            cheapsharkQuery: probeTitle,
-            cheapsharkUrl:
-              probe.debug?.cheapsharkUrl ??
-              `https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(
-                probeTitle
-              )}&limit=5`,
-            rawCheapSharkResults: (probe.debug?.rawResults ?? []).map((r) => r.title),
-            scores: probe.debug?.scores ?? [],
-            selectedCheapSharkTitle: probe.matchedTitle,
-            selectedDealId: probe.dealId,
-            selectedPrice: probe.price,
-            rejectedReason: probe.reason,
-          };
-        } catch {}
-      }
+      // Note: price/deal lookups are handled on the game details page (and future price cache/cron).
       // Also log in production for quick Vercel inspection.
       console.log("[recommend:debug]", payload.debug);
     }

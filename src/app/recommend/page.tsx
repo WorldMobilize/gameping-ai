@@ -416,7 +416,7 @@ export default function RecommendPage() {
 
               <p className="mt-5 max-w-2xl text-lg leading-8 text-white/60">
                 Write one sentence or pick a few tags—no endless quiz.
-                GamePing understands your vibe and finds games with real prices.
+                Budget and tags help guide the recommendations—check prices and deals on the game details page.
               </p>
             </div>
 
@@ -629,8 +629,8 @@ export default function RecommendPage() {
                     Ready to analyze your taste?
                   </p>
                   <p className="mt-1 text-sm text-white/50">
-                    You’ll get five picks with match scores, tailored explanations, and the
-                    best tracked price we found.
+                    You’ll get up to five picks with match scores and tailored explanations.
+                    Check prices and deals on the game details page.
                   </p>
                 </div>
 
@@ -746,7 +746,9 @@ export default function RecommendPage() {
                             Best price
                           </p>
                           <p className="text-xl font-black text-cyan-300">
-                            {game.price !== "N/A" ? `$${game.price}` : "N/A"}
+                            {game.price && game.price !== "N/A"
+                              ? `$${game.price}`
+                              : "Check price"}
                           </p>
                         </div>
 
@@ -769,7 +771,7 @@ export default function RecommendPage() {
                             </a>
                           ) : (
                             <span className="text-sm text-white/40">
-                              Not available
+                              View details for deals
                             </span>
                           )}
                         </div>
