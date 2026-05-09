@@ -7,6 +7,7 @@ import {
   type CheapSharkStoreInfo,
 } from "@/lib/pricing/providers/cheapshark";
 import { itadLookupBestPrice } from "@/lib/pricing/providers/isthereanydeal";
+import { getCachedPriceQuote, setCachedPriceQuote } from "@/lib/pricing/price-cache";
 
 export type BestPriceResult = {
   price: string; // numeric string
@@ -28,6 +29,38 @@ export async function lookupBestPrice(params: {
   debugLabel?: string;
 }): Promise<BestPriceResult | null> {
   const debug = params.debug ?? false;
+
+  const cache = await getCachedPriceQuote({ title: params.title });
+  if (debug) {
+    console.log("[pricing:service]", params.debugLabel ?? params.title, {
+      cache_hit: cache.hit,
+      cache_expired: cache.expired,
+      cached_provider: cache.row?.provider ?? null,
+    });
+  }
+
+  if (cache.hit && cache.row && typeof cache.row.price === "number") {
+    const cached: BestPriceResult = {
+      price: cache.row.price.toFixed(2),
+      provider: cache.row.provider === "itad" ? "itad" : "cheapshark",
+      store: {
+        id: undefined,
+        name: cache.row.store_name ?? undefined,
+      },
+      deal: {
+        id: undefined,
+        url: cache.row.deal_url ?? undefined,
+      },
+      matchedTitle: cache.row.matched_title ?? undefined,
+    };
+    if (debug) {
+      console.log("[pricing:service]", params.debugLabel ?? params.title, {
+        provider_used: "cache",
+        returningToPage: cached,
+      });
+    }
+    return cached;
+  }
 
   const bestCheap = (await cheapSharkLookupBestPrice({
     title: params.title,
@@ -80,6 +113,7 @@ export async function lookupBestPrice(params: {
 
     if (debug) {
       console.log("[pricing:service]", params.debugLabel ?? params.title, {
+        provider_used: "cheapshark",
         provider: "cheapshark",
         selected: {
           matchedTitle: bestCheap.matchedTitle,
@@ -91,7 +125,7 @@ export async function lookupBestPrice(params: {
       });
     }
 
-    return {
+    const mapped: BestPriceResult = {
       price: bestCheap.price,
       provider: "cheapshark",
       store: {
@@ -104,6 +138,25 @@ export async function lookupBestPrice(params: {
       },
       matchedTitle: bestCheap.matchedTitle,
     };
+
+    const savedToCache = await setCachedPriceQuote({
+      title: params.title,
+      provider: "cheapshark",
+      matchedTitle: bestCheap.matchedTitle ?? null,
+      price: Number(bestCheap.price),
+      currency: "USD",
+      storeName: storeName ?? null,
+      dealUrl: bestCheap.dealUrl ?? null,
+      rawPayload: bestCheap,
+    });
+
+    if (debug) {
+      console.log("[pricing:service]", params.debugLabel ?? params.title, {
+        saved_to_cache: savedToCache,
+      });
+    }
+
+    return mapped;
   }
 
   // Fallback: ITAD (only if CheapShark returned null / no match / rate limited / failed).
@@ -136,10 +189,25 @@ export async function lookupBestPrice(params: {
     matchedTitle: bestItad.matchedTitle,
   };
 
+  const savedToCache = await setCachedPriceQuote({
+    title: params.title,
+    provider: "itad",
+    matchedTitle: bestItad.matchedTitle ?? null,
+    price: Number(bestItad.price),
+    currency: "USD",
+    storeName: bestItad.storeName ?? null,
+    dealUrl: bestItad.dealUrl ?? null,
+    rawPayload: bestItad,
+  });
+
   if (debug) {
     console.log("[pricing:service]", params.debugLabel ?? params.title, {
+      provider_used: "itad",
       provider: "itad",
       returningToPage: mapped,
+    });
+    console.log("[pricing:service]", params.debugLabel ?? params.title, {
+      saved_to_cache: savedToCache,
     });
   }
 
