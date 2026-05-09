@@ -2,72 +2,99 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="mt-auto border-t border-white/10 bg-[#05060f]/80 backdrop-blur-xl">
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+    <footer className="mt-auto overflow-x-hidden border-t border-white/10 bg-[#070817]">
+      <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
+        <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-base font-black tracking-tight text-white">
+            <p className="text-base font-black tracking-tight text-slate-100">
               GamePing <span className="text-cyan-300">AI</span>
             </p>
-            <p className="mt-2 max-w-md text-sm leading-6 text-white/55">
+            <p className="mt-3 max-w-md text-sm leading-6 text-slate-400">
               AI-powered game recommendations with deal-aware price lookups.
               Prices and availability may change—always confirm final pricing on the
               store before purchasing.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:gap-10">
             <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-white/45">
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-slate-300/70">
                 Product
               </p>
-              <div className="flex flex-col gap-2 text-sm text-white/70">
-                <Link href="/recommend" className="hover:text-cyan-300 transition">
+              <div className="flex flex-col gap-2 text-sm text-slate-400">
+                <Link
+                  href="/recommend"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
                   Recommend
                 </Link>
-                <Link href="/dashboard" className="hover:text-cyan-300 transition">
+                <Link
+                  href="/dashboard"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
                   Dashboard
                 </Link>
-                <Link href="/upgrade" className="hover:text-cyan-300 transition">
+                <Link
+                  href="/upgrade"
+                  className="transition hover:text-purple-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/60"
+                >
                   Premium
                 </Link>
               </div>
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-white/45">
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-slate-300/70">
                 Company
               </p>
-              <div className="flex flex-col gap-2 text-sm text-white/70">
-                <Link href="/about" className="hover:text-cyan-300 transition">
+              <div className="flex flex-col gap-2 text-sm text-slate-400">
+                <Link
+                  href="/about"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
                   About
                 </Link>
-                <Link href="/contact" className="hover:text-cyan-300 transition">
+                <Link
+                  href="/contact"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
                   Contact
                 </Link>
               </div>
             </div>
 
             <div className="space-y-3">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-white/45">
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-slate-300/70">
                 Legal
               </p>
-              <div className="flex flex-col gap-2 text-sm text-white/70">
-                <Link href="/privacy" className="hover:text-cyan-300 transition">
+              <div className="flex flex-col gap-2 text-sm text-slate-400">
+                <Link
+                  href="/privacy"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
                   Privacy
                 </Link>
-                <Link href="/terms" className="hover:text-cyan-300 transition">
+                <Link
+                  href="/terms"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
                   Terms
                 </Link>
-                <Link href="/cookies" className="hover:text-cyan-300 transition">
+                <Link
+                  href="/cookies"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
                   Cookies
                 </Link>
-                <Link href="/disclaimer" className="hover:text-cyan-300 transition">
+                <Link
+                  href="/disclaimer"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
                   Disclaimer
                 </Link>
                 <Link
                   href="/refund-policy"
-                  className="hover:text-cyan-300 transition"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
                 >
                   Refund policy
                 </Link>
@@ -76,9 +103,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-2 border-t border-white/10 pt-6 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} GamePing AI. All rights reserved.</p>
-          <p>
+        <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row sm:items-start sm:justify-between">
+          <p className="whitespace-nowrap">
+            © {new Date().getFullYear()} GamePing AI. All rights reserved.
+          </p>
+          <p className="max-w-3xl">
             Built with third-party services (e.g., OpenAI, RAWG, CheapShark, Supabase,
             Stripe) depending on features enabled.
           </p>
