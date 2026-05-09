@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import CookieBanner from "@/components/CookieBanner";
 import AppProviders from "@/components/AppProviders";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "GamePing AI",
@@ -17,6 +18,7 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans">
         <AppProviders>{children}</AppProviders>
+        <Footer />
         <CookieBanner />
       </body>
     </html>
