@@ -182,17 +182,30 @@ function DetailRow({
 
 export default async function GameDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
   const title = decodeURIComponent(slug);
+  const sp = (await searchParams) ?? {};
+  const pricingDebug = sp.debug === "1";
 
   const rawg = await getRawgGame(title);
   const screenshots = await getRawgScreenshots(rawg?.id);
   const movies = await getRawgMovies(rawg?.id);
-  const bestPrice = await lookupBestPrice({ title });
-  const deals = await lookupDeals({ title, limit: 5 });
+  const bestPrice = await lookupBestPrice({
+    title,
+    debug: pricingDebug,
+    debugLabel: `page:/game/${slug}:bestPrice`,
+  });
+  const deals = await lookupDeals({
+    title,
+    limit: 5,
+    debug: pricingDebug,
+    debugLabel: `page:/game/${slug}:deals`,
+  });
   const ai = await getGameAiDetails(title);
 
   const heroImage = rawg?.background_image || screenshots[0]?.image;
