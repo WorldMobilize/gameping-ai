@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 import TrackPriceButton from "@/components/TrackPriceButton";
 import { getCachedRawgGame, setCachedRawgGame } from "@/lib/cache";
+import {
+  AGGREGATOR_PRICE_DISCLAIMER,
+  formatAggregatorPriceLine,
+} from "@/lib/pricing/display";
 import { lookupBestPrice, lookupDeals } from "@/lib/pricing/price-service";
 
 const openai = new OpenAI({
@@ -209,6 +213,9 @@ export default async function GameDetailPage({
   });
   const ai = await getGameAiDetails(title);
 
+  /** CheapShark rows pass evaluatePricingGate — sole source for purchase CTAs. */
+  const hasVerifiedStoreDeals = deals.length > 0;
+
   const heroImage = rawg?.background_image || screenshots[0]?.image;
   const trailer = movies[0]?.data?.max || movies[0]?.data?.["480"];
   const trailerPoster = movies[0]?.preview || heroImage;
@@ -273,26 +280,18 @@ export default async function GameDetailPage({
                 ))}
               </div>
 
-              <div className="mt-10 flex flex-wrap gap-4">
-                {bestPrice?.deal?.url ? (
+              <div className="mt-10 flex flex-wrap items-center gap-4">
+                {hasVerifiedStoreDeals ? (
                   <a
-                    href={bestPrice.deal.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href="#verified-store-deals"
                     className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
                   >
-                    Buy now for{" "}
-                    {bestPrice.price === "Free" ? "Free" : `$${bestPrice.price}`} →
+                    Check verified deals
                   </a>
                 ) : (
                   <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/50">
-                    No deal available
+                    No verified deals found right now.
                   </span>
-                )}
-                {bestPrice?.deal?.url && (
-                  <p className="w-full text-xs text-white/45">
-                    Redirects via CheapShark to the store.
-                  </p>
                 )}
 
                 {trailer && (
@@ -326,14 +325,18 @@ export default async function GameDetailPage({
                   <div className="grid grid-cols-3 gap-4">
                     <div className="rounded-2xl bg-black/30 p-4">
                       <p className="text-xs uppercase tracking-widest text-white/40">
-                        Price
+                        Estimated aggregator price
                       </p>
                       <p className="mt-2 text-2xl font-black text-cyan-300">
-                        {bestPrice?.price
-                          ? bestPrice.price === "Free"
-                            ? "Free"
-                            : `$${bestPrice.price}`
+                        {bestPrice?.price && bestPrice.price !== "N/A"
+                          ? formatAggregatorPriceLine({
+                              price: bestPrice.price,
+                              currency: bestPrice.currency,
+                            })
                           : "Price unavailable"}
+                      </p>
+                      <p className="mt-2 text-xs text-white/40">
+                        {AGGREGATOR_PRICE_DISCLAIMER}
                       </p>
                     </div>
 
@@ -486,13 +489,17 @@ export default async function GameDetailPage({
             </div>
           </div>
 
-          {deals.length > 0 && (
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-7">
-              <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">
-                Store comparison
-              </p>
-              <h2 className="mt-4 text-3xl font-black">Best current deals</h2>
+          <div
+            id="verified-store-deals"
+            className="scroll-mt-24 rounded-[2rem] border border-white/10 bg-white/[0.04] p-7"
+          >
+            <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">
+              Store comparison
+            </p>
+            <h2 className="mt-4 text-3xl font-black">Verified store deals</h2>
+            <p className="mt-2 text-sm text-white/45">{AGGREGATOR_PRICE_DISCLAIMER}</p>
 
+            {deals.length > 0 ? (
               <div className="mt-6 space-y-3">
                 {deals.map((deal) => (
                   <div
@@ -501,28 +508,48 @@ export default async function GameDetailPage({
                   >
                     <div>
                       <p className="font-black">{deal.store.name || "Store"}</p>
+                      <p className="text-xs text-white/35">
+                        Matched listing: {deal.matchedTitle}
+                      </p>
                       <p className="text-sm text-white/45">
-                        Normal price: ${deal.normalPrice}
+                        Normal:{" "}
+                        {formatAggregatorPriceLine({
+                          price: deal.normalPrice,
+                          currency: deal.currency,
+                        })}
                       </p>
                     </div>
 
                     <p className="text-2xl font-black text-cyan-300">
-                      ${deal.salePrice}
+                      {formatAggregatorPriceLine({
+                        price: deal.salePrice,
+                        currency: deal.currency,
+                      })}
                     </p>
 
-                    <a
-                      href={deal.deal.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-full bg-white px-5 py-3 text-center text-sm font-black text-black transition hover:bg-cyan-100"
-                    >
-                      Buy →
-                    </a>
+                    {deal.deal.url ? (
+                      <a
+                        href={deal.deal.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-full bg-white px-5 py-3 text-center text-sm font-black text-black transition hover:bg-cyan-100"
+                      >
+                        Buy →
+                      </a>
+                    ) : (
+                      <span className="text-center text-sm text-white/45">
+                        No verified store link
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="mt-6 text-white/55">
+                No verified deals found right now.
+              </p>
+            )}
+          </div>
         </div>
 
         <aside className="space-y-6">
@@ -548,33 +575,24 @@ export default async function GameDetailPage({
 
           <div className="sticky top-6 rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 p-7">
             <p className="text-sm uppercase tracking-[0.35em] text-cyan-200">
-              Deal summary
+              Estimated aggregator price
             </p>
             <h2 className="mt-4 text-4xl font-black">
-              {bestPrice?.price
-                ? bestPrice.price === "Free"
-                  ? "Free"
-                  : `$${bestPrice.price}`
+              {bestPrice?.price && bestPrice.price !== "N/A"
+                ? formatAggregatorPriceLine({
+                    price: bestPrice.price,
+                    currency: bestPrice.currency,
+                  })
                 : "Price unavailable"}
             </h2>
+            <p className="mt-2 text-xs text-white/45">{AGGREGATOR_PRICE_DISCLAIMER}</p>
             <p className="mt-4 text-white/65">
-              {bestPrice
-                ? bestPrice.store?.name
-                  ? `Current lowest known price found via ${bestPrice.provider} (${bestPrice.store.name}).`
-                  : `Current lowest known price found via ${bestPrice.provider}.`
-                : "Price may be unavailable or rate-limited right now. Check again later."}
+              {bestPrice?.price && bestPrice.price !== "N/A"
+                ? `Indicative only — ${bestPrice.provider}. Purchases use verified store rows below.`
+                : hasVerifiedStoreDeals
+                  ? "Aggregator estimate unavailable; verified prices are listed in store comparison."
+                  : "No verified deals found right now. Aggregator data may be missing or rate-limited."}
             </p>
-
-            {bestPrice?.deal?.url && (
-              <a
-                href={bestPrice.deal.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 block rounded-full bg-white px-6 py-4 text-center font-black text-black transition hover:bg-cyan-100"
-              >
-                Get the deal →
-              </a>
-            )}
 
             <TrackPriceButton
               title={rawg?.name || title}

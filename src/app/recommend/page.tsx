@@ -3,15 +3,23 @@
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
 import { useEffect, useRef, useState } from "react";
+import {
+  PROMPT_MAX_ADMIN,
+  PROMPT_MAX_DEFAULT,
+} from "@/lib/recommend-limits";
 import { supabase } from "@/lib/supabase";
-
 type Game = {
   title: string;
   match: number;
   reason: string;
-  price: string;
+  price?: string | null;
+  currency?: string | null;
   buyLink?: string | null;
   image?: string | null;
+  matchTier?: "best_match" | "good_alternative" | "partial_match";
+  matchNote?: string;
+  budgetStatus?: "within_budget" | "above_budget" | "unknown_price";
+  budgetNote?: string;
 };
 
 type RecommendDebug = {
@@ -194,7 +202,8 @@ export default function RecommendPage() {
     budget: "20",
   });
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  /** When true, user sees budget/tags/platform and backend applies strict filter mode. */
+  const [filtersEnabled, setFiltersEnabled] = useState(false);
   const [emailSaved, setEmailSaved] = useState(false);
   const [limitReached, setLimitReached] = useState<{
     message: string;
@@ -205,6 +214,7 @@ export default function RecommendPage() {
 
   const [loggedUserEmail, setLoggedUserEmail] = useState<string | null>(null);
   const [loggedUserId, setLoggedUserId] = useState<string | null>(null);
+  const [promptMaxForUi, setPromptMaxForUi] = useState(PROMPT_MAX_DEFAULT);
 
   useEffect(() => {
     async function getUser() {
@@ -213,6 +223,16 @@ export default function RecommendPage() {
       if (data.user) {
         setLoggedUserEmail(data.user.email ?? null);
         setLoggedUserId(data.user.id);
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("plan")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+        setPromptMaxForUi(
+          profile?.plan === "admin" ? PROMPT_MAX_ADMIN : PROMPT_MAX_DEFAULT
+        );
+      } else {
+        setPromptMaxForUi(PROMPT_MAX_DEFAULT);
       }
     }
 
@@ -244,6 +264,7 @@ export default function RecommendPage() {
   }
 
   function applyPreset(preset: (typeof presets)[number]) {
+    setFiltersEnabled(true);
     setForm((prev) => ({
       ...prev,
       userPrompt: preset.text,
@@ -257,6 +278,17 @@ export default function RecommendPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.userPrompt.trim().length > promptMaxForUi) {
+      showToast({
+        variant: "error",
+        message:
+          promptMaxForUi <= PROMPT_MAX_DEFAULT
+            ? "Prompt too long. Please keep it under 500 characters."
+            : `Prompt too long. Keep it under ${promptMaxForUi} characters.`,
+      });
+      return;
+    }
+
     setLoading(true);
     setEmailSaved(false);
     setApiDebug(null);
@@ -272,21 +304,43 @@ export default function RecommendPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, filtersEnabled }),
       });
 
-      const data = await res.json();
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+        games?: Game[];
+        debug?: RecommendDebug;
+      };
 
       if (!res.ok) {
-        showToast({
-          variant: "error",
-          message: "We couldn’t get recommendations. Try again in a moment.",
-        });
+        if (res.status === 400 && data?.error === "prompt_too_long") {
+          showToast({
+            variant: "error",
+            message:
+              data.message ||
+              "Prompt too long. Please keep it under 500 characters.",
+          });
+        } else if (res.status === 429 && data?.error === "daily_limit") {
+          showToast({
+            variant: "error",
+            message:
+              "You’ve reached today’s free recommendation limit.",
+          });
+        } else {
+          showToast({
+            variant: "error",
+            message:
+              data.message ||
+              "We couldn’t get recommendations. Try again in a moment.",
+          });
+        }
         setLoading(false);
         return;
       }
 
-      setGames(data.games || []);
+      setGames(data.games ?? []);
       if (debugEnabled && data?.debug) {
         setApiDebug(data.debug as RecommendDebug);
       }
@@ -327,7 +381,7 @@ export default function RecommendPage() {
         body: JSON.stringify({
           email: loggedUserEmail,
           name: `${form.vibes || form.genres || "Custom"} games`,
-          preferences: form,
+          preferences: { ...form, filtersEnabled },
           games,
           user_id: loggedUserId,
         }),
@@ -381,19 +435,6 @@ export default function RecommendPage() {
     showToast({ variant: "info", message: "Results copied to your clipboard." });
   }
 
-  function buildOutboundUrl(game: Game) {
-  if (!game.buyLink) return "#";
-
-  const params = new URLSearchParams({
-    to: game.buyLink,
-    game: game.title,
-    price: game.price || "",
-    source: "recommend",
-  });
-
-  return `/api/out?${params.toString()}`;
-}
-
   return (
     <main className="min-h-screen bg-[#05060f] text-white">
       <Navbar ctaLabel="Home" ctaHref="/" />
@@ -415,8 +456,9 @@ export default function RecommendPage() {
               </h1>
 
               <p className="mt-5 max-w-2xl text-lg leading-8 text-white/60">
-                Write one sentence or pick a few tags—no endless quiz.
-                Budget and tags help guide the recommendations—check prices and deals on the game details page.
+                {filtersEnabled
+                  ? "Use filters for more specific recommendations. Verified prices live on each game’s details page."
+                  : "Describe the kind of game you want—free-form, AI-first discovery. Turn on Advanced filters when you want budget, tags, or platform to steer results."}
               </p>
             </div>
 
@@ -426,10 +468,19 @@ export default function RecommendPage() {
               </p>
 
               <div className="mt-5 space-y-4 text-sm text-white/70">
-                <p>✔ Write one sentence if you already have an idea</p>
-                <p>✔ Pick 3–8 tags max</p>
-                <p>✔ Set budget and platform</p>
-                <p>✔ Leave anything blank if you don’t care</p>
+                {filtersEnabled ? (
+                  <>
+                    <p>✔ Combine prompt + tags for tighter picks</p>
+                    <p>✔ Use budget and platform when they matter</p>
+                    <p>✔ Leave fields blank if you don’t care</p>
+                  </>
+                ) : (
+                  <>
+                    <p>✔ Lead with a vivid prompt—vibe and intent first</p>
+                    <p>✔ Advanced filters optional for precise searches</p>
+                    <p>✔ Check deals on each game’s page</p>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -442,11 +493,12 @@ export default function RecommendPage() {
 
               <h2 className="mt-3 text-3xl font-black">
                 Describe what you want to play
-                <span className="text-white/40"> (optional)</span>
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-white/50">
-                This is the easiest way to get great picks.
+                {filtersEnabled
+                  ? "Use filters for more specific recommendations."
+                  : "Describe the kind of game you want."}
               </p>
 
               <textarea
@@ -455,12 +507,54 @@ export default function RecommendPage() {
 "A dark, story-rich game under $20"
 "Like Elden Ring, but less punishing"
 "A cozy game for short evening sessions"`}
+                maxLength={promptMaxForUi}
                 className="mt-6 min-h-44 w-full rounded-3xl border border-white/10 bg-black/40 p-5 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-cyan-400/70 focus:shadow-[0_0_30px_rgba(34,211,238,0.12)]"
                 value={form.userPrompt}
                 onChange={(e) => updateField("userPrompt", e.target.value)}
               />
+
+              <p
+                className={`mt-2 text-xs tabular-nums ${
+                  form.userPrompt.length > promptMaxForUi
+                    ? "text-rose-400"
+                    : "text-white/40"
+                }`}
+              >
+                {form.userPrompt.length} / {promptMaxForUi}
+              </p>
+
+              <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={filtersEnabled}
+                  onClick={() => setFiltersEnabled((v) => !v)}
+                  className={`flex max-w-full items-center gap-3 rounded-full border px-5 py-3 text-left text-sm font-bold transition ${
+                    filtersEnabled
+                      ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100"
+                      : "border-white/10 bg-black/30 text-white/75 hover:border-white/25"
+                  }`}
+                >
+                  <span
+                    className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full px-0.5 transition-colors ${
+                      filtersEnabled ? "justify-end bg-cyan-400" : "justify-start bg-white/20"
+                    }`}
+                  >
+                    <span className="inline-block h-7 w-7 rounded-full bg-black shadow" />
+                  </span>
+                  <span>Advanced filters</span>
+                </button>
+              </div>
             </section>
 
+            <div
+              className={`grid gap-6 transition-[opacity,max-height] duration-300 ease-out ${
+                filtersEnabled
+                  ? "max-h-[12000px] opacity-100"
+                  : "pointer-events-none max-h-0 overflow-hidden opacity-0"
+              }`}
+              aria-hidden={!filtersEnabled}
+            >
             <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 md:p-8">
               <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
                 Quick presets
@@ -563,7 +657,6 @@ export default function RecommendPage() {
             </section>
 
             <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 md:p-8">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
                     Taste builder
@@ -578,18 +671,8 @@ export default function RecommendPage() {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowAdvanced((prev) => !prev)}
-                  className="rounded-full border border-white/10 px-6 py-3 text-sm font-bold text-white/70 transition hover:border-cyan-400/60 hover:text-cyan-300"
-                >
-                  {showAdvanced ? "Hide extra tags" : "Show more tags"}
-                </button>
-              </div>
-
               <div className="mt-8 space-y-8">
                 {tagGroups
-                  .filter((_, index) => showAdvanced || index < 2)
                   .map((group) => (
                     <div key={group.key}>
                       <h3 className="text-lg font-black">{group.title}</h3>
@@ -621,6 +704,7 @@ export default function RecommendPage() {
                   ))}
               </div>
             </section>
+            </div>
 
             <div className="rounded-[2rem] border border-cyan-400/20 bg-gradient-to-r from-cyan-400/15 to-purple-500/15 p-5">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -724,57 +808,58 @@ export default function RecommendPage() {
                     )}
 
                     <div className="p-6">
-                      <div className="mb-4 flex items-center justify-between gap-4">
+                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                         <span className="rounded-full bg-cyan-400 px-3 py-1 text-xs font-black text-black">
                           #{index + 1}
                         </span>
 
-                        <span className="rounded-full bg-purple-500/20 px-3 py-1 text-sm font-bold text-purple-300">
-                          {game.match}% match
-                        </span>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {game.matchTier === "good_alternative" && (
+                            <span className="rounded-full bg-amber-500/25 px-3 py-1 text-xs font-bold text-amber-200">
+                              Good alternative
+                            </span>
+                          )}
+                          {game.matchTier === "partial_match" && (
+                            <span className="rounded-full bg-orange-500/25 px-3 py-1 text-xs font-bold text-orange-200">
+                              Partial match
+                            </span>
+                          )}
+                          {game.matchTier === "best_match" && (
+                            <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-200">
+                              Best match
+                            </span>
+                          )}
+                          <span className="rounded-full bg-purple-500/20 px-3 py-1 text-sm font-bold text-purple-300">
+                            {game.match}% match
+                          </span>
+                        </div>
                       </div>
 
                       <h2 className="text-2xl font-black">{game.title}</h2>
+
+                      {game.matchNote ? (
+                        <p className="mt-2 text-xs leading-5 text-white/50">
+                          {game.matchNote}
+                        </p>
+                      ) : null}
+
+                      {form.budget.trim() ? (
+                        <p className="mt-3 text-xs text-white/45">
+                          Budget considered. Check verified prices on details.
+                        </p>
+                      ) : null}
 
                       <p className="mt-4 min-h-[7.5rem] text-sm leading-6 text-white/70 md:min-h-[6.5rem]">
                         💡 {game.reason}
                       </p>
 
-                      <div className="mt-6 flex flex-col gap-4 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-xs uppercase tracking-widest text-white/40">
-                            Best price
-                          </p>
-                          <p className="text-xl font-black text-cyan-300">
-                            {game.price && game.price !== "N/A"
-                              ? `$${game.price}`
-                              : "Check price"}
-                          </p>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-3">
-                          <a
-                            href={`/game/${encodeURIComponent(game.title)}`}
-                            className="rounded-full border border-white/10 px-5 py-3 text-sm font-bold text-white/70 transition hover:border-cyan-400/50 hover:text-cyan-300"
-                          >
-                            View details
-                          </a>
-
-                          {game.buyLink ? (
-                            <a
-                              href={buildOutboundUrl(game)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="rounded-full bg-cyan-400 px-5 py-3 text-sm font-black text-black transition hover:bg-cyan-300"
-                            >
-                              Buy now →
-                            </a>
-                          ) : (
-                            <span className="text-sm text-white/40">
-                              View details for deals
-                            </span>
-                          )}
-                        </div>
+                      <div className="mt-6 border-t border-white/10 pt-5">
+                        <a
+                          href={`/game/${encodeURIComponent(game.title)}`}
+                          className="inline-flex rounded-full border border-white/10 px-5 py-3 text-sm font-bold text-white/70 transition hover:border-cyan-400/50 hover:text-cyan-300"
+                        >
+                          View details
+                        </a>
                       </div>
                     </div>
                   </div>

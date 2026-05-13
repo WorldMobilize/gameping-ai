@@ -1,4 +1,5 @@
 import Link from "next/link";
+import HomeGameCarousel from "@/components/HomeGameCarousel";
 import Navbar from "@/components/Navbar";
 
 const previewGames = [
@@ -171,6 +172,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <HomeGameCarousel />
 
       <section id="how-it-works" className="px-6 pb-24">
         <div className="mx-auto max-w-6xl">

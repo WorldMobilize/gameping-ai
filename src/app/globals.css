@@ -29,3 +29,40 @@ body {
     transform: translateY(0) scale(1);
   }
 }
+
+/* Homepage game carousel — slow drift, pauses on hover; disabled when reduced motion */
+@keyframes home-carousel-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.home-carousel-viewport {
+  overflow: hidden;
+}
+
+.home-carousel-track {
+  display: flex;
+  width: max-content;
+  gap: 1.25rem;
+  animation: home-carousel-marquee 88s linear infinite;
+}
+
+.home-carousel-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-carousel-viewport {
+    overflow-x: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .home-carousel-track {
+    animation: none;
+  }
+}

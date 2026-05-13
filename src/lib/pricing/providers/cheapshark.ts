@@ -159,7 +159,7 @@ export async function cheapSharkLookupBestPrice(params: {
       continue;
     }
     const score = titleMatchScore(title, d.title);
-    if (score < 0.62) {
+    if (score < 0.68) {
       if (debug) {
         const evt: PricingDebugEvent = { type: "discard", title: d.title, reason: "low_match_score", score };
         console.log("[pricing:cheapshark]", debugLabel ?? title, evt);

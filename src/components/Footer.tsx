@@ -40,6 +40,18 @@ export default function Footer() {
                 >
                   Premium
                 </Link>
+                <Link
+                  href="/curated"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
+                  Curated lists
+                </Link>
+                <Link
+                  href="/games"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
+                  Games A–Z
+                </Link>
               </div>
             </div>
 

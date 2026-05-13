@@ -25,6 +25,23 @@ const TITLE_NOISE_WORDS = [
   "pack",
 ] as const;
 
+/** Stripped from the end of titles during pricing normalization (store/edition noise). */
+export const PRICING_TRAILING_NOISE_WORDS = new Set([
+  ...TITLE_NOISE_WORDS,
+  "beta",
+  "alpha",
+  "prologue",
+  "chapter",
+  "upgrade",
+  "soundtrack",
+  "demo",
+  "dlc",
+  "expansion",
+  "remaster",
+  "redux",
+  "vr",
+]);
+
 export function normalizeTitleForMatch(title: string) {
   return title
     .toLowerCase()
@@ -32,6 +49,304 @@ export function normalizeTitleForMatch(title: string) {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/**
+ * Strong normalization for pricing: punctuation stripped, repeated trailing edition/store tokens removed.
+ */
+export function normalizeTitleForPricing(title: string): string {
+  let s = normalizeTitleForMatch(title);
+  if (!s) return "";
+  let tokens = s.split(/\s/).filter(Boolean);
+  let prev = "";
+  while (tokens.length > 0 && tokens.join(" ") !== prev) {
+    prev = tokens.join(" ");
+    const last = tokens[tokens.length - 1];
+    if (PRICING_TRAILING_NOISE_WORDS.has(last)) {
+      tokens = tokens.slice(0, -1);
+      continue;
+    }
+    break;
+  }
+  return tokens.join(" ").trim();
+}
+
+/** Short / generic catalog titles need exact normalized matches for trusted buy links. */
+export function isShortGenericGameTitle(requestedTitle: string): boolean {
+  const n = normalizeTitleForPricing(requestedTitle);
+  if (!n) return true;
+  const compact = n.replace(/\s+/g, "");
+  const words = n.split(/\s/).filter(Boolean);
+  return words.length <= 2 || compact.length <= 10;
+}
+
+/**
+ * False-positive pairs: "Raft" vs "Raft Wars", "The Forest" vs "Sons of the Forest".
+ */
+export function isSuspiciousPricingPair(requestedNorm: string, matchedNorm: string): boolean {
+  if (!requestedNorm || !matchedNorm) return true;
+  if (requestedNorm === matchedNorm) return false;
+
+  const rt = requestedNorm.split(/\s/).filter(Boolean);
+  const mt = matchedNorm.split(/\s/).filter(Boolean);
+
+  if (rt.length === 1 && mt.length > 1 && mt[0] === rt[0]) {
+    return true;
+  }
+
+  if (
+    rt.length >= 2 &&
+    matchedNorm.endsWith(requestedNorm) &&
+    mt.length > rt.length &&
+    matchedNorm !== requestedNorm
+  ) {
+    return true;
+  }
+
+  if (
+    rt.length >= 2 &&
+    matchedNorm.includes(requestedNorm) &&
+    !matchedNorm.startsWith(requestedNorm) &&
+    mt.length > rt.length
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export type PricingGateEvaluation = {
+  requestedNorm: string;
+  matchedNorm: string;
+  score: number;
+  isShortTitle: boolean;
+  acceptedPrice: boolean;
+  trustedUrl: boolean;
+  reason: string;
+};
+
+/** Longest first so multi-word phrases win over single tokens (e.g. "sea wolf pack" vs "pack"). */
+const FORBIDDEN_LISTING_TERMS_SORTED: string[] = [
+  "sea wolf pack",
+  "deluxe upgrade",
+  "supporter pack",
+  "character pack",
+  "content pack",
+  "starter pack",
+  "founders pack",
+  "founder pack",
+  "season pass",
+  "soundtrack",
+  "artbook",
+  "expansion",
+  "cosmetic",
+  "add on",
+  "addon",
+  "bundle",
+  "upgrade",
+  "dlc",
+  "pack",
+  "demo",
+  "prologue",
+  "skin",
+].sort((a, b) => b.length - a.length);
+
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeWordsSpaced(title: string) {
+  return normalizeTitleForMatch(title).replace(/\s+/g, " ").trim();
+}
+
+/**
+ * True if `norm` contains full phrase or whole-word token `term` (after normalization).
+ */
+function listingContainsTerm(norm: string, term: string): boolean {
+  const t = term.trim().toLowerCase();
+  if (!t) return false;
+  const n = norm.replace(/\s+/g, " ").trim();
+  if (t.includes(" ")) {
+    return ` ${n} `.includes(` ${t} `);
+  }
+  return new RegExp(`(^| )${escapeRegex(t)}( |$)`).test(n);
+}
+
+/**
+ * If the matched listing signals DLC/pack/add-on etc. and the request does not, return the term hit.
+ */
+function findForbiddenListingTermMismatch(
+  requestedTitle: string,
+  matchedTitle: string
+): string | null {
+  const req = normalizeWordsSpaced(requestedTitle);
+  const mat = normalizeWordsSpaced(matchedTitle);
+  for (const term of FORBIDDEN_LISTING_TERMS_SORTED) {
+    if (!listingContainsTerm(mat, term)) continue;
+    if (listingContainsTerm(req, term)) continue;
+    return term;
+  }
+  return null;
+}
+
+/**
+ * Conservative: matched listing has more tokens after the base title (DLC subtitle, expansion name, etc.).
+ */
+function hasExtraListingSuffixBeyondRequested(
+  requestedTitle: string,
+  matchedTitle: string
+): boolean {
+  const req = normalizeWordsSpaced(requestedTitle);
+  const mat = normalizeWordsSpaced(matchedTitle);
+  if (!req || !mat || req === mat) return false;
+  return mat.startsWith(`${req} `);
+}
+
+function isDevPricingLog() {
+  return process.env.NODE_ENV === "development";
+}
+
+const TITLE_MATCH_SHOW_PRICE_MIN = 0.72;
+const TITLE_MATCH_TRUST_DEAL_URL_MIN = 0.85;
+
+/**
+ * Decides whether a provider row may show price and/or a trusted deal URL for recommend/checkout.
+ */
+export function evaluatePricingGate(params: {
+  requestedTitle: string;
+  matchedTitle: string;
+  dealUrl?: string | null;
+  /** For dev logs only (e.g. cache:cheapshark, cheapshark, itad). */
+  provider?: string | null;
+}): PricingGateEvaluation {
+  const { requestedTitle, matchedTitle } = params;
+  const dealUrl = params.dealUrl?.trim() ?? "";
+  const provider = params.provider ?? null;
+  const matchedTrim = (matchedTitle ?? "").trim();
+
+  const requestedNorm = normalizeTitleForPricing(requestedTitle);
+  if (!matchedTrim) {
+    return {
+      requestedNorm,
+      matchedNorm: "",
+      score: 0,
+      isShortTitle: isShortGenericGameTitle(requestedTitle),
+      acceptedPrice: false,
+      trustedUrl: false,
+      reason: "empty_matched_title",
+    };
+  }
+
+  const matchedNorm = normalizeTitleForPricing(matchedTrim);
+  const requestedNormGate = normalizeWordsSpaced(requestedTitle);
+  const matchedNormGate = normalizeWordsSpaced(matchedTrim);
+
+  const forbiddenTerm = findForbiddenListingTermMismatch(requestedTitle, matchedTrim);
+  if (forbiddenTerm) {
+    if (isDevPricingLog()) {
+      console.log("[pricing:reject-dlc-or-addon]", {
+        requestedTitle,
+        matchedTitle: matchedTrim,
+        requestedNorm: requestedNormGate,
+        matchedNorm: matchedNormGate,
+        forbiddenTerm,
+        provider,
+      });
+    }
+    return {
+      requestedNorm,
+      matchedNorm,
+      score: 0,
+      isShortTitle: isShortGenericGameTitle(requestedTitle),
+      acceptedPrice: false,
+      trustedUrl: false,
+      reason: "dlc_or_addon",
+    };
+  }
+
+  if (hasExtraListingSuffixBeyondRequested(requestedTitle, matchedTrim)) {
+    if (isDevPricingLog()) {
+      console.log("[pricing:reject-dlc-or-addon]", {
+        requestedTitle,
+        matchedTitle: matchedTrim,
+        requestedNorm: requestedNormGate,
+        matchedNorm: matchedNormGate,
+        forbiddenTerm: null,
+        provider,
+      });
+    }
+    return {
+      requestedNorm,
+      matchedNorm,
+      score: 0,
+      isShortTitle: isShortGenericGameTitle(requestedTitle),
+      acceptedPrice: false,
+      trustedUrl: false,
+      reason: "extra_suffix_not_base_game",
+    };
+  }
+
+  let score = titleMatchScore(requestedTitle, matchedTrim);
+
+  const isShortTitle = isShortGenericGameTitle(requestedTitle);
+  const suspicious = isSuspiciousPricingPair(requestedNorm, matchedNorm);
+
+  if (suspicious) {
+    score = Math.min(score, 0.5);
+    return {
+      requestedNorm,
+      matchedNorm,
+      score,
+      isShortTitle,
+      acceptedPrice: false,
+      trustedUrl: false,
+      reason: "suspicious_partial_or_spinoff_match",
+    };
+  }
+
+  if (isShortTitle) {
+    if (requestedNorm === matchedNorm) {
+      const hasUrl = Boolean(dealUrl);
+      return {
+        requestedNorm,
+        matchedNorm,
+        score,
+        isShortTitle,
+        acceptedPrice: true,
+        trustedUrl: hasUrl,
+        reason: hasUrl
+          ? "short_title_exact_norm_match"
+          : "short_title_exact_norm_match_no_deal_url",
+      };
+    }
+    return {
+      requestedNorm,
+      matchedNorm,
+      score,
+      isShortTitle,
+      acceptedPrice: false,
+      trustedUrl: false,
+      reason: "short_title_non_exact_reject_price",
+    };
+  }
+
+  const acceptedPrice = score >= TITLE_MATCH_SHOW_PRICE_MIN;
+  const trustedUrl =
+    acceptedPrice && score >= TITLE_MATCH_TRUST_DEAL_URL_MIN && Boolean(dealUrl);
+
+  return {
+    requestedNorm,
+    matchedNorm,
+    score,
+    isShortTitle,
+    acceptedPrice,
+    trustedUrl,
+    reason: acceptedPrice
+      ? trustedUrl
+        ? "long_title_score_ok_trusted_url"
+        : "long_title_price_only_no_trusted_url_band"
+      : "long_title_below_min_score",
+  };
 }
 
 export function containsBadWords(title: string) {

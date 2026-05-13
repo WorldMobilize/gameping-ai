@@ -7,11 +7,92 @@ import {
   type CheapSharkStoreInfo,
 } from "@/lib/pricing/providers/cheapshark";
 import { itadLookupBestPrice } from "@/lib/pricing/providers/isthereanydeal";
+import { evaluatePricingGate } from "@/lib/pricing/match";
 import { getCachedPriceQuote, setCachedPriceQuote } from "@/lib/pricing/price-cache";
+
+function isDevPricingLog() {
+  return process.env.NODE_ENV === "development";
+}
+
+/**
+ * Pricing gate: short titles require exact normalized match for any price; URLs only when exact + row URL.
+ */
+function gatePricingByTitleMatch(
+  requestedTitle: string,
+  raw: BestPriceResult,
+  provider: string
+): BestPriceResult | null {
+  const mt = (raw.matchedTitle ?? "").trim();
+  if (!mt) {
+    if (isDevPricingLog()) {
+      console.log("[pricing:match-check]", {
+        requestedTitle,
+        matchedTitle: "",
+        requestedNorm: "",
+        matchedNorm: "",
+        score: 0,
+        provider,
+        isShortTitle: false,
+        acceptedPrice: false,
+        trustedUrl: false,
+        reason: "missing_matched_title",
+      });
+    }
+    return null;
+  }
+
+  const gate = evaluatePricingGate({
+    requestedTitle,
+    matchedTitle: mt,
+    dealUrl: raw.deal?.url,
+    provider,
+  });
+
+  if (isDevPricingLog()) {
+    console.log("[pricing:match-check]", {
+      requestedTitle,
+      matchedTitle: mt,
+      requestedNorm: gate.requestedNorm,
+      matchedNorm: gate.matchedNorm,
+      score: gate.score,
+      provider,
+      isShortTitle: gate.isShortTitle,
+      acceptedPrice: gate.acceptedPrice,
+      trustedUrl: gate.trustedUrl,
+      reason: gate.reason,
+    });
+  }
+
+  if (!gate.acceptedPrice) {
+    return null;
+  }
+
+  const deal = gate.trustedUrl
+    ? raw.deal
+    : { id: raw.deal?.id, url: undefined };
+
+  if (isDevPricingLog()) {
+    console.log("[pricing:accept]", {
+      requestedTitle,
+      matchedTitle: mt,
+      score: gate.score,
+      provider,
+      url: deal?.url ?? null,
+    });
+  }
+
+  return {
+    ...raw,
+    deal,
+    matchedTitle: mt,
+  };
+}
 
 export type BestPriceResult = {
   price: string; // numeric string
   provider: "cheapshark" | "itad" | "free_to_play";
+  /** ISO-ish currency code when known (aggregators often USD). */
+  currency?: string | null;
   store?: {
     id?: string;
     name?: string;
@@ -61,17 +142,20 @@ export async function lookupBestPrice(params: {
     const mapped: BestPriceResult = {
       price: "Free",
       provider: "free_to_play",
+      currency: null,
       matchedTitle: params.title,
       deal: { id: undefined, url: undefined },
       store: { id: undefined, name: undefined },
     };
+    const gated = gatePricingByTitleMatch(params.title, mapped, "free_to_play");
+    const out = gated ?? mapped;
     if (debug) {
       console.log("[pricing:service]", params.debugLabel ?? params.title, {
         provider_used: "free_to_play",
-        returningToPage: mapped,
+        returningToPage: out,
       });
     }
-    return mapped;
+    return out;
   }
 
   const cache = await getCachedPriceQuote({ title: params.title });
@@ -84,9 +168,10 @@ export async function lookupBestPrice(params: {
   }
 
   if (cache.hit && cache.row && typeof cache.row.price === "number") {
-    const cached: BestPriceResult = {
+    const cachedRaw: BestPriceResult = {
       price: cache.row.price.toFixed(2),
       provider: cache.row.provider === "itad" ? "itad" : "cheapshark",
+      currency: cache.row.currency ?? "USD",
       store: {
         id: undefined,
         name: cache.row.store_name ?? undefined,
@@ -97,13 +182,26 @@ export async function lookupBestPrice(params: {
       },
       matchedTitle: cache.row.matched_title ?? undefined,
     };
+    const gated = gatePricingByTitleMatch(
+      params.title,
+      cachedRaw,
+      `cache:${cache.row.provider ?? "unknown"}`
+    );
+    if (gated) {
+      if (debug) {
+        console.log("[pricing:service]", params.debugLabel ?? params.title, {
+          provider_used: "cache",
+          returningToPage: gated,
+        });
+      }
+      return gated;
+    }
     if (debug) {
       console.log("[pricing:service]", params.debugLabel ?? params.title, {
-        provider_used: "cache",
-        returningToPage: cached,
+        event: "cache_title_gate_rejected_fresh_lookup",
+        requested: params.title,
       });
     }
-    return cached;
   }
 
   const bestCheap = (await cheapSharkLookupBestPrice({
@@ -169,9 +267,10 @@ export async function lookupBestPrice(params: {
       });
     }
 
-    const mapped: BestPriceResult = {
+    const mappedRaw: BestPriceResult = {
       price: bestCheap.price,
       provider: "cheapshark",
+      currency: "USD",
       store: {
         id: bestCheap.storeId,
         name: storeName,
@@ -183,24 +282,27 @@ export async function lookupBestPrice(params: {
       matchedTitle: bestCheap.matchedTitle,
     };
 
-    const savedToCache = await setCachedPriceQuote({
-      title: params.title,
-      provider: "cheapshark",
-      matchedTitle: bestCheap.matchedTitle ?? null,
-      price: Number(bestCheap.price),
-      currency: "USD",
-      storeName: storeName ?? null,
-      dealUrl: bestCheap.dealUrl ?? null,
-      rawPayload: debug ? bestCheap : null,
-    });
-
-    if (debug) {
-      console.log("[pricing:service]", params.debugLabel ?? params.title, {
-        saved_to_cache: savedToCache,
+    const gatedCheap = gatePricingByTitleMatch(params.title, mappedRaw, "cheapshark");
+    if (gatedCheap) {
+      const savedToCache = await setCachedPriceQuote({
+        title: params.title,
+        provider: "cheapshark",
+        matchedTitle: bestCheap.matchedTitle ?? null,
+        price: Number(bestCheap.price),
+        currency: "USD",
+        storeName: storeName ?? null,
+        dealUrl: gatedCheap.deal?.url ?? null,
+        rawPayload: debug ? bestCheap : null,
       });
-    }
 
-    return mapped;
+      if (debug) {
+        console.log("[pricing:service]", params.debugLabel ?? params.title, {
+          saved_to_cache: savedToCache,
+        });
+      }
+
+      return gatedCheap;
+    }
   }
 
   // Fallback: ITAD (only if CheapShark returned null / no match / rate limited / failed).
@@ -219,9 +321,10 @@ export async function lookupBestPrice(params: {
     });
   }
 
-  const mapped: BestPriceResult = {
+  const mappedRaw: BestPriceResult = {
     price: bestItad.price,
     provider: "itad",
+    currency: "USD",
     store: {
       id: bestItad.storeId,
       name: bestItad.storeName,
@@ -233,6 +336,9 @@ export async function lookupBestPrice(params: {
     matchedTitle: bestItad.matchedTitle,
   };
 
+  const gatedItad = gatePricingByTitleMatch(params.title, mappedRaw, "itad");
+  if (!gatedItad) return null;
+
   const savedToCache = await setCachedPriceQuote({
     title: params.title,
     provider: "itad",
@@ -240,7 +346,7 @@ export async function lookupBestPrice(params: {
     price: Number(bestItad.price),
     currency: "USD",
     storeName: bestItad.storeName ?? null,
-    dealUrl: bestItad.dealUrl ?? null,
+    dealUrl: gatedItad.deal?.url ?? null,
     rawPayload: debug ? bestItad : null,
   });
 
@@ -248,38 +354,64 @@ export async function lookupBestPrice(params: {
     console.log("[pricing:service]", params.debugLabel ?? params.title, {
       provider_used: "itad",
       provider: "itad",
-      returningToPage: mapped,
+      returningToPage: gatedItad,
     });
     console.log("[pricing:service]", params.debugLabel ?? params.title, {
       saved_to_cache: savedToCache,
     });
   }
 
-  return mapped;
+  return gatedItad;
 }
 
-export type DealRow = {
+export type VerifiedDealRow = {
+  requestedTitle: string;
+  matchedTitle: string;
   provider: "cheapshark";
+  currency: string;
   store: { id: string; name?: string };
   salePrice: string;
   normalPrice: string;
-  deal: { id: string; url: string };
+  deal: { id: string; url?: string };
+  gate: {
+    score: number;
+    acceptedPrice: boolean;
+    trustedUrl: boolean;
+    reason: string;
+    requestedNorm: string;
+    matchedNorm: string;
+    isShortTitle: boolean;
+  };
 };
+
+/** @deprecated use VerifiedDealRow */
+export type DealRow = VerifiedDealRow;
 
 export async function lookupDeals(params: {
   title: string;
   limit?: number;
   debug?: boolean;
   debugLabel?: string;
-}): Promise<DealRow[]> {
+}): Promise<VerifiedDealRow[]> {
+  const requestedTitle = params.title.trim();
   const deals = (await cheapSharkLookupDealsByTitle({
     title: params.title,
-    limit: params.limit ?? 5,
+    limit: params.limit ?? 8,
     debug: params.debug,
     debugLabel: params.debugLabel,
   })) as CheapSharkDeal[];
 
-  if (!deals.length) return [];
+  if (!deals.length) {
+    if (isDevPricingLog()) {
+      console.log("[pricing:deals-summary]", {
+        requestedTitle,
+        totalDeals: 0,
+        acceptedDeals: 0,
+        rejectedDeals: 0,
+      });
+    }
+    return [];
+  }
 
   const stores = (await cheapSharkGetStores({
     debug: params.debug,
@@ -287,17 +419,77 @@ export async function lookupDeals(params: {
   })) as CheapSharkStoreInfo[];
   const storeNameById = new Map(stores.map((s) => [s.storeID, s.storeName]));
 
-  return deals
-    .filter((d) => d?.dealID && d?.storeID)
-    .map((d) => ({
-      provider: "cheapshark" as const,
+  const out: VerifiedDealRow[] = [];
+  let rejectedDeals = 0;
+
+  for (const d of deals) {
+    if (!d?.dealID || !d.storeID || typeof d.title !== "string") {
+      rejectedDeals += 1;
+      continue;
+    }
+
+    const matchedTitle = d.title.trim();
+    const dealUrl = `https://www.cheapshark.com/redirect?dealID=${d.dealID}`;
+    const gate = evaluatePricingGate({
+      requestedTitle,
+      matchedTitle,
+      dealUrl,
+      provider: "cheapshark",
+    });
+
+    if (isDevPricingLog()) {
+      console.log("[pricing:deal-gate]", {
+        requestedTitle,
+        matchedTitle,
+        provider: "cheapshark",
+        price: d.salePrice,
+        currency: "USD",
+        score: gate.score,
+        acceptedPrice: gate.acceptedPrice,
+        trustedUrl: gate.trustedUrl,
+        reason: gate.reason,
+        url: gate.trustedUrl ? dealUrl : null,
+      });
+    }
+
+    if (!gate.acceptedPrice) {
+      rejectedDeals += 1;
+      continue;
+    }
+
+    out.push({
+      requestedTitle,
+      matchedTitle,
+      provider: "cheapshark",
+      currency: "USD",
       store: { id: d.storeID, name: storeNameById.get(d.storeID) },
       salePrice: d.salePrice,
       normalPrice: d.normalPrice,
       deal: {
         id: d.dealID,
-        url: `https://www.cheapshark.com/redirect?dealID=${d.dealID}`,
+        url: gate.trustedUrl ? dealUrl : undefined,
       },
-    }));
+      gate: {
+        score: gate.score,
+        acceptedPrice: gate.acceptedPrice,
+        trustedUrl: gate.trustedUrl,
+        reason: gate.reason,
+        requestedNorm: gate.requestedNorm,
+        matchedNorm: gate.matchedNorm,
+        isShortTitle: gate.isShortTitle,
+      },
+    });
+  }
+
+  if (isDevPricingLog()) {
+    console.log("[pricing:deals-summary]", {
+      requestedTitle,
+      totalDeals: deals.length,
+      acceptedDeals: out.length,
+      rejectedDeals,
+    });
+  }
+
+  return out;
 }
 

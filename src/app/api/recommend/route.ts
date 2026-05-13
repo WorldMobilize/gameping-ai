@@ -5,7 +5,13 @@ import {
   hashNormalizedInput,
   setCachedAiRecommendation,
 } from "@/lib/cache";
-import { rateLimit } from "@/lib/rate-limit";
+import { PROMPT_MAX_DEFAULT } from "@/lib/recommend-limits";
+import {
+  getPromptMaxChars,
+  getRecommendDailyLimit,
+  shouldBypassRecommendLimits,
+  tryConsumeRecommendDailySlot,
+} from "@/lib/recommend-usage";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 import {
   dedupeCandidates,
@@ -41,7 +47,7 @@ type RecommendDebug = {
   noCache?: boolean;
   cacheReadSkipped?: boolean;
   cacheWriteSkipped?: boolean;
-  pricingMode?: "details_only" | "live";
+  pricingMode?: "details_only" | "live" | "cards_only_no_live_pricing";
   recommendLivePrices?: boolean;
   models: {
     discovery: string;
@@ -75,6 +81,16 @@ type RecommendDebug = {
     selectedDealId?: string;
     selectedPrice?: string;
     rejectedReason?: string;
+  };
+  filtersEnabled?: boolean;
+  usageLimit?: {
+    plan: string | null;
+    bypass: boolean;
+    used: number;
+    /** Null when limits are bypassed (admin / dev); otherwise daily slot limit. */
+    limit: number | null;
+    allowed?: boolean;
+    dailyCap?: number;
   };
   cheapShark: Array<{
     game: string;
@@ -171,6 +187,136 @@ function jaccardTokens(a: string[], b: string[]) {
 function containsBadWords(title: string) {
   const t = normalizeTitleForMatch(title);
   return CHEAPSHARK_BAD_WORDS.some((w) => t.includes(w));
+}
+
+type MatchTier = "best_match" | "good_alternative" | "partial_match";
+
+function extractReferenceTitlesFromPrompt(prompt: string): string[] {
+  const out = new Set<string>();
+  const patterns: RegExp[] = [
+    /\btipo\s+(.+?)(?:[.!?]|$)/i,
+    /\bsimili?\s+a\s+(.+?)(?:[.!?]|$)/i,
+    /\bcome\s+(.+?)(?:[.!?]|$)/i,
+    /\balternative?\s+a\s+(.+?)(?:[.!?]|$)/i,
+    /\bsimilar\s+to\s+(.+?)(?:[.!?]|$)/i,
+    /\bgames?\s+like\s+(.+?)(?:[.!?]|$)/i,
+    /\blike\s+(.+?)(?:[.!?]|$)/i,
+  ];
+  for (const re of patterns) {
+    const m = prompt.match(re);
+    if (m?.[1]) {
+      let t = m[1].trim();
+      t = t.replace(/^["'«»]+|["'«»]+$/g, "").trim();
+      t = t.replace(/\s+(for|per|on|su)\s+.*$/i, "").trim();
+      if (t.length >= 2) out.add(t);
+    }
+  }
+  return [...out];
+}
+
+function isExplicitTitleLookupQuery(prompt: string): boolean {
+  const q = prompt.trim();
+  if (
+    /^(trova|cerca|find|search|show\s+me|mostrami|dammi|give\s+me)\s+/i.test(q)
+  ) {
+    return true;
+  }
+  if (
+    /\b(prezzo|price|sconto|discount|deal|quanto\s+costa|how\s+much)\b/i.test(q)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function ingestTagLikeField(acc: Set<string>, v: unknown) {
+  if (v == null) return;
+  if (typeof v === "string") {
+    for (const part of v.split(",")) {
+      const t = part.trim().toLowerCase();
+      if (t) acc.add(t);
+    }
+    return;
+  }
+  if (Array.isArray(v)) {
+    for (const x of v) {
+      if (typeof x === "string" && x.trim()) acc.add(x.trim().toLowerCase());
+    }
+  }
+}
+
+/**
+ * Merges explicit selectedTags + genre/playstyle/vibes/mechanics from raw JSON and normalized strings.
+ */
+function resolveSelectedTagsList(
+  rawBody: unknown,
+  normalized: {
+    selectedTags: string;
+    genres: string;
+    playStyles: string;
+    vibes: string;
+    mechanics: string;
+  }
+): string[] {
+  const b = (rawBody ?? {}) as Record<string, unknown>;
+  const acc = new Set<string>();
+
+  ingestTagLikeField(acc, b.selectedTags);
+  ingestTagLikeField(acc, b.genres);
+  ingestTagLikeField(acc, b.playStyles);
+  ingestTagLikeField(acc, b.vibes);
+  ingestTagLikeField(acc, b.mechanics);
+  ingestTagLikeField(acc, b.tags);
+
+  ingestTagLikeField(acc, normalized.selectedTags);
+  ingestTagLikeField(acc, normalized.genres);
+  ingestTagLikeField(acc, normalized.playStyles);
+  ingestTagLikeField(acc, normalized.vibes);
+  ingestTagLikeField(acc, normalized.mechanics);
+
+  return [...acc].sort();
+}
+
+function augmentIslandSurvivalFallbackQueries(params: {
+  queries: string[];
+  userPrompt: string;
+  normalizedIntent: string;
+  coreNeeds: string[];
+  resolvedTags: string[];
+}): string[] {
+  const existing = new Set(params.queries.map((q) => q.trim().toLowerCase()));
+  const out = [...params.queries];
+  const blob = [
+    params.userPrompt,
+    params.normalizedIntent,
+    ...params.coreNeeds,
+    ...params.resolvedTags,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  const islandish = /\b(island|isola|isole|desert|deserta|beach|ocean|raft|shore|strand|sea)\b/i.test(
+    blob
+  );
+  const buildCraft =
+    /\b(survival|sopravvivenza|craft|crafting|build|building|costru|gather)\b/i.test(blob);
+
+  if (islandish && buildCraft) {
+    const extra = [
+      "deserted island survival crafting",
+      "island survival building",
+      "ocean survival crafting",
+      "survival crafting island",
+    ];
+    for (const q of extra) {
+      const k = q.trim().toLowerCase();
+      if (!existing.has(k)) {
+        out.push(q);
+        existing.add(k);
+      }
+    }
+  }
+  return out.slice(0, 14);
 }
 
 function titleMatchScore(rawgTitle: string, cheapTitle: string) {
@@ -446,10 +592,40 @@ async function aiSemanticRelevanceFilter(params: {
   coreNeeds: string[];
   avoid: string[];
   candidates: VerifiedCandidate[];
+  budgetHint: string;
+  selectedTagsLine: string;
+  filtersEnabled: boolean;
 }) {
-  const { openai, userQuery, normalizedIntent, coreNeeds, avoid, candidates } = params;
+  const {
+    openai,
+    userQuery,
+    normalizedIntent,
+    coreNeeds,
+    avoid,
+    candidates,
+    budgetHint,
+    selectedTagsLine,
+    filtersEnabled,
+  } = params;
 
   if (candidates.length === 0) return { kept: [] as VerifiedCandidate[], usage: null as unknown };
+
+  const constraintRule = filtersEnabled
+    ? `- Weight selected tags and budget seriously: a candidate that ignores stated genres/tags or clearly violates budget spirit should be marked relevant=false unless it is an exceptional semantic fit.`
+    : `- Discovery mode (structured filters OFF): judge relevance primarily from the user query and intent. Do NOT reject candidates for missing optional tags/platform/budget unless the user explicitly demanded them in the query.`;
+
+  const budgetLine =
+    filtersEnabled && budgetHint.trim()
+      ? budgetHint
+      : filtersEnabled
+        ? "not specified"
+        : "not specified — discovery mode (ignore numeric budget unless clearly stated in the user query)";
+  const tagsLine =
+    filtersEnabled && selectedTagsLine.trim()
+      ? selectedTagsLine
+      : filtersEnabled
+        ? "none"
+        : "none — discovery mode (prioritize query/intent; no structured tag constraints)";
 
   // Keep calls bounded: judge at most 40 candidates total (top-scored pool).
   const toJudge = candidates.slice(0, 40);
@@ -496,6 +672,7 @@ Rules:
 - confidence is 0.0..1.0.
 - Do not invent games. Only judge the provided candidates.
 - Return one result per input candidate (same rawgId), in the same order.
+${constraintRule}
 `,
         },
         {
@@ -505,6 +682,8 @@ User query: ${userQuery || "not specified"}
 Normalized intent: ${normalizedIntent || "not specified"}
 Core needs: ${coreNeeds.length ? coreNeeds.join(", ") : "none"}
 Avoid: ${avoid.length ? avoid.join(", ") : "none"}
+Selected tags (user-selected, high priority): ${tagsLine}
+Maximum budget (numeric cap): ${budgetLine}
 
 Candidates:
 ${JSON.stringify(
@@ -541,11 +720,25 @@ ${JSON.stringify(
     keepById.set(r.rawgId, r);
   }
 
-  const kept = toJudge.filter((c) => {
+  let kept = toJudge.filter((c) => {
     const r = keepById.get(c.id);
     if (!r) return false;
     return r.relevant === true && r.confidence >= 0.7;
   });
+
+  if (kept.length < 3) {
+    const have = new Set(kept.map((c) => c.id));
+    const relaxed: VerifiedCandidate[] = [...kept];
+    for (const c of toJudge) {
+      if (have.size >= 18) break;
+      if (have.has(c.id)) continue;
+      const r = keepById.get(c.id);
+      if (!r || r.relevant !== true || r.confidence < 0.55) continue;
+      relaxed.push(c);
+      have.add(c.id);
+    }
+    kept = relaxed;
+  }
 
   return { kept, usage: totalUsage };
 }
@@ -555,6 +748,7 @@ function clamp(n: number, min: number, max: number) {
 }
 
 function normalizeInput(body: unknown) {
+  const b = (body ?? {}) as Record<string, unknown>;
   const {
     userPrompt,
     query,
@@ -569,7 +763,10 @@ function normalizeInput(body: unknown) {
     mechanics,
     platform,
     budget,
-  } = (body ?? {}) as Record<string, unknown>;
+    maxPrice,
+    selectedTags,
+    platforms,
+  } = b;
 
   const resolvedUserPrompt =
     (typeof userPrompt === "string" && userPrompt.trim()) ||
@@ -581,14 +778,70 @@ function normalizeInput(body: unknown) {
     (typeof preferences === "string" && preferences.trim()) ||
     "";
 
+  const budgetFromField =
+    typeof budget === "string" ? budget.trim() : String(budget ?? "").trim();
+  const maxPriceStr =
+    typeof maxPrice === "number" && Number.isFinite(maxPrice)
+      ? String(maxPrice)
+      : typeof maxPrice === "string"
+        ? maxPrice.trim()
+        : "";
+  const budgetResolved = budgetFromField || maxPriceStr;
+
+  let platformStr = typeof platform === "string" ? platform.trim() : "";
+  if (Array.isArray(platforms)) {
+    const joined = platforms
+      .filter((x): x is string => typeof x === "string")
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .join(", ");
+    if (joined) platformStr = platformStr ? `${platformStr}, ${joined}` : joined;
+  }
+
+  let selectedTagsStr = "";
+  if (Array.isArray(selectedTags)) {
+    selectedTagsStr = selectedTags
+      .filter((x): x is string => typeof x === "string")
+      .map((x) => x.trim())
+      .filter(Boolean)
+      .join(", ");
+  } else if (typeof selectedTags === "string") {
+    selectedTagsStr = selectedTags.trim();
+  }
+
   return {
     userPrompt: resolvedUserPrompt,
     genres: typeof genres === "string" ? genres.trim() : "",
     playStyles: typeof playStyles === "string" ? playStyles.trim() : "",
     vibes: typeof vibes === "string" ? vibes.trim() : "",
     mechanics: typeof mechanics === "string" ? mechanics.trim() : "",
-    platform: typeof platform === "string" ? platform.trim() : "",
-    budget: typeof budget === "string" ? budget.trim() : String(budget ?? "").trim(),
+    platform: platformStr,
+    budget: budgetResolved,
+    selectedTags: selectedTagsStr,
+  };
+}
+
+/** API clients that omit the field keep legacy “filtered search” behavior. */
+function parseFiltersEnabled(body: unknown): boolean {
+  const b = body as Record<string, unknown>;
+  if (typeof b.filtersEnabled === "boolean") return b.filtersEnabled;
+  return true;
+}
+
+function effectiveNormalizedInput(
+  base: ReturnType<typeof normalizeInput>,
+  filtersEnabled: boolean
+) {
+  if (filtersEnabled) return base;
+  return {
+    ...base,
+    genres: "",
+    playStyles: "",
+    vibes: "",
+    mechanics: "",
+    platform: "",
+    budget: "",
+    selectedTags: "",
   };
 }
 
@@ -599,14 +852,18 @@ function inputBlob(input: {
   vibes: string;
   mechanics: string;
   platform: string;
+  budget: string;
+  selectedTags: string;
 }) {
   return [
     input.userPrompt,
+    input.selectedTags,
     input.genres,
     input.playStyles,
     input.vibes,
     input.mechanics,
     input.platform,
+    input.budget ? `max ${input.budget}` : "",
   ]
     .filter(Boolean)
     .join(" | ");
@@ -639,15 +896,22 @@ function semanticHeuristicScore(params: {
   coreNeeds: string[];
   avoid: string[];
   userBlob: string;
+  tagTokens: string[];
   candidate: RawgCandidate;
 }) {
-  const { normalizedIntent, coreNeeds, avoid, userBlob, candidate } = params;
+  const { normalizedIntent, coreNeeds, avoid, userBlob, tagTokens, candidate } = params;
   const genreText = (candidate.genres ?? []).map((g) => g.name).join(" | ");
   const tagText = (candidate.tags ?? []).map((t) => t.name).join(" | ");
   const blob = `${candidate.name} | ${genreText} | ${tagText}`.toLowerCase();
   const intent = `${normalizedIntent} | ${userBlob}`.toLowerCase();
 
   let s = 0;
+
+  for (const tok of tagTokens) {
+    const t = (tok || "").trim().toLowerCase();
+    if (t.length < 2) continue;
+    if (blob.includes(t)) s += 5;
+  }
 
   for (const need of coreNeeds) {
     const n = (need || "").toLowerCase().trim();
@@ -670,13 +934,15 @@ function semanticHeuristicScore(params: {
 async function verifySuggestedTitles(params: {
   rawgKey: string;
   suggestedTitles: AiSuggestedTitle[];
+  excludeNormalized: Set<string>;
 }) {
-  const { rawgKey, suggestedTitles } = params;
+  const { rawgKey, suggestedTitles, excludeNormalized } = params;
   const verified: VerifiedCandidate[] = [];
 
   for (const s of suggestedTitles.slice(0, 15)) {
     const title = s.title.trim();
     if (!title) continue;
+    if (excludeNormalized.has(normalizeTitleForMatch(title))) continue;
 
     const results = await searchRawgByTitle({
       rawgApiKey: rawgKey,
@@ -704,6 +970,7 @@ async function verifySuggestedTitles(params: {
     }
 
     if (!best) continue;
+    if (excludeNormalized.has(normalizeTitleForMatch(best.name))) continue;
 
     verified.push({
       ...best,
@@ -725,9 +992,10 @@ function scoreVerifiedCandidates(params: {
   coreNeeds: string[];
   avoid: string[];
   userBlob: string;
+  tagTokens: string[];
   candidates: VerifiedCandidate[];
 }) {
-  const { normalizedIntent, coreNeeds, avoid, userBlob, candidates } = params;
+  const { normalizedIntent, coreNeeds, avoid, userBlob, tagTokens, candidates } = params;
 
   const scored = candidates.map((c) => {
     const heuristic = semanticHeuristicScore({
@@ -735,6 +1003,7 @@ function scoreVerifiedCandidates(params: {
       coreNeeds,
       avoid,
       userBlob,
+      tagTokens,
       candidate: c,
     });
 
@@ -752,6 +1021,247 @@ function scoreVerifiedCandidates(params: {
   return scored;
 }
 
+function filterCandidatesByExclude(
+  pool: VerifiedCandidate[],
+  excludeNormalized: Set<string>
+) {
+  if (excludeNormalized.size === 0) return pool;
+  return pool.filter((c) => !excludeNormalized.has(normalizeTitleForMatch(c.name)));
+}
+
+type PreEnrichPick = {
+  id: number;
+  title: string;
+  slug: string | null;
+  image: string | null;
+  match: number;
+  reason: string;
+  matchTier: MatchTier;
+  matchNote: string;
+};
+
+const RECOVERY_SEMANTIC_SCORE_FLOOR = 28;
+const RECOVERY_AI_CONF_FLOOR = 45;
+
+const INTENT_STOPWORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "you",
+  "your",
+  "game",
+  "games",
+  "giochi",
+  "gioco",
+  "una",
+  "uno",
+  "degli",
+  "della",
+  "that",
+  "with",
+  "from",
+  "this",
+  "like",
+  "are",
+  "want",
+  "looking",
+  "find",
+]);
+
+function buildIntentKeywordSet(params: {
+  userPrompt: string;
+  normalizedIntent: string;
+  coreNeeds: string[];
+  tagTokens: string[];
+  fallbackQueries: string[];
+}) {
+  const set = new Set<string>();
+  const addPhrase = (phrase: string) => {
+    const normalized = phrase
+      .toLowerCase()
+      .replace(/[^a-z0-9àèéìòù\s]/gi, " ");
+    for (const w of normalized.split(/\s+/)) {
+      const t = w.trim();
+      if (t.length >= 3 && !INTENT_STOPWORDS.has(t)) set.add(t);
+    }
+  };
+  addPhrase(params.userPrompt);
+  addPhrase(params.normalizedIntent);
+  params.coreNeeds.forEach((x) => addPhrase(x));
+  params.tagTokens.forEach((x) => addPhrase(x));
+  params.fallbackQueries.forEach((x) => addPhrase(x));
+  return set;
+}
+
+function listOverlappingKeywords(c: RawgCandidate, keywords: Set<string>) {
+  const blob = `${c.name} ${(c.genres ?? []).map((g) => g.name).join(" ")} ${(c.tags ?? []).map((t) => t.name).join(" ")}`.toLowerCase();
+  const out: string[] = [];
+  for (const kw of keywords) {
+    if (blob.includes(kw)) out.push(kw);
+  }
+  return out;
+}
+
+function buildIntentPhraseChunks(params: {
+  userPrompt: string;
+  normalizedIntent: string;
+  coreNeeds: string[];
+  resolvedTags?: string[];
+}) {
+  const chunks = new Set<string>();
+  const ingest = (text: string) => {
+    const t = text.trim().toLowerCase();
+    if (t.length >= 5 && t.length <= 90) chunks.add(t);
+    for (const seg of t.split(/[,;.]+/)) {
+      const s = seg.trim();
+      if (s.length >= 5 && s.length <= 90) chunks.add(s);
+    }
+    for (const w of t.split(/\s+/)) {
+      if (w.length >= 5) chunks.add(w);
+    }
+  };
+  ingest(params.normalizedIntent);
+  ingest(params.userPrompt);
+  (params.coreNeeds ?? []).forEach(ingest);
+  (params.resolvedTags ?? []).forEach((x) => ingest(x));
+  return [...chunks].slice(0, 48);
+}
+
+function listRecoveryOverlaps(
+  c: RawgCandidate,
+  keywords: Set<string>,
+  phraseChunks: string[]
+) {
+  const blob = `${c.name} ${(c.genres ?? []).map((g) => g.name).join(" ")} ${(c.tags ?? []).map((t) => t.name).join(" ")}`.toLowerCase();
+  const kwHits = listOverlappingKeywords(c, keywords);
+  if (kwHits.length > 0) {
+    return { overlapping: kwHits, overlap: kwHits.length };
+  }
+  const chunkHits = phraseChunks.filter((ch) => ch.length >= 4 && blob.includes(ch));
+  return {
+    overlapping: chunkHits.slice(0, 6),
+    overlap: chunkHits.length,
+  };
+}
+
+function buildRecoveryPick(params: {
+  c: VerifiedCandidate;
+  semanticScore: number;
+  overlap: number;
+  overlapping: string[];
+}): PreEnrichPick {
+  const { c, semanticScore, overlap, overlapping } = params;
+  const tier: MatchTier = overlap >= 2 ? "good_alternative" : "partial_match";
+  const match = clamp(
+    50 + Math.min(14, Math.floor((semanticScore - RECOVERY_SEMANTIC_SCORE_FLOOR) / 3)),
+    48,
+    66
+  );
+  const themes = overlapping.slice(0, 5).join(", ") || "your stated themes";
+  const matchNote =
+    tier === "good_alternative"
+      ? `Added from the expanded pool: aligns with ${themes}, but less exact than top picks.`
+      : `Broader pick from the candidate pool; partial overlap with ${themes}.`;
+  const reason = `Supporting alternative from the broader search pool. It shares keywords with your request (${themes}) but was outside the strict shortlist; included to give you more viable options.`;
+  return {
+    id: c.id,
+    title: c.name,
+    slug: c.slug ?? null,
+    image: c.background_image ?? null,
+    match,
+    reason,
+    matchTier: tier,
+    matchNote,
+  };
+}
+
+function augmentPicksWithRecovery(params: {
+  primaryPicks: PreEnrichPick[];
+  candidatePool: VerifiedCandidate[];
+  scoredFinal: Array<{ candidate: VerifiedCandidate; score: number }>;
+  intent: {
+    normalizedIntent: string;
+    coreNeeds: string[];
+    fallbackDiscoveryQueries: string[];
+  };
+  normalizedInput: { userPrompt: string };
+  tagTokens: string[];
+  excludeNormalized: Set<string>;
+  filtersEnabled: boolean;
+}): PreEnrichPick[] {
+  const {
+    primaryPicks,
+    candidatePool,
+    scoredFinal,
+    intent,
+    normalizedInput,
+    tagTokens,
+    excludeNormalized,
+    filtersEnabled,
+  } = params;
+
+  const merged: PreEnrichPick[] = [...primaryPicks];
+  const usedIds = new Set(merged.map((p) => p.id));
+  const scoreById = new Map(scoredFinal.map((x) => [x.candidate.id, x.score]));
+
+  const keywords = buildIntentKeywordSet({
+    userPrompt: normalizedInput.userPrompt,
+    normalizedIntent: intent.normalizedIntent,
+    coreNeeds: intent.coreNeeds ?? [],
+    tagTokens,
+    fallbackQueries: intent.fallbackDiscoveryQueries ?? [],
+  });
+
+  const phraseChunks = buildIntentPhraseChunks({
+    userPrompt: normalizedInput.userPrompt,
+    normalizedIntent: intent.normalizedIntent,
+    coreNeeds: intent.coreNeeds ?? [],
+    resolvedTags: tagTokens,
+  });
+
+  const extras: Array<{
+    c: VerifiedCandidate;
+    score: number;
+    overlap: number;
+    overlapping: string[];
+  }> = [];
+
+  for (const c of candidatePool) {
+    if (usedIds.has(c.id)) continue;
+    if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
+    if (!isProbablyBaseGame(c)) continue;
+    const sc = scoreById.get(c.id);
+    if (sc === undefined) continue;
+    const conf = c._suggested?.confidence ?? 0;
+    if (sc < RECOVERY_SEMANTIC_SCORE_FLOOR && conf < RECOVERY_AI_CONF_FLOOR) continue;
+    const { overlapping, overlap } = listRecoveryOverlaps(c, keywords, phraseChunks);
+    if (overlap < 1) continue;
+    extras.push({ c, score: sc, overlap, overlapping });
+  }
+
+  extras.sort((a, b) => b.score - a.score);
+
+  for (const extra of extras) {
+    if (merged.length >= 6) break;
+    if (merged.length >= 3) {
+      const minOverlap = filtersEnabled ? 2 : 1;
+      const minScore = filtersEnabled ? 42 : 34;
+      if (extra.overlap < minOverlap && extra.score < minScore) continue;
+    }
+    merged.push(
+      buildRecoveryPick({
+        c: extra.c,
+        semanticScore: extra.score,
+        overlap: extra.overlap,
+        overlapping: extra.overlapping,
+      })
+    );
+    usedIds.add(extra.c.id);
+  }
+
+  return merged;
+}
+
 export async function POST(req: Request) {
   let url: URL | null = null;
   let debugEnabled = false;
@@ -766,44 +1276,111 @@ export async function POST(req: Request) {
 
   try {
 
-    // Rate limit: 10 requests / 10 minutes per user (fallback to IP).
     let userId: string | null = null;
+    let plan: string | null = null;
     try {
       const supabase = await createCookieClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
       userId = user?.id ?? null;
+      if (userId) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("plan")
+          .eq("user_id", userId)
+          .maybeSingle();
+        plan = profile?.plan ?? "free";
+      }
     } catch {}
 
-    const rl = await rateLimit({
-      req,
-      action: "recommend",
-      limit: 10,
-      windowMs: 10 * 60 * 1000,
-      userId,
-    });
-
-    if (!rl.allowed) {
-      return NextResponse.json(
-        {
-          error: "Rate limit exceeded",
-          action: "recommend",
-          limit: rl.limit,
-          resetAt: rl.resetAt,
-        },
-        { status: 429 }
-      );
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const body = await req.json();
-    const normalizedInput = normalizeInput(body);
-    if (!normalizedInput.userPrompt) {
+    const filtersEnabled = parseFiltersEnabled(body);
+    const normalizedInput = effectiveNormalizedInput(
+      normalizeInput(body),
+      filtersEnabled
+    );
+    if (!normalizedInput.userPrompt.trim()) {
       return NextResponse.json(
         { error: "Missing recommendation query" },
         { status: 400 }
       );
     }
+
+    const bypassLimits = shouldBypassRecommendLimits(plan);
+    const promptMax = getPromptMaxChars(plan, bypassLimits);
+    const promptLen = normalizedInput.userPrompt.trim().length;
+    if (promptLen > promptMax) {
+      return NextResponse.json(
+        {
+          error: "prompt_too_long",
+          message:
+            promptMax <= PROMPT_MAX_DEFAULT
+              ? "Prompt too long. Please keep it under 500 characters."
+              : `Prompt too long. Keep it under ${promptMax} characters.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const dailyLimitValue = getRecommendDailyLimit({ plan, userId });
+    let usageAfter = { allowed: true as boolean, used: 0, limit: dailyLimitValue };
+
+    if (!bypassLimits) {
+      usageAfter = await tryConsumeRecommendDailySlot({
+        req,
+        userId,
+        dailyLimit: dailyLimitValue,
+      });
+
+      if (process.env.NODE_ENV === "development") {
+        console.log("[recommend:usage-limit]", {
+          userId,
+          isAdmin: plan === "admin",
+          plan: plan ?? "anon",
+          used: usageAfter.used,
+          limit: usageAfter.limit,
+          allowed: usageAfter.allowed,
+        });
+      }
+
+      if (!usageAfter.allowed) {
+        return NextResponse.json(
+          {
+            error: "daily_limit",
+            message:
+              "Daily AI recommendation limit reached. Try again tomorrow.",
+          },
+          { status: 429 }
+        );
+      }
+    } else if (process.env.NODE_ENV === "development") {
+      console.log("[recommend:usage-limit]", {
+        userId,
+        isAdmin: plan === "admin",
+        plan: plan ?? "anon",
+        used: 0,
+        limit: "bypass",
+        allowed: true,
+      });
+    }
+
+    const resolvedSelectedTags = filtersEnabled
+      ? resolveSelectedTagsList(body, normalizedInput)
+      : [];
+    if (process.env.NODE_ENV === "development") {
+      console.log("[recommend:selectedTagsResolved]", resolvedSelectedTags);
+    }
+
+    const tagTokens = resolvedSelectedTags;
+    const selectedTagsLine = resolvedSelectedTags.join(", ");
+
     const userBlob = inputBlob({
       userPrompt: normalizedInput.userPrompt,
       genres: normalizedInput.genres,
@@ -811,19 +1388,64 @@ export async function POST(req: Request) {
       vibes: normalizedInput.vibes,
       mechanics: normalizedInput.mechanics,
       platform: normalizedInput.platform,
+      budget: normalizedInput.budget,
+      selectedTags: resolvedSelectedTags.join(", "),
     });
 
     // 1) AI-first discovery (titles + intent).
     stage = "discovery";
     const aiDiscovery = await aiFirstDiscovery({
       openai,
-      normalizedInput,
+      filtersEnabled,
+      normalizedInput: {
+        ...normalizedInput,
+        selectedTags: resolvedSelectedTags.join(", "),
+      },
     });
     const intent = aiDiscovery.intent;
 
+    intent.fallbackDiscoveryQueries = augmentIslandSurvivalFallbackQueries({
+      queries: intent.fallbackDiscoveryQueries ?? [],
+      userPrompt: normalizedInput.userPrompt,
+      normalizedIntent: intent.normalizedIntent,
+      coreNeeds: intent.coreNeeds ?? [],
+      resolvedTags: resolvedSelectedTags,
+    });
+
+    const regexRefs = extractReferenceTitlesFromPrompt(normalizedInput.userPrompt);
+    const excludeListRaw = [
+      ...regexRefs,
+      ...(intent.excludeTitles ?? []),
+      ...(intent.referenceTitles ?? []),
+    ];
+    let excludeNormalized = new Set(
+      excludeListRaw.map((t) => normalizeTitleForMatch(t)).filter(Boolean)
+    );
+    if (isExplicitTitleLookupQuery(normalizedInput.userPrompt)) {
+      excludeNormalized = new Set();
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("[recommend:payload]", {
+        filtersEnabled,
+        prompt: normalizedInput.userPrompt,
+        genres: normalizedInput.genres,
+        playStyles: normalizedInput.playStyles,
+        vibes: normalizedInput.vibes,
+        mechanics: normalizedInput.mechanics,
+        platform: normalizedInput.platform,
+        budget: normalizedInput.budget,
+        selectedTags: normalizedInput.selectedTags,
+        resolvedSelectedTags,
+        excludeTitlesNormalized: [...excludeNormalized],
+      });
+    }
+
     // Cache key must include intent so different requests don't collide.
     const cacheKeyInput = {
+      filtersEnabled,
       ...normalizedInput,
+      resolvedSelectedTags,
       intent,
     };
 
@@ -845,12 +1467,15 @@ export async function POST(req: Request) {
       verified = await verifySuggestedTitles({
         rawgKey,
         suggestedTitles: intent.suggestedTitles,
+        excludeNormalized,
       });
     }
 
+    verified = filterCandidatesByExclude(verified, excludeNormalized);
+
     // 3) Fallback retrieval if verification is weak.
     let candidatePool: VerifiedCandidate[] = verified;
-    if (rawgKey && candidatePool.length < 3) {
+    if (rawgKey && candidatePool.length < 6) {
       const fallbackQueries =
         intent.fallbackDiscoveryQueries?.length
           ? intent.fallbackDiscoveryQueries
@@ -869,7 +1494,7 @@ export async function POST(req: Request) {
           coreKeywords: intent.coreNeeds ?? [],
           discoveryQueries: fallbackQueries,
           negativeKeywords: intent.avoid ?? [],
-          preferredGenresOrTags: [],
+          preferredGenresOrTags: tagTokens,
         },
         dedupeCandidates(fetched)
       );
@@ -878,23 +1503,33 @@ export async function POST(req: Request) {
       candidatePool = dedupeCandidates([...candidatePool, ...diverse]);
     }
 
+    candidatePool = filterCandidatesByExclude(candidatePool, excludeNormalized);
+
     // 4) Final candidate scoring and pruning.
     const scoredFinal = scoreVerifiedCandidates({
       normalizedIntent: intent.normalizedIntent,
       coreNeeds: intent.coreNeeds ?? [],
       avoid: intent.avoid ?? [],
       userBlob,
+      tagTokens,
       candidates: candidatePool,
     });
 
     // Quality rule: better 3 strong than 5 filler.
-    const strong = scoredFinal
+    let strong = scoredFinal
       .filter((x) => x.score >= 8 && isProbablyBaseGame(x.candidate))
       .slice(0, 40)
       .map((x) => x.candidate);
 
+    if (strong.length < 4) {
+      strong = scoredFinal
+        .filter((x) => x.score >= 5 && isProbablyBaseGame(x.candidate))
+        .slice(0, 40)
+        .map((x) => x.candidate);
+    }
+
     const rerankPool =
-      strong.length >= 3 ? strong : scoredFinal.slice(0, 25).map((x) => x.candidate);
+      strong.length >= 3 ? strong : scoredFinal.slice(0, 40).map((x) => x.candidate);
 
     // 4.5) Generic AI semantic relevance filter (drop filler/unrelated).
     let filteredPool = rerankPool as VerifiedCandidate[];
@@ -914,6 +1549,9 @@ export async function POST(req: Request) {
         coreNeeds: intent.coreNeeds ?? [],
         avoid: intent.avoid ?? [],
         candidates: filteredPool,
+        budgetHint: normalizedInput.budget || "not specified",
+        selectedTagsLine,
+        filtersEnabled,
       });
 
       filteredPool = rel.kept;
@@ -921,6 +1559,9 @@ export async function POST(req: Request) {
 
     // 5) Final rerank: AI picks ONLY from verified pool by id.
     const hasCandidatePool = filteredPool.length > 0;
+    const rankingHint = filtersEnabled
+      ? `- Weight user-selected tags, genres, platform, and maximum budget heavily when ranking. Strong semantic matches that ignore key tags should be partial_match or ranked lower.`
+      : `- Discovery mode (structured filters OFF): prioritize fit to the user request and intent. Do not penalize picks solely because optional structured tags/platform/budget were not provided in the UI; rank by described vibe and relevance.`;
     stage = "rerank";
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -938,22 +1579,25 @@ Return ONLY valid JSON in this exact format:
     {
       "id": 123,
       "match": 95,
-      "reason": "Two or three sentences explaining fit and audience."
+      "reason": "Two or three sentences explaining fit and audience.",
+      "matchTier": "best_match",
+      "matchNote": "One short sentence on fit vs compromises (or empty string)."
     }
   ]
 }
 
+matchTier MUST be one of: "best_match", "good_alternative", "partial_match".
+
 Rules:
-- Recommend 3 to 5 games. It's OK to return fewer than 5 if the pool is weak.
+- Target 4 to 6 games when the pool supports it; never exceed 6. Minimum goal 3 picks when possible.
+- Prefer fewer excellent picks over random filler; use good_alternative / partial_match honestly when tradeoffs exist.
 - You MUST pick ONLY ids from the provided candidate pool. Do not invent titles. Do not output titles.
-- Match must be a number from 0 to 100.
+- Match must be a number from 0 to 100 (semantic fit including tags/genres/platforms intent).
 - Each "reason" must be 2–3 concise sentences in plain English (no markdown, no bullet symbols).
-- In those sentences: (1) why this pick fits the user's stated request and intent, (2) what kind of player or playstyle it suits best.
-- Be specific to this title (avoid generic praise).
-- Prefer games available on the selected platform when relevant.
-- Consider the budget in spirit, but never invent or quote dollar amounts inside "reason".
-- Do not include markdown.
-- Do not include extra text.
+- "matchNote" must briefly state tradeoffs for good_alternative/partial_match (e.g. more combat, less chill). For best_match it can be empty or reinforce the fit.
+${rankingHint}
+- Do not quote exact prices in "reason" or "matchNote"; budget is handled separately.
+- Do not include markdown or extra keys.
 `,
         },
         {
@@ -963,6 +1607,8 @@ User request: ${normalizedInput.userPrompt || "not specified"}
 Normalized intent: ${intent.normalizedIntent || "not specified"}
 Core needs: ${intent.coreNeeds?.length ? intent.coreNeeds.join(", ") : "none"}
 Avoid: ${intent.avoid?.length ? intent.avoid.join(", ") : "none"}
+
+Selected tags (priority): ${selectedTagsLine || "not specified"}
 
 Genres:
 ${normalizedInput.genres || "not specified"}
@@ -979,7 +1625,7 @@ ${normalizedInput.mechanics || "not specified"}
 Platform:
 ${normalizedInput.platform || "not specified"}
 
-Maximum budget:
+Maximum budget (numeric):
 ${normalizedInput.budget || "not specified"}
 
 ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.stringify(
@@ -1031,6 +1677,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
         if (!Number.isFinite(id)) return null;
         const c = poolById.get(Number(id));
         if (!c) return null;
+        if (excludeNormalized.has(normalizeTitleForMatch(c.name))) return null;
 
         const matchRaw =
           typeof g.match === "number"
@@ -1040,6 +1687,17 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
               : 0;
         const match = clamp(Number.isFinite(matchRaw) ? matchRaw : 0, 0, 100);
         const reason = typeof g.reason === "string" ? g.reason : "";
+        const tierRaw = g.matchTier;
+        let matchTier: MatchTier = "best_match";
+        if (
+          tierRaw === "good_alternative" ||
+          tierRaw === "partial_match" ||
+          tierRaw === "best_match"
+        ) {
+          matchTier = tierRaw;
+        }
+        const matchNote =
+          typeof g.matchNote === "string" ? g.matchNote.trim() : "";
 
         return {
           id: c.id,
@@ -1048,36 +1706,51 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
           image: c.background_image ?? null,
           match,
           reason,
+          matchTier,
+          matchNote,
         };
       })
       .filter((x): x is NonNullable<typeof x> => Boolean(x))
-      .slice(0, 5);
+      .slice(0, 6);
 
-    // 6) Pricing mode: details-only (no CheapShark live lookups in /api/recommend).
+    let picksForEnrichment: PreEnrichPick[] = pickedVerified;
+    if (picksForEnrichment.length < 3) {
+      picksForEnrichment = augmentPicksWithRecovery({
+        primaryPicks: picksForEnrichment,
+        candidatePool,
+        scoredFinal,
+        intent: {
+          normalizedIntent: intent.normalizedIntent,
+          coreNeeds: intent.coreNeeds ?? [],
+          fallbackDiscoveryQueries: intent.fallbackDiscoveryQueries ?? [],
+        },
+        normalizedInput,
+        tagTokens,
+        excludeNormalized,
+        filtersEnabled,
+      });
+    }
+
     const cheapSharkDebug: RecommendDebug["cheapShark"] = [];
-    const enrichedGames = pickedVerified.map((game) => ({
+
+    // Cards: discovery only — no live pricing (verified on /game/[slug]).
+    const enrichedGames = picksForEnrichment.map((game) => ({
       ...game,
-      price: "N/A",
-      buyLink: null,
+      price: null as string | null,
+      currency: null as string | null,
+      buyLink: null as string | null,
+      budgetStatus: null,
+      budgetNote: null,
     }));
 
-    // Budget: do not drop highly relevant games just because price is missing.
-    const maxBudget = normalizedInput.budget ? Number(normalizedInput.budget) : null;
-    let finalGames = enrichedGames;
-    if (maxBudget) {
-      const underBudget = enrichedGames.filter((game) => {
-        if (typeof game.price !== "string" || game.price === "N/A") return false;
-        return Number(game.price) <= maxBudget;
-      });
-      finalGames = underBudget.length >= 3 ? underBudget : enrichedGames;
-    }
+    const finalGames = enrichedGames;
 
     const payload: {
       games: unknown[];
       usage: { intent: unknown; rerank: unknown };
       debug?: RecommendDebug;
     } = {
-      games: finalGames.slice(0, 5),
+      games: finalGames.slice(0, 6),
       usage: {
         intent: aiDiscovery.usage,
         rerank: response.usage,
@@ -1090,13 +1763,21 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
         .filter((t): t is string => typeof t === "string");
 
       payload.debug = {
+        filtersEnabled,
+        usageLimit: {
+          plan: plan ?? null,
+          bypass: bypassLimits,
+          used: bypassLimits ? 0 : usageAfter.used,
+          limit: bypassLimits ? null : usageAfter.limit,
+          dailyCap: dailyLimitValue,
+        },
         cacheHit: Boolean(cached),
         inputHash,
         resolvedInput: normalizedInput.userPrompt,
         noCache,
         cacheReadSkipped: noCache,
         cacheWriteSkipped: noCache,
-        pricingMode: "details_only",
+        pricingMode: "cards_only_no_live_pricing",
         recommendLivePrices: false,
         models: {
           discovery: "gpt-4o-mini",

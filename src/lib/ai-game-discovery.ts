@@ -15,6 +15,10 @@ export type AiDiscoveryIntent = {
   avoid: string[]
   suggestedTitles: AiSuggestedTitle[]
   fallbackDiscoveryQueries: string[]
+  /** Titles the user is comparing against (e.g. “games like Hades”) — not necessarily excluded alone */
+  referenceTitles: string[]
+  /** Titles that must not appear as final picks when the user wants alternatives */
+  excludeTitles: string[]
 }
 
 function safeParseJson<T>(text: string): T | null {
@@ -30,6 +34,19 @@ function clamp(n: number, min: number, max: number) {
 }
 
 function normalizeStringArray(v: unknown, max: number) {
+  if (!Array.isArray(v)) return []
+  const out: string[] = []
+  for (const x of v) {
+    if (typeof x !== "string") continue
+    const t = x.trim()
+    if (!t) continue
+    out.push(t)
+    if (out.length >= max) break
+  }
+  return out
+}
+
+function normalizeTitleList(v: unknown, max: number) {
   if (!Array.isArray(v)) return []
   const out: string[] = []
   for (const x of v) {
@@ -80,9 +97,24 @@ export async function aiFirstDiscovery(params: {
     mechanics: string
     platform: string
     budget: string
+    /** Comma-separated explicit UI tags (if any) */
+    selectedTags: string
   }
+  /** When false, structured filters were disabled — prioritize free-text prompt only. */
+  filtersEnabled?: boolean
 }) {
   const { openai, normalizedInput } = params
+  const filtersEnabled = params.filtersEnabled !== false
+
+  const discoveryOnlyRules = !filtersEnabled
+    ? `
+Additional rules (AI-first discovery — structured filters OFF):
+- Prioritize ONLY the user request text. Ignore empty genre/platform/budget lines.
+- Do not infer price or platform constraints unless the user explicitly mentions them in the request.
+- In this mode, disregard the generic bullets above about "budget" and "selected tags" when those inputs were not explicitly provided.
+- Be creative and exploratory; varied, vibe-led suggestions are encouraged.
+`
+    : ""
 
   const resp = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -105,7 +137,9 @@ Return ONLY valid JSON in this exact format:
       "expectedMatch": "string"
     }
   ],
-  "fallbackDiscoveryQueries": ["string"]
+  "fallbackDiscoveryQueries": ["string"],
+  "referenceTitles": ["string"],
+  "excludeTitles": ["string"]
 }
 
 Rules:
@@ -117,19 +151,32 @@ Rules:
 - "confidence" is 0..100 (higher = you're confident the title fits the request).
 - "expectedMatch" is a short phrase about why the title fits (not a score).
 - "fallbackDiscoveryQueries" should be 4 to 8 short RAWG-friendly search queries (include English terms when helpful).
+- If the user asks for games LIKE / SIMILAR TO / ALTERNATIVES TO / "tipo" / "come" / "simili a" a NAMED game, put that game name in "referenceTitles" and "excludeTitles". Do NOT put that reference game in "suggestedTitles" as a recommendation — suggest similar games instead.
+- If the user clearly wants to FIND / PRICE / DISCOUNT a specific game by name (e.g. "trova Hades", "prezzo di Elden Ring"), leave "excludeTitles" empty and you may include that game in "suggestedTitles".
+- Respect the user's maximum budget when suggesting titles when practical (prefer titles likely affordable under that cap).
+- Weight the user's selected tags heavily when choosing suggestions.
+${discoveryOnlyRules}
 - Keep everything concise. No markdown. No extra keys.
 `,
       },
       {
         role: "user",
-        content: `
+        content: filtersEnabled
+          ? `
 User request: ${normalizedInput.userPrompt || "not specified"}
+Selected tags (high priority): ${normalizedInput.selectedTags || "not specified"}
 Genres/tags: ${normalizedInput.genres || "not specified"}
 Play styles: ${normalizedInput.playStyles || "not specified"}
 Vibes: ${normalizedInput.vibes || "not specified"}
 Mechanics: ${normalizedInput.mechanics || "not specified"}
 Platform: ${normalizedInput.platform || "not specified"}
-Budget: ${normalizedInput.budget || "not specified"}
+Maximum budget (numeric, same currency as UI): ${normalizedInput.budget || "not specified"}
+`
+          : `
+Mode: AI-first discovery (Advanced filters OFF).
+Use ONLY the user request below for intent, titles, and queries. Ignore empty structured fields.
+
+User request: ${normalizedInput.userPrompt || "not specified"}
 `,
       },
     ],
@@ -149,6 +196,11 @@ Budget: ${normalizedInput.budget || "not specified"}
   const avoid = normalizeStringArray(parsed.avoid, 10)
   const suggestedTitles = normalizeSuggestedTitles(parsed.suggestedTitles)
   const fallbackDiscoveryQueries = normalizeStringArray(parsed.fallbackDiscoveryQueries, 8)
+  const referenceTitles = normalizeTitleList(parsed.referenceTitles, 12)
+  let excludeTitles = normalizeTitleList(parsed.excludeTitles, 12)
+  if (referenceTitles.length > 0 && excludeTitles.length === 0) {
+    excludeTitles = [...referenceTitles]
+  }
 
   return {
     intent: {
@@ -160,6 +212,8 @@ Budget: ${normalizedInput.budget || "not specified"}
         fallbackDiscoveryQueries.length > 0
           ? fallbackDiscoveryQueries
           : [normalizedIntent].slice(0, 4),
+      referenceTitles,
+      excludeTitles,
     } satisfies AiDiscoveryIntent,
     usage: resp.usage,
   }

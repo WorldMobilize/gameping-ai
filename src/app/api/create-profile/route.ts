@@ -15,7 +15,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const { email } = await req.json();
+    const body = (await req.json()) as { email?: string };
+    const email =
+      typeof body.email === "string" && body.email.trim()
+        ? body.email.trim()
+        : user.email?.trim() ?? "";
 
     if (!email) {
       return NextResponse.json(
@@ -24,11 +28,17 @@ export async function POST(req: Request) {
       );
     }
 
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     const { error } = await supabase.from("profiles").upsert(
       {
         user_id: user.id,
         email,
-        plan: "free",
+        plan: existing?.plan ?? "free",
       },
       {
         onConflict: "user_id",
