@@ -6,6 +6,18 @@ import { getStripe } from "@/lib/stripe";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function logSupabaseEnvPresence(): void {
+  const hasUrl = Boolean(process.env.SUPABASE_URL?.trim());
+  const hasKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+  if (!hasUrl || !hasKey) {
+    console.error(
+      "[stripe webhook] missing Supabase server env: " +
+        `SUPABASE_URL=${hasUrl ? "set" : "MISSING"}, ` +
+        `SUPABASE_SERVICE_ROLE_KEY=${hasKey ? "set" : "MISSING"}`
+    );
+  }
+}
+
 function getServiceRoleClient(): SupabaseClient {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -24,18 +36,11 @@ function getServiceRoleClient(): SupabaseClient {
 /**
  * Map Stripe subscription.status → profiles.plan ("premium" | "free").
  *
- * Stripe statuses (subset): active, canceled, incomplete, incomplete_expired,
- * past_due, trialing, unpaid, paused.
+ * Used by customer.subscription.updated / deleted. checkout.session.completed
+ * does not use this for granting premium (avoids relying on subscription metadata).
  *
- * Policy (conservative — avoid ghost Premium when billing is unhealthy):
- * - active → premium (includes cancel_at_period_end: user paid through period)
- * - trialing → premium
- * - canceled → free (ended)
- * - past_due → free (payment retries exhausted or high risk; downgrade access)
- * - unpaid → free
- * - incomplete → free (never successfully started)
- * - incomplete_expired → free
- * - paused → free (treat as no active entitlement)
+ * customer.subscription.updated: transitional **incomplete** / **incomplete_expired**
+ * are handled separately (skipped) so they do not overwrite premium right after checkout.
  */
 function subscriptionStatusToPlan(
   status: Stripe.Subscription.Status
@@ -64,16 +69,91 @@ function resolveSupabaseUserIdFromSubscription(
   return null;
 }
 
-async function setPremiumFromSession(session: Stripe.Checkout.Session) {
-  const userId = session.metadata?.supabase_user_id;
-  if (!userId || typeof userId !== "string") {
+/** Best-effort email from Checkout Session (webhook payload varies by flow). */
+function sessionCheckoutEmail(session: Stripe.Checkout.Session): string | null {
+  const direct = session.customer_email?.trim();
+  if (direct) return direct;
+  const details = session.customer_details;
+  if (
+    details &&
+    typeof details.email === "string" &&
+    details.email.trim().length > 0
+  ) {
+    return details.email.trim();
+  }
+  return null;
+}
+
+async function resolveSessionEmailWithStripeFallback(
+  session: Stripe.Checkout.Session,
+  stripe: Stripe
+): Promise<string | null> {
+  const direct = sessionCheckoutEmail(session);
+  if (direct) return direct;
+
+  const customerId =
+    typeof session.customer === "string" && session.customer.startsWith("cus_")
+      ? session.customer
+      : null;
+  if (!customerId) return null;
+
+  try {
+    const cust = await stripe.customers.retrieve(customerId);
+    if (cust.deleted) return null;
+    const e =
+      typeof cust.email === "string" && cust.email.trim().length > 0
+        ? cust.email.trim()
+        : null;
+    return e;
+  } catch {
+    console.warn("[stripe webhook] customer retrieve failed for email fallback");
+    return null;
+  }
+}
+
+/**
+ * checkout.session.completed (subscription): set profiles.plan = premium.
+ * Uses session.metadata.supabase_user_id only (not subscription.metadata).
+ */
+async function setPremiumFromSession(
+  session: Stripe.Checkout.Session,
+  stripe: Stripe
+): Promise<void> {
+  console.log("[stripe webhook] checkout.session.completed: handler entered");
+
+  const userIdRaw = session.metadata?.supabase_user_id;
+  console.log(
+    "[stripe webhook] checkout metadata user id:",
+    typeof userIdRaw === "string" && userIdRaw.length > 0
+      ? "present"
+      : "missing"
+  );
+
+  if (!userIdRaw || typeof userIdRaw !== "string" || !userIdRaw.trim()) {
     console.error(
-      "[stripe webhook] checkout.session.completed: missing supabase_user_id in session metadata"
+      "[stripe webhook] checkout.session.completed: missing supabase_user_id in session.metadata"
     );
-    return;
+    throw new Error("checkout.session.completed: missing supabase_user_id");
+  }
+
+  const userId = userIdRaw.trim();
+
+  if (
+    session.payment_status !== "paid" &&
+    session.payment_status !== "no_payment_required"
+  ) {
+    console.warn(
+      "[stripe webhook] checkout.session.completed: unexpected payment_status:",
+      session.payment_status
+    );
+    throw new Error(
+      `checkout.session.completed: expected payment_status paid or no_payment_required, got ${session.payment_status}`
+    );
   }
 
   const supabase = getServiceRoleClient();
+
+  console.log("[stripe webhook] profile update attempted for user_id match");
 
   const { data: updated, error: updateError } = await supabase
     .from("profiles")
@@ -82,28 +162,49 @@ async function setPremiumFromSession(session: Stripe.Checkout.Session) {
     .select("user_id");
 
   if (updateError) {
-    console.error("[stripe webhook] profiles update failed", updateError);
+    console.error(
+      "[stripe webhook] profile update result: error",
+      updateError.code ?? "",
+      updateError.message
+    );
     throw updateError;
   }
 
-  if (updated && updated.length > 0) {
+  const updateCount = updated?.length ?? 0;
+  console.log("[stripe webhook] profile update result count:", updateCount);
+
+  if (updateCount > 0) {
     console.log(
-      "[stripe webhook] checkout.session.completed: plan set to premium (existing profile)"
+      "[stripe webhook] checkout.session.completed: plan set to premium (row updated)"
     );
     return;
   }
 
-  const email =
-    typeof session.customer_email === "string" && session.customer_email
-      ? session.customer_email
-      : null;
+  const { count: profileCount, error: countErr } = await supabase
+    .from("profiles")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
 
+  if (countErr) {
+    console.error("[stripe webhook] profile diagnostic select failed", countErr);
+  } else {
+    console.log(
+      "[stripe webhook] profile diagnostic: rows in public.profiles with this user_id:",
+      profileCount ?? 0
+    );
+  }
+
+  const email = await resolveSessionEmailWithStripeFallback(session, stripe);
   if (!email) {
     console.error(
-      "[stripe webhook] checkout.session.completed: no profile row and no customer_email on session"
+      "[stripe webhook] checkout.session.completed: update matched 0 rows and no email on session/customer — cannot insert profile"
     );
-    return;
+    throw new Error(
+      "checkout.session.completed: no profile row and no resolvable email for insert"
+    );
   }
+
+  console.log("[stripe webhook] profile insert attempted (no existing row)");
 
   const { error: insertError } = await supabase.from("profiles").insert({
     user_id: userId,
@@ -112,12 +213,16 @@ async function setPremiumFromSession(session: Stripe.Checkout.Session) {
   });
 
   if (insertError) {
-    console.error("[stripe webhook] profiles insert failed", insertError);
+    console.error(
+      "[stripe webhook] profile insert result: error",
+      insertError.code ?? "",
+      insertError.message
+    );
     throw insertError;
   }
 
   console.log(
-    "[stripe webhook] checkout.session.completed: plan set to premium (new profile row)"
+    "[stripe webhook] checkout.session.completed: plan set to premium (inserted profile row)"
   );
 }
 
@@ -129,7 +234,22 @@ async function syncProfilePlanFromSubscription(
   const userId = resolveSupabaseUserIdFromSubscription(subscription);
   if (!userId) {
     console.warn(
-      `[stripe webhook] ${eventType}: ignored — subscription missing metadata.supabase_user_id (older checkouts may lack subscription_data.metadata)`
+      `[stripe webhook] ${eventType}: ignored — subscription missing metadata.supabase_user_id`
+    );
+    return;
+  }
+
+  /**
+   * Early subscription events often have status **incomplete** before payment succeeds.
+   * Mapping that to **free** would overwrite **premium** set moments earlier by
+   * checkout.session.completed. Skip until status is stable.
+   */
+  if (
+    subscription.status === "incomplete" ||
+    subscription.status === "incomplete_expired"
+  ) {
+    console.log(
+      `[stripe webhook] ${eventType}: ignored transitional stripe_status=${subscription.status}`
     );
     return;
   }
@@ -240,7 +360,7 @@ export async function POST(req: Request) {
 
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
-    console.error("STRIPE_WEBHOOK_SECRET is not set");
+    console.error("[stripe webhook] STRIPE_WEBHOOK_SECRET is not set");
     return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
   }
 
@@ -250,20 +370,32 @@ export async function POST(req: Request) {
     const stripe = getStripe();
     event = stripe.webhooks.constructEvent(rawBody, sig, secret);
   } catch (err) {
-    console.error("Stripe webhook signature verification failed", err);
-    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    console.error("[stripe webhook] signature verification failed", err);
+    const isProd = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+    return NextResponse.json(
+      isProd
+        ? { error: "Invalid signature" }
+        : {
+            error: "Invalid signature",
+            hint: "Ensure STRIPE_WEBHOOK_SECRET matches the signing secret for this endpoint (Stripe CLI or Dashboard webhook).",
+          },
+      { status: 400 }
+    );
   }
 
-  console.log(`[stripe webhook] received: ${event.type}`);
+  console.log("[stripe webhook] received event type:", event.type);
+
+  logSupabaseEnvPresence();
 
   try {
     const supabase = getServiceRoleClient();
+    const stripe = getStripe();
 
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === "subscription") {
-          await setPremiumFromSession(session);
+          await setPremiumFromSession(session, stripe);
         } else {
           console.log(
             "[stripe webhook] checkout.session.completed: ignored (not subscription mode)"
@@ -286,7 +418,7 @@ export async function POST(req: Request) {
         break;
       }
       default:
-        console.log(`[stripe webhook] ignored event type: ${event.type}`);
+        console.log("[stripe webhook] ignored event type:", event.type);
     }
   } catch (err) {
     console.error("[stripe webhook] handler error", err);
