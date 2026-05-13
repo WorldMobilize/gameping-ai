@@ -152,6 +152,26 @@ export function titleMatchQuality(suggestedTitle: string, rawgName: string) {
   return ja
 }
 
+async function runPool<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length)
+  let nextIndex = 0
+  const worker = async () => {
+    while (true) {
+      const i = nextIndex++
+      if (i >= items.length) break
+      results[i] = await fn(items[i], i)
+    }
+  }
+  const workers = Math.min(Math.max(1, concurrency), Math.max(1, items.length))
+  await Promise.all(Array.from({ length: workers }, () => worker()))
+  return results
+}
+
+/** Deduped discovery queries against RAWG search with bounded concurrency (avoid bursts). */
 export async function fetchRawgCandidates(params: {
   rawgApiKey: string
   discoveryQueries: string[]
@@ -164,56 +184,55 @@ export async function fetchRawgCandidates(params: {
     .slice(0, 6)
 
   const results: RawgCandidate[] = []
+  const RAWG_QUERY_CONCURRENCY = 4
 
-  await Promise.all(
-    queries.map(async (q) => {
-      try {
-        const url = `https://api.rawg.io/api/games?key=${params.rawgApiKey}&search=${encodeURIComponent(
-          q
-        )}&page_size=${pageSize}`
-        const res = await fetch(url, { cache: "no-store" })
-        if (!res.ok) return
-        const data = (await res.json()) as { results?: unknown }
-        const arr = Array.isArray(data?.results) ? (data.results as unknown[]) : []
-        for (const g of arr) {
-          if (!g || typeof g !== "object") continue
-          const rec = g as Record<string, unknown>
-          if (typeof rec.id !== "number" && typeof rec.id !== "string") continue
-          if (typeof rec.name !== "string") continue
-          const platforms =
-            Array.isArray(rec.platforms) ?
-              (rec.platforms as Array<{ platform?: { name?: unknown } }>).map((p) =>
-                typeof p?.platform?.name === "string" ? p.platform.name : ""
-              ).filter(Boolean)
-            : undefined
-          const stores =
-            Array.isArray(rec.stores) ?
-              (rec.stores as Array<{ store?: { name?: unknown } }>).map((s) =>
-                typeof s?.store?.name === "string" ? s.store.name : ""
-              ).filter(Boolean)
-            : undefined
-          results.push({
-            id: Number(rec.id),
-            name: rec.name,
-            slug: typeof rec.slug === "string" ? rec.slug : undefined,
-            background_image:
-              typeof rec.background_image === "string" ? rec.background_image : null,
-            released: typeof rec.released === "string" ? rec.released : null,
-            rating: typeof rec.rating === "number" ? rec.rating : null,
-            ratings_count:
-              typeof rec.ratings_count === "number" ? rec.ratings_count : null,
-            added: typeof rec.added === "number" ? rec.added : null,
-            platforms: platforms?.length ? platforms.slice(0, 8) : undefined,
-            stores: stores?.length ? stores.slice(0, 8) : undefined,
-            genres: Array.isArray(rec.genres) ? (rec.genres as { name: string }[]) : undefined,
-            tags: Array.isArray(rec.tags) ? (rec.tags as { name: string }[]) : undefined,
-          })
-        }
-      } catch {
-        // Best-effort: skip this query.
+  await runPool(queries, RAWG_QUERY_CONCURRENCY, async (q) => {
+    try {
+      const url = `https://api.rawg.io/api/games?key=${params.rawgApiKey}&search=${encodeURIComponent(
+        q
+      )}&page_size=${pageSize}`
+      const res = await fetch(url, { cache: "no-store" })
+      if (!res.ok) return
+      const data = (await res.json()) as { results?: unknown }
+      const arr = Array.isArray(data?.results) ? (data.results as unknown[]) : []
+      for (const g of arr) {
+        if (!g || typeof g !== "object") continue
+        const rec = g as Record<string, unknown>
+        if (typeof rec.id !== "number" && typeof rec.id !== "string") continue
+        if (typeof rec.name !== "string") continue
+        const platforms =
+          Array.isArray(rec.platforms) ?
+            (rec.platforms as Array<{ platform?: { name?: unknown } }>).map((p) =>
+              typeof p?.platform?.name === "string" ? p.platform.name : ""
+            ).filter(Boolean)
+          : undefined
+        const stores =
+          Array.isArray(rec.stores) ?
+            (rec.stores as Array<{ store?: { name?: unknown } }>).map((s) =>
+              typeof s?.store?.name === "string" ? s.store.name : ""
+            ).filter(Boolean)
+          : undefined
+        results.push({
+          id: Number(rec.id),
+          name: rec.name,
+          slug: typeof rec.slug === "string" ? rec.slug : undefined,
+          background_image:
+            typeof rec.background_image === "string" ? rec.background_image : null,
+          released: typeof rec.released === "string" ? rec.released : null,
+          rating: typeof rec.rating === "number" ? rec.rating : null,
+          ratings_count:
+            typeof rec.ratings_count === "number" ? rec.ratings_count : null,
+          added: typeof rec.added === "number" ? rec.added : null,
+          platforms: platforms?.length ? platforms.slice(0, 8) : undefined,
+          stores: stores?.length ? stores.slice(0, 8) : undefined,
+          genres: Array.isArray(rec.genres) ? (rec.genres as { name: string }[]) : undefined,
+          tags: Array.isArray(rec.tags) ? (rec.tags as { name: string }[]) : undefined,
+        })
       }
-    })
-  )
+    } catch {
+      // Best-effort: skip this query.
+    }
+  })
 
   return results
 }

@@ -24,7 +24,12 @@ import {
   titleMatchQuality,
   type RawgCandidate,
 } from "@/lib/rawg-discovery";
-import { aiFirstDiscovery, type AiSuggestedTitle } from "@/lib/ai-game-discovery";
+import {
+  aiFirstDiscovery,
+  isAbortLikeError,
+  minimalDiscoveryFallback,
+  type AiSuggestedTitle,
+} from "@/lib/ai-game-discovery";
 
 type VerifiedCandidate = RawgCandidate & {
   _suggested?: {
@@ -42,6 +47,7 @@ const openai = new OpenAI({
 
 type RecommendDebug = {
   cacheHit: boolean;
+  cacheHitSource?: "early" | "full";
   inputHash: string;
   resolvedInput?: string;
   noCache?: boolean;
@@ -513,12 +519,11 @@ async function enrichWithRawgDetails(params: {
 }) {
   const { rawgKey, candidates, maxToFetch } = params;
   const slice = candidates.slice(0, Math.max(0, maxToFetch));
-  const details = await Promise.all(
-    slice.map(async (c) => {
-      const d = await fetchRawgGameDetails({ rawgApiKey: rawgKey, rawgId: c.id });
-      return d ? [c.id, d] as const : null;
-    })
-  );
+  const RAWG_DETAIL_CONCURRENCY = 4;
+  const details = await mapPool(slice, RAWG_DETAIL_CONCURRENCY, async (c) => {
+    const d = await fetchRawgGameDetails({ rawgApiKey: rawgKey, rawgId: c.id });
+    return d ? ([c.id, d] as const) : null;
+  });
   const byId = new Map<number, NonNullable<(typeof details)[number]>[1]>();
   for (const item of details) {
     if (!item) continue;
@@ -542,6 +547,29 @@ function chunk<T>(arr: T[], size: number) {
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
 }
+
+/** Bounded concurrency for RAWG calls (avoid serial stalls without bursting the API). */
+async function mapPool<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+  const worker = async () => {
+    while (true) {
+      const i = nextIndex++;
+      if (i >= items.length) break;
+      results[i] = await fn(items[i], i);
+    }
+  };
+  const workers = Math.min(Math.max(1, concurrency), Math.max(1, items.length));
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return results;
+}
+
+/** Deterministic pre-rerank pool cap (diversity-preserving trim happens via selectDiverseTop). */
+const PRERANK_POOL_MAX = 22;
 
 function normalizeRelevanceResults(v: unknown): AiRelevanceResult[] {
   if (!Array.isArray(v)) return [];
@@ -585,6 +613,119 @@ function normalizeRelevanceResults(v: unknown): AiRelevanceResult[] {
   return out;
 }
 
+function trimDescription(raw: string | null | undefined, maxChars: number): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  const t = raw.replace(/\s+/g, " ").trim();
+  if (!t) return null;
+  if (t.length <= maxChars) return t;
+  return `${t.slice(0, Math.max(0, maxChars - 1))}…`;
+}
+
+/** Slim RAWG rows for semantic relevance — descriptions truncated; stores omitted (low signal vs cost). */
+function buildSemanticFilterCandidatePayload(
+  c: VerifiedCandidate,
+  compact: boolean
+): Record<string, unknown> {
+  const descLimit = compact ? 120 : 240;
+  const desc = trimDescription(c.description_raw ?? null, descLimit);
+  const row: Record<string, unknown> = {
+    rawgId: c.id,
+    name: c.name,
+    genres: (c.genres ?? []).map((g) => g.name).slice(0, compact ? 5 : 7),
+    tags: (c.tags ?? []).map((t) => t.name).slice(0, compact ? 8 : 12),
+    platforms: (c.platforms ?? []).slice(0, compact ? 4 : 6),
+    released: c.released ?? null,
+    rating: typeof c.rating === "number" ? c.rating : null,
+  };
+  if (c.slug) row.slug = c.slug;
+  if (desc) row.desc = desc;
+  return row;
+}
+
+/** Slim pool JSON for final rerank — shorter descriptions and compact aiHint. */
+function buildRerankCandidatePayload(
+  c: VerifiedCandidate,
+  compact: boolean
+): Record<string, unknown> {
+  const descLimit = compact ? 100 : 220;
+  const desc = trimDescription(c.description_raw ?? null, descLimit);
+  const sug = (c as VerifiedCandidate)._suggested;
+  const row: Record<string, unknown> = {
+    id: c.id,
+    name: c.name,
+    genres: (c.genres ?? []).map((g) => g.name).slice(0, compact ? 5 : 7),
+    tags: (c.tags ?? []).map((t) => t.name).slice(0, compact ? 8 : 10),
+    released: c.released ?? null,
+    rating: typeof c.rating === "number" ? c.rating : null,
+  };
+  if (desc) row.desc = desc;
+  if (sug) {
+    row.aiHint = {
+      c: sug.confidence,
+      m: (sug.expectedMatch || "").slice(0, 72),
+    };
+  }
+  return row;
+}
+
+/**
+ * Extra instructions when the prompt implies concrete requirements (combat, multiplayer, etc.).
+ * Does not log — text is only embedded in model prompts.
+ */
+function explicitRequirementPenaltyBlock(params: {
+  userQuery: string;
+  coreNeeds: string[];
+  mechanicsLine: string;
+  vibesLine: string;
+}): string {
+  const hints = new Set<string>();
+  const q = params.userQuery;
+
+  const pairs: Array<{ re: RegExp; tag: string }> = [
+    {
+      re: /\b(co[-\s]?op|coop|multi(player)?|online\s+multi|pvp\s+online)\b/i,
+      tag: "multiplayer/co-op",
+    },
+    { re: /\b(with\s+)?combat\b|\bcombat[-\s]?heavy\b|\baction\s+combat\b/i, tag: "combat" },
+    {
+      re: /\bhard(mode)?\b|\bdifficult\b|\bchallenging\b|\bsouls(like)?\b|\broguelike\b/i,
+      tag: "difficulty/challenge",
+    },
+    {
+      re: /\bstor(y|ies|ytelling)\b|\bnarrative\b|\bdialogue\b|\bemotional\b|\bcharacter[-\s]driven\b/i,
+      tag: "story/narrative",
+    },
+    { re: /\bfarm(ing)?\b|\bcozy\b|\bwholesome\b/i, tag: "cozy/farming tone" },
+    { re: /\bsingle[-\s]?player\b|\bsolo\b/i, tag: "single-player" },
+    { re: /\bopen\s+world\b|\bexploration\b/i, tag: "exploration" },
+    { re: /\bfps\b|\bshooter\b|\bfirst[-\s]person\b/i, tag: "shooting/FPS" },
+    { re: /\bpuzzle\b|\bplatformer\b/i, tag: "puzzle/platforming" },
+  ];
+  for (const { re, tag } of pairs) {
+    if (re.test(q)) hints.add(tag);
+  }
+  for (const n of params.coreNeeds) {
+    const t = n.trim();
+    if (t.length > 2 && t.length < 48) hints.add(t);
+  }
+  const mech = params.mechanicsLine.trim();
+  if (mech.length > 2 && mech.length < 120 && !/^not specified$/i.test(mech)) {
+    hints.add(`mechanics:${mech.slice(0, 56)}`);
+  }
+  const vibes = params.vibesLine.trim();
+  if (vibes.length > 2 && vibes.length < 120 && !/^not specified$/i.test(vibes)) {
+    hints.add(`vibes:${vibes.slice(0, 56)}`);
+  }
+
+  if (hints.size === 0) return "";
+
+  const summary = [...hints].slice(0, 12).join("; ");
+  return `
+Explicit asks inferred from user signal: ${summary}
+When an ask above is substantive (e.g. combat, multiplayer, narrative depth, difficulty) and a candidate only pays lip service—or contradicts it—set relevant=false for filtering. For reranking, assign partial_match or good_alternative with candid matchNotes and modest match scores; do not use best_match for weak alignment. Prefer three excellent fits over five mediocre ones.
+`;
+}
+
 async function aiSemanticRelevanceFilter(params: {
   openai: OpenAI;
   userQuery: string;
@@ -595,6 +736,8 @@ async function aiSemanticRelevanceFilter(params: {
   budgetHint: string;
   selectedTagsLine: string;
   filtersEnabled: boolean;
+  mechanicsLine: string;
+  vibesLine: string;
 }) {
   const {
     openai,
@@ -606,6 +749,8 @@ async function aiSemanticRelevanceFilter(params: {
     budgetHint,
     selectedTagsLine,
     filtersEnabled,
+    mechanicsLine,
+    vibesLine,
   } = params;
 
   if (candidates.length === 0) return { kept: [] as VerifiedCandidate[], usage: null as unknown };
@@ -613,6 +758,13 @@ async function aiSemanticRelevanceFilter(params: {
   const constraintRule = filtersEnabled
     ? `- Weight selected tags and budget seriously: a candidate that ignores stated genres/tags or clearly violates budget spirit should be marked relevant=false unless it is an exceptional semantic fit.`
     : `- Discovery mode (structured filters OFF): judge relevance primarily from the user query and intent. Do NOT reject candidates for missing optional tags/platform/budget unless the user explicitly demanded them in the query.`;
+
+  const explicitBlock = explicitRequirementPenaltyBlock({
+    userQuery,
+    coreNeeds,
+    mechanicsLine,
+    vibesLine,
+  });
 
   const budgetLine =
     filtersEnabled && budgetHint.trim()
@@ -630,19 +782,20 @@ async function aiSemanticRelevanceFilter(params: {
   // Keep calls bounded: judge at most 40 candidates total (top-scored pool).
   const toJudge = candidates.slice(0, 40);
   const batches = chunk(toJudge, 20);
+  const compactPayload = toJudge.length <= 5;
 
   const allResults: AiRelevanceResult[] = [];
   let totalUsage: unknown = null;
 
+  let batchIndex = 0;
   for (const batch of batches) {
-    const resp = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: `
+    const batchStarted = performance.now();
+    const retries = 0;
+
+    const messages = [
+      {
+        role: "system" as const,
+        content: `
 You are a strict relevance judge for video game recommendations.
 
 Input: the user's request + a list of RAWG-verified candidate games with metadata.
@@ -672,12 +825,13 @@ Rules:
 - confidence is 0.0..1.0.
 - Do not invent games. Only judge the provided candidates.
 - Return one result per input candidate (same rawgId), in the same order.
+${explicitBlock}
 ${constraintRule}
 `,
-        },
-        {
-          role: "user",
-          content: `
+      },
+      {
+        role: "user" as const,
+        content: `
 User query: ${userQuery || "not specified"}
 Normalized intent: ${normalizedIntent || "not specified"}
 Core needs: ${coreNeeds.length ? coreNeeds.join(", ") : "none"}
@@ -687,32 +841,44 @@ Maximum budget (numeric cap): ${budgetLine}
 
 Candidates:
 ${JSON.stringify(
-            batch.map((c) => ({
-              rawgId: c.id,
-              slug: c.slug ?? null,
-              name: c.name,
-              description_raw: c.description_raw ?? null,
-              genres: (c.genres ?? []).map((g) => g.name).slice(0, 8),
-              tags: (c.tags ?? []).map((t) => t.name).slice(0, 16),
-              platforms: (c.platforms ?? []).slice(0, 10),
-              stores: (c.stores ?? []).slice(0, 10),
-              released: c.released ?? null,
-              rating: typeof c.rating === "number" ? c.rating : null,
-            })),
-            null,
-            0
-          )}
+          batch.map((c) => buildSemanticFilterCandidatePayload(c, compactPayload)),
+          null,
+          0
+        )}
 `,
-        },
-      ],
+      },
+    ];
+
+    const promptCharLength = messages.reduce((acc, m) => acc + (m.content as string).length, 0);
+
+    const resp = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      temperature: 0,
+      messages,
     });
 
     totalUsage = totalUsage ? totalUsage : resp.usage;
 
     const text = resp.choices[0].message.content || '{"results":[]}';
+    const executionMs = performance.now() - batchStarted;
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("[recommend:semanticFilter]", {
+        model: resp.model ?? "gpt-4o-mini",
+        candidateCount: batch.length,
+        promptCharLength,
+        responseCharLength: text.length,
+        executionMs: Math.round(executionMs),
+        retries,
+        batchIndex,
+      });
+    }
+
     const parsed = safeParseJson<{ results?: unknown }>(text) || { results: [] };
     const normalized = normalizeRelevanceResults(parsed.results);
     allResults.push(...normalized);
+    batchIndex += 1;
   }
 
   const keepById = new Map<number, AiRelevanceResult>();
@@ -937,12 +1103,13 @@ async function verifySuggestedTitles(params: {
   excludeNormalized: Set<string>;
 }) {
   const { rawgKey, suggestedTitles, excludeNormalized } = params;
-  const verified: VerifiedCandidate[] = [];
+  const slice = suggestedTitles.slice(0, 15);
+  const RAWG_VERIFY_CONCURRENCY = 4;
 
-  for (const s of suggestedTitles.slice(0, 15)) {
+  const resolved = await mapPool(slice, RAWG_VERIFY_CONCURRENCY, async (s) => {
     const title = s.title.trim();
-    if (!title) continue;
-    if (excludeNormalized.has(normalizeTitleForMatch(title))) continue;
+    if (!title) return null;
+    if (excludeNormalized.has(normalizeTitleForMatch(title))) return null;
 
     const results = await searchRawgByTitle({
       rawgApiKey: rawgKey,
@@ -950,7 +1117,7 @@ async function verifySuggestedTitles(params: {
       pageSize: 8,
     });
 
-    if (!results.length) continue;
+    if (!results.length) return null;
 
     let best: RawgCandidate | null = null;
     let bestScore = -Infinity;
@@ -969,10 +1136,10 @@ async function verifySuggestedTitles(params: {
       }
     }
 
-    if (!best) continue;
-    if (excludeNormalized.has(normalizeTitleForMatch(best.name))) continue;
+    if (!best) return null;
+    if (excludeNormalized.has(normalizeTitleForMatch(best.name))) return null;
 
-    verified.push({
+    return {
       ...best,
       _suggested: {
         title: s.title,
@@ -981,9 +1148,10 @@ async function verifySuggestedTitles(params: {
         reason: s.reason,
         titleMatch: bestMatch,
       },
-    });
-  }
+    } as VerifiedCandidate;
+  });
 
+  const verified = resolved.filter((x): x is VerifiedCandidate => x != null);
   return dedupeCandidates(verified);
 }
 
@@ -1392,16 +1560,110 @@ export async function POST(req: Request) {
       selectedTags: resolvedSelectedTags.join(", "),
     });
 
+    /** User-visible inputs only (no AI intent) — must match row stored at end via `earlyHash`. */
+    const earlyCacheKeyInput = {
+      schemaVersion: 1 as const,
+      filtersEnabled,
+      prompt: normalizedInput.userPrompt.trim(),
+      genres: normalizedInput.genres.trim(),
+      playStyles: normalizedInput.playStyles.trim(),
+      vibes: normalizedInput.vibes.trim(),
+      mechanics: normalizedInput.mechanics.trim(),
+      platform: normalizedInput.platform.trim(),
+      budget: normalizedInput.budget.trim(),
+      resolvedSelectedTags: [...resolvedSelectedTags].sort((a, b) =>
+        a.localeCompare(b, "en", { sensitivity: "base" })
+      ),
+    };
+    const earlyHash = hashNormalizedInput(earlyCacheKeyInput);
+
+    const perfRouteStart = performance.now();
+    const timing = {
+      aiDiscoveryMs: 0,
+      rawgVerificationMs: 0,
+      rawgFallbackMs: 0,
+      semanticFilterMs: 0,
+      rerankMs: 0,
+      recoveryMs: 0,
+      cacheMs: 0,
+      earlyCacheMs: 0,
+      fullCacheMs: 0,
+    };
+
+    let cacheHitSource: "early" | "full" | null = null;
+
+    const tEarlyCache = performance.now();
+    const cachedEarly =
+      !debugEnabled && !noCache
+        ? await getCachedAiRecommendation<{
+            games: unknown[];
+            usage?: unknown;
+          }>(earlyHash)
+        : null;
+    timing.earlyCacheMs = performance.now() - tEarlyCache;
+
+    if (cachedEarly && !debugEnabled && !noCache) {
+      cacheHitSource = "early";
+      timing.cacheMs = timing.earlyCacheMs;
+      if (process.env.NODE_ENV === "development") {
+        const games = Array.isArray((cachedEarly as { games?: unknown }).games)
+          ? (cachedEarly as { games: unknown[] }).games
+          : [];
+        console.log("[recommend:timing]", {
+          totalMs: performance.now() - perfRouteStart,
+          aiDiscoveryMs: 0,
+          rawgVerificationMs: 0,
+          rawgFallbackMs: 0,
+          semanticFilterMs: 0,
+          rerankMs: 0,
+          recoveryMs: 0,
+          cacheMs: timing.cacheMs,
+          earlyCacheMs: timing.earlyCacheMs,
+          fullCacheMs: 0,
+          cacheHit: "early",
+          candidatePoolSize: games.length,
+          finalCount: games.length,
+        });
+      }
+      return NextResponse.json(cachedEarly);
+    }
+
+    const regexRefsFromPrompt = extractReferenceTitlesFromPrompt(
+      normalizedInput.userPrompt
+    );
+
     // 1) AI-first discovery (titles + intent).
     stage = "discovery";
-    const aiDiscovery = await aiFirstDiscovery({
-      openai,
-      filtersEnabled,
-      normalizedInput: {
-        ...normalizedInput,
-        selectedTags: resolvedSelectedTags.join(", "),
-      },
-    });
+
+    const tDiscovery = performance.now();
+    let aiDiscovery: Awaited<ReturnType<typeof aiFirstDiscovery>>;
+    try {
+      aiDiscovery = await aiFirstDiscovery({
+        openai,
+        filtersEnabled,
+        normalizedInput: {
+          ...normalizedInput,
+          selectedTags: resolvedSelectedTags.join(", "),
+        },
+      });
+    } catch (err) {
+      if (isAbortLikeError(err)) {
+        console.warn(
+          "[recommend:route] aiDiscovery timeout or abort — minimalDiscoveryFallback (no prompt logged)"
+        );
+        aiDiscovery = minimalDiscoveryFallback({
+          normalizedInput: {
+            ...normalizedInput,
+            selectedTags: resolvedSelectedTags.join(", "),
+          },
+          filtersEnabled,
+          referenceTitlesFromPrompt: regexRefsFromPrompt,
+        });
+      } else {
+        throw err;
+      }
+    }
+    timing.aiDiscoveryMs = performance.now() - tDiscovery;
     const intent = aiDiscovery.intent;
 
     intent.fallbackDiscoveryQueries = augmentIslandSurvivalFallbackQueries({
@@ -1412,9 +1674,8 @@ export async function POST(req: Request) {
       resolvedTags: resolvedSelectedTags,
     });
 
-    const regexRefs = extractReferenceTitlesFromPrompt(normalizedInput.userPrompt);
     const excludeListRaw = [
-      ...regexRefs,
+      ...regexRefsFromPrompt,
       ...(intent.excludeTitles ?? []),
       ...(intent.referenceTitles ?? []),
     ];
@@ -1445,24 +1706,54 @@ export async function POST(req: Request) {
     const cacheKeyInput = {
       filtersEnabled,
       ...normalizedInput,
-      resolvedSelectedTags,
+      resolvedSelectedTags: [...resolvedSelectedTags].sort((a, b) =>
+        a.localeCompare(b, "en", { sensitivity: "base" })
+      ),
       intent,
     };
 
     const inputHash = hashNormalizedInput(cacheKeyInput);
-    const cached = await getCachedAiRecommendation<{
-      games: unknown[];
-      usage?: unknown;
-    }>(inputHash);
+    const tFullCache = performance.now();
+    const cachedFull =
+      !debugEnabled && !noCache
+        ? await getCachedAiRecommendation<{
+            games: unknown[];
+            usage?: unknown;
+          }>(inputHash)
+        : null;
+    timing.fullCacheMs = performance.now() - tFullCache;
+    timing.cacheMs = timing.fullCacheMs;
 
-    if (cached && !debugEnabled && !noCache) {
-      return NextResponse.json(cached);
+    if (cachedFull && !debugEnabled && !noCache) {
+      cacheHitSource = "full";
+      if (process.env.NODE_ENV === "development") {
+        const games = Array.isArray((cachedFull as { games?: unknown }).games)
+          ? (cachedFull as { games: unknown[] }).games
+          : [];
+        console.log("[recommend:timing]", {
+          totalMs: performance.now() - perfRouteStart,
+          aiDiscoveryMs: timing.aiDiscoveryMs,
+          rawgVerificationMs: 0,
+          rawgFallbackMs: 0,
+          semanticFilterMs: 0,
+          rerankMs: 0,
+          recoveryMs: 0,
+          cacheMs: timing.cacheMs,
+          earlyCacheMs: timing.earlyCacheMs,
+          fullCacheMs: timing.fullCacheMs,
+          cacheHit: "full",
+          candidatePoolSize: games.length,
+          finalCount: games.length,
+        });
+      }
+      return NextResponse.json(cachedFull);
     }
 
     const rawgKey = process.env.RAWG_API_KEY || "";
     let verified: VerifiedCandidate[] = [];
 
     // 2) RAWG verification pass for AI-suggested titles.
+    const tVerify = performance.now();
     if (rawgKey) {
       verified = await verifySuggestedTitles({
         rawgKey,
@@ -1470,6 +1761,7 @@ export async function POST(req: Request) {
         excludeNormalized,
       });
     }
+    timing.rawgVerificationMs = performance.now() - tVerify;
 
     verified = filterCandidatesByExclude(verified, excludeNormalized);
 
@@ -1481,11 +1773,13 @@ export async function POST(req: Request) {
           ? intent.fallbackDiscoveryQueries
           : [intent.normalizedIntent].filter(Boolean);
 
+      const tFallback = performance.now();
       const fetched = await fetchRawgCandidates({
         rawgApiKey: rawgKey,
         discoveryQueries: fallbackQueries,
         pageSize: 20,
       });
+      timing.rawgFallbackMs = performance.now() - tFallback;
 
       // Reuse existing RAWG scoring as a best-effort signal.
       const scored = scoreCandidates(
@@ -1528,17 +1822,26 @@ export async function POST(req: Request) {
         .map((x) => x.candidate);
     }
 
-    const rerankPool =
+    let rerankPool =
       strong.length >= 3 ? strong : scoredFinal.slice(0, 40).map((x) => x.candidate);
 
-    // 4.5) Generic AI semantic relevance filter (drop filler/unrelated).
+    if (rerankPool.length > PRERANK_POOL_MAX) {
+      const scoreById = new Map(scoredFinal.map((x) => [x.candidate.id, x.score]));
+      const scoredForDiv = rerankPool.map((c) => ({
+        candidate: c,
+        score: scoreById.get(c.id) ?? 0,
+      }));
+      rerankPool = selectDiverseTop(scoredForDiv, PRERANK_POOL_MAX).map((x) => x.candidate);
+    }
+
+    // 4.5) RAWG detail prefetch + generic AI semantic relevance filter (drop filler/unrelated).
     let filteredPool = rerankPool as VerifiedCandidate[];
+    const tSemantic = performance.now();
     if (rawgKey && filteredPool.length > 0) {
-      // Best-effort: enrich top items with RAWG detail descriptions.
       filteredPool = await enrichWithRawgDetails({
         rawgKey,
         candidates: filteredPool,
-        maxToFetch: 18,
+        maxToFetch: Math.min(18, PRERANK_POOL_MAX),
       });
 
       stage = "relevance";
@@ -1552,25 +1855,41 @@ export async function POST(req: Request) {
         budgetHint: normalizedInput.budget || "not specified",
         selectedTagsLine,
         filtersEnabled,
+        mechanicsLine: normalizedInput.mechanics || "",
+        vibesLine: normalizedInput.vibes || "",
       });
 
       filteredPool = rel.kept;
     }
+    timing.semanticFilterMs = performance.now() - tSemantic;
 
     // 5) Final rerank: AI picks ONLY from verified pool by id.
     const hasCandidatePool = filteredPool.length > 0;
+    const rerankCompact = filteredPool.length <= 5;
+    const explicitRerankBlock = explicitRequirementPenaltyBlock({
+      userQuery: normalizedInput.userPrompt,
+      coreNeeds: intent.coreNeeds ?? [],
+      mechanicsLine: normalizedInput.mechanics || "",
+      vibesLine: normalizedInput.vibes || "",
+    });
+    const structuredSummary = [
+      `g:${(normalizedInput.genres || "").slice(0, 96)}`,
+      `ps:${(normalizedInput.playStyles || "").slice(0, 96)}`,
+      `v:${(normalizedInput.vibes || "").slice(0, 96)}`,
+      `m:${(normalizedInput.mechanics || "").slice(0, 96)}`,
+      `p:${(normalizedInput.platform || "").slice(0, 72)}`,
+      `b:${(normalizedInput.budget || "").slice(0, 36)}`,
+    ].join("|");
+
     const rankingHint = filtersEnabled
       ? `- Weight user-selected tags, genres, platform, and maximum budget heavily when ranking. Strong semantic matches that ignore key tags should be partial_match or ranked lower.`
       : `- Discovery mode (structured filters OFF): prioritize fit to the user request and intent. Do not penalize picks solely because optional structured tags/platform/budget were not provided in the UI; rank by described vibe and relevance.`;
     stage = "rerank";
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: `
+
+    const rerankMessages = [
+      {
+        role: "system" as const,
+        content: `
 You are GamePing AI, a premium video game recommendation assistant.
 
 Return ONLY valid JSON in this exact format:
@@ -1595,69 +1914,57 @@ Rules:
 - Match must be a number from 0 to 100 (semantic fit including tags/genres/platforms intent).
 - Each "reason" must be 2–3 concise sentences in plain English (no markdown, no bullet symbols).
 - "matchNote" must briefly state tradeoffs for good_alternative/partial_match (e.g. more combat, less chill). For best_match it can be empty or reinforce the fit.
+${explicitRerankBlock}
 ${rankingHint}
 - Do not quote exact prices in "reason" or "matchNote"; budget is handled separately.
 - Do not include markdown or extra keys.
 `,
-        },
-        {
-          role: "user",
-          content: `
+      },
+      {
+        role: "user" as const,
+        content: `
 User request: ${normalizedInput.userPrompt || "not specified"}
 Normalized intent: ${intent.normalizedIntent || "not specified"}
 Core needs: ${intent.coreNeeds?.length ? intent.coreNeeds.join(", ") : "none"}
 Avoid: ${intent.avoid?.length ? intent.avoid.join(", ") : "none"}
-
 Selected tags (priority): ${selectedTagsLine || "not specified"}
+Structured filters (compact): ${structuredSummary}
 
-Genres:
-${normalizedInput.genres || "not specified"}
-
-Play styles:
-${normalizedInput.playStyles || "not specified"}
-
-Vibes:
-${normalizedInput.vibes || "not specified"}
-
-Mechanics:
-${normalizedInput.mechanics || "not specified"}
-
-Platform:
-${normalizedInput.platform || "not specified"}
-
-Maximum budget (numeric):
-${normalizedInput.budget || "not specified"}
-
-${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.stringify(
-            filteredPool.map((c) => ({
-              id: c.id,
-              name: c.name,
-              slug: c.slug ?? null,
-              released: c.released ?? null,
-              rating: typeof c.rating === "number" ? c.rating : null,
-              ratings_count:
-                typeof c.ratings_count === "number" ? c.ratings_count : null,
-              added: typeof c.added === "number" ? c.added : null,
-              hasImage: Boolean(c.background_image),
-              genres: (c.genres ?? []).map((g) => g.name).slice(0, 8),
-              tags: (c.tags ?? []).map((t) => t.name).slice(0, 12),
-              aiHint: (c as VerifiedCandidate)._suggested
-                ? {
-                    suggestedTitle: (c as VerifiedCandidate)._suggested!.title,
-                    confidence: (c as VerifiedCandidate)._suggested!.confidence,
-                    expectedMatch: (c as VerifiedCandidate)._suggested!.expectedMatch,
-                  }
-                : null,
-            })),
-            null,
-            0
-          )}` : "Candidate pool: none"}
+${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
+          filteredPool.map((c) => buildRerankCandidatePayload(c, rerankCompact)),
+          null,
+          0
+        )}` : "Candidate pool: none"}
 `,
-        },
-      ],
+      },
+    ];
+
+    const rerankPromptChars = rerankMessages.reduce(
+      (acc, m) => acc + m.content.length,
+      0
+    );
+
+    const tRerank = performance.now();
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      temperature: 0,
+      messages: rerankMessages,
     });
+    timing.rerankMs = performance.now() - tRerank;
 
     const text = response.choices[0].message.content || '{"games":[]}';
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("[recommend:rerank]", {
+        model: response.model ?? "gpt-4o-mini",
+        candidateCount: filteredPool.length,
+        promptCharLength: rerankPromptChars,
+        responseCharLength: text.length,
+        executionMs: Math.round(timing.rerankMs),
+        retries: 0,
+      });
+    }
     const parsed = safeParseJson<{ games?: unknown }>(text) || { games: [] };
     const aiPicked = Array.isArray(parsed.games)
       ? (parsed.games as Array<Record<string, unknown>>)
@@ -1714,6 +2021,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
       .slice(0, 6);
 
     let picksForEnrichment: PreEnrichPick[] = pickedVerified;
+    const tRecovery = performance.now();
     if (picksForEnrichment.length < 3) {
       picksForEnrichment = augmentPicksWithRecovery({
         primaryPicks: picksForEnrichment,
@@ -1729,6 +2037,36 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
         excludeNormalized,
         filtersEnabled,
       });
+    }
+    timing.recoveryMs = performance.now() - tRecovery;
+
+    if (process.env.NODE_ENV === "development") {
+      const totalMs = performance.now() - perfRouteStart;
+      console.log("[recommend:timing]", {
+        totalMs,
+        aiDiscoveryMs: timing.aiDiscoveryMs,
+        rawgVerificationMs: timing.rawgVerificationMs,
+        rawgFallbackMs: timing.rawgFallbackMs,
+        semanticFilterMs: timing.semanticFilterMs,
+        rerankMs: timing.rerankMs,
+        recoveryMs: timing.recoveryMs,
+        cacheMs: timing.cacheMs,
+        earlyCacheMs: timing.earlyCacheMs,
+        fullCacheMs: timing.fullCacheMs,
+        cacheHit: cacheHitSource,
+        candidatePoolSize: candidatePool.length,
+        finalCount: picksForEnrichment.length,
+      });
+      const warnSlow = (label: string, ms: number) => {
+        if (ms > 8000) {
+          console.warn(`[recommend:timing:slow] ${label} ${ms.toFixed(0)}ms`);
+        }
+      };
+      warnSlow("aiDiscovery", timing.aiDiscoveryMs);
+      warnSlow("rawgVerification", timing.rawgVerificationMs);
+      warnSlow("rawgFallback", timing.rawgFallbackMs);
+      warnSlow("semanticFilter", timing.semanticFilterMs);
+      warnSlow("rerank", timing.rerankMs);
     }
 
     const cheapSharkDebug: RecommendDebug["cheapShark"] = [];
@@ -1771,7 +2109,8 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
           limit: bypassLimits ? null : usageAfter.limit,
           dailyCap: dailyLimitValue,
         },
-        cacheHit: Boolean(cached),
+        cacheHit: cacheHitSource !== null,
+        cacheHitSource: cacheHitSource ?? undefined,
         inputHash,
         resolvedInput: normalizedInput.userPrompt,
         noCache,
@@ -1818,6 +2157,11 @@ ${hasCandidatePool ? `Candidate pool (pick ids from this list only):\n${JSON.str
         await setCachedAiRecommendation({
           inputHash,
           inputNormalized: cacheKeyInput,
+          responseJson: payload,
+        });
+        await setCachedAiRecommendation({
+          inputHash: earlyHash,
+          inputNormalized: earlyCacheKeyInput,
           responseJson: payload,
         });
       } catch {}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HomeGameCarousel from "@/components/HomeGameCarousel";
+import HomeLoggedInStrip from "@/components/HomeLoggedInStrip";
 import Navbar from "@/components/Navbar";
 
 const previewGames = [
@@ -37,7 +38,7 @@ const features = [
   {
     label: "03",
     title: "Track better deals",
-    text: "Save a search and get alerts when a game drops under your budget.",
+    text: "Save a recommendation run to your dashboard for deal alerts. Follow one game’s price from its game page — both show up in how you use GamePing.",
   },
 ];
 
@@ -56,6 +57,8 @@ export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#05060f] text-white">
       <Navbar />
+
+      <HomeLoggedInStrip />
 
       <section className="relative px-6 pb-24 pt-28">
         <div className="absolute left-0 top-20 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl" />
@@ -175,7 +178,7 @@ export default function Home() {
 
       <HomeGameCarousel />
 
-      <section id="how-it-works" className="px-6 pb-24">
+      <section id="how-it-works" className="px-6 pb-24 pt-6 md:pt-10">
         <div className="mx-auto max-w-6xl">
           <div className="max-w-3xl">
             <p className="text-xs font-black uppercase tracking-[0.35em] text-purple-300">
@@ -267,34 +270,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <footer className="border-t border-white/10 px-6 py-8 text-sm text-white/40">
-  <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 md:flex-row">
-    <p>© {new Date().getFullYear()} GamePing AI. All rights reserved.</p>
-
-    <div className="flex flex-wrap items-center justify-center gap-5">
-      <a href="/privacy" className="transition hover:text-cyan-300">
-        Privacy
-      </a>
-
-      <a href="/terms" className="transition hover:text-cyan-300">
-        Terms
-      </a>
-
-      <a href="/cookies" className="transition hover:text-cyan-300">
-        Cookies
-      </a>
-
-      <a href="/contact" className="transition hover:text-cyan-300">
-        Contact
-      </a>
-
-      <a href="/disclaimer" className="transition hover:text-cyan-300">
-        Disclaimer
-      </a>
-    </div>
-  </div>
-</footer>
     </main>
   );
 }

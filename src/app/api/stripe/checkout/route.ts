@@ -36,6 +36,12 @@ export async function POST(req: Request) {
       metadata: {
         supabase_user_id: user.id,
       },
+      /** Copied onto the Subscription so lifecycle webhooks can resolve the Supabase user. */
+      subscription_data: {
+        metadata: {
+          supabase_user_id: user.id,
+        },
+      },
       customer_email: user.email ?? undefined,
     });
 

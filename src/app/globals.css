@@ -66,3 +66,54 @@ body {
     animation: none;
   }
 }
+
+/* Recommend page — loading step fade (respects reduced motion) */
+@keyframes gp-recommend-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gp-recommend-step-animate {
+  animation: gp-recommend-step-in 0.4s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-recommend-step-animate {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes gp-recommend-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.gp-recommend-skeleton-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(34, 211, 238, 0.07),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: gp-recommend-shimmer 1.85s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-recommend-skeleton-bar::after {
+    animation: none;
+  }
+}

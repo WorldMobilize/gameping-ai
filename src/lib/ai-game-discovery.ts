@@ -87,6 +87,58 @@ function normalizeSuggestedTitles(v: unknown) {
   return out
 }
 
+const AI_DISCOVERY_TIMEOUT_MS = 28_000
+
+export function isAbortLikeError(e: unknown): boolean {
+  if (!(e instanceof Error)) return false
+  if (e.name === "AbortError") return true
+  const msg = e.message.toLowerCase()
+  return msg.includes("abort") || msg.includes("cancel") || msg.includes("timed out")
+}
+
+/** Deterministic fallback when discovery AI times out — fewer picks preferred over inconsistent AI output. */
+export function minimalDiscoveryFallback(params: {
+  normalizedInput: {
+    userPrompt: string
+    genres: string
+    playStyles: string
+    vibes: string
+    mechanics: string
+    platform: string
+    budget: string
+    selectedTags: string
+  }
+  filtersEnabled: boolean
+  /** From prompt regex (e.g. “games like X”) — mirrors main route exclusion hints */
+  referenceTitlesFromPrompt: string[]
+}): {
+  intent: AiDiscoveryIntent
+  usage: OpenAI.Chat.Completions.ChatCompletion["usage"]
+} {
+  const q = params.normalizedInput.userPrompt.trim()
+  const baseIntent =
+    q || "video game recommendation"
+  const queries =
+    q.length > 2 ? [q.slice(0, 120)] : ["video games"]
+
+  return {
+    intent: {
+      normalizedIntent: baseIntent,
+      coreNeeds: [],
+      avoid: [],
+      suggestedTitles: [],
+      fallbackDiscoveryQueries: queries,
+      referenceTitles: [],
+      excludeTitles: [...params.referenceTitlesFromPrompt].slice(0, 12),
+    },
+    usage: {
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0,
+    },
+  }
+}
+
 export async function aiFirstDiscovery(params: {
   openai: OpenAI
   normalizedInput: {
@@ -105,6 +157,7 @@ export async function aiFirstDiscovery(params: {
 }) {
   const { openai, normalizedInput } = params
   const filtersEnabled = params.filtersEnabled !== false
+  const discoveryStarted = performance.now()
 
   const discoveryOnlyRules = !filtersEnabled
     ? `
@@ -116,7 +169,10 @@ Additional rules (AI-first discovery — structured filters OFF):
 `
     : ""
 
-  const resp = await openai.chat.completions.create({
+  let resp: OpenAI.Chat.Completions.ChatCompletion
+  try {
+    resp = await openai.chat.completions.create(
+      {
     model: "gpt-4o-mini",
     response_format: { type: "json_object" },
     temperature: 0,
@@ -180,12 +236,33 @@ User request: ${normalizedInput.userPrompt || "not specified"}
 `,
       },
     ],
-  })
+      },
+      { signal: AbortSignal.timeout(AI_DISCOVERY_TIMEOUT_MS) }
+    )
+  } catch (err) {
+    if (isAbortLikeError(err)) {
+      console.warn("[recommend:aiDiscovery] OpenAI discovery request aborted or timed out", {
+        timeoutMs: AI_DISCOVERY_TIMEOUT_MS,
+      })
+    }
+    throw err
+  }
 
   const text =
     resp.choices[0].message.content ||
     '{"normalizedIntent":"","coreNeeds":[],"avoid":[],"suggestedTitles":[],"fallbackDiscoveryQueries":[]}'
   const parsed = safeParseJson<Partial<AiDiscoveryIntent>>(text) ?? {}
+
+  if (process.env.NODE_ENV === "development") {
+    const suggestedPreview = normalizeSuggestedTitles(parsed.suggestedTitles)
+    console.log("[recommend:aiDiscovery]", {
+      aiDiscoveryMs: Math.round(performance.now() - discoveryStarted),
+      model: resp.model ?? "gpt-4o-mini",
+      suggestedTitlesCount: suggestedPreview.length,
+      responseJsonChars: text.length,
+      retries: 0,
+    })
+  }
 
   const normalizedIntent =
     typeof parsed.normalizedIntent === "string" && parsed.normalizedIntent.trim()

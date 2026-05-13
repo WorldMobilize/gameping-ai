@@ -1,6 +1,7 @@
 /**
  * Price alerts: uses `tracked_games` + `lookupBestPrice` (same gate as game details).
  */
+import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { formatAggregatorPriceLine } from "@/lib/pricing/display";
 import {
@@ -11,17 +12,88 @@ import {
   lookupVerifiedBestPriceForAlert,
   shouldAlertOnPrice,
 } from "@/lib/tracked-price-alerts";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function isProductionDeploy(): boolean {
+  return (
+    process.env.VERCEL_ENV === "production" ||
+    process.env.NODE_ENV === "production"
+  );
+}
 
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
+function assertCronSecretConfigured(): NextResponse | null {
+  if (!isProductionDeploy()) return null;
+  if (!process.env.CRON_SECRET?.trim()) {
+    console.error("[cron] misconfiguration: CRON_SECRET is not set in production");
+    return NextResponse.json(
+      {
+        error: "Server misconfiguration",
+        message: "CRON_SECRET must be set in production for scheduled jobs.",
+      },
+      { status: 500 }
+    );
+  }
+  return null;
+}
+
+/** Compare secrets without leaking length hints via early exit (best-effort). */
+function secretsMatch(expected: string, provided: string): boolean {
+  try {
+    const a = Buffer.from(expected, "utf8");
+    const b = Buffer.from(provided, "utf8");
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+function extractBearerToken(authorization: string | null): string | null {
+  if (!authorization) return null;
+  const m = authorization.match(/^\s*Bearer\s+(.+)\s*$/i);
+  const raw = m?.[1]?.trim();
+  return raw || null;
+}
+
+/**
+ * Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`.
+ * Manual runs may use `?secret=<CRON_SECRET>`.
+ */
+function isAuthorizedCronRequest(req: Request, url: URL): boolean {
+  const expected = process.env.CRON_SECRET?.trim();
+  if (!expected) return false;
+  const querySecret = url.searchParams.get("secret")?.trim() ?? "";
+  const bearer = extractBearerToken(req.headers.get("authorization")) ?? "";
+  const provided = querySecret || bearer;
+  if (!provided) return false;
+  return secretsMatch(expected, provided);
+}
+
+function resolveResendFrom(): { from: string } | { error: string } {
+  const configured = process.env.RESEND_FROM?.trim();
+  if (configured) return { from: configured };
+  if (isProductionDeploy()) {
+    return {
+      error:
+        "RESEND_FROM is required in production. Set a verified sender in Resend (e.g. GamePing <alerts@yourdomain.com>).",
+    };
+  }
+  return { from: "GamePing <onboarding@resend.dev>" };
+}
+
+function getCronSupabase(): SupabaseClient | null {
+  const url = process.env.SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+}
 
 function siteOrigin() {
   return (
@@ -38,20 +110,56 @@ function sleep(ms: number) {
 }
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const secret = searchParams.get("secret");
+  const misconfig = assertCronSecretConfigured();
+  if (misconfig) return misconfig;
 
-  if (secret !== process.env.CRON_SECRET) {
+  const url = new URL(req.url);
+
+  if (!isAuthorizedCronRequest(req, url)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!resend) {
-    console.error("[cron] RESEND_API_KEY missing");
+  if (!process.env.RESEND_API_KEY?.trim()) {
+    console.error("[cron] RESEND_API_KEY is missing; email alerts cannot run");
     return NextResponse.json(
-      { error: "Email not configured" },
+      {
+        error: "Email not configured",
+        message: "Set RESEND_API_KEY to enable price alert emails.",
+      },
       { status: 500 }
     );
   }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const fromResult = resolveResendFrom();
+  if ("error" in fromResult) {
+    console.error("[cron] resend from:", fromResult.error);
+    return NextResponse.json(
+      { error: "Email not configured", message: fromResult.error },
+      { status: 500 }
+    );
+  }
+  const from = fromResult.from;
+
+  const supabase = getCronSupabase();
+  if (!supabase) {
+    console.error("[cron] SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing");
+    return NextResponse.json(
+      {
+        error: "Server misconfiguration",
+        message: "Supabase service credentials are required for cron.",
+      },
+      { status: 500 }
+    );
+  }
+
+  console.log("[cron] started");
+
+  let skipped = 0;
+  let emailsAttempted = 0;
+  let emailsSent = 0;
+  let emailErrors = 0;
+  let processed = 0;
 
   try {
     const { data: trackedRows, error: tgError } = await supabase
@@ -67,6 +175,9 @@ export async function GET(req: Request) {
     }
 
     const rows = trackedRows ?? [];
+    const trackedGamesChecked = rows.length;
+    console.log("[cron] tracked games to check:", trackedGamesChecked);
+
     const userIds = [...new Set(rows.map((r) => r.user_id))];
 
     const { data: profiles, error: pErr } = await supabase
@@ -82,9 +193,6 @@ export async function GET(req: Request) {
     const emailByUser = new Map(
       (profiles ?? []).map((p) => [p.user_id, p.email as string])
     );
-
-    let processed = 0;
-    let emailsSent = 0;
 
     for (const tg of rows) {
       processed += 1;
@@ -126,18 +234,15 @@ export async function GET(req: Request) {
           : null;
 
       let skippedReason = "pending";
-      let alertSent = false;
-      let accepted = false;
 
       if (!userEmail) {
         skippedReason = "no_user_email";
+        skipped += 1;
         if (process.env.NODE_ENV === "development") {
           console.log("[cron:tracked-game]", {
             gameId,
             title: titleStored,
             bestPrice: null,
-            accepted: false,
-            alertSent: false,
             skippedReason,
           });
         }
@@ -159,13 +264,12 @@ export async function GET(req: Request) {
 
       if (!verified.ok) {
         skippedReason = verified.reason;
+        skipped += 1;
         if (process.env.NODE_ENV === "development") {
           console.log("[cron:tracked-game]", {
             gameId,
             title: pricingTitle,
             bestPrice: null,
-            accepted: false,
-            alertSent: false,
             skippedReason,
           });
         }
@@ -177,11 +281,11 @@ export async function GET(req: Request) {
         continue;
       }
 
-      accepted = true;
       const { best, priceNum } = verified;
 
       if (priceNum <= 0) {
         skippedReason = "free_or_zero_skip";
+        skipped += 1;
         await supabase
           .from("tracked_games")
           .update({
@@ -194,8 +298,6 @@ export async function GET(req: Request) {
             gameId,
             title: pricingTitle,
             bestPrice: best.price,
-            accepted: true,
-            alertSent: false,
             skippedReason,
           });
         }
@@ -206,6 +308,7 @@ export async function GET(req: Request) {
       const dealUrl = best.deal?.url?.trim();
       if (!dealUrl) {
         skippedReason = "no_trusted_url";
+        skipped += 1;
         await supabase
           .from("tracked_games")
           .update({ last_checked_at: new Date().toISOString() })
@@ -215,8 +318,6 @@ export async function GET(req: Request) {
             gameId,
             title: pricingTitle,
             bestPrice: best.price,
-            accepted: true,
-            alertSent: false,
             skippedReason,
           });
         }
@@ -232,6 +333,7 @@ export async function GET(req: Request) {
 
       if (!threshold.alert) {
         skippedReason = threshold.reason;
+        skipped += 1;
         await supabase
           .from("tracked_games")
           .update({
@@ -244,8 +346,6 @@ export async function GET(req: Request) {
             gameId,
             title: pricingTitle,
             bestPrice: best.price,
-            accepted: true,
-            alertSent: false,
             skippedReason,
           });
         }
@@ -262,6 +362,7 @@ export async function GET(req: Request) {
 
       if (dup) {
         skippedReason = "dedupe_cooldown";
+        skipped += 1;
         if (process.env.NODE_ENV === "development") {
           console.log("[cron:alert-dedupe]", {
             gameId,
@@ -281,8 +382,6 @@ export async function GET(req: Request) {
             gameId,
             title: pricingTitle,
             bestPrice: best.price,
-            accepted: true,
-            alertSent: false,
             skippedReason,
           });
         }
@@ -311,9 +410,7 @@ export async function GET(req: Request) {
         heroImageUrl: meta.backgroundImage,
       });
 
-      const from =
-        process.env.RESEND_FROM || "GamePing <onboarding@resend.dev>";
-
+      emailsAttempted += 1;
       try {
         await resend.emails.send({
           from,
@@ -322,6 +419,8 @@ export async function GET(req: Request) {
           html,
         });
       } catch (mailErr) {
+        emailErrors += 1;
+        skipped += 1;
         console.error("[cron] resend failed", gameId, mailErr);
         skippedReason = "email_failed";
         await supabase
@@ -333,8 +432,6 @@ export async function GET(req: Request) {
             gameId,
             title: pricingTitle,
             bestPrice: best.price,
-            accepted: true,
-            alertSent: false,
             skippedReason,
           });
         }
@@ -343,7 +440,6 @@ export async function GET(req: Request) {
       }
 
       emailsSent += 1;
-      alertSent = true;
       skippedReason = "sent";
 
       await supabase.from("price_alert_events").insert({
@@ -367,8 +463,6 @@ export async function GET(req: Request) {
           gameId,
           title: pricingTitle,
           bestPrice: best.price,
-          accepted: true,
-          alertSent: true,
           skippedReason,
         });
       }
@@ -376,15 +470,27 @@ export async function GET(req: Request) {
       await sleep(200);
     }
 
+    console.log("[cron] summary", {
+      trackedGamesChecked,
+      processed,
+      skipped,
+      emailsAttempted,
+      emailsSent,
+      emailErrors,
+    });
+
     return NextResponse.json({
       success: true,
       message: "Cron finished",
-      tracked: rows.length,
+      tracked: trackedGamesChecked,
       processed,
+      skipped,
+      emailsAttempted,
       emailsSent,
+      emailErrors,
     });
   } catch (error) {
-    console.error("Cron error:", error);
+    console.error("[cron] fatal error:", error);
     return NextResponse.json({ error: "Cron failed" }, { status: 500 });
   }
 }

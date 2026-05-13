@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
 import { useEffect, useRef, useState } from "react";
@@ -49,6 +50,19 @@ const platforms = [
     icon: "/platforms/switch.svg",
     text: "Portable & cozy",
   },
+];
+
+const RECOMMEND_LOADING_STEPS = [
+  "Understanding your request...",
+  "Finding real games...",
+  "Checking relevance...",
+  "Ranking best matches...",
+];
+
+const RECOMMEND_LOADING_HELPERS = [
+  "GamePing is deeply analyzing your request.",
+  "First searches may take longer — repeated searches are usually instant.",
+  "We prefer fewer high-quality matches over random filler.",
 ];
 
 const presets = [
@@ -189,6 +203,8 @@ const tagGroups = [
 export default function RecommendPage() {
   const { showToast } = useToast();
   const resultsRef = useRef<HTMLDivElement | null>(null);
+  const emptyResultsRef = useRef<HTMLDivElement | null>(null);
+  const submitBusyRef = useRef(false);
 
   const [apiDebug, setApiDebug] = useState<RecommendDebug | null>(null);
 
@@ -211,6 +227,12 @@ export default function RecommendPage() {
   } | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [resultsReveal, setResultsReveal] = useState(false);
+  /** True after a successful API response returned zero games (not initial page load). */
+  const [noStrongMatchesAfterSuccess, setNoStrongMatchesAfterSuccess] =
+    useState(false);
 
   const [loggedUserEmail, setLoggedUserEmail] = useState<string | null>(null);
   const [loggedUserId, setLoggedUserId] = useState<string | null>(null);
@@ -238,6 +260,38 @@ export default function RecommendPage() {
 
     getUser();
   }, []);
+
+  useEffect(() => {
+    if (!loading) return;
+    const id = setInterval(() => {
+      setLoadingStepIndex((i) => (i + 1) % RECOMMEND_LOADING_STEPS.length);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [loading]);
+
+  useEffect(() => {
+    if (!loading) return;
+    const id = window.setInterval(() => {
+      setLoadingProgress((p) => {
+        if (p >= 90) return p;
+        return Math.min(90, p + Math.random() * 8 + 2);
+      });
+    }, 420);
+    return () => clearInterval(id);
+  }, [loading]);
+
+  useEffect(() => {
+    if (loading || games.length === 0) return;
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      queueMicrotask(() => setResultsReveal(true));
+      return;
+    }
+    const id = window.setTimeout(() => setResultsReveal(true), 45);
+    return () => clearTimeout(id);
+  }, [loading, games.length]);
 
   function updateField(name: string, value: string) {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -278,6 +332,7 @@ export default function RecommendPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitBusyRef.current || loading) return;
     if (form.userPrompt.trim().length > promptMaxForUi) {
       showToast({
         variant: "error",
@@ -289,7 +344,12 @@ export default function RecommendPage() {
       return;
     }
 
+    submitBusyRef.current = true;
     setLoading(true);
+    setLoadingStepIndex(0);
+    setLoadingProgress(10);
+    setResultsReveal(false);
+    setNoStrongMatchesAfterSuccess(false);
     setEmailSaved(false);
     setApiDebug(null);
 
@@ -336,25 +396,32 @@ export default function RecommendPage() {
               "We couldn’t get recommendations. Try again in a moment.",
           });
         }
-        setLoading(false);
         return;
       }
 
-      setGames(data.games ?? []);
+      const nextGames = data.games ?? [];
+      setGames(nextGames);
+      setNoStrongMatchesAfterSuccess(nextGames.length === 0);
       if (debugEnabled && data?.debug) {
         setApiDebug(data.debug as RecommendDebug);
       }
-      setLoading(false);
 
       setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
+        if (nextGames.length > 0) {
+          resultsRef.current?.scrollIntoView({ behavior: "smooth" });
+        } else {
+          emptyResultsRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 140);
     } catch (err) {
       console.error(err);
       showToast({
         variant: "error",
         message: "Something went wrong. Check your connection and try again.",
       });
+    } finally {
+      submitBusyRef.current = false;
+      setLoadingProgress(0);
       setLoading(false);
     }
   }
@@ -485,7 +552,11 @@ export default function RecommendPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-12 space-y-6">
+          <form
+            onSubmit={handleSubmit}
+            className="mt-12 space-y-6"
+            aria-busy={loading}
+          >
             <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_0_60px_rgba(168,85,247,0.08)] md:p-8">
               <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
                 Start here
@@ -502,6 +573,7 @@ export default function RecommendPage() {
               </p>
 
               <textarea
+                id="recommend-prompt"
                 placeholder={`Examples:
 "Something like Stardew Valley but with more action"
 "A dark, story-rich game under $20"
@@ -721,27 +793,121 @@ export default function RecommendPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-full bg-cyan-400 px-10 py-4 font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-disabled={loading}
+                  className="rounded-full bg-cyan-400 px-10 py-4 font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:bg-cyan-300 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {loading ? "Analyzing your taste..." : "Find my perfect games →"}
                 </button>
               </div>
             </div>
+
+            <p className="mt-6 max-w-2xl text-center text-sm leading-relaxed text-white/45 md:mx-auto">
+              You can try recommendations without logging in. Create a free account to save
+              searches and track game deals.
+            </p>
           </form>
 
           {loading && (
-            <section className="mt-10 grid gap-6 md:grid-cols-2">
-              {[1, 2, 3, 4].map((item) => (
-                <div
-                  key={item}
-                  className="h-72 animate-pulse rounded-3xl border border-white/10 bg-white/[0.04]"
-                />
-              ))}
-            </section>
+            <div
+              className="mt-10 md:mt-12"
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              <div className="mx-auto max-w-xl px-1">
+                <div className="mb-6">
+                  <div className="flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+                    <span>Progress</span>
+                    <span className="tabular-nums text-cyan-400/80">
+                      {Math.round(loadingProgress)}%
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07] ring-1 ring-white/[0.06]">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-cyan-300 to-purple-500 transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                      style={{
+                        width: `${loadingProgress}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <p
+                  key={loadingStepIndex}
+                  className="gp-recommend-step-animate mb-3 text-center text-[15px] font-bold leading-snug tracking-tight text-cyan-50 md:text-lg md:leading-snug"
+                >
+                  {RECOMMEND_LOADING_STEPS[loadingStepIndex]}
+                </p>
+
+                <ul className="mb-8 space-y-2.5 text-center text-[13px] leading-relaxed text-white/45 md:text-sm md:leading-relaxed">
+                  {RECOMMEND_LOADING_HELPERS.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <section className="grid gap-6 md:grid-cols-2">
+                {[1, 2, 3, 4].map((item) => (
+                  <div
+                    key={item}
+                    className="gp-recommend-skeleton-bar relative h-72 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] animate-pulse motion-reduce:animate-none"
+                  />
+                ))}
+              </section>
+            </div>
+          )}
+
+          {!loading && noStrongMatchesAfterSuccess && games.length === 0 && (
+            <div
+              ref={emptyResultsRef}
+              className="mt-14 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-[0_0_40px_rgba(34,211,238,0.06)] md:p-10"
+              role="status"
+              aria-live="polite"
+            >
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
+                No picks this round
+              </p>
+              <h2 className="mt-4 text-2xl font-black md:text-3xl">
+                We couldn&apos;t find strong matches for this vibe yet.
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-white/55">
+                That doesn&apos;t mean your taste is wrong—sometimes the best move is a sharper
+                prompt, looser filters, or a different angle. Try describing mood, pacing, or a
+                reference game you love.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <a
+                  href="#recommend-prompt"
+                  className="inline-flex items-center justify-center rounded-full bg-cyan-400 px-8 py-3.5 text-sm font-black text-black shadow-[0_0_28px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
+                >
+                  Try another vibe
+                </a>
+                <Link
+                  href="/curated"
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.05] px-8 py-3.5 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 hover:bg-white/10"
+                >
+                  Browse curated lists
+                </Link>
+                <Link
+                  href="/games"
+                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.05] px-8 py-3.5 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 hover:bg-white/10"
+                >
+                  Explore games A–Z
+                </Link>
+              </div>
+            </div>
           )}
 
           {games.length > 0 && !loading && (
-            <div ref={resultsRef}>
+            <div
+              ref={resultsRef}
+              className={`transition-all duration-500 ease-out motion-reduce:transition-none motion-reduce:opacity-100 motion-reduce:translate-y-0 ${
+                resultsReveal
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 translate-y-2"
+              }`}
+            >
               <div className="mt-14 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
@@ -871,11 +1037,14 @@ export default function RecommendPage() {
                 className="mt-10 rounded-3xl border border-purple-500/40 bg-purple-500/10 p-6"
               >
                 <h2 className="text-2xl font-black">
-                  Want smart price alerts?
+                  Save this recommendation run
                 </h2>
 
                 <p className="mt-2 text-white/60">
-                  Save this search and GamePing will track deals for you.
+                  Stores this vibe and your picks on your dashboard so we can match deals to your
+                  taste. To watch one title&apos;s price, open its game page and use{" "}
+                  <span className="font-semibold text-white/75">Track price</span> — that&apos;s
+                  separate from saving a full run here.
                 </p>
 
                 {loggedUserEmail && (
@@ -894,7 +1063,7 @@ export default function RecommendPage() {
                     </button>
                   ) : (
                     <a
-                      href="/login"
+                      href="/login?redirect=%2Frecommend"
                       className="inline-block rounded-full bg-cyan-400 px-8 py-4 font-bold text-black transition hover:bg-cyan-300"
                     >
                       Log in / Sign up to save

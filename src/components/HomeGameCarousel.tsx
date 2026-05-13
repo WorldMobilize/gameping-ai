@@ -8,7 +8,7 @@ export default function HomeGameCarousel() {
 
   return (
     <section
-      className="relative border-y border-white/10 bg-[#070816]/80 py-14 md:py-16"
+      className="relative mb-8 border-y border-white/10 bg-[#070816]/80 pt-14 pb-16 md:mb-12 md:pt-16 md:pb-20"
       aria-labelledby="home-game-carousel-heading"
     >
       <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-16 bg-gradient-to-r from-[#05060f] to-transparent md:w-24" />

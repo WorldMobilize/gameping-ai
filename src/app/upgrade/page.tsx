@@ -177,7 +177,10 @@ export default function UpgradePage() {
               <div>
                 <p className="font-black text-white">How does billing work?</p>
                 <p className="mt-2 text-sm leading-6 text-white/60">
-                  Premium is a monthly subscription processed by Stripe. You can manage payment methods in the Stripe-hosted checkout flow.
+                  Premium is a monthly subscription billed through Stripe. After checkout, plan
+                  updates automatically when your subscription status changes. To cancel or change
+                  billing, use the options Stripe emails you after purchase, or contact support if
+                  you need help — there is no separate cancel button inside GamePing yet.
                 </p>
               </div>
             </div>

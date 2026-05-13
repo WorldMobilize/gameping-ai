@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import Link from "next/link";
+import Navbar from "@/components/Navbar";
 import TrackPriceButton from "@/components/TrackPriceButton";
 import { getCachedRawgGame, setCachedRawgGame } from "@/lib/cache";
 import {
@@ -232,7 +234,9 @@ export default async function GameDetailPage({
   const publishers = rawg?.publishers?.map((p) => p.name).join(", ");
 
   return (
-    <main className="min-h-screen bg-[#03040a] text-white">
+    <main className="min-h-screen bg-[#05060f] text-white">
+      <Navbar />
+
       <section className="relative overflow-hidden pb-10">
         {heroImage && (
           <img
@@ -242,17 +246,49 @@ export default async function GameDetailPage({
           />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-[#03040a]/80 to-[#03040a]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-[#05060f]/80 to-[#05060f]" />
         <div className="absolute left-10 top-20 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl" />
         <div className="absolute bottom-20 right-10 h-96 w-96 rounded-full bg-purple-600/20 blur-3xl" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-8">
-          <a
-            href="/recommend"
-            className="w-fit rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm text-white/70 backdrop-blur transition hover:border-cyan-400/50 hover:text-cyan-300"
+          <nav
+            className="flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-white/65"
+            aria-label="Explore GamePing"
           >
-            ← Back to recommendations
-          </a>
+            <Link
+              href="/"
+              className="rounded-lg px-2 py-1 transition hover:bg-white/10 hover:text-cyan-200"
+            >
+              Home
+            </Link>
+            <span className="text-white/25" aria-hidden="true">
+              ·
+            </span>
+            <Link
+              href="/games"
+              className="rounded-lg px-2 py-1 transition hover:bg-white/10 hover:text-cyan-200"
+            >
+              Games directory
+            </Link>
+            <span className="text-white/25" aria-hidden="true">
+              ·
+            </span>
+            <Link
+              href="/curated"
+              className="rounded-lg px-2 py-1 transition hover:bg-white/10 hover:text-cyan-200"
+            >
+              Curated lists
+            </Link>
+            <span className="text-white/25" aria-hidden="true">
+              ·
+            </span>
+            <Link
+              href="/recommend"
+              className="rounded-lg px-2 py-1 transition hover:bg-white/10 hover:text-cyan-200"
+            >
+              AI recommendations
+            </Link>
+          </nav>
 
           <div className="grid gap-10 pt-10 pb-8 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
@@ -600,6 +636,50 @@ export default async function GameDetailPage({
             />
           </div>
         </aside>
+      </section>
+
+      <section
+        className="mx-auto max-w-7xl border-t border-white/10 px-6 pb-14 pt-10"
+        aria-labelledby="game-detail-explore-heading"
+      >
+        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] px-6 py-8 md:px-10">
+          <h2
+            id="game-detail-explore-heading"
+            className="text-xs font-black uppercase tracking-[0.35em] text-white/40"
+          >
+            Continue exploring
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">
+            Jump back into discovery whenever you are ready—browse the directory, scan curated
+            angles, or describe what you want next.
+          </p>
+          <ul className="mt-6 flex flex-col gap-3 text-sm font-bold sm:flex-row sm:flex-wrap sm:gap-x-10 sm:gap-y-2">
+            <li>
+              <Link
+                href="/games"
+                className="text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
+              >
+                Browse games A–Z →
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/curated"
+                className="text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
+              >
+                Explore curated lists →
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/recommend"
+                className="text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
+              >
+                Try AI recommendations →
+              </Link>
+            </li>
+          </ul>
+        </div>
       </section>
     </main>
   );
