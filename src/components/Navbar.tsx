@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -27,6 +28,8 @@ function shortEmailLabel(email: string, max = 22): string {
   return `${email.slice(0, max - 1)}…`;
 }
 
+type MenuCoords = { top: number; right: number };
+
 export default function Navbar({
   ctaLabel = "Try it",
   ctaHref = "/recommend",
@@ -34,8 +37,10 @@ export default function Navbar({
   const { showToast } = useToast();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const menuWrapRef = useRef<HTMLDivElement>(null);
+  const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
+
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const menuPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -56,12 +61,47 @@ export default function Navbar({
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
+  const updateMenuPosition = useCallback(() => {
+    const btn = menuButtonRef.current;
+    if (!btn) return;
+    const r = btn.getBoundingClientRect();
+    setMenuCoords({
+      top: r.bottom + 8,
+      right: Math.max(8, window.innerWidth - r.right),
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!menuOpen) {
+      requestAnimationFrame(() => {
+        setMenuCoords(null);
+      });
+      return;
+    }
+    requestAnimationFrame(() => {
+      updateMenuPosition();
+    });
+  }, [menuOpen, updateMenuPosition]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const onScrollOrResize = () => updateMenuPosition();
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [menuOpen, updateMenuPosition]);
+
   useEffect(() => {
     if (!menuOpen) return;
 
     const onPointerDown = (e: MouseEvent | PointerEvent) => {
-      const el = menuWrapRef.current;
-      if (!el || el.contains(e.target as Node)) return;
+      const t = e.target as Node;
+      if (menuButtonRef.current?.contains(t)) return;
+      if (menuPanelRef.current?.contains(t)) return;
       closeMenu();
     };
 
@@ -87,17 +127,81 @@ export default function Navbar({
     }, 500);
   };
 
+  const accountMenu =
+    menuOpen && userEmail && menuCoords ? (
+      <div
+        ref={menuPanelRef}
+        id="account-menu"
+        role="menu"
+        aria-labelledby="account-menu-button"
+        style={{
+          position: "fixed",
+          top: menuCoords.top,
+          right: menuCoords.right,
+          zIndex: 9999,
+        }}
+        className="w-[min(calc(100vw-1rem),17.5rem)] rounded-2xl border border-white/10 bg-[#0b0c18]/98 py-2 shadow-[0_16px_48px_rgba(0,0,0,0.55)] backdrop-blur-xl ring-1 ring-cyan-400/10 pointer-events-auto"
+      >
+        <div className="border-b border-white/10 px-4 py-3 sm:hidden">
+          <p className="truncate text-xs font-bold text-white/80">{userEmail}</p>
+        </div>
+
+        <div className="flex flex-col">
+          <Link
+            href="/dashboard"
+            role="menuitem"
+            className="flex w-full items-center px-4 py-3 text-sm font-bold text-white/90 no-underline transition hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:bg-cyan-400/10 focus-visible:outline-none"
+            onClick={closeMenu}
+          >
+            Dashboard
+          </Link>
+
+          <Link
+            href="/settings/account"
+            role="menuitem"
+            className="flex w-full flex-col items-stretch px-4 py-3 text-left text-sm font-bold text-white/90 no-underline transition hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:bg-cyan-400/10 focus-visible:outline-none"
+            onClick={closeMenu}
+          >
+            <span className="block w-full">Account settings</span>
+            <span className="mt-0.5 block w-full text-[11px] font-semibold leading-snug text-white/45">
+              Privacy, deletion, account data
+            </span>
+          </Link>
+
+          <Link
+            href="/upgrade"
+            role="menuitem"
+            className="flex w-full items-center px-4 py-3 text-sm font-bold text-white/90 no-underline transition hover:bg-purple-500/15 hover:text-purple-200 focus-visible:bg-purple-500/15 focus-visible:outline-none"
+            onClick={closeMenu}
+          >
+            Premium / Billing
+          </Link>
+
+          <div className="my-1 border-t border-white/10" role="separator" />
+
+          <button
+            type="button"
+            role="menuitem"
+            className="flex w-full items-center px-4 py-3 text-left text-sm font-bold text-red-300/95 transition hover:bg-red-500/10 focus-visible:bg-red-500/10 focus-visible:outline-none"
+            onClick={() => void handleLogout()}
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    ) : null;
+
   return (
-    <nav className="border-b border-white/10 bg-[#05060f]/80 backdrop-blur-xl">
+    <nav className="relative z-30 border-b border-white/10 bg-[#05060f]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
-        <Link href="/" className="min-w-0 shrink font-black tracking-tight">
+        <Link href="/" className="relative z-0 min-w-0 shrink font-black tracking-tight">
           GamePing <span className="text-cyan-300">AI</span>
         </Link>
 
-        <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
+        <div className="relative z-0 flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
           <Link
             href="/upgrade"
-            className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-white/70 transition hover:border-cyan-400/40 hover:text-cyan-200 sm:px-4 sm:text-xs"
+            className="relative z-0 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-[11px] font-bold text-white/70 transition hover:border-cyan-400/40 hover:text-cyan-200 sm:px-4 sm:text-xs"
           >
             Premium
           </Link>
@@ -106,14 +210,14 @@ export default function Navbar({
             <>
               <Link
                 href={ctaHref}
-                className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold transition hover:bg-white/20 sm:px-5 sm:text-sm"
+                className="relative z-0 rounded-full bg-white/10 px-3 py-2 text-xs font-bold transition hover:bg-white/20 sm:px-5 sm:text-sm"
               >
                 {ctaLabel}
               </Link>
 
               <Link
                 href="/login"
-                className="rounded-full border border-white/20 px-3 py-2 text-xs font-bold transition hover:bg-white/10 sm:px-5 sm:text-sm"
+                className="relative z-0 rounded-full border border-white/20 px-3 py-2 text-xs font-bold transition hover:bg-white/10 sm:px-5 sm:text-sm"
               >
                 Login
               </Link>
@@ -122,12 +226,12 @@ export default function Navbar({
             <>
               <Link
                 href="/recommend"
-                className="rounded-full bg-white/10 px-2.5 py-2 text-[11px] font-bold leading-tight transition hover:bg-white/20 sm:px-5 sm:text-sm"
+                className="relative z-0 rounded-full bg-white/10 px-2.5 py-2 text-[11px] font-bold leading-tight transition hover:bg-white/20 sm:px-5 sm:text-sm"
               >
                 <span className="whitespace-nowrap">New recommendation</span>
               </Link>
 
-              <div className="relative" ref={menuWrapRef}>
+              <div className="relative z-0 shrink-0">
                 <button
                   ref={menuButtonRef}
                   type="button"
@@ -165,61 +269,11 @@ export default function Navbar({
                     />
                   </svg>
                 </button>
-
-                {menuOpen ? (
-                  <div
-                    id="account-menu"
-                    role="menu"
-                    aria-labelledby="account-menu-button"
-                    className="absolute right-0 z-50 mt-2 w-[min(calc(100vw-2rem),17.5rem)] origin-top-right rounded-2xl border border-white/10 bg-[#0b0c18]/95 py-2 shadow-[0_16px_48px_rgba(0,0,0,0.55)] backdrop-blur-xl ring-1 ring-cyan-400/10"
-                  >
-                    <div className="border-b border-white/10 px-4 py-3 sm:hidden">
-                      <p className="truncate text-xs font-bold text-white/80">{userEmail}</p>
-                    </div>
-
-                    <Link
-                      href="/dashboard"
-                      role="menuitem"
-                      className="block px-4 py-2.5 text-sm font-bold text-white/90 transition hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:bg-cyan-400/10 focus-visible:outline-none"
-                      onClick={closeMenu}
-                    >
-                      Dashboard
-                    </Link>
-
-                    <Link
-                      href="/settings/account"
-                      role="menuitem"
-                      className="block px-4 py-2.5 text-sm font-bold text-white/90 transition hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:bg-cyan-400/10 focus-visible:outline-none"
-                      onClick={closeMenu}
-                    >
-                      <span className="block">Account settings</span>
-                      <span className="mt-0.5 block text-[11px] font-semibold leading-snug text-white/45">
-                        Privacy, deletion, account data
-                      </span>
-                    </Link>
-
-                    <Link
-                      href="/upgrade"
-                      role="menuitem"
-                      className="block px-4 py-2.5 text-sm font-bold text-white/90 transition hover:bg-purple-500/15 hover:text-purple-200 focus-visible:bg-purple-500/15 focus-visible:outline-none"
-                      onClick={closeMenu}
-                    >
-                      Premium / Billing
-                    </Link>
-
-                    <div className="my-1.5 border-t border-white/10" role="separator" />
-
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className="w-full px-4 py-2.5 text-left text-sm font-bold text-red-300/95 transition hover:bg-red-500/10 focus-visible:bg-red-500/10 focus-visible:outline-none"
-                      onClick={() => void handleLogout()}
-                    >
-                      Logout
-                    </button>
-                  </div>
-                ) : null}
               </div>
+
+              {typeof document !== "undefined" && accountMenu
+                ? createPortal(accountMenu, document.body)
+                : null}
             </>
           )}
         </div>

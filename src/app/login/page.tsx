@@ -7,7 +7,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
 
-const DEFAULT_POST_AUTH_REDIRECT = "/dashboard";
+const DEFAULT_POST_AUTH_REDIRECT = "/";
 
 /** Only same-origin paths; blocks open redirects and external URLs. */
 function sanitizeInternalRedirect(raw: string | null): string {
@@ -38,7 +38,8 @@ function sanitizeInternalRedirect(raw: string | null): string {
 function LoginForm() {
   const { showToast } = useToast();
   const searchParams = useSearchParams();
-  const redirectParam = searchParams.get("redirect");
+  const redirectParam =
+    searchParams.get("redirect") ?? searchParams.get("next");
   const safeRedirect = useMemo(
     () => sanitizeInternalRedirect(redirectParam),
     [redirectParam]
