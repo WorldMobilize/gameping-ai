@@ -351,8 +351,30 @@ export default async function GameDetailPage({
         hasVerifiedAggregatorPrice(bestPrice) &&
         !isFreeToPlayPriceState(bestPrice)
     ) && !primaryDeal;
-  const hasTrustedVerifiedBuy =
-    Boolean(primaryDeal?.deal.url) || hasTrustedBestPriceOnly;
+
+  const primaryTrustedBuyUrl =
+    primaryDeal &&
+    typeof primaryDeal.deal.url === "string" &&
+    primaryDeal.deal.url.trim() !== ""
+      ? primaryDeal.deal.url.trim()
+      : undefined;
+
+  const bestPriceTrustedBuyUrl =
+    bestPrice !== null &&
+    hasVerifiedAggregatorPrice(bestPrice) &&
+    !isFreeToPlayPriceState(bestPrice) &&
+    bestPrice.deal !== undefined &&
+    typeof bestPrice.deal.url === "string" &&
+    bestPrice.deal.url.trim() !== ""
+      ? bestPrice.deal.url.trim()
+      : undefined;
+
+  /** Trusted store URL for primary hero / store CTAs (primary deal wins over gated bestPrice). */
+  const trustedHeroBuyUrl =
+    primaryTrustedBuyUrl ??
+    (hasTrustedBestPriceOnly ? bestPriceTrustedBuyUrl : undefined);
+
+  const hasTrustedVerifiedBuy = Boolean(trustedHeroBuyUrl);
   const trustedDeals = displayDeals.filter((d) => Boolean(d.deal.url));
   const otherTrustedDeals = primaryDeal
     ? trustedDeals.filter((d) => d.deal.id !== primaryDeal.deal.id)
@@ -476,7 +498,7 @@ export default async function GameDetailPage({
                   </span>
                 ) : hasTrustedVerifiedBuy ? (
                   <a
-                    href={(primaryDeal?.deal.url ?? bestPrice?.deal.url) || "#"}
+                    href={trustedHeroBuyUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
@@ -805,16 +827,16 @@ export default async function GameDetailPage({
                               : ""}
                         </p>
                       </div>
-                      {(primaryDeal?.deal.url || bestPrice?.deal?.url) && (
+                      {trustedHeroBuyUrl ? (
                         <a
-                          href={String(primaryDeal?.deal.url ?? bestPrice?.deal.url)}
+                          href={trustedHeroBuyUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex shrink-0 items-center justify-center rounded-full bg-white px-8 py-4 text-base font-black text-black shadow-[0_0_24px_rgba(255,255,255,0.12)] transition hover:bg-cyan-100"
                         >
                           Buy now
                         </a>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 )}
