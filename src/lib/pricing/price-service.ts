@@ -14,6 +14,44 @@ function isDevPricingLog() {
   return process.env.NODE_ENV === "development";
 }
 
+function shouldLogPricingDetail(debug: boolean) {
+  return isDevPricingLog() || debug;
+}
+
+function logPricingUnavailableSummary(params: {
+  debug: boolean;
+  requestedTitle: string;
+  stage: string;
+  provider?: string | null;
+  matchedTitle?: string | null;
+  dealUrl?: string | null;
+  extra?: Record<string, unknown>;
+}) {
+  if (!shouldLogPricingDetail(params.debug)) return;
+  let gateScore: number | null = null;
+  let gateReason: string | null = null;
+  const mt = (params.matchedTitle ?? "").trim();
+  if (mt) {
+    const g = evaluatePricingGate({
+      requestedTitle: params.requestedTitle,
+      matchedTitle: mt,
+      dealUrl: params.dealUrl ?? null,
+      provider: params.provider ?? null,
+    });
+    gateScore = g.score;
+    gateReason = g.reason;
+  }
+  console.log("[pricing:unavailable-summary]", {
+    requestedTitle: params.requestedTitle,
+    stage: params.stage,
+    providerAttempted: params.provider ?? null,
+    bestMatchedTitle: mt || null,
+    gateScore,
+    gateReason,
+    ...params.extra,
+  });
+}
+
 /**
  * Pricing gate: short titles require exact normalized match for any price; URLs only when exact + row URL.
  */
@@ -121,6 +159,7 @@ const FREE_TO_PLAY_TITLES = new Set(
     "Team Fortress 2",
     "Warframe",
     "Path of Exile",
+    "Paladins",
   ].map(normalizeTitleKey)
 );
 
@@ -303,6 +342,14 @@ export async function lookupBestPrice(params: {
 
       return gatedCheap;
     }
+    logPricingUnavailableSummary({
+      debug,
+      requestedTitle: params.title,
+      stage: "cheapshark_gate_reject",
+      provider: "cheapshark",
+      matchedTitle: cheapMatchedTitle,
+      dealUrl: bestCheap.dealUrl ?? null,
+    });
   }
 
   // Fallback: ITAD (only if CheapShark returned null / no match / rate limited / failed).
@@ -312,7 +359,21 @@ export async function lookupBestPrice(params: {
     debug,
     debugLabel: params.debugLabel ? `${params.debugLabel}:itad` : undefined,
   });
-  if (!bestItad) return null;
+  if (!bestItad) {
+    logPricingUnavailableSummary({
+      debug,
+      requestedTitle: params.title,
+      stage: "itad_no_match_or_error",
+      provider: "itad",
+      matchedTitle: null,
+      extra: {
+        hadCheapsharkCandidate: Boolean(bestCheap),
+        cheapsharkMatchedTitle: cheapMatchedTitle || null,
+        cheapsharkWasValidPrice: cheapIsValid,
+      },
+    });
+    return null;
+  }
 
   if (debug) {
     console.log("[pricing:service]", params.debugLabel ?? params.title, {
@@ -337,7 +398,17 @@ export async function lookupBestPrice(params: {
   };
 
   const gatedItad = gatePricingByTitleMatch(params.title, mappedRaw, "itad");
-  if (!gatedItad) return null;
+  if (!gatedItad) {
+    logPricingUnavailableSummary({
+      debug,
+      requestedTitle: params.title,
+      stage: "itad_gate_reject",
+      provider: "itad",
+      matchedTitle: bestItad.matchedTitle ?? null,
+      dealUrl: bestItad.dealUrl ?? null,
+    });
+    return null;
+  }
 
   const savedToCache = await setCachedPriceQuote({
     title: params.title,

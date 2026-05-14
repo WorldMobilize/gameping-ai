@@ -45,6 +45,7 @@ export const PRICING_TRAILING_NOISE_WORDS = new Set([
 export function normalizeTitleForMatch(title: string) {
   return title
     .toLowerCase()
+    .replace(/[™®©]/g, "")
     .replace(/[\u2019']/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
@@ -52,10 +53,70 @@ export function normalizeTitleForMatch(title: string) {
 }
 
 /**
- * Strong normalization for pricing: punctuation stripped, repeated trailing edition/store tokens removed.
+ * Trailing marketing / subtitle noise (whole suffix only). Safe: does not touch sequel markers like
+ * "II", "2", or distinctive tokens ("Two", "Finals") — only removes known generic tail phrases so
+ * "Gold Rush: The Game" aligns with "Gold Rush" without lowering numeric gate thresholds.
+ */
+const WEAK_PRICING_SUBTITLE_PHRASES_SORTED: string[] = [
+  "game of the year edition",
+  "definitive edition",
+  "ultimate edition",
+  "complete edition",
+  "deluxe edition",
+  "standard edition",
+  "goty edition",
+  "video game",
+  "the game",
+].sort((a, b) => b.length - a.length);
+
+export function stripWeakPricingSubtitlePhrases(normalizedSpaced: string): string {
+  let s = normalizedSpaced.replace(/\s+/g, " ").trim();
+  if (!s) return "";
+
+  const minRemainderChars = 3;
+  const minRemainderWords = 1;
+
+  let prev = "";
+  while (s !== prev) {
+    prev = s;
+    for (const phrase of WEAK_PRICING_SUBTITLE_PHRASES_SORTED) {
+      if (!phrase) continue;
+      const tail = ` ${phrase}`;
+      let next: string | null = null;
+      if (s.endsWith(tail)) {
+        next = s.slice(0, s.length - tail.length).replace(/\s+$/, "").replace(/[\s:]+$/g, "").trim();
+      } else if (s === phrase) {
+        next = "";
+      }
+      if (next === null) continue;
+
+      const words = next.split(/\s/).filter(Boolean);
+      if (next.length < minRemainderChars || words.length < minRemainderWords) continue;
+
+      const lastTok = words[words.length - 1] ?? "";
+      if (
+        words.length === 1 &&
+        lastTok.length < 4 &&
+        !/^\d+$/.test(lastTok) &&
+        !/^(i|ii|iii|iv|v|vi|vii|viii|ix|x)$/i.test(lastTok)
+      ) {
+        continue;
+      }
+
+      s = next;
+      break;
+    }
+  }
+
+  return s.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Strong normalization for pricing: punctuation stripped, weak subtitle tails removed, then
+ * repeated trailing edition/store tokens removed.
  */
 export function normalizeTitleForPricing(title: string): string {
-  let s = normalizeTitleForMatch(title);
+  let s = stripWeakPricingSubtitlePhrases(normalizeTitleForMatch(title));
   if (!s) return "";
   let tokens = s.split(/\s/).filter(Boolean);
   let prev = "";
@@ -355,7 +416,7 @@ export function containsBadWords(title: string) {
 }
 
 function titleTokensForMatch(title: string) {
-  const t = normalizeTitleForMatch(title);
+  const t = stripWeakPricingSubtitlePhrases(normalizeTitleForMatch(title));
   if (!t) return [];
   return t
     .split(" ")
@@ -374,8 +435,8 @@ function jaccardTokens(a: string[], b: string[]) {
 }
 
 export function titleMatchScore(requestedTitle: string, candidateTitle: string) {
-  const aNorm = normalizeTitleForMatch(requestedTitle);
-  const bNorm = normalizeTitleForMatch(candidateTitle);
+  const aNorm = stripWeakPricingSubtitlePhrases(normalizeTitleForMatch(requestedTitle));
+  const bNorm = stripWeakPricingSubtitlePhrases(normalizeTitleForMatch(candidateTitle));
   if (!aNorm || !bNorm) return 0;
   if (aNorm === bNorm) return 1;
   if (aNorm.length >= 4 && (aNorm.includes(bNorm) || bNorm.includes(aNorm))) return 0.93;

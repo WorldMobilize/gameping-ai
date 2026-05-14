@@ -7,6 +7,7 @@ import {
   AGGREGATOR_PRICE_DISCLAIMER,
   formatAggregatorPriceLine,
 } from "@/lib/pricing/display";
+import type { BestPriceResult } from "@/lib/pricing/price-service";
 import { lookupBestPrice, lookupDeals } from "@/lib/pricing/price-service";
 
 const openai = new OpenAI({
@@ -48,6 +49,62 @@ type GameAiDetails = {
   bestFor: string;
   pros: string[];
 };
+
+type PricingUiMode =
+  | "free_to_play"
+  | "verified_price"
+  | "likely_console_or_unsupported"
+  | "unavailable";
+
+function parsePriceAmount(price: string | undefined): number | null {
+  if (!price) return null;
+  if (/^free$/i.test(price.trim())) return 0;
+  const n = Number(price.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+function isFreeToPlayPriceState(best: BestPriceResult | null): boolean {
+  if (!best) return false;
+  if (best.provider === "free_to_play" || /^free$/i.test((best.price || "").trim())) {
+    return true;
+  }
+  const n = parsePriceAmount(best.price);
+  return best.provider === "cheapshark" && n !== null && n <= 0;
+}
+
+function hasVerifiedAggregatorPrice(best: BestPriceResult | null): boolean {
+  if (!best || isFreeToPlayPriceState(best)) return false;
+  const n = parsePriceAmount(best.price);
+  return n !== null && n > 0;
+}
+
+function rawgPlatformsBlob(rawg: RawgGame | null): string {
+  if (!rawg?.platforms?.length) return "";
+  return rawg.platforms.map((p) => p.platform.name).join(" ").toLowerCase();
+}
+
+/** Console-first listing with no PC / Steam / Mac / Linux hints — CheapShark is PC-deal heavy. */
+function isLikelyConsoleOnly(rawg: RawgGame | null): boolean {
+  const blob = rawgPlatformsBlob(rawg);
+  if (!blob.trim()) return false;
+  const consoleHints =
+    /\b(nintendo|switch|wii|wii ?u|playstation|ps[2345]|xbox|xbox one|xbox series|series [sx]|3ds)\b/i.test(
+      blob
+    );
+  const pcHints =
+    /\b(pc|windows|win32|steam|macos|linux|\bmac\b|gog|epic games|itch)\b/i.test(blob);
+  return consoleHints && !pcHints;
+}
+
+function derivePricingUiMode(
+  best: BestPriceResult | null,
+  rawg: RawgGame | null
+): PricingUiMode {
+  if (isFreeToPlayPriceState(best)) return "free_to_play";
+  if (hasVerifiedAggregatorPrice(best)) return "verified_price";
+  if (isLikelyConsoleOnly(rawg)) return "likely_console_or_unsupported";
+  return "unavailable";
+}
 
 async function getRawgGame(title: string): Promise<RawgGame | null> {
   try {
@@ -236,6 +293,7 @@ export default async function GameDetailPage({
 
   /** CheapShark rows pass evaluatePricingGate — sole source for purchase CTAs. */
   const hasVerifiedStoreDeals = deals.length > 0;
+  const pricingMode = derivePricingUiMode(bestPrice, rawg);
 
   const heroImage = rawg?.background_image || screenshots[0]?.image;
   const trailer = movies[0]?.data?.max || movies[0]?.data?.["480"];
@@ -336,16 +394,28 @@ export default async function GameDetailPage({
               </div>
 
               <div className="mt-10 flex flex-wrap items-center gap-4">
-                {hasVerifiedStoreDeals ? (
+                {pricingMode === "free_to_play" ? (
+                  <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/60">
+                    Free-to-play title
+                  </span>
+                ) : pricingMode === "verified_price" && hasVerifiedStoreDeals ? (
                   <a
                     href="#verified-store-deals"
                     className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
                   >
                     Check verified deals
                   </a>
+                ) : pricingMode === "verified_price" ? (
+                  <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/55">
+                    No active verified deals right now.
+                  </span>
+                ) : pricingMode === "likely_console_or_unsupported" ? (
+                  <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/55">
+                    Pricing support limited for this platform
+                  </span>
                 ) : (
-                  <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/50">
-                    No verified deals found right now.
+                  <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/55">
+                    No verified pricing available
                   </span>
                 )}
 
@@ -382,17 +452,38 @@ export default async function GameDetailPage({
                       <p className="text-xs uppercase tracking-widest text-white/40">
                         Estimated aggregator price
                       </p>
-                      <p className="mt-2 text-2xl font-black text-cyan-300">
-                        {bestPrice?.price && bestPrice.price !== "N/A"
-                          ? formatAggregatorPriceLine({
+                      {pricingMode === "free_to_play" ? (
+                        <>
+                          <p className="mt-2 text-2xl font-black text-cyan-300">Free to play</p>
+                          <p className="mt-2 text-xs text-white/45">
+                            This game is listed as free-to-play where supported.
+                          </p>
+                        </>
+                      ) : pricingMode === "verified_price" && bestPrice ? (
+                        <>
+                          <p className="mt-2 text-2xl font-black text-cyan-300">
+                            {formatAggregatorPriceLine({
                               price: bestPrice.price,
                               currency: bestPrice.currency,
-                            })
-                          : "Price unavailable"}
-                      </p>
-                      <p className="mt-2 text-xs text-white/40">
-                        {AGGREGATOR_PRICE_DISCLAIMER}
-                      </p>
+                            })}
+                          </p>
+                          <p className="mt-2 text-xs text-white/40">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                        </>
+                      ) : pricingMode === "likely_console_or_unsupported" ? (
+                        <>
+                          <p className="mt-2 text-2xl font-black text-cyan-300">Pricing unavailable</p>
+                          <p className="mt-2 text-xs text-white/45">
+                            Verified PC store pricing may not be available for this platform.
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="mt-2 text-2xl font-black text-cyan-300">Pricing unavailable</p>
+                          <p className="mt-2 text-xs text-white/45">
+                            We could not verify pricing from supported deal providers.
+                          </p>
+                        </>
+                      )}
                     </div>
 
                     <div className="rounded-2xl bg-black/30 p-4">
@@ -601,7 +692,13 @@ export default async function GameDetailPage({
               </div>
             ) : (
               <p className="mt-6 text-white/55">
-                No verified deals found right now.
+                {pricingMode === "free_to_play"
+                  ? "Free-to-play titles are distributed through first-party clients. We do not show empty verified deal rows here."
+                  : pricingMode === "verified_price"
+                    ? "No active verified deals right now."
+                    : pricingMode === "likely_console_or_unsupported"
+                      ? "Verified PC store deals may not be listed for this platform."
+                      : "We could not verify store rows from supported deal providers for this title."}
               </p>
             )}
           </div>
@@ -633,20 +730,32 @@ export default async function GameDetailPage({
               Estimated aggregator price
             </p>
             <h2 className="mt-4 text-4xl font-black">
-              {bestPrice?.price && bestPrice.price !== "N/A"
-                ? formatAggregatorPriceLine({
-                    price: bestPrice.price,
-                    currency: bestPrice.currency,
-                  })
-                : "Price unavailable"}
+              {pricingMode === "free_to_play"
+                ? "Free to play"
+                : pricingMode === "verified_price" &&
+                    bestPrice?.price &&
+                    bestPrice.price !== "N/A"
+                  ? formatAggregatorPriceLine({
+                      price: bestPrice.price,
+                      currency: bestPrice.currency,
+                    })
+                  : "Pricing unavailable"}
             </h2>
             <p className="mt-2 text-xs text-white/45">{AGGREGATOR_PRICE_DISCLAIMER}</p>
             <p className="mt-4 text-white/65">
-              {bestPrice?.price && bestPrice.price !== "N/A"
-                ? `Indicative only — ${bestPrice.provider}. Purchases use verified store rows below.`
-                : hasVerifiedStoreDeals
-                  ? "Aggregator estimate unavailable; verified prices are listed in store comparison."
-                  : "No verified deals found right now. Aggregator data may be missing or rate-limited."}
+              {pricingMode === "free_to_play"
+                ? "This game is listed as free-to-play where supported."
+                : pricingMode === "verified_price" &&
+                    bestPrice?.price &&
+                    bestPrice.price !== "N/A"
+                  ? `Indicative only — ${bestPrice.provider}. Purchases use verified store rows below.`
+                  : pricingMode === "verified_price"
+                    ? "No active verified deals right now."
+                    : hasVerifiedStoreDeals
+                      ? "Aggregator estimate unavailable; verified prices are listed in store comparison."
+                      : pricingMode === "likely_console_or_unsupported"
+                        ? "Verified PC store pricing may not be available for this platform."
+                        : "We could not verify pricing from supported deal providers."}
             </p>
 
             <TrackPriceButton
