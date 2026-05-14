@@ -15,6 +15,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const plan = profile?.plan ?? "free";
+    if (plan === "premium" || plan === "admin") {
+      return NextResponse.json(
+        {
+          error: "Already subscribed",
+          message:
+            plan === "admin"
+              ? "Your account already has full access. No Premium checkout is needed."
+              : "You already have Premium on this account. Open the dashboard or run a new recommendation instead of starting another subscription.",
+        },
+        { status: 409 }
+      );
+    }
+
     const origin =
       req.headers.get("origin") ?? new URL(req.url).origin ?? "";
 

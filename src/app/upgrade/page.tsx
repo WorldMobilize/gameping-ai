@@ -1,19 +1,72 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import Link from "next/link";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
+type LoadedPlan = "free" | "premium" | "admin" | null;
+
 function UpgradeContent() {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [planLoading, setPlanLoading] = useState(true);
+  const [profilePlan, setProfilePlan] = useState<LoadedPlan>(null);
 
   const canceled = searchParams.get("canceled") === "true";
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPlan() {
+      setPlanLoading(true);
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      if (!user) {
+        if (!cancelled) {
+          setProfilePlan(null);
+          setPlanLoading(false);
+        }
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      const raw = profile?.plan;
+      if (raw === "premium" || raw === "admin") {
+        setProfilePlan(raw);
+      } else {
+        setProfilePlan("free");
+      }
+      setPlanLoading(false);
+    }
+
+    loadPlan();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      void loadPlan();
+    });
+
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
   async function startCheckout() {
+    if (profilePlan === "premium" || profilePlan === "admin") {
+      return;
+    }
+
     setLoading(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -34,12 +87,15 @@ function UpgradeContent() {
       const body = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        showToast({
-          variant: "error",
-          message:
-            typeof body.error === "string"
+        const msg =
+          typeof body.message === "string"
+            ? body.message
+            : typeof body.error === "string"
               ? body.error
-              : "Checkout could not start. Try again.",
+              : "Checkout could not start. Try again.";
+        showToast({
+          variant: res.status === 409 ? "info" : "error",
+          message: msg,
         });
         return;
       }
@@ -62,6 +118,98 @@ function UpgradeContent() {
     } finally {
       setLoading(false);
     }
+  }
+
+  const hasPaidTier = profilePlan === "premium" || profilePlan === "admin";
+
+  if (planLoading) {
+    return (
+      <div className="mt-12 h-40 animate-pulse rounded-3xl border border-white/10 bg-white/[0.04]" />
+    );
+  }
+
+  if (hasPaidTier) {
+    return (
+      <>
+        {canceled && (
+          <div className="mb-8 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+            Checkout was canceled. You can try again whenever you’re ready.
+          </div>
+        )}
+
+        <div className="mt-12 rounded-[2rem] border border-emerald-400/30 bg-emerald-500/10 p-8 md:p-10">
+          <p className="text-xs font-black uppercase tracking-[0.35em] text-emerald-200">
+            Current plan
+          </p>
+          {profilePlan === "admin" ? (
+            <>
+              <h2 className="mt-3 text-2xl font-black md:text-3xl">
+                Admin plan active
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-white/65">
+                Your account already has full access. You do not need a separate Premium
+                subscription.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="mt-3 text-2xl font-black md:text-3xl">
+                Premium is already active
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-white/65">
+                You&apos;re on GamePing Premium. There&apos;s nothing else to purchase here—head
+                to your dashboard or run a new recommendation.
+              </p>
+            </>
+          )}
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center rounded-full bg-cyan-400 px-8 py-3.5 text-sm font-black text-black shadow-[0_0_28px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
+            >
+              Open dashboard →
+            </Link>
+            <Link
+              href="/recommend"
+              className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.06] px-8 py-3.5 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 hover:bg-white/10"
+            >
+              New recommendation →
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-2 opacity-60">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+            <h2 className="text-2xl font-black">Free</h2>
+            <p className="mt-2 text-sm text-white/50">Included baseline.</p>
+            <ul className="mt-6 space-y-3 text-white/60">
+              <li>✔ 3 saved searches</li>
+              <li>✔ Basic price alerts</li>
+              <li>✔ Standard recommendations</li>
+            </ul>
+          </div>
+
+          <div className="rounded-3xl border border-cyan-400/25 bg-cyan-400/10 p-8">
+            <h2 className="text-2xl font-black">
+              Premium <span className="text-cyan-300">+</span>
+            </h2>
+            <p className="mt-2 text-sm font-bold text-cyan-200">Your current tier</p>
+            <ul className="mt-6 space-y-3 text-white/70">
+              <li>✔ 25 saved searches</li>
+              <li>✔ Advanced price alerts</li>
+              <li>✔ Priority recommendations</li>
+              <li>✔ More tracking slots</li>
+              <li>✔ Early access features</li>
+            </ul>
+            <p className="mt-6 text-sm text-white/45">
+              Manage billing through Stripe (emails from Stripe) or contact support if you need
+              help.
+            </p>
+          </div>
+        </div>
+      </>
+    );
   }
 
   return (
