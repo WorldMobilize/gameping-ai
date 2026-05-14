@@ -5,9 +5,9 @@ import { DIRECTORY_GAMES } from "@/lib/curated/home-picks";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Games A–Z directory | GamePing AI",
+  title: "Browse Games A–Z | GamePing AI",
   description:
-    "Browse a starter directory of popular games with links to detail pages. Full AI-powered discovery lives on GamePing recommendations.",
+    "Discover popular games from A to Z and jump into each title’s page. Use GamePing’s AI recommendations to find what to play next based on your tastes.",
 };
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
