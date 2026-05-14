@@ -1,4 +1,6 @@
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { LEGAL_LAST_UPDATED } from "@/lib/legal-last-updated";
 
 export default function DisclaimerPage() {
   return (
@@ -10,14 +12,10 @@ export default function DisclaimerPage() {
         <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/10 blur-3xl" />
 
         <div className="relative z-10 mx-auto max-w-3xl">
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-purple-300">
-            Legal
-          </p>
+          <p className="text-xs font-black uppercase tracking-[0.35em] text-purple-300">Legal</p>
           <h1 className="mt-4 text-4xl font-black md:text-5xl">Disclaimer</h1>
 
-          <p className="mt-4 text-sm text-white/55">
-            Last updated: {new Date().toLocaleDateString()}
-          </p>
+          <p className="mt-4 text-sm text-white/55">Last updated: {LEGAL_LAST_UPDATED}</p>
 
           <div className="mt-10 space-y-8 text-white/70 leading-7">
             <p>
@@ -71,9 +69,20 @@ export default function DisclaimerPage() {
               <h2 className="text-xl font-black text-white">Affiliate disclosure</h2>
               <p className="mt-3">
                 Some outbound links may be affiliate links. This means GamePing AI may earn revenue
-                at no additional cost to you.
+                at no additional cost to you. A fuller explanation of independence, rankings, and
+                click logging is in our{" "}
+                <Link href="/affiliate-disclosure" className="font-bold text-cyan-300 hover:underline">
+                  Affiliate disclosure
+                </Link>
+                .
               </p>
             </div>
+
+            <p className="text-sm text-white/50">
+              <Link href="/legal" className="font-semibold text-cyan-300 hover:underline">
+                Legal hub
+              </Link>
+            </p>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/60">
               This page is provided for general informational purposes and does not constitute legal

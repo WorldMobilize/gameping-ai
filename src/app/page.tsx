@@ -2,6 +2,7 @@ import Link from "next/link";
 import HomeGameCarousel from "@/components/HomeGameCarousel";
 import HomeLoggedInStrip from "@/components/HomeLoggedInStrip";
 import Navbar from "@/components/Navbar";
+import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
 
 const previewGames = [
   {

@@ -81,6 +81,12 @@ export default function Footer() {
               </p>
               <div className="flex flex-col gap-2 text-sm text-slate-400">
                 <Link
+                  href="/legal"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
+                  Legal hub
+                </Link>
+                <Link
                   href="/privacy"
                   className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
                 >
@@ -103,6 +109,12 @@ export default function Footer() {
                   className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
                 >
                   Disclaimer
+                </Link>
+                <Link
+                  href="/affiliate-disclosure"
+                  className="transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                >
+                  Affiliate disclosure
                 </Link>
                 <Link
                   href="/refund-policy"

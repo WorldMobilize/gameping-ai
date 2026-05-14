@@ -159,6 +159,13 @@ export default function Dashboard() {
                 >
                   Upgrade
                 </Link>
+                {" · "}
+                <Link
+                  href="/settings/account"
+                  className="font-semibold text-cyan-300 underline-offset-4 hover:underline"
+                >
+                  Account &amp; deletion
+                </Link>
               </p>
             </div>
 

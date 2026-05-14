@@ -162,6 +162,15 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
+          <p className="mt-2 text-right">
+            <Link
+              href="/reset-password"
+              className="text-xs font-semibold text-white/45 underline-offset-4 transition hover:text-cyan-300 hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </p>
+
           <div className="mt-6 flex gap-3">
             <button
               type="button"
@@ -182,9 +191,22 @@ function LoginForm() {
 
           <p className="mt-6 text-center text-xs text-white/40">
             By continuing you agree to our{" "}
+            <Link href="/terms" className="underline hover:text-cyan-300">
+              Terms
+            </Link>
+            ,{" "}
             <Link href="/privacy" className="underline hover:text-cyan-300">
               Privacy Policy
             </Link>
+            ,{" "}
+            <Link href="/cookies" className="underline hover:text-cyan-300">
+              Cookie Policy
+            </Link>
+            , and{" "}
+            <Link href="/disclaimer" className="underline hover:text-cyan-300">
+              Disclaimer
+            </Link>
+            .
           </p>
         </div>
       </div>
