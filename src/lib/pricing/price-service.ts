@@ -458,6 +458,50 @@ export type VerifiedDealRow = {
 /** @deprecated use VerifiedDealRow */
 export type DealRow = VerifiedDealRow;
 
+function parseVerifiedDealSalePrice(deal: VerifiedDealRow): number {
+  const n = Number(String(deal.salePrice).replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : NaN;
+}
+
+/** Dedupe rows that CheapShark may repeat (same store + listing + sale price). */
+export function dedupeVerifiedDealsForDisplay(deals: VerifiedDealRow[]): VerifiedDealRow[] {
+  const seen = new Set<string>();
+  const out: VerifiedDealRow[] = [];
+  for (const d of deals) {
+    const k = `${d.store.id}|${d.matchedTitle.trim().toLowerCase()}|${String(d.salePrice).trim()}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(d);
+  }
+  return out;
+}
+
+/** Ascending sale price; invalid prices sort last. */
+export function sortVerifiedDealsBySalePriceAsc(deals: VerifiedDealRow[]): VerifiedDealRow[] {
+  return [...deals].sort((a, b) => {
+    const na = parseVerifiedDealSalePrice(a);
+    const nb = parseVerifiedDealSalePrice(b);
+    const aOk = !Number.isNaN(na);
+    const bOk = !Number.isNaN(nb);
+    if (aOk && bOk && na !== nb) return na - nb;
+    if (aOk !== bOk) return aOk ? -1 : 1;
+    return (a.store.name || "").localeCompare(b.store.name || "", "en", { sensitivity: "base" });
+  });
+}
+
+export function prepareVerifiedDealsForDisplay(deals: VerifiedDealRow[]): VerifiedDealRow[] {
+  return dedupeVerifiedDealsForDisplay(sortVerifiedDealsBySalePriceAsc(deals));
+}
+
+/** Cheapest gate-accepted row that also has a trusted store URL (CheapShark redirect). */
+export function pickCheapestTrustedVerifiedDeal(deals: VerifiedDealRow[]): VerifiedDealRow | null {
+  const trusted = deals.filter((d) => Boolean(d.deal.url) && !Number.isNaN(parseVerifiedDealSalePrice(d)));
+  if (!trusted.length) return null;
+  return trusted.reduce((best, cur) =>
+    parseVerifiedDealSalePrice(cur) < parseVerifiedDealSalePrice(best) ? cur : best
+  );
+}
+
 export async function lookupDeals(params: {
   title: string;
   limit?: number;
@@ -561,6 +605,6 @@ export async function lookupDeals(params: {
     });
   }
 
-  return out;
+  return prepareVerifiedDealsForDisplay(out);
 }
 

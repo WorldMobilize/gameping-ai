@@ -7,8 +7,12 @@ import {
   AGGREGATOR_PRICE_DISCLAIMER,
   formatAggregatorPriceLine,
 } from "@/lib/pricing/display";
-import type { BestPriceResult } from "@/lib/pricing/price-service";
-import { lookupBestPrice, lookupDeals } from "@/lib/pricing/price-service";
+import type { BestPriceResult, VerifiedDealRow } from "@/lib/pricing/price-service";
+import {
+  lookupBestPrice,
+  lookupDeals,
+  pickCheapestTrustedVerifiedDeal,
+} from "@/lib/pricing/price-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -244,6 +248,50 @@ function DetailRow({
   );
 }
 
+function VerifiedStoreDealCard({
+  deal,
+  buyLabel,
+}: {
+  deal: VerifiedDealRow;
+  buyLabel?: string;
+}) {
+  return (
+    <div className="grid items-center gap-4 rounded-2xl border border-white/10 bg-black/30 p-4 md:grid-cols-[1fr_auto_auto]">
+      <div>
+        <p className="font-black">{deal.store.name || "Store"}</p>
+        <p className="text-xs text-white/35">Matched listing: {deal.matchedTitle}</p>
+        <p className="text-sm text-white/45">
+          Normal:{" "}
+          {formatAggregatorPriceLine({
+            price: deal.normalPrice,
+            currency: deal.currency,
+          })}
+        </p>
+      </div>
+
+      <p className="text-2xl font-black text-cyan-300">
+        {formatAggregatorPriceLine({
+          price: deal.salePrice,
+          currency: deal.currency,
+        })}
+      </p>
+
+      {deal.deal.url ? (
+        <a
+          href={deal.deal.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-full bg-white px-5 py-3 text-center text-sm font-black text-black transition hover:bg-cyan-100"
+        >
+          {buyLabel ?? "Buy →"}
+        </a>
+      ) : (
+        <span className="text-center text-sm text-white/45">No verified store link</span>
+      )}
+    </div>
+  );
+}
+
 export default async function GameDetailPage({
   params,
   searchParams,
@@ -291,9 +339,37 @@ export default async function GameDetailPage({
   const ai =
     settled[4].status === "fulfilled" ? settled[4].value : aiFallback;
 
-  /** CheapShark rows pass evaluatePricingGate — sole source for purchase CTAs. */
-  const hasVerifiedStoreDeals = deals.length > 0;
   const pricingMode = derivePricingUiMode(bestPrice, rawg);
+
+  /** Sorted ascending, deduped; only rows that passed evaluatePricingGate (acceptedPrice). */
+  const displayDeals = deals;
+  const primaryDeal = pickCheapestTrustedVerifiedDeal(displayDeals);
+  const hasTrustedBestPriceOnly =
+    Boolean(
+      bestPrice &&
+        bestPrice.deal?.url &&
+        hasVerifiedAggregatorPrice(bestPrice) &&
+        !isFreeToPlayPriceState(bestPrice)
+    ) && !primaryDeal;
+  const hasTrustedVerifiedBuy =
+    Boolean(primaryDeal?.deal.url) || hasTrustedBestPriceOnly;
+  const trustedDeals = displayDeals.filter((d) => Boolean(d.deal.url));
+  const otherTrustedDeals = primaryDeal
+    ? trustedDeals.filter((d) => d.deal.id !== primaryDeal.deal.id)
+    : trustedDeals;
+  const untrustedAcceptedDeals = displayDeals.filter((d) => !d.deal.url);
+  const showEstimatedPriceNoStoreLinks =
+    pricingMode === "verified_price" &&
+    !primaryDeal &&
+    !hasTrustedBestPriceOnly &&
+    hasVerifiedAggregatorPrice(bestPrice) &&
+    displayDeals.length === 0;
+
+  /** Hero / layout: any verified rows or a single trusted aggregator buy. */
+  const hasVerifiedStoreListings =
+    displayDeals.length > 0 || hasTrustedBestPriceOnly || showEstimatedPriceNoStoreLinks;
+
+  const showSplitPrimaryLayout = Boolean(primaryDeal || hasTrustedBestPriceOnly);
 
   const heroImage = rawg?.background_image || screenshots[0]?.image;
   const trailer = movies[0]?.data?.max || movies[0]?.data?.["480"];
@@ -398,12 +474,23 @@ export default async function GameDetailPage({
                   <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/60">
                     Free-to-play title
                   </span>
-                ) : pricingMode === "verified_price" && hasVerifiedStoreDeals ? (
+                ) : hasTrustedVerifiedBuy ? (
+                  <a
+                    href={(primaryDeal?.deal.url ?? bestPrice?.deal.url) || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
+                  >
+                    {primaryDeal
+                      ? `Buy on ${primaryDeal.store.name || "store"}`
+                      : `Buy on ${bestPrice?.store?.name || "store"}`}
+                  </a>
+                ) : pricingMode === "verified_price" && hasVerifiedStoreListings ? (
                   <a
                     href="#verified-store-deals"
                     className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
                   >
-                    Check verified deals
+                    Compare verified listings
                   </a>
                 ) : pricingMode === "verified_price" ? (
                   <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/55">
@@ -450,13 +537,51 @@ export default async function GameDetailPage({
                   <div className="grid grid-cols-3 gap-4">
                     <div className="rounded-2xl bg-black/30 p-4">
                       <p className="text-xs uppercase tracking-widest text-white/40">
-                        Estimated aggregator price
+                        {hasTrustedVerifiedBuy
+                          ? "Best verified store price"
+                          : "Estimated aggregator price"}
                       </p>
                       {pricingMode === "free_to_play" ? (
                         <>
                           <p className="mt-2 text-2xl font-black text-cyan-300">Free to play</p>
                           <p className="mt-2 text-xs text-white/45">
                             This game is listed as free-to-play where supported.
+                          </p>
+                        </>
+                      ) : hasTrustedVerifiedBuy && primaryDeal ? (
+                        <>
+                          <p className="mt-2 text-2xl font-black text-cyan-300">
+                            {formatAggregatorPriceLine({
+                              price: primaryDeal.salePrice,
+                              currency: primaryDeal.currency,
+                            })}
+                          </p>
+                          <p className="mt-2 text-xs text-white/45">
+                            {primaryDeal.store.name || "Store"} · {primaryDeal.matchedTitle}
+                          </p>
+                          <p className="mt-1 text-xs text-white/35">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                        </>
+                      ) : hasTrustedBestPriceOnly && bestPrice ? (
+                        <>
+                          <p className="mt-2 text-2xl font-black text-cyan-300">
+                            {formatAggregatorPriceLine({
+                              price: bestPrice.price,
+                              currency: bestPrice.currency,
+                            })}
+                          </p>
+                          <p className="mt-2 text-xs text-white/45">
+                            {bestPrice.store?.name || "Store"} · {bestPrice.matchedTitle ?? title}
+                          </p>
+                          <p className="mt-1 text-xs text-white/35">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                        </>
+                      ) : showEstimatedPriceNoStoreLinks && bestPrice ? (
+                        <>
+                          <p className="mt-2 text-2xl font-black text-cyan-300">
+                            Estimated price found
+                          </p>
+                          <p className="mt-2 text-xs text-white/45">
+                            Indicative match only — no additional verified store rows passed title
+                            safety checks.
                           </p>
                         </>
                       ) : pricingMode === "verified_price" && bestPrice ? (
@@ -645,61 +770,108 @@ export default async function GameDetailPage({
             <h2 className="mt-4 text-3xl font-black">Verified store deals</h2>
             <p className="mt-2 text-sm text-white/45">{AGGREGATOR_PRICE_DISCLAIMER}</p>
 
-            {deals.length > 0 ? (
-              <div className="mt-6 space-y-3">
-                {deals.map((deal) => (
-                  <div
-                    key={deal.deal.id}
-                    className="grid items-center gap-4 rounded-2xl border border-white/10 bg-black/30 p-4 md:grid-cols-[1fr_auto_auto]"
-                  >
-                    <div>
-                      <p className="font-black">{deal.store.name || "Store"}</p>
-                      <p className="text-xs text-white/35">
-                        Matched listing: {deal.matchedTitle}
-                      </p>
-                      <p className="text-sm text-white/45">
-                        Normal:{" "}
-                        {formatAggregatorPriceLine({
-                          price: deal.normalPrice,
-                          currency: deal.currency,
-                        })}
-                      </p>
-                    </div>
-
-                    <p className="text-2xl font-black text-cyan-300">
-                      {formatAggregatorPriceLine({
-                        price: deal.salePrice,
-                        currency: deal.currency,
-                      })}
-                    </p>
-
-                    {deal.deal.url ? (
-                      <a
-                        href={deal.deal.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-full bg-white px-5 py-3 text-center text-sm font-black text-black transition hover:bg-cyan-100"
-                      >
-                        Buy →
-                      </a>
-                    ) : (
-                      <span className="text-center text-sm text-white/45">
-                        No verified store link
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
+            {pricingMode === "free_to_play" ? (
               <p className="mt-6 text-white/55">
-                {pricingMode === "free_to_play"
-                  ? "Free-to-play titles are distributed through first-party clients. We do not show empty verified deal rows here."
-                  : pricingMode === "verified_price"
-                    ? "No active verified deals right now."
-                    : pricingMode === "likely_console_or_unsupported"
-                      ? "Verified PC store deals may not be listed for this platform."
-                      : "We could not verify store rows from supported deal providers for this title."}
+                Free-to-play titles are distributed through first-party clients. We do not show empty
+                verified deal rows here.
               </p>
+            ) : (
+              <div className="mt-6 space-y-8">
+                {showSplitPrimaryLayout && (
+                  <div className="rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-6">
+                    <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-200/90">
+                      Best verified price
+                    </p>
+                    <div className="mt-4 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                      <div>
+                        <p className="text-4xl font-black text-white">
+                          {primaryDeal
+                            ? formatAggregatorPriceLine({
+                                price: primaryDeal.salePrice,
+                                currency: primaryDeal.currency,
+                              })
+                            : bestPrice
+                              ? formatAggregatorPriceLine({
+                                  price: bestPrice.price,
+                                  currency: bestPrice.currency,
+                                })
+                              : ""}
+                        </p>
+                        <p className="mt-2 text-sm text-white/50">
+                          {primaryDeal
+                            ? `${primaryDeal.store.name || "Store"} · ${primaryDeal.matchedTitle}`
+                            : bestPrice
+                              ? `${bestPrice.store?.name || "Store"} · ${bestPrice.matchedTitle ?? title}`
+                              : ""}
+                        </p>
+                      </div>
+                      {(primaryDeal?.deal.url || bestPrice?.deal?.url) && (
+                        <a
+                          href={String(primaryDeal?.deal.url ?? bestPrice?.deal.url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex shrink-0 items-center justify-center rounded-full bg-white px-8 py-4 text-base font-black text-black shadow-[0_0_24px_rgba(255,255,255,0.12)] transition hover:bg-cyan-100"
+                        >
+                          Buy now
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {showEstimatedPriceNoStoreLinks && bestPrice && (
+                  <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
+                    <p className="text-lg font-black text-white/90">Estimated price found</p>
+                    <p className="mt-2 text-sm leading-6 text-white/55">
+                      We found an indicative price, but no additional verified store deal rows met our
+                      title safety checks right now.
+                    </p>
+                  </div>
+                )}
+
+                {otherTrustedDeals.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-black uppercase tracking-[0.28em] text-white/50">
+                      Other verified stores
+                    </h3>
+                    {otherTrustedDeals.map((deal) => (
+                      <VerifiedStoreDealCard key={deal.deal.id} deal={deal} />
+                    ))}
+                  </div>
+                )}
+
+                {!showSplitPrimaryLayout && displayDeals.length > 0 && (
+                  <div className="space-y-3">
+                    {displayDeals.map((deal) => (
+                      <VerifiedStoreDealCard key={deal.deal.id} deal={deal} />
+                    ))}
+                  </div>
+                )}
+
+                {untrustedAcceptedDeals.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-black uppercase tracking-[0.28em] text-white/50">
+                      Listings without a verified buy link
+                    </h3>
+                    {untrustedAcceptedDeals.map((deal) => (
+                      <VerifiedStoreDealCard key={deal.deal.id} deal={deal} />
+                    ))}
+                  </div>
+                )}
+
+                {!showSplitPrimaryLayout &&
+                  displayDeals.length === 0 &&
+                  !hasTrustedBestPriceOnly &&
+                  !showEstimatedPriceNoStoreLinks && (
+                    <p className="text-white/55">
+                      {pricingMode === "verified_price"
+                        ? "No active verified deals right now."
+                        : pricingMode === "likely_console_or_unsupported"
+                          ? "Verified PC store deals may not be listed for this platform."
+                          : "We could not verify store rows from supported deal providers for this title."}
+                    </p>
+                  )}
+              </div>
             )}
           </div>
         </div>
@@ -727,35 +899,53 @@ export default async function GameDetailPage({
 
           <div className="sticky top-6 rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 p-7">
             <p className="text-sm uppercase tracking-[0.35em] text-cyan-200">
-              Estimated aggregator price
+              {hasTrustedVerifiedBuy ? "Best verified store price" : "Estimated aggregator price"}
             </p>
             <h2 className="mt-4 text-4xl font-black">
               {pricingMode === "free_to_play"
                 ? "Free to play"
-                : pricingMode === "verified_price" &&
-                    bestPrice?.price &&
-                    bestPrice.price !== "N/A"
+                : hasTrustedVerifiedBuy && primaryDeal
                   ? formatAggregatorPriceLine({
-                      price: bestPrice.price,
-                      currency: bestPrice.currency,
+                      price: primaryDeal.salePrice,
+                      currency: primaryDeal.currency,
                     })
-                  : "Pricing unavailable"}
+                  : hasTrustedBestPriceOnly && bestPrice
+                    ? formatAggregatorPriceLine({
+                        price: bestPrice.price,
+                        currency: bestPrice.currency,
+                      })
+                  : showEstimatedPriceNoStoreLinks && bestPrice
+                    ? "Estimated price found"
+                    : pricingMode === "verified_price" &&
+                        bestPrice?.price &&
+                        bestPrice.price !== "N/A"
+                      ? formatAggregatorPriceLine({
+                          price: bestPrice.price,
+                          currency: bestPrice.currency,
+                        })
+                      : "Pricing unavailable"}
             </h2>
             <p className="mt-2 text-xs text-white/45">{AGGREGATOR_PRICE_DISCLAIMER}</p>
             <p className="mt-4 text-white/65">
               {pricingMode === "free_to_play"
                 ? "This game is listed as free-to-play where supported."
-                : pricingMode === "verified_price" &&
-                    bestPrice?.price &&
-                    bestPrice.price !== "N/A"
-                  ? `Indicative only — ${bestPrice.provider}. Purchases use verified store rows below.`
-                  : pricingMode === "verified_price"
-                    ? "No active verified deals right now."
-                    : hasVerifiedStoreDeals
-                      ? "Aggregator estimate unavailable; verified prices are listed in store comparison."
-                      : pricingMode === "likely_console_or_unsupported"
-                        ? "Verified PC store pricing may not be available for this platform."
-                        : "We could not verify pricing from supported deal providers."}
+                : hasTrustedVerifiedBuy && primaryDeal
+                  ? `Trusted store link — ${primaryDeal.store.name || "Store"}. Other offers are listed below when available.`
+                  : hasTrustedBestPriceOnly && bestPrice
+                    ? `Trusted store link — ${bestPrice.store?.name || "Store"}. No additional verified deal rows passed title checks.`
+                  : showEstimatedPriceNoStoreLinks
+                    ? "Indicative price only — no trusted store buy link from supported providers right now."
+                    : pricingMode === "verified_price" &&
+                        bestPrice?.price &&
+                        bestPrice.price !== "N/A"
+                      ? `Indicative only — ${bestPrice.provider}. Purchases use verified store rows below.`
+                      : pricingMode === "verified_price"
+                        ? "No active verified deals right now."
+                        : hasVerifiedStoreListings
+                          ? "Aggregator estimate unavailable; verified prices are listed in store comparison."
+                          : pricingMode === "likely_console_or_unsupported"
+                            ? "Verified PC store pricing may not be available for this platform."
+                            : "We could not verify pricing from supported deal providers."}
             </p>
 
             <TrackPriceButton
