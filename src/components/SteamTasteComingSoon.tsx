@@ -59,9 +59,10 @@ export default function SteamTasteComingSoon({
   const py = density === "compact" ? "py-14 md:py-16" : "py-20 md:py-24";
   const gidMain = `${idPrefix}-g-main`;
   const gidCard = `${idPrefix}-g-card`;
+  const headingId = `${idPrefix}-heading`;
 
   return (
-    <section className={`relative overflow-hidden px-6 ${py}`} aria-labelledby="steam-taste-heading">
+    <section className={`relative overflow-hidden px-6 ${py}`} aria-labelledby={headingId}>
       <div className="pointer-events-none absolute left-1/4 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-cyan-500/15 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 translate-x-1/4 rounded-full bg-purple-600/18 blur-3xl" />
       <div className="pointer-events-none absolute left-0 bottom-1/4 h-56 w-56 rounded-full bg-slate-500/10 blur-3xl" />
@@ -84,7 +85,7 @@ export default function SteamTasteComingSoon({
               </div>
               <div>
                 <h2
-                  id="steam-taste-heading"
+                  id={headingId}
                   className="text-3xl font-black leading-tight tracking-tight md:text-4xl lg:text-[2.35rem]"
                 >
                   Import your{" "}

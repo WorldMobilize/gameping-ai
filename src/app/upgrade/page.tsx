@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -300,6 +301,8 @@ export default function UpgradePage() {
           >
             <UpgradeContent />
           </Suspense>
+
+          <SteamTasteComingSoon idPrefix="upgrade-steam" density="compact" />
 
           <div className="mt-12 rounded-3xl border border-white/10 bg-white/[0.04] p-8">
             <p className="text-xs font-black uppercase tracking-[0.35em] text-purple-300">

@@ -245,6 +245,8 @@ export default function Home() {
         </div>
       </section>
 
+      <SteamTasteComingSoon idPrefix="home-steam" />
+
       <section className="px-6 pb-28">
         <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] border border-cyan-400/20 bg-gradient-to-r from-cyan-400/10 to-purple-500/10 p-10 text-center">
           <div className="absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl" />
