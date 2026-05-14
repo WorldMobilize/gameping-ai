@@ -53,10 +53,10 @@ const platforms = [
 ];
 
 const RECOMMEND_LOADING_STEPS = [
-  "Understanding your request...",
-  "Finding real games...",
-  "Checking relevance...",
-  "Ranking best matches...",
+  "Understanding your request…",
+  "Finding verified games…",
+  "Ranking best matches…",
+  "Preparing results…",
 ];
 
 const RECOMMEND_LOADING_HELPERS = [
@@ -228,7 +228,6 @@ export default function RecommendPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
-  const [loadingProgress, setLoadingProgress] = useState(0);
   const [resultsReveal, setResultsReveal] = useState(false);
   /** True after a successful API response returned zero games (not initial page load). */
   const [noStrongMatchesAfterSuccess, setNoStrongMatchesAfterSuccess] =
@@ -265,18 +264,7 @@ export default function RecommendPage() {
     if (!loading) return;
     const id = setInterval(() => {
       setLoadingStepIndex((i) => (i + 1) % RECOMMEND_LOADING_STEPS.length);
-    }, 5000);
-    return () => clearInterval(id);
-  }, [loading]);
-
-  useEffect(() => {
-    if (!loading) return;
-    const id = window.setInterval(() => {
-      setLoadingProgress((p) => {
-        if (p >= 90) return p;
-        return Math.min(90, p + Math.random() * 8 + 2);
-      });
-    }, 420);
+    }, 2600);
     return () => clearInterval(id);
   }, [loading]);
 
@@ -347,7 +335,6 @@ export default function RecommendPage() {
     submitBusyRef.current = true;
     setLoading(true);
     setLoadingStepIndex(0);
-    setLoadingProgress(10);
     setResultsReveal(false);
     setNoStrongMatchesAfterSuccess(false);
     setEmailSaved(false);
@@ -421,7 +408,6 @@ export default function RecommendPage() {
       });
     } finally {
       submitBusyRef.current = false;
-      setLoadingProgress(0);
       setLoading(false);
     }
   }
@@ -815,22 +801,9 @@ export default function RecommendPage() {
               aria-busy="true"
             >
               <div className="mx-auto max-w-xl px-1">
-                <div className="mb-6">
-                  <div className="flex items-center justify-between gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
-                    <span>Progress</span>
-                    <span className="tabular-nums text-cyan-400/80">
-                      {Math.round(loadingProgress)}%
-                    </span>
-                  </div>
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07] ring-1 ring-white/[0.06]">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-cyan-300 to-purple-500 transition-[width] duration-500 ease-out motion-reduce:transition-none"
-                      style={{
-                        width: `${loadingProgress}%`,
-                      }}
-                    />
-                  </div>
-                </div>
+                <p className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+                  Working on it
+                </p>
 
                 <p
                   key={loadingStepIndex}
@@ -838,6 +811,13 @@ export default function RecommendPage() {
                 >
                   {RECOMMEND_LOADING_STEPS[loadingStepIndex]}
                 </p>
+
+                <div
+                  className="mx-auto mb-6 h-1 max-w-[220px] overflow-hidden rounded-full bg-white/[0.07] ring-1 ring-white/[0.06]"
+                  aria-hidden="true"
+                >
+                  <div className="h-full w-full animate-pulse rounded-full bg-gradient-to-r from-cyan-400/30 via-cyan-300/60 to-purple-500/30 motion-reduce:animate-none" />
+                </div>
 
                 <ul className="mb-8 space-y-2.5 text-center text-[13px] leading-relaxed text-white/45 md:text-sm md:leading-relaxed">
                   {RECOMMEND_LOADING_HELPERS.map((line) => (

@@ -200,20 +200,39 @@ export default async function GameDetailPage({
   const pricingDebug = sp.debug === "1";
 
   const rawg = await getRawgGame(title);
-  const screenshots = await getRawgScreenshots(rawg?.id);
-  const movies = await getRawgMovies(rawg?.id);
-  const bestPrice = await lookupBestPrice({
-    title,
-    debug: pricingDebug,
-    debugLabel: `page:/game/${slug}:bestPrice`,
-  });
-  const deals = await lookupDeals({
-    title,
-    limit: 5,
-    debug: pricingDebug,
-    debugLabel: `page:/game/${slug}:deals`,
-  });
-  const ai = await getGameAiDetails(title);
+  const gameId = rawg?.id;
+
+  const settled = await Promise.allSettled([
+    getRawgScreenshots(gameId),
+    getRawgMovies(gameId),
+    lookupBestPrice({
+      title,
+      debug: pricingDebug,
+      debugLabel: `page:/game/${slug}:bestPrice`,
+    }),
+    lookupDeals({
+      title,
+      limit: 5,
+      debug: pricingDebug,
+      debugLabel: `page:/game/${slug}:deals`,
+    }),
+    getGameAiDetails(title),
+  ]);
+
+  const screenshots =
+    settled[0].status === "fulfilled" ? settled[0].value : [];
+  const movies = settled[1].status === "fulfilled" ? settled[1].value : [];
+  const bestPrice =
+    settled[2].status === "fulfilled" ? settled[2].value : null;
+  const deals = settled[3].status === "fulfilled" ? settled[3].value : [];
+  const aiFallback: GameAiDetails = {
+    whyYouMayLikeIt:
+      "A strong pick if it matches your current gaming mood.",
+    bestFor: "Players looking for a great new game.",
+    pros: ["Strong atmosphere", "Good value", "Worth checking out"],
+  };
+  const ai =
+    settled[4].status === "fulfilled" ? settled[4].value : aiFallback;
 
   /** CheapShark rows pass evaluatePricingGate — sole source for purchase CTAs. */
   const hasVerifiedStoreDeals = deals.length > 0;

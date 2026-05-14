@@ -61,16 +61,27 @@ type PricingDebugEvent =
       reason?: string;
     };
 
-export async function cheapSharkLookupDealsByTitle(params: {
+/** Shared page size for /deals so best-price (needs up to 8) and deals list (5) share one HTTP response. */
+const DEALS_FETCH_PAGE_SIZE = 8;
+
+const DEALS_MEMO_TTL_MS = 25_000;
+const dealsMemoByTitle = new Map<string, { deals: CheapSharkDeal[]; fetchedAt: number }>();
+const dealsInflightByTitle = new Map<string, Promise<CheapSharkDeal[]>>();
+
+function normalizeDealsMemoKey(title: string) {
+  return title.trim().toLowerCase();
+}
+
+async function cheapSharkFetchDealsFromNetwork(params: {
   title: string;
-  limit?: number;
-  debug?: boolean;
+  pageSize: number;
+  debug: boolean;
   debugLabel?: string;
 }): Promise<CheapSharkDeal[]> {
-  const { title, limit = 5, debug = false, debugLabel } = params;
+  const { title, pageSize, debug, debugLabel } = params;
   const url = `https://www.cheapshark.com/api/1.0/deals?title=${encodeURIComponent(
     title
-  )}&pageSize=${encodeURIComponent(String(limit))}&sortBy=Price`;
+  )}&pageSize=${encodeURIComponent(String(pageSize))}&sortBy=Price`;
 
   try {
     const res1 = await fetch(url, { cache: "no-store" });
@@ -103,32 +114,97 @@ export async function cheapSharkLookupDealsByTitle(params: {
   }
 }
 
+async function cheapSharkGetDealsShared(params: {
+  title: string;
+  debug: boolean;
+  debugLabel?: string;
+}): Promise<CheapSharkDeal[]> {
+  const key = normalizeDealsMemoKey(params.title);
+  if (!key) return [];
+
+  const now = Date.now();
+  const cached = dealsMemoByTitle.get(key);
+  if (cached && now - cached.fetchedAt < DEALS_MEMO_TTL_MS) {
+    return cached.deals;
+  }
+
+  let inflight = dealsInflightByTitle.get(key);
+  if (!inflight) {
+    inflight = cheapSharkFetchDealsFromNetwork({
+      title: params.title.trim(),
+      pageSize: DEALS_FETCH_PAGE_SIZE,
+      debug: params.debug,
+      debugLabel: params.debugLabel,
+    }).then((deals) => {
+      dealsMemoByTitle.set(key, { deals, fetchedAt: Date.now() });
+      return deals;
+    });
+    dealsInflightByTitle.set(key, inflight);
+    inflight.finally(() => {
+      dealsInflightByTitle.delete(key);
+    });
+  }
+
+  return inflight;
+}
+
+export async function cheapSharkLookupDealsByTitle(params: {
+  title: string;
+  limit?: number;
+  debug?: boolean;
+  debugLabel?: string;
+}): Promise<CheapSharkDeal[]> {
+  const { title, limit = 5, debug = false, debugLabel } = params;
+  const lim = Math.max(3, Math.min(limit, 12));
+  const all = await cheapSharkGetDealsShared({ title, debug, debugLabel });
+  return all.slice(0, lim);
+}
+
+const STORES_MEMO_TTL_MS = 60_000;
+let storesMemo: { stores: CheapSharkStoreInfo[]; fetchedAt: number } | null = null;
+let storesInflight: Promise<CheapSharkStoreInfo[]> | null = null;
+
 export async function cheapSharkGetStores(params?: {
   debug?: boolean;
   debugLabel?: string;
 }): Promise<CheapSharkStoreInfo[]> {
   const debug = params?.debug ?? false;
   const debugLabel = params?.debugLabel;
-  try {
-    const url = "https://www.cheapshark.com/api/1.0/stores";
-    const res1 = await fetch(url, { cache: "no-store" });
-    let res = res1;
-    let retried = false;
-    if (res1.status === 429) {
-      retried = true;
-      await sleep(800);
-      res = await fetch(url, { cache: "no-store" });
-    }
-    if (debug) {
-      const evt: PricingDebugEvent = { type: "http", url, status: res.status, retried };
-      console.log("[pricing:cheapshark]", debugLabel ?? "stores", evt);
-    }
-    if (!res.ok) return [];
-    const data = (await res.json()) as unknown;
-    return Array.isArray(data) ? (data as CheapSharkStoreInfo[]) : [];
-  } catch {
-    return [];
+  const now = Date.now();
+  if (storesMemo && now - storesMemo.fetchedAt < STORES_MEMO_TTL_MS) {
+    return storesMemo.stores;
   }
+
+  if (!storesInflight) {
+    storesInflight = (async () => {
+      try {
+        const url = "https://www.cheapshark.com/api/1.0/stores";
+        const res1 = await fetch(url, { cache: "no-store" });
+        let res = res1;
+        let retried = false;
+        if (res1.status === 429) {
+          retried = true;
+          await sleep(800);
+          res = await fetch(url, { cache: "no-store" });
+        }
+        if (debug) {
+          const evt: PricingDebugEvent = { type: "http", url, status: res.status, retried };
+          console.log("[pricing:cheapshark]", debugLabel ?? "stores", evt);
+        }
+        if (!res.ok) return [];
+        const data = (await res.json()) as unknown;
+        return Array.isArray(data) ? (data as CheapSharkStoreInfo[]) : [];
+      } catch {
+        return [];
+      } finally {
+        storesInflight = null;
+      }
+    })();
+  }
+
+  const stores = await storesInflight;
+  storesMemo = { stores, fetchedAt: Date.now() };
+  return stores;
 }
 
 export async function cheapSharkLookupBestPrice(params: {
@@ -137,7 +213,12 @@ export async function cheapSharkLookupBestPrice(params: {
   debugLabel?: string;
 }): Promise<CheapSharkBestPrice | null> {
   const { title, debug = false, debugLabel } = params;
-  const deals = await cheapSharkLookupDealsByTitle({ title, limit: 8, debug, debugLabel });
+  const deals = await cheapSharkLookupDealsByTitle({
+    title,
+    limit: DEALS_FETCH_PAGE_SIZE,
+    debug,
+    debugLabel,
+  });
   if (!deals.length) {
     if (debug) {
       const evt: PricingDebugEvent = { type: "result", ok: false, reason: "no_deals" };

@@ -332,6 +332,28 @@ export async function fetchRawgGameDetails(params: {
   }
 }
 
+/** First screenshot URL for a game (best-effort; used for card fallbacks). */
+export async function fetchRawgFirstScreenshotUrl(params: {
+  rawgApiKey: string
+  rawgId: number
+}): Promise<string | null> {
+  try {
+    const url = `https://api.rawg.io/api/games/${params.rawgId}/screenshots?key=${encodeURIComponent(
+      params.rawgApiKey
+    )}`
+    const res = await fetch(url, { cache: "no-store" })
+    if (!res.ok) return null
+    const data = (await res.json()) as { results?: unknown }
+    const arr = Array.isArray(data?.results) ? (data.results as unknown[]) : []
+    const first = arr[0]
+    if (!first || typeof first !== "object") return null
+    const img = (first as Record<string, unknown>).image
+    return typeof img === "string" && img.trim() ? img : null
+  } catch {
+    return null
+  }
+}
+
 export function dedupeCandidates(candidates: RawgCandidate[]) {
   // 1) Hard dedupe by id
   const byId = new Map<number, RawgCandidate>()

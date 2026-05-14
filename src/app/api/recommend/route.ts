@@ -15,6 +15,7 @@ import {
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 import {
   dedupeCandidates,
+  fetchRawgFirstScreenshotUrl,
   fetchRawgGameDetails,
   fetchRawgCandidates,
   isLowQualityTitle,
@@ -1430,6 +1431,44 @@ function augmentPicksWithRecovery(params: {
   return merged;
 }
 
+const FINAL_PICK_SCREENSHOT_CONCURRENCY = 3;
+
+async function enrichFinalPicksWithScreenshotFallback(params: {
+  rawgKey: string;
+  picks: PreEnrichPick[];
+}): Promise<PreEnrichPick[]> {
+  const { rawgKey, picks } = params;
+  const missing = picks
+    .map((p, index) => ({ p, index }))
+    .filter(({ p }) => !p.image && Number.isFinite(p.id));
+
+  if (missing.length === 0) return picks;
+
+  const fetched = await mapPool(
+    missing,
+    FINAL_PICK_SCREENSHOT_CONCURRENCY,
+    async (entry) => {
+      const url = await fetchRawgFirstScreenshotUrl({
+        rawgApiKey: rawgKey,
+        rawgId: entry.p.id,
+      });
+      return { index: entry.index, url };
+    }
+  );
+
+  const next = [...picks];
+  for (const row of fetched) {
+    const url = row.url;
+    if (typeof url === "string" && url.trim()) {
+      const cur = next[row.index];
+      if (cur && !cur.image) {
+        next[row.index] = { ...cur, image: url };
+      }
+    }
+  }
+  return next;
+}
+
 export async function POST(req: Request) {
   let url: URL | null = null;
   let debugEnabled = false;
@@ -2071,8 +2110,16 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
 
     const cheapSharkDebug: RecommendDebug["cheapShark"] = [];
 
+    let picksWithImages = picksForEnrichment;
+    if (rawgKey && picksForEnrichment.some((p) => !p.image)) {
+      picksWithImages = await enrichFinalPicksWithScreenshotFallback({
+        rawgKey,
+        picks: picksForEnrichment,
+      });
+    }
+
     // Cards: discovery only — no live pricing (verified on /game/[slug]).
-    const enrichedGames = picksForEnrichment.map((game) => ({
+    const enrichedGames = picksWithImages.map((game) => ({
       ...game,
       price: null as string | null,
       currency: null as string | null,
