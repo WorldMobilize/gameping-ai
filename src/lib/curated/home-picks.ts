@@ -136,6 +136,30 @@ const EXTRA_DIRECTORY_GAMES: HomeGamePick[] = [
   { title: "Valheim", tag: "Survival · Co-op Viking", image: steamHeaderImage(892970) },
   { title: "Vampire Survivors", tag: "Bullet heaven · Roguelike", image: steamHeaderImage(1794680) },
   { title: "Cities: Skylines", tag: "City builder · Management", image: steamHeaderImage(255710) },
+  // Sparse first-letter coverage for /games A–Z nav (I J K Q W X Y Z)
+  { title: "Inscryption", tag: "Card roguelike · Horror", image: steamHeaderImage(1092790) },
+  { title: "Inside", tag: "Puzzle platformer · Atmospheric", image: steamHeaderImage(304430) },
+  { title: "It Takes Two", tag: "Co-op adventure · Platformer", image: steamHeaderImage(1426210) },
+  { title: "Journey", tag: "Adventure · Wordless", image: steamHeaderImage(638230) },
+  { title: "Jusant", tag: "Climbing puzzle · Meditative", image: steamHeaderImage(1977170) },
+  { title: "Kerbal Space Program", tag: "Sandbox · Space sim", image: steamHeaderImage(220200) },
+  {
+    title: "Kingdom Come: Deliverance",
+    tag: "Open-world RPG · Historical",
+    image: steamHeaderImage(379430),
+  },
+  { title: "QUAKE", tag: "Classic FPS · Remaster", image: steamHeaderImage(2310) },
+  { title: "Quantum Break", tag: "Third-person · Time powers", image: steamHeaderImage(474960) },
+  { title: "Warframe", tag: "Co-op looter shooter · Sci-fi", image: steamHeaderImage(230410) },
+  { title: "Witchfire", tag: "Roguelite FPS · Dark fantasy", image: steamHeaderImage(3156770) },
+  { title: "XCOM 2", tag: "Turn-based tactics · Sci-fi", image: steamHeaderImage(268500) },
+  { title: "Yakuza: Like a Dragon", tag: "JRPG · Turn-based crime saga", image: steamHeaderImage(1235140) },
+  { title: "Zombie Army 4: Dead War", tag: "Co-op shooter · Horror", image: steamHeaderImage(1024380) },
+  {
+    title: "Zero Escape: The Nonary Games",
+    tag: "Visual novel · Escape room",
+    image: steamHeaderImage(477740),
+  },
 ];
 
 function mergeDirectoryGamesUniqueSorted(
