@@ -556,99 +556,105 @@ export default async function GameDetailPage({
                 )}
 
                 <div className="p-6">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="rounded-2xl bg-black/30 p-4">
-                      <p className="text-xs uppercase tracking-widest text-white/40">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-stretch">
+                    <div className="flex min-h-[13.5rem] flex-col rounded-2xl bg-black/30 p-4 sm:min-h-[14.5rem]">
+                      <p className="shrink-0 text-xs uppercase tracking-widest text-white/40">
                         {hasTrustedVerifiedBuy
                           ? "Best verified store price"
                           : "Estimated aggregator price"}
                       </p>
-                      {pricingMode === "free_to_play" ? (
-                        <>
-                          <p className="mt-2 text-2xl font-black text-cyan-300">Free to play</p>
-                          <p className="mt-2 text-xs text-white/45">
-                            This game is listed as free-to-play where supported.
-                          </p>
-                        </>
-                      ) : hasTrustedVerifiedBuy && primaryDeal ? (
-                        <>
-                          <p className="mt-2 text-2xl font-black text-cyan-300">
-                            {formatAggregatorPriceLine({
-                              price: primaryDeal.salePrice,
-                              currency: primaryDeal.currency,
-                            })}
-                          </p>
-                          <p className="mt-2 text-xs text-white/45">
-                            {primaryDeal.store.name || "Store"} · {primaryDeal.matchedTitle}
-                          </p>
-                          <p className="mt-1 text-xs text-white/35">{AGGREGATOR_PRICE_DISCLAIMER}</p>
-                        </>
-                      ) : hasTrustedBestPriceOnly && bestPrice ? (
-                        <>
-                          <p className="mt-2 text-2xl font-black text-cyan-300">
-                            {formatAggregatorPriceLine({
-                              price: bestPrice.price,
-                              currency: bestPrice.currency,
-                            })}
-                          </p>
-                          <p className="mt-2 text-xs text-white/45">
-                            {bestPrice.store?.name || "Store"} · {bestPrice.matchedTitle ?? title}
-                          </p>
-                          <p className="mt-1 text-xs text-white/35">{AGGREGATOR_PRICE_DISCLAIMER}</p>
-                        </>
-                      ) : showEstimatedPriceNoStoreLinks && bestPrice ? (
-                        <>
-                          <p className="mt-2 text-2xl font-black text-cyan-300">
-                            Estimated price found
-                          </p>
-                          <p className="mt-2 text-xs text-white/45">
-                            Indicative match only — no additional verified store rows passed title
-                            safety checks.
-                          </p>
-                        </>
-                      ) : pricingMode === "verified_price" && bestPrice ? (
-                        <>
-                          <p className="mt-2 text-2xl font-black text-cyan-300">
-                            {formatAggregatorPriceLine({
-                              price: bestPrice.price,
-                              currency: bestPrice.currency,
-                            })}
-                          </p>
-                          <p className="mt-2 text-xs text-white/40">{AGGREGATOR_PRICE_DISCLAIMER}</p>
-                        </>
-                      ) : pricingMode === "likely_console_or_unsupported" ? (
-                        <>
-                          <p className="mt-2 text-2xl font-black text-cyan-300">Pricing unavailable</p>
-                          <p className="mt-2 text-xs text-white/45">
-                            Verified PC store pricing may not be available for this platform.
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="mt-2 text-2xl font-black text-cyan-300">Pricing unavailable</p>
-                          <p className="mt-2 text-xs text-white/45">
-                            We could not verify pricing from supported deal providers.
-                          </p>
-                        </>
-                      )}
+                      <div className="mt-3 flex min-h-0 flex-1 flex-col justify-start gap-2">
+                        {pricingMode === "free_to_play" ? (
+                          <>
+                            <p className="text-2xl font-black text-cyan-300">Free to play</p>
+                            <p className="text-xs leading-relaxed text-white/45">
+                              This game is listed as free-to-play where supported.
+                            </p>
+                          </>
+                        ) : hasTrustedVerifiedBuy && primaryDeal ? (
+                          <>
+                            <p className="text-2xl font-black text-cyan-300">
+                              {formatAggregatorPriceLine({
+                                price: primaryDeal.salePrice,
+                                currency: primaryDeal.currency,
+                              })}
+                            </p>
+                            <p className="text-xs leading-relaxed text-white/45">
+                              {primaryDeal.store.name || "Store"} · {primaryDeal.matchedTitle}
+                            </p>
+                            <p className="text-xs text-white/35">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                          </>
+                        ) : hasTrustedBestPriceOnly && bestPrice ? (
+                          <>
+                            <p className="text-2xl font-black text-cyan-300">
+                              {formatAggregatorPriceLine({
+                                price: bestPrice.price,
+                                currency: bestPrice.currency,
+                              })}
+                            </p>
+                            <p className="text-xs leading-relaxed text-white/45">
+                              {bestPrice.store?.name || "Store"} · {bestPrice.matchedTitle ?? title}
+                            </p>
+                            <p className="text-xs text-white/35">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                          </>
+                        ) : showEstimatedPriceNoStoreLinks && bestPrice ? (
+                          <>
+                            <p className="text-2xl font-black text-cyan-300">
+                              Estimated price found
+                            </p>
+                            <p className="text-xs leading-relaxed text-white/45">
+                              Indicative match only — no additional verified store rows passed title
+                              safety checks.
+                            </p>
+                          </>
+                        ) : pricingMode === "verified_price" && bestPrice ? (
+                          <>
+                            <p className="text-2xl font-black text-cyan-300">
+                              {formatAggregatorPriceLine({
+                                price: bestPrice.price,
+                                currency: bestPrice.currency,
+                              })}
+                            </p>
+                            <p className="text-xs text-white/40">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                          </>
+                        ) : pricingMode === "likely_console_or_unsupported" ? (
+                          <>
+                            <p className="text-2xl font-black text-cyan-300">Pricing unavailable</p>
+                            <p className="text-xs leading-relaxed text-white/45">
+                              Verified PC store pricing may not be available for this platform.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-2xl font-black text-cyan-300">Pricing unavailable</p>
+                            <p className="text-xs leading-relaxed text-white/45">
+                              We could not verify pricing from supported deal providers.
+                            </p>
+                          </>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="rounded-2xl bg-black/30 p-4">
-                      <p className="text-xs uppercase tracking-widest text-white/40">
+                    <div className="flex min-h-[13.5rem] flex-col rounded-2xl bg-black/30 p-4 sm:min-h-[14.5rem]">
+                      <p className="shrink-0 text-xs uppercase tracking-widest text-white/40">
                         Rating
                       </p>
-                      <p className="mt-2 text-2xl font-black text-yellow-300">
-                        {rawg?.rating ? `${rawg.rating}/5` : "N/A"}
-                      </p>
+                      <div className="mt-3 flex min-h-0 flex-1 flex-col items-center justify-center text-center">
+                        <p className="text-2xl font-black leading-none text-yellow-300 sm:text-3xl">
+                          {rawg?.rating ? `${rawg.rating}/5` : "N/A"}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="rounded-2xl bg-black/30 p-4">
-                      <p className="text-xs uppercase tracking-widest text-white/40">
+                    <div className="flex min-h-[13.5rem] flex-col rounded-2xl bg-black/30 p-4 sm:min-h-[14.5rem]">
+                      <p className="shrink-0 text-xs uppercase tracking-widest text-white/40">
                         Metacritic
                       </p>
-                      <p className="mt-2 text-2xl font-black text-green-300">
-                        {rawg?.metacritic || "N/A"}
-                      </p>
+                      <div className="mt-3 flex min-h-0 flex-1 flex-col items-center justify-center text-center">
+                        <p className="text-2xl font-black leading-none text-green-300 sm:text-3xl">
+                          {rawg?.metacritic || "N/A"}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
