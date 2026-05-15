@@ -83,6 +83,19 @@ function hasVerifiedAggregatorPrice(best: BestPriceResult | null): boolean {
   return n !== null && n > 0;
 }
 
+/** lookupBestPrice already passed gate with trusted URL; use when lookupDeals is empty. */
+function isTrustedBestPriceForStoreComparison(
+  best: BestPriceResult | null
+): best is BestPriceResult {
+  if (!best || isFreeToPlayPriceState(best)) return false;
+  if (!hasVerifiedAggregatorPrice(best)) return false;
+  const url = best.deal?.url?.trim();
+  if (!url) return false;
+  const hasStore =
+    Boolean(best.store?.name?.trim()) || Boolean(best.store?.id?.trim());
+  return hasStore;
+}
+
 function rawgPlatformsBlob(rawg: RawgGame | null): string {
   if (!rawg?.platforms?.length) return "";
   return rawg.platforms.map((p) => p.platform.name).join(" ").toLowerCase();
@@ -249,6 +262,44 @@ function DetailRow({
   );
 }
 
+function TrustedBestPriceStoreCard({
+  best,
+  listingTitle,
+}: {
+  best: BestPriceResult;
+  listingTitle: string;
+}) {
+  const buyUrl = best.deal!.url!.trim();
+  const storeLabel = best.store?.name?.trim() || best.store?.id?.trim() || "Store";
+
+  return (
+    <div className="grid items-center gap-4 rounded-2xl border border-white/10 bg-black/30 p-4 md:grid-cols-[1fr_auto_auto]">
+      <div>
+        <p className="font-black">{storeLabel}</p>
+        <p className="text-xs text-white/35">
+          Matched listing: {best.matchedTitle?.trim() || listingTitle}
+        </p>
+      </div>
+
+      <p className="text-2xl font-black text-cyan-300">
+        {formatAggregatorPriceLine({
+          price: best.price,
+          currency: best.currency,
+        })}
+      </p>
+
+      <a
+        href={buyUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="rounded-full bg-white px-5 py-3 text-center text-sm font-black text-black transition hover:bg-cyan-100"
+      >
+        Buy →
+      </a>
+    </div>
+  );
+}
+
 function VerifiedStoreDealCard({
   deal,
   buyLabel,
@@ -349,6 +400,10 @@ export default async function GameDetailPage({
 
   /** Sorted ascending, deduped; only rows that passed evaluatePricingGate (acceptedPrice). */
   const displayDeals = deals;
+  const bestPriceStoreComparisonFallback =
+    displayDeals.length === 0 && isTrustedBestPriceForStoreComparison(bestPrice)
+      ? bestPrice
+      : null;
   const primaryDeal = pickCheapestTrustedVerifiedDeal(displayDeals);
   const hasTrustedBestPriceOnly =
     Boolean(
@@ -879,6 +934,18 @@ export default async function GameDetailPage({
                   </div>
                 )}
 
+                {bestPriceStoreComparisonFallback && (
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-black uppercase tracking-[0.28em] text-white/50">
+                      Best verified store price
+                    </h3>
+                    <TrustedBestPriceStoreCard
+                      best={bestPriceStoreComparisonFallback}
+                      listingTitle={title}
+                    />
+                  </div>
+                )}
+
                 {!showSplitPrimaryLayout && displayDeals.length > 0 && (
                   <div className="space-y-3">
                     {displayDeals.map((deal) => (
@@ -901,6 +968,7 @@ export default async function GameDetailPage({
                 {!showSplitPrimaryLayout &&
                   displayDeals.length === 0 &&
                   !hasTrustedBestPriceOnly &&
+                  !bestPriceStoreComparisonFallback &&
                   !showEstimatedPriceNoStoreLinks && (
                     <p className="text-white/55">
                       {pricingMode === "verified_price"
