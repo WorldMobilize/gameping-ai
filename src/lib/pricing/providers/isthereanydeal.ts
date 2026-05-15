@@ -1,4 +1,10 @@
-import { containsBadWords, titleMatchScore } from "@/lib/pricing/match";
+import {
+  containsBadWords,
+  evaluatePricingGate,
+  pricingExplicitRejectionLabel,
+  shouldLogPricingDetailDebug,
+  titleMatchScore,
+} from "@/lib/pricing/match";
 
 type ItadSearchResult = {
   id?: unknown;
@@ -68,9 +74,10 @@ export async function itadLookupBestPrice(params: {
   debugLabel?: string;
 }): Promise<ItadBestPrice | null> {
   const { title, debug = false, debugLabel } = params;
+  const detailDebug = shouldLogPricingDetailDebug(debug);
   const apiKey = process.env.ITAD_API_KEY;
   if (!apiKey || typeof apiKey !== "string") {
-    if (debug) {
+    if (detailDebug) {
       console.log("[pricing:itad]", debugLabel ?? title, {
         step: "env",
         ok: false,
@@ -88,7 +95,7 @@ export async function itadLookupBestPrice(params: {
   )}&title=${encodeURIComponent(title)}&results=20`;
 
   const searchFetch = await fetchWith429Retry(searchUrl, { cache: "no-store" });
-  if (debug) {
+  if (detailDebug) {
     console.log("[pricing:itad]", debugLabel ?? title, {
       step: "search",
       status: searchFetch.res.status,
@@ -105,7 +112,7 @@ export async function itadLookupBestPrice(params: {
     ? (searchJson as ItadSearchResult[])
     : [];
 
-  if (debug) {
+  if (detailDebug) {
     console.log("[pricing:itad]", debugLabel ?? title, {
       step: "search_results",
       count: results.length,
@@ -128,24 +135,152 @@ export async function itadLookupBestPrice(params: {
     const id = typeof r?.id === "string" ? r.id : "";
     const t = typeof r?.title === "string" ? r.title : "";
     const typ = typeof r?.type === "string" ? r.type : "";
-    if (!id || !t) continue;
 
-    // Prefer base games.
-    if (typ && typ !== "game") continue;
+    if (!id || !t) {
+      if (detailDebug) {
+        console.log("[pricing:aggregate-row]", {
+          requestedTitle: title,
+          provider: "itad",
+          phase: "search",
+          rawTitle: t,
+          matchedTitle: t,
+          store: null,
+          salePrice: null,
+          normalPrice: null,
+          score: 0,
+          accepted: false,
+          rejected: true,
+          gateReason: "invalid_search_row",
+          explicitRejection: "invalid_pricing_row",
+          hasUrl: false,
+          deduped: false,
+        });
+      }
+      continue;
+    }
 
-    // Avoid obviously low-quality entries.
-    if (containsBadWords(t)) continue;
+    const gate = evaluatePricingGate({
+      requestedTitle: title,
+      matchedTitle: t,
+      dealUrl: null,
+      provider: "itad",
+    });
+
+    if (typ && typ !== "game") {
+      if (detailDebug) {
+        console.log("[pricing:aggregate-row]", {
+          requestedTitle: title,
+          provider: "itad",
+          phase: "search",
+          rawTitle: t,
+          matchedTitle: t,
+          resultType: typ,
+          store: null,
+          salePrice: null,
+          normalPrice: null,
+          score: gate.score,
+          accepted: false,
+          rejected: true,
+          gateReason: gate.reason,
+          explicitRejection: "rejected_itad_result_not_base_game",
+          hasUrl: false,
+          deduped: false,
+        });
+      }
+      continue;
+    }
+
+    if (containsBadWords(t)) {
+      if (detailDebug) {
+        console.log("[pricing:aggregate-row]", {
+          requestedTitle: title,
+          provider: "itad",
+          phase: "search",
+          rawTitle: t,
+          matchedTitle: t,
+          store: null,
+          salePrice: null,
+          normalPrice: null,
+          score: gate.score,
+          titleMatchScore: titleMatchScore(title, t),
+          accepted: false,
+          rejected: true,
+          gateReason: gate.reason,
+          explicitRejection: "rejected_title_provider_bad_words",
+          hasUrl: false,
+          deduped: false,
+        });
+      }
+      continue;
+    }
 
     const score = titleMatchScore(title, t);
     scored.push({ id, matchedTitle: t, type: typ || "game", score });
+
+    if (detailDebug) {
+      console.log("[pricing:aggregate-row]", {
+        requestedTitle: title,
+        provider: "itad",
+        phase: "search_candidate",
+        rawTitle: t,
+        matchedTitle: t,
+        store: null,
+        salePrice: null,
+        normalPrice: null,
+        score: gate.score,
+        titleMatchScore: score,
+        accepted: true,
+        rejected: false,
+        gateReason: gate.reason,
+        explicitRejection: pricingExplicitRejectionLabel(gate),
+        hasUrl: false,
+        deduped: false,
+      });
+    }
   }
 
   scored.sort((a, b) => b.score - a.score);
   const best = scored[0];
 
+  if (detailDebug) {
+    console.log("[pricing:itad-search-aggregate-summary]", {
+      requestedTitle: title,
+      providerReturnedCount: results.length,
+      scoredCandidateCount: scored.length,
+      bestTitle: best?.matchedTitle ?? null,
+      bestTitleMatchScore: best?.score ?? null,
+    });
+  }
+
   // Strict threshold: better null than wrong price.
   if (!best || best.score < 0.72) {
-    if (debug) {
+    if (detailDebug) {
+      if (best) {
+        const gate = evaluatePricingGate({
+          requestedTitle: title,
+          matchedTitle: best.matchedTitle,
+          dealUrl: null,
+          provider: "itad",
+        });
+        console.log("[pricing:aggregate-row]", {
+          requestedTitle: title,
+          provider: "itad",
+          phase: "search_selection",
+          rawTitle: best.matchedTitle,
+          matchedTitle: best.matchedTitle,
+          store: null,
+          salePrice: null,
+          normalPrice: null,
+          score: gate.score,
+          titleMatchScore: best.score,
+          accepted: false,
+          rejected: true,
+          gateReason: gate.reason,
+          explicitRejection: "rejected_because_title_score_threshold",
+          hasUrl: false,
+          deduped: false,
+        });
+      }
       console.log("[pricing:itad]", debugLabel ?? title, {
         step: "select",
         ok: false,
@@ -155,7 +290,7 @@ export async function itadLookupBestPrice(params: {
     return null;
   }
 
-  if (debug) {
+  if (detailDebug) {
     console.log("[pricing:itad]", debugLabel ?? title, {
       step: "select",
       ok: true,
@@ -182,7 +317,7 @@ export async function itadLookupBestPrice(params: {
     body: JSON.stringify([best.id]),
   });
 
-  if (debug) {
+  if (detailDebug) {
     console.log("[pricing:itad]", debugLabel ?? title, {
       step: "prices_deals_only",
       status: pricesFetchDealsOnly.res.status,
@@ -192,7 +327,7 @@ export async function itadLookupBestPrice(params: {
 
   const parsePricesRows = async (res: Response, step: string) => {
     const json = (await res.json()) as unknown;
-    if (debug) {
+    if (detailDebug) {
       let preview: string;
       try {
         preview = JSON.stringify(json);
@@ -224,7 +359,7 @@ export async function itadLookupBestPrice(params: {
       body: JSON.stringify([best.id]),
     });
 
-    if (debug) {
+    if (detailDebug) {
       console.log("[pricing:itad]", debugLabel ?? title, {
         step: "prices_all",
         status: pricesFetchAll.res.status,
@@ -239,13 +374,56 @@ export async function itadLookupBestPrice(params: {
 
   const row = rows.find((r) => typeof r?.id === "string" && r.id === best.id) ?? rows[0];
   const deals = row && Array.isArray(row.deals) ? (row.deals as ItadDeal[]) : [];
+
+  if (detailDebug) {
+    deals.forEach((deal, index) => {
+      const shopX = (deal?.shop ?? null) as ItadShop | null;
+      const priceX = (deal?.price ?? null) as ItadPriceAmount | null;
+      const urlX = typeof deal?.url === "string" && deal.url.trim() ? deal.url.trim() : "";
+      const gate = evaluatePricingGate({
+        requestedTitle: title,
+        matchedTitle: best.matchedTitle,
+        dealUrl: urlX || null,
+        provider: "itad",
+      });
+      const amountR = priceX && typeof priceX.amount === "number" ? priceX.amount : NaN;
+      const saleStr = Number.isFinite(amountR) ? formatAmount2(amountR) : null;
+      const storeLabel =
+        shopX && typeof shopX.name === "string"
+          ? shopX.name
+          : shopX && (typeof shopX.id === "number" || typeof shopX.id === "string")
+            ? String(shopX.id)
+            : null;
+
+      console.log("[pricing:aggregate-row]", {
+        requestedTitle: title,
+        provider: "itad",
+        phase: "prices_v3_deal",
+        dealIndex: index,
+        rawTitle: best.matchedTitle,
+        matchedTitle: best.matchedTitle,
+        store: storeLabel,
+        salePrice: saleStr,
+        normalPrice: null,
+        score: gate.score,
+        accepted: gate.acceptedPrice,
+        rejected: !gate.acceptedPrice,
+        gateReason: gate.reason,
+        explicitRejection:
+          pricingExplicitRejectionLabel(gate) ?? (!gate.acceptedPrice ? gate.reason : null),
+        hasUrl: Boolean(urlX && gate.trustedUrl),
+        deduped: false,
+      });
+    });
+  }
+
   const first = deals[0];
 
   const shop = (first?.shop ?? null) as ItadShop | null;
   const price = (first?.price ?? null) as ItadPriceAmount | null;
   const url = typeof first?.url === "string" && first.url.trim() ? first.url.trim() : undefined;
 
-  if (debug) {
+  if (detailDebug) {
     console.log("[pricing:itad]", debugLabel ?? title, {
       step: "selected_deal",
       dealsCount: deals.length,
@@ -285,7 +463,7 @@ export async function itadLookupBestPrice(params: {
       body: JSON.stringify([best.id]),
     });
 
-    if (debug) {
+    if (detailDebug) {
       console.log("[pricing:itad]", debugLabel ?? title, {
         step: "overview",
         status: overviewFetch.res.status,
@@ -295,7 +473,7 @@ export async function itadLookupBestPrice(params: {
 
     if (overviewFetch.res.ok) {
       const overviewJson = (await overviewFetch.res.json()) as unknown;
-      if (debug) {
+      if (detailDebug) {
         let preview: string;
         try {
           preview = JSON.stringify(overviewJson);
@@ -342,7 +520,7 @@ export async function itadLookupBestPrice(params: {
           dealUrl: currentUrl || undefined,
           matchedTitle: best.matchedTitle,
         };
-        if (debug) {
+        if (detailDebug) {
           console.log("[pricing:itad]", debugLabel ?? title, {
             step: "overview_mapped_result",
             ok: true,
@@ -353,7 +531,7 @@ export async function itadLookupBestPrice(params: {
       }
     }
 
-    if (debug) {
+    if (detailDebug) {
       console.log("[pricing:itad]", debugLabel ?? title, {
         step: "prices_parse",
         ok: false,
@@ -378,7 +556,7 @@ export async function itadLookupBestPrice(params: {
     matchedTitle: best.matchedTitle,
   };
 
-  if (debug) {
+  if (detailDebug) {
     console.log("[pricing:itad]", debugLabel ?? title, {
       step: "result",
       ok: true,

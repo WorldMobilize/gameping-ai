@@ -7,16 +7,12 @@ import {
   type CheapSharkStoreInfo,
 } from "@/lib/pricing/providers/cheapshark";
 import { itadLookupBestPrice } from "@/lib/pricing/providers/isthereanydeal";
-import { evaluatePricingGate } from "@/lib/pricing/match";
+import {
+  evaluatePricingGate,
+  pricingExplicitRejectionLabel,
+  shouldLogPricingDetailDebug,
+} from "@/lib/pricing/match";
 import { getCachedPriceQuote, setCachedPriceQuote } from "@/lib/pricing/price-cache";
-
-function isDevPricingLog() {
-  return process.env.NODE_ENV === "development";
-}
-
-function shouldLogPricingDetail(debug: boolean) {
-  return isDevPricingLog() || debug;
-}
 
 function logPricingUnavailableSummary(params: {
   debug: boolean;
@@ -27,7 +23,7 @@ function logPricingUnavailableSummary(params: {
   dealUrl?: string | null;
   extra?: Record<string, unknown>;
 }) {
-  if (!shouldLogPricingDetail(params.debug)) return;
+  if (!shouldLogPricingDetailDebug(params.debug)) return;
   let gateScore: number | null = null;
   let gateReason: string | null = null;
   const mt = (params.matchedTitle ?? "").trim();
@@ -58,11 +54,12 @@ function logPricingUnavailableSummary(params: {
 function gatePricingByTitleMatch(
   requestedTitle: string,
   raw: BestPriceResult,
-  provider: string
+  provider: string,
+  debug?: boolean
 ): BestPriceResult | null {
   const mt = (raw.matchedTitle ?? "").trim();
   if (!mt) {
-    if (isDevPricingLog()) {
+    if (shouldLogPricingDetailDebug(debug)) {
       console.log("[pricing:match-check]", {
         requestedTitle,
         matchedTitle: "",
@@ -86,7 +83,7 @@ function gatePricingByTitleMatch(
     provider,
   });
 
-  if (isDevPricingLog()) {
+  if (shouldLogPricingDetailDebug(debug)) {
     console.log("[pricing:match-check]", {
       requestedTitle,
       matchedTitle: mt,
@@ -109,7 +106,7 @@ function gatePricingByTitleMatch(
     ? raw.deal
     : { id: raw.deal?.id, url: undefined };
 
-  if (isDevPricingLog()) {
+  if (shouldLogPricingDetailDebug(debug)) {
     console.log("[pricing:accept]", {
       requestedTitle,
       matchedTitle: mt,
@@ -186,7 +183,7 @@ export async function lookupBestPrice(params: {
       deal: { id: undefined, url: undefined },
       store: { id: undefined, name: undefined },
     };
-    const gated = gatePricingByTitleMatch(params.title, mapped, "free_to_play");
+    const gated = gatePricingByTitleMatch(params.title, mapped, "free_to_play", debug);
     const out = gated ?? mapped;
     if (debug) {
       console.log("[pricing:service]", params.debugLabel ?? params.title, {
@@ -224,7 +221,8 @@ export async function lookupBestPrice(params: {
     const gated = gatePricingByTitleMatch(
       params.title,
       cachedRaw,
-      `cache:${cache.row.provider ?? "unknown"}`
+      `cache:${cache.row.provider ?? "unknown"}`,
+      debug
     );
     if (gated) {
       if (debug) {
@@ -321,7 +319,7 @@ export async function lookupBestPrice(params: {
       matchedTitle: bestCheap.matchedTitle,
     };
 
-    const gatedCheap = gatePricingByTitleMatch(params.title, mappedRaw, "cheapshark");
+    const gatedCheap = gatePricingByTitleMatch(params.title, mappedRaw, "cheapshark", debug);
     if (gatedCheap) {
       const savedToCache = await setCachedPriceQuote({
         title: params.title,
@@ -397,7 +395,7 @@ export async function lookupBestPrice(params: {
     matchedTitle: bestItad.matchedTitle,
   };
 
-  const gatedItad = gatePricingByTitleMatch(params.title, mappedRaw, "itad");
+  const gatedItad = gatePricingByTitleMatch(params.title, mappedRaw, "itad", debug);
   if (!gatedItad) {
     logPricingUnavailableSummary({
       debug,
@@ -464,12 +462,37 @@ function parseVerifiedDealSalePrice(deal: VerifiedDealRow): number {
 }
 
 /** Dedupe rows that CheapShark may repeat (same store + listing + sale price). */
-export function dedupeVerifiedDealsForDisplay(deals: VerifiedDealRow[]): VerifiedDealRow[] {
+export function dedupeVerifiedDealsForDisplay(
+  deals: VerifiedDealRow[],
+  opts?: { debug?: boolean; requestedTitle?: string }
+): VerifiedDealRow[] {
   const seen = new Set<string>();
   const out: VerifiedDealRow[] = [];
   for (const d of deals) {
     const k = `${d.store.id}|${d.matchedTitle.trim().toLowerCase()}|${String(d.salePrice).trim()}`;
-    if (seen.has(k)) continue;
+    if (seen.has(k)) {
+      if (shouldLogPricingDetailDebug(opts?.debug)) {
+        const g = d.gate;
+        const rt = opts?.requestedTitle ?? d.requestedTitle;
+        console.log("[pricing:aggregate-row]", {
+          requestedTitle: rt,
+          provider: d.provider,
+          rawTitle: d.matchedTitle,
+          matchedTitle: d.matchedTitle,
+          store: d.store.name ?? d.store.id,
+          salePrice: d.salePrice,
+          normalPrice: d.normalPrice,
+          score: g.score,
+          accepted: false,
+          rejected: true,
+          gateReason: g.reason,
+          explicitRejection: pricingExplicitRejectionLabel(g, { deduped: true }),
+          hasUrl: Boolean(d.deal.url),
+          deduped: true,
+        });
+      }
+      continue;
+    }
     seen.add(k);
     out.push(d);
   }
@@ -489,8 +512,11 @@ export function sortVerifiedDealsBySalePriceAsc(deals: VerifiedDealRow[]): Verif
   });
 }
 
-export function prepareVerifiedDealsForDisplay(deals: VerifiedDealRow[]): VerifiedDealRow[] {
-  return dedupeVerifiedDealsForDisplay(sortVerifiedDealsBySalePriceAsc(deals));
+export function prepareVerifiedDealsForDisplay(
+  deals: VerifiedDealRow[],
+  opts?: { debug?: boolean; requestedTitle?: string }
+): VerifiedDealRow[] {
+  return dedupeVerifiedDealsForDisplay(sortVerifiedDealsBySalePriceAsc(deals), opts);
 }
 
 /** Cheapest gate-accepted row that also has a trusted store URL (CheapShark redirect). */
@@ -509,6 +535,7 @@ export async function lookupDeals(params: {
   debugLabel?: string;
 }): Promise<VerifiedDealRow[]> {
   const requestedTitle = params.title.trim();
+  const detailDebug = shouldLogPricingDetailDebug(params.debug);
   const deals = (await cheapSharkLookupDealsByTitle({
     title: params.title,
     limit: params.limit ?? 8,
@@ -517,12 +544,14 @@ export async function lookupDeals(params: {
   })) as CheapSharkDeal[];
 
   if (!deals.length) {
-    if (isDevPricingLog()) {
-      console.log("[pricing:deals-summary]", {
+    if (detailDebug) {
+      console.log("[pricing:deals-aggregate-summary]", {
         requestedTitle,
-        totalDeals: 0,
-        acceptedDeals: 0,
-        rejectedDeals: 0,
+        providerReturnedCount: 0,
+        acceptedAfterGateCount: 0,
+        trustedUrlCount: 0,
+        dedupedCount: 0,
+        finalDisplayCount: 0,
       });
     }
     return [];
@@ -540,6 +569,24 @@ export async function lookupDeals(params: {
   for (const d of deals) {
     if (!d?.dealID || !d.storeID || typeof d.title !== "string") {
       rejectedDeals += 1;
+      if (detailDebug) {
+        console.log("[pricing:aggregate-row]", {
+          requestedTitle,
+          provider: "cheapshark",
+          rawTitle: typeof d?.title === "string" ? d.title : "",
+          matchedTitle: typeof d?.title === "string" ? d.title : "",
+          store: typeof d?.storeID === "string" ? d.storeID : null,
+          salePrice: typeof d?.salePrice === "string" ? d.salePrice : null,
+          normalPrice: typeof d?.normalPrice === "string" ? d.normalPrice : null,
+          score: 0,
+          accepted: false,
+          rejected: true,
+          gateReason: "invalid_incomplete_row",
+          explicitRejection: "invalid_pricing_row",
+          hasUrl: false,
+          deduped: false,
+        });
+      }
       continue;
     }
 
@@ -552,18 +599,26 @@ export async function lookupDeals(params: {
       provider: "cheapshark",
     });
 
-    if (isDevPricingLog()) {
-      console.log("[pricing:deal-gate]", {
+    const storeLabel = storeNameById.get(d.storeID) ?? d.storeID;
+
+    if (detailDebug) {
+      const accepted = gate.acceptedPrice;
+      console.log("[pricing:aggregate-row]", {
         requestedTitle,
-        matchedTitle,
         provider: "cheapshark",
-        price: d.salePrice,
-        currency: "USD",
+        rawTitle: matchedTitle,
+        matchedTitle,
+        store: storeLabel,
+        salePrice: d.salePrice,
+        normalPrice: d.normalPrice,
         score: gate.score,
-        acceptedPrice: gate.acceptedPrice,
-        trustedUrl: gate.trustedUrl,
-        reason: gate.reason,
-        url: gate.trustedUrl ? dealUrl : null,
+        accepted,
+        rejected: !accepted,
+        gateReason: gate.reason,
+        explicitRejection:
+          pricingExplicitRejectionLabel(gate) ?? (!accepted ? gate.reason : null),
+        hasUrl: Boolean(gate.trustedUrl && d.dealID),
+        deduped: false,
       });
     }
 
@@ -596,15 +651,23 @@ export async function lookupDeals(params: {
     });
   }
 
-  if (isDevPricingLog()) {
-    console.log("[pricing:deals-summary]", {
+  const finalDeals = prepareVerifiedDealsForDisplay(out, {
+    debug: params.debug,
+    requestedTitle,
+  });
+
+  if (detailDebug) {
+    console.log("[pricing:deals-aggregate-summary]", {
       requestedTitle,
-      totalDeals: deals.length,
-      acceptedDeals: out.length,
-      rejectedDeals,
+      providerReturnedCount: deals.length,
+      acceptedAfterGateCount: out.length,
+      trustedUrlCount: out.filter((r) => r.gate.trustedUrl).length,
+      dedupedCount: out.length - finalDeals.length,
+      finalDisplayCount: finalDeals.length,
+      rejectedInvalidOrGate: rejectedDeals,
     });
   }
 
-  return prepareVerifiedDealsForDisplay(out);
+  return finalDeals;
 }
 

@@ -1,4 +1,10 @@
-import { containsBadWords, titleMatchScore } from "@/lib/pricing/match";
+import {
+  containsBadWords,
+  evaluatePricingGate,
+  pricingExplicitRejectionLabel,
+  shouldLogPricingDetailDebug,
+  titleMatchScore,
+} from "@/lib/pricing/match";
 
 export type CheapSharkDeal = {
   dealID: string;
@@ -93,14 +99,14 @@ async function cheapSharkFetchDealsFromNetwork(params: {
       res = await fetch(url, { cache: "no-store" });
     }
 
-    if (debug) {
+    if (shouldLogPricingDetailDebug(debug)) {
       const evt: PricingDebugEvent = { type: "http", url, status: res.status, retried };
       console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
     }
     if (!res.ok) return [];
     const data = (await res.json()) as unknown;
     const deals = Array.isArray(data) ? (data as CheapSharkDeal[]) : [];
-    if (debug) {
+    if (shouldLogPricingDetailDebug(debug)) {
       const titles = deals
         .map((d) => (d && typeof d.title === "string" ? d.title : ""))
         .filter(Boolean)
@@ -187,7 +193,7 @@ export async function cheapSharkGetStores(params?: {
           await sleep(800);
           res = await fetch(url, { cache: "no-store" });
         }
-        if (debug) {
+        if (shouldLogPricingDetailDebug(debug)) {
           const evt: PricingDebugEvent = { type: "http", url, status: res.status, retried };
           console.log("[pricing:cheapshark]", debugLabel ?? "stores", evt);
         }
@@ -220,41 +226,125 @@ export async function cheapSharkLookupBestPrice(params: {
     debugLabel,
   });
   if (!deals.length) {
-    if (debug) {
+    if (shouldLogPricingDetailDebug(debug)) {
       const evt: PricingDebugEvent = { type: "result", ok: false, reason: "no_deals" };
       console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
     }
     return null;
   }
 
+  const detailDebug = shouldLogPricingDetailDebug(debug);
+
   // The /deals endpoint can return fuzzy matches for short/generic queries.
   // Keep only plausible matches and ignore low-quality entries.
   const scored: Array<{ deal: CheapSharkDeal; score: number }> = [];
   for (const d of deals) {
-    if (!d || typeof d.title !== "string") continue;
+    if (!d || typeof d.title !== "string") {
+      if (detailDebug) {
+        console.log("[pricing:aggregate-row]", {
+          requestedTitle: title,
+          provider: "cheapshark",
+          rawTitle: "",
+          matchedTitle: "",
+          store: null,
+          salePrice: null,
+          normalPrice: null,
+          score: 0,
+          accepted: false,
+          rejected: true,
+          gateReason: "invalid_incomplete_row",
+          explicitRejection: "invalid_pricing_row",
+          hasUrl: false,
+          deduped: false,
+        });
+      }
+      continue;
+    }
+
+    const dealUrl = d.dealID ? `https://www.cheapshark.com/redirect?dealID=${d.dealID}` : "";
+    const gate = evaluatePricingGate({
+      requestedTitle: title,
+      matchedTitle: d.title,
+      dealUrl,
+      provider: "cheapshark",
+    });
+    const matchScore = titleMatchScore(title, d.title);
+
     if (containsBadWords(d.title)) {
-      if (debug) {
-        const evt: PricingDebugEvent = { type: "discard", title: d.title, reason: "bad_words" };
-        console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
+      if (detailDebug) {
+        console.log("[pricing:aggregate-row]", {
+          requestedTitle: title,
+          provider: "cheapshark",
+          rawTitle: d.title,
+          matchedTitle: d.title,
+          store: d.storeID,
+          salePrice: d.salePrice,
+          normalPrice: d.normalPrice,
+          score: gate.score,
+          titleMatchScore: matchScore,
+          accepted: false,
+          rejected: true,
+          gateReason: gate.reason,
+          explicitRejection: "rejected_title_provider_bad_words",
+          hasUrl: Boolean(gate.trustedUrl && d.dealID),
+          deduped: false,
+        });
       }
       continue;
     }
-    const score = titleMatchScore(title, d.title);
-    if (score < 0.68) {
-      if (debug) {
-        const evt: PricingDebugEvent = { type: "discard", title: d.title, reason: "low_match_score", score };
-        console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
+    if (matchScore < 0.68) {
+      if (detailDebug) {
+        console.log("[pricing:aggregate-row]", {
+          requestedTitle: title,
+          provider: "cheapshark",
+          rawTitle: d.title,
+          matchedTitle: d.title,
+          store: d.storeID,
+          salePrice: d.salePrice,
+          normalPrice: d.normalPrice,
+          score: gate.score,
+          titleMatchScore: matchScore,
+          accepted: false,
+          rejected: true,
+          gateReason: gate.reason,
+          explicitRejection: "rejected_title_provider_low_match_score",
+          hasUrl: Boolean(gate.trustedUrl && d.dealID),
+          deduped: false,
+        });
       }
       continue;
     }
-    scored.push({ deal: d, score });
+
+    if (detailDebug) {
+      const accepted = gate.acceptedPrice;
+      console.log("[pricing:aggregate-row]", {
+        requestedTitle: title,
+        provider: "cheapshark",
+        rawTitle: d.title,
+        matchedTitle: d.title,
+        store: d.storeID,
+        salePrice: d.salePrice,
+        normalPrice: d.normalPrice,
+        score: gate.score,
+        titleMatchScore: matchScore,
+        accepted,
+        rejected: !accepted,
+        gateReason: gate.reason,
+        explicitRejection:
+          pricingExplicitRejectionLabel(gate) ?? (!accepted ? gate.reason : null),
+        hasUrl: Boolean(gate.trustedUrl && d.dealID),
+        deduped: false,
+      });
+    }
+
+    scored.push({ deal: d, score: matchScore });
   }
   scored.sort((a, b) => b.score - a.score);
 
   const best = scored[0]?.deal ?? null;
   if (!best) return null;
 
-  if (debug) {
+  if (detailDebug) {
     const bestScore = scored[0]?.score ?? 0;
     const evt: PricingDebugEvent = {
       type: "selected",

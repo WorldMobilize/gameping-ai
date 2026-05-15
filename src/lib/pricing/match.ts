@@ -263,8 +263,37 @@ function hasExtraListingSuffixBeyondRequested(
   return mat.startsWith(`${req} `);
 }
 
-function isDevPricingLog() {
-  return process.env.NODE_ENV === "development";
+/** Temporary detailed pricing logs: non-production builds or explicit `debug` from callers. */
+export function shouldLogPricingDetailDebug(debug?: boolean): boolean {
+  if (typeof process === "undefined") return Boolean(debug);
+  return process.env.NODE_ENV !== "production" || Boolean(debug);
+}
+
+/**
+ * Stable human-grep labels for aggregate pricing debug rows (does not affect gating).
+ * Pass `deduped: true` when this row was dropped as a duplicate in the display pipeline.
+ */
+export function pricingExplicitRejectionLabel(
+  gate: PricingGateEvaluation,
+  extra?: { deduped?: boolean }
+): string | null {
+  if (extra?.deduped) return "rejected_because_duplicate";
+  if (!gate.acceptedPrice) {
+    if (gate.reason === "dlc_or_addon" || gate.reason === "extra_suffix_not_base_game") {
+      return "rejected_because_dlc_soundtrack_demo";
+    }
+    if (gate.reason === "suspicious_partial_or_spinoff_match") {
+      return "rejected_because_suspicious_pair";
+    }
+    if (gate.reason === "long_title_below_min_score") {
+      return "rejected_because_title_score_threshold";
+    }
+    return null;
+  }
+  if (!gate.trustedUrl) {
+    return "rejected_because_no_trusted_url";
+  }
+  return null;
 }
 
 const TITLE_MATCH_SHOW_PRICE_MIN = 0.72;
@@ -282,7 +311,6 @@ export function evaluatePricingGate(params: {
 }): PricingGateEvaluation {
   const { requestedTitle, matchedTitle } = params;
   const dealUrl = params.dealUrl?.trim() ?? "";
-  const provider = params.provider ?? null;
   const matchedTrim = (matchedTitle ?? "").trim();
 
   const requestedNorm = normalizeTitleForPricing(requestedTitle);
@@ -299,21 +327,9 @@ export function evaluatePricingGate(params: {
   }
 
   const matchedNorm = normalizeTitleForPricing(matchedTrim);
-  const requestedNormGate = normalizeWordsSpaced(requestedTitle);
-  const matchedNormGate = normalizeWordsSpaced(matchedTrim);
 
   const forbiddenTerm = findForbiddenListingTermMismatch(requestedTitle, matchedTrim);
   if (forbiddenTerm) {
-    if (isDevPricingLog()) {
-      console.log("[pricing:reject-dlc-or-addon]", {
-        requestedTitle,
-        matchedTitle: matchedTrim,
-        requestedNorm: requestedNormGate,
-        matchedNorm: matchedNormGate,
-        forbiddenTerm,
-        provider,
-      });
-    }
     return {
       requestedNorm,
       matchedNorm,
@@ -326,16 +342,6 @@ export function evaluatePricingGate(params: {
   }
 
   if (hasExtraListingSuffixBeyondRequested(requestedTitle, matchedTrim)) {
-    if (isDevPricingLog()) {
-      console.log("[pricing:reject-dlc-or-addon]", {
-        requestedTitle,
-        matchedTitle: matchedTrim,
-        requestedNorm: requestedNormGate,
-        matchedNorm: matchedNormGate,
-        forbiddenTerm: null,
-        provider,
-      });
-    }
     return {
       requestedNorm,
       matchedNorm,
