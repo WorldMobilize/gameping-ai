@@ -29,6 +29,13 @@ type RecommendDebug = {
   finalResponse?: { count?: number; titles?: string[] };
 };
 
+function prefersItalianRecommendCopy(prompt: string): boolean {
+  const t = prompt.trim();
+  if (!t) return false;
+  if (/[àèéìòù]/i.test(t)) return true;
+  return /\b(vorrei|giochi|simile|simili|tipo|però|sera|amici|cozy|quando|più|meno)\b/i.test(t);
+}
+
 const platforms = [
   {
     name: "PC",
@@ -954,31 +961,10 @@ export default function RecommendPage() {
                     )}
 
                     <div className="p-6">
-                      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                      <div className="mb-3">
                         <span className="rounded-full bg-cyan-400 px-3 py-1 text-xs font-black text-black">
                           #{index + 1}
                         </span>
-
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          {game.matchTier === "good_alternative" && (
-                            <span className="rounded-full bg-amber-500/25 px-3 py-1 text-xs font-bold text-amber-200">
-                              Good alternative
-                            </span>
-                          )}
-                          {game.matchTier === "partial_match" && (
-                            <span className="rounded-full bg-orange-500/25 px-3 py-1 text-xs font-bold text-orange-200">
-                              Partial match
-                            </span>
-                          )}
-                          {game.matchTier === "best_match" && (
-                            <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-200">
-                              Best match
-                            </span>
-                          )}
-                          <span className="rounded-full bg-purple-500/20 px-3 py-1 text-sm font-bold text-purple-300">
-                            {game.match}% match
-                          </span>
-                        </div>
                       </div>
 
                       <h2 className="text-2xl font-black">{game.title}</h2>
@@ -989,15 +975,42 @@ export default function RecommendPage() {
                         </p>
                       ) : null}
 
-                      {form.budget.trim() ? (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {game.matchTier === "good_alternative" && (
+                          <span className="rounded-full bg-amber-500/25 px-3 py-1 text-xs font-bold text-amber-200">
+                            Good alternative
+                          </span>
+                        )}
+                        {game.matchTier === "partial_match" && (
+                          <span className="rounded-full bg-orange-500/25 px-3 py-1 text-xs font-bold text-orange-200">
+                            Partial match
+                          </span>
+                        )}
+                        {game.matchTier === "best_match" && (
+                          <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-200">
+                            Best match
+                          </span>
+                        )}
+                        <span className="rounded-full bg-purple-500/20 px-3 py-1 text-sm font-bold text-purple-300">
+                          {game.match}% match
+                        </span>
+                      </div>
+
+                      {form.budget.trim() || game.budgetNote ? (
                         <p className="mt-3 text-xs text-white/45">
-                          Budget considered. Check verified prices on details.
+                          {game.budgetNote ??
+                            (prefersItalianRecommendCopy(form.userPrompt)
+                              ? "Prezzi verificati nella scheda gioco, quando disponibili."
+                              : "Verified prices on the game page when available.")}
                         </p>
                       ) : null}
 
-                      <p className="mt-4 min-h-[7.5rem] text-sm leading-6 text-white/70 md:min-h-[6.5rem]">
-                        💡 {game.reason}
-                      </p>
+                      <div className="mt-4 min-h-[7.5rem] md:min-h-[6.5rem]">
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">
+                          Why it fits
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-white/70">{game.reason}</p>
+                      </div>
 
                       <div className="mt-6 border-t border-white/10 pt-5">
                         <a

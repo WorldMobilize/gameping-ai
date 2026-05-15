@@ -673,6 +673,52 @@ function buildRerankCandidatePayload(
  * Extra instructions when the prompt implies concrete requirements (combat, multiplayer, etc.).
  * Does not log — text is only embedded in model prompts.
  */
+/** Italian vs English for user-facing reason / matchNote copy. */
+function inferRecommendCopyLocale(text: string): "it" | "en" {
+  const t = (text || "").trim();
+  if (!t) return "en";
+  if (/[àèéìòù]/i.test(t)) return "it";
+  if (
+    /\b(vorrei|cioè|però|anche|giochi|gioco|simile|simili|tipo|sera|amici|cozy|quando|questo|quella|più|meno|lungo|breve|costruire|combatti|progressione|rilassante|storia|pve|pvp)\b/i.test(
+      t
+    )
+  ) {
+    return "it";
+  }
+  return "en";
+}
+
+function rerankCopyStyleBlock(locale: "it" | "en"): string {
+  const langLabel = locale === "it" ? "Italian" : "English";
+  return `
+Voice for "reason" and "matchNote" (user-facing copy in ${langLabel}):
+- Sound like a knowledgeable gamer explaining why this pick fits the user's mood/request — not a store listing or Wikipedia summary.
+- Personalize to the user's prompt (experience, loop, pacing, co-op/solo, vibe). Do not recite generic genre features.
+
+AVOID in "reason":
+- "This game is an open-world RPG that…" / "It offers features such as…" / "Matches because…"
+- Feature-list intros, marketing hype, cringe slang, overly formal tone
+
+PREFER (natural ${langLabel}, adapt freely):
+${
+  locale === "it"
+    ? `- "Perfetto se vuoi…" / "Funziona bene quando cerchi…" / "Rispetto agli altri pick, questo è più…" / "Ha quella sensazione da 'ancora una run e poi smetto' se ti piace…"`
+    : `- "Great if you want…" / "Works well when you're after…" / "Compared to the other picks, this leans more…" / "Has that 'one more run' pull if you like…"`
+}
+
+"matchNote": one short sentence (same language). Tradeoffs for good_alternative/partial_match; for best_match use "" or a tiny fit hook.
+${
+  locale === "it"
+    ? `Examples: "Più crafting e progressione, meno cozy puro." / "Più PvE e loot, meno caos stile Splatoon."`
+    : `Examples: "More crafting grind, less pure cozy." / "More PvE loot, less Splatoon-style chaos."`
+}
+
+Result discipline:
+- Prefer 3–4 excellent picks over 6 mediocre ones.
+- Do not write confident "reason" text for weak fits; use partial_match / good_alternative honestly or omit the game.
+`;
+}
+
 function explicitRequirementPenaltyBlock(params: {
   userQuery: string;
   coreNeeds: string[];
@@ -723,7 +769,7 @@ function explicitRequirementPenaltyBlock(params: {
   const summary = [...hints].slice(0, 12).join("; ");
   return `
 Explicit asks inferred from user signal: ${summary}
-When an ask above is substantive (e.g. combat, multiplayer, narrative depth, difficulty) and a candidate only pays lip service—or contradicts it—set relevant=false for filtering. For reranking, assign partial_match or good_alternative with candid matchNotes and modest match scores; do not use best_match for weak alignment. Prefer three excellent fits over five mediocre ones.
+When an ask above is substantive (e.g. combat, multiplayer, narrative depth, difficulty) and a candidate only pays lip service—or contradicts it—set relevant=false for filtering. For reranking, assign partial_match or good_alternative with candid, human matchNotes (not robotic labels) and modest match scores; do not use best_match for weak alignment. Prefer three or four excellent fits over five or six mediocre ones.
 `;
 }
 
@@ -1318,20 +1364,28 @@ function buildRecoveryPick(params: {
   semanticScore: number;
   overlap: number;
   overlapping: string[];
+  locale: "it" | "en";
 }): PreEnrichPick {
-  const { c, semanticScore, overlap, overlapping } = params;
+  const { c, semanticScore, overlap, overlapping, locale } = params;
   const tier: MatchTier = overlap >= 2 ? "good_alternative" : "partial_match";
   const match = clamp(
     50 + Math.min(14, Math.floor((semanticScore - RECOVERY_SEMANTIC_SCORE_FLOOR) / 3)),
     48,
     66
   );
-  const themes = overlapping.slice(0, 5).join(", ") || "your stated themes";
+  const themes = overlapping.slice(0, 4).join(", ") || (locale === "it" ? "la tua richiesta" : "your request");
   const matchNote =
-    tier === "good_alternative"
-      ? `Added from the expanded pool: aligns with ${themes}, but less exact than top picks.`
-      : `Broader pick from the candidate pool; partial overlap with ${themes}.`;
-  const reason = `Supporting alternative from the broader search pool. It shares keywords with your request (${themes}) but was outside the strict shortlist; included to give you more viable options.`;
+    locale === "it"
+      ? tier === "good_alternative"
+        ? `Alternativa più ampia: c’entra con ${themes}, ma meno precisa dei pick migliori.`
+        : `Match parziale — utile se vuoi esplorare oltre i titoli più stretti.`
+      : tier === "good_alternative"
+        ? `Broader alternative: touches ${themes}, but less exact than top picks.`
+        : `Partial match — worth a look if you want options beyond the tightest fits.`;
+  const reason =
+    locale === "it"
+      ? `Non era nel top stretto, ma ha senso come opzione in più se ti interessano ${themes} senza essere identico ai pick principali.`
+      : `Didn’t make the tightest shortlist, but it’s a sensible extra if you care about ${themes} without matching the top picks exactly.`;
   return {
     id: c.id,
     title: c.name,
@@ -1357,6 +1411,7 @@ function augmentPicksWithRecovery(params: {
   tagTokens: string[];
   excludeNormalized: Set<string>;
   filtersEnabled: boolean;
+  locale: "it" | "en";
 }): PreEnrichPick[] {
   const {
     primaryPicks,
@@ -1367,6 +1422,7 @@ function augmentPicksWithRecovery(params: {
     tagTokens,
     excludeNormalized,
     filtersEnabled,
+    locale,
   } = params;
 
   const merged: PreEnrichPick[] = [...primaryPicks];
@@ -1423,6 +1479,7 @@ function augmentPicksWithRecovery(params: {
         semanticScore: extra.score,
         overlap: extra.overlap,
         overlapping: extra.overlapping,
+        locale,
       })
     );
     usedIds.add(extra.c.id);
@@ -1923,6 +1980,7 @@ export async function POST(req: Request) {
     const rankingHint = filtersEnabled
       ? `- Weight user-selected tags, genres, platform, and maximum budget heavily when ranking. Strong semantic matches that ignore key tags should be partial_match or ranked lower.`
       : `- Discovery mode (structured filters OFF): prioritize fit to the user request and intent. Do not penalize picks solely because optional structured tags/platform/budget were not provided in the UI; rank by described vibe and relevance.`;
+    const copyLocale = inferRecommendCopyLocale(normalizedInput.userPrompt);
     stage = "rerank";
 
     const rerankMessages = [
@@ -1937,9 +1995,9 @@ Return ONLY valid JSON in this exact format:
     {
       "id": 123,
       "match": 95,
-      "reason": "Two or three sentences explaining fit and audience.",
+      "reason": "2–3 short sentences: why this pick fits the user's request (experience, mood, loop — not a genre wiki summary).",
       "matchTier": "best_match",
-      "matchNote": "One short sentence on fit vs compromises (or empty string)."
+      "matchNote": "One short tradeoff or fit hook (or empty string for best_match)."
     }
   ]
 }
@@ -1947,16 +2005,16 @@ Return ONLY valid JSON in this exact format:
 matchTier MUST be one of: "best_match", "good_alternative", "partial_match".
 
 Rules:
-- Target 4 to 6 games when the pool supports it; never exceed 6. Minimum goal 3 picks when possible.
-- Prefer fewer excellent picks over random filler; use good_alternative / partial_match honestly when tradeoffs exist.
+- Target 3 to 4 strong games when the pool supports it; never exceed 6. Minimum 3 only when at least 3 are genuinely good fits.
+- Prefer 3–4 excellent picks over 6 weak fillers; omit weak ids rather than writing confident reasons for loose matches.
+- Use good_alternative / partial_match honestly when tradeoffs exist; never label a weak fit as best_match.
 - You MUST pick ONLY ids from the provided candidate pool. Do not invent titles. Do not output titles.
 - Match must be a number from 0 to 100 (semantic fit including tags/genres/platforms intent).
-- Each "reason" must be 2–3 concise sentences in plain English (no markdown, no bullet symbols).
-- "matchNote" must briefly state tradeoffs for good_alternative/partial_match (e.g. more combat, less chill). For best_match it can be empty or reinforce the fit.
+${rerankCopyStyleBlock(copyLocale)}
 ${explicitRerankBlock}
 ${rankingHint}
 - Do not quote exact prices in "reason" or "matchNote"; budget is handled separately.
-- Do not include markdown or extra keys.
+- No markdown, no bullet symbols, no extra keys.
 `,
       },
       {
@@ -1968,6 +2026,7 @@ Core needs: ${intent.coreNeeds?.length ? intent.coreNeeds.join(", ") : "none"}
 Avoid: ${intent.avoid?.length ? intent.avoid.join(", ") : "none"}
 Selected tags (priority): ${selectedTagsLine || "not specified"}
 Structured filters (compact): ${structuredSummary}
+Output language for "reason" and "matchNote": ${copyLocale === "it" ? "Italian" : "English"} (match the user request).
 
 ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
           filteredPool.map((c) => buildRerankCandidatePayload(c, rerankCompact)),
@@ -2075,6 +2134,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
         tagTokens,
         excludeNormalized,
         filtersEnabled,
+        locale: copyLocale,
       });
     }
     timing.recoveryMs = performance.now() - tRecovery;
