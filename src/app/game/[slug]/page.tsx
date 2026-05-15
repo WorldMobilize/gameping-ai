@@ -6,6 +6,7 @@ import { getCachedRawgGame, setCachedRawgGame } from "@/lib/cache";
 import {
   AGGREGATOR_PRICE_DISCLAIMER,
   formatAggregatorPriceLine,
+  formatDealsLastCheckedLabel,
 } from "@/lib/pricing/display";
 import type { BestPriceResult, VerifiedDealRow } from "@/lib/pricing/price-service";
 import {
@@ -329,7 +330,12 @@ export default async function GameDetailPage({
   const movies = settled[1].status === "fulfilled" ? settled[1].value : [];
   const bestPrice =
     settled[2].status === "fulfilled" ? settled[2].value : null;
-  const deals = settled[3].status === "fulfilled" ? settled[3].value : [];
+  const dealsLookup =
+    settled[3].status === "fulfilled"
+      ? settled[3].value
+      : { deals: [], lastCheckedAt: null, fromCache: false };
+  const deals = dealsLookup.deals;
+  const dealsLastCheckedAt = dealsLookup.lastCheckedAt;
   const aiFallback: GameAiDetails = {
     whyYouMayLikeIt:
       "A strong pick if it matches your current gaming mood.",
@@ -797,6 +803,11 @@ export default async function GameDetailPage({
             </p>
             <h2 className="mt-4 text-3xl font-black">Verified store deals</h2>
             <p className="mt-2 text-sm text-white/45">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+            {dealsLastCheckedAt ? (
+              <p className="mt-2 text-xs text-white/40">
+                {formatDealsLastCheckedLabel(dealsLastCheckedAt)}
+              </p>
+            ) : null}
 
             {pricingMode === "free_to_play" ? (
               <p className="mt-6 text-white/55">

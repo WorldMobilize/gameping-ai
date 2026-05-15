@@ -72,10 +72,37 @@ const DEALS_FETCH_PAGE_SIZE = 8;
 
 const DEALS_MEMO_TTL_MS = 25_000;
 const dealsMemoByTitle = new Map<string, { deals: CheapSharkDeal[]; fetchedAt: number }>();
-const dealsInflightByTitle = new Map<string, Promise<CheapSharkDeal[]>>();
+const dealsInflightByTitle = new Map<string, Promise<CheapSharkDealsFetchResult>>();
+
+/** After 429, skip CheapShark /deals for this normalized title (5–10 min). */
+const CHEAPSHARK_429_COOLDOWN_MS = 8 * 60 * 1000;
+const cheapShark429UntilByTitle = new Map<string, number>();
+
+export type CheapSharkDealsFetchResult = {
+  deals: CheapSharkDeal[];
+  rateLimited: boolean;
+};
 
 function normalizeDealsMemoKey(title: string) {
   return title.trim().toLowerCase();
+}
+
+export function isCheapSharkDealsThrottled(title: string, now = Date.now()): boolean {
+  const key = normalizeDealsMemoKey(title);
+  if (!key) return false;
+  const until = cheapShark429UntilByTitle.get(key);
+  if (!until) return false;
+  if (until <= now) {
+    cheapShark429UntilByTitle.delete(key);
+    return false;
+  }
+  return true;
+}
+
+function markCheapShark429(title: string, now = Date.now()) {
+  const key = normalizeDealsMemoKey(title);
+  if (!key) return;
+  cheapShark429UntilByTitle.set(key, now + CHEAPSHARK_429_COOLDOWN_MS);
 }
 
 async function cheapSharkFetchDealsFromNetwork(params: {
@@ -83,11 +110,21 @@ async function cheapSharkFetchDealsFromNetwork(params: {
   pageSize: number;
   debug: boolean;
   debugLabel?: string;
-}): Promise<CheapSharkDeal[]> {
+}): Promise<CheapSharkDealsFetchResult> {
   const { title, pageSize, debug, debugLabel } = params;
   const url = `https://www.cheapshark.com/api/1.0/deals?title=${encodeURIComponent(
     title
   )}&pageSize=${encodeURIComponent(String(pageSize))}&sortBy=Price`;
+
+  if (isCheapSharkDealsThrottled(title)) {
+    if (shouldLogPricingDetailDebug(debug)) {
+      console.log("[pricing:cheapshark]", debugLabel ?? title, {
+        type: "throttled",
+        reason: "recent_429",
+      });
+    }
+    return { deals: [], rateLimited: true };
+  }
 
   try {
     const res1 = await fetch(url, { cache: "no-store" });
@@ -103,7 +140,13 @@ async function cheapSharkFetchDealsFromNetwork(params: {
       const evt: PricingDebugEvent = { type: "http", url, status: res.status, retried };
       console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
     }
-    if (!res.ok) return [];
+
+    if (res.status === 429) {
+      markCheapShark429(title);
+      return { deals: [], rateLimited: true };
+    }
+
+    if (!res.ok) return { deals: [], rateLimited: false };
     const data = (await res.json()) as unknown;
     const deals = Array.isArray(data) ? (data as CheapSharkDeal[]) : [];
     if (shouldLogPricingDetailDebug(debug)) {
@@ -114,9 +157,9 @@ async function cheapSharkFetchDealsFromNetwork(params: {
       const evt: PricingDebugEvent = { type: "raw_deals", count: deals.length, titles };
       console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
     }
-    return deals;
+    return { deals, rateLimited: false };
   } catch {
-    return [];
+    return { deals: [], rateLimited: false };
   }
 }
 
@@ -124,14 +167,18 @@ async function cheapSharkGetDealsShared(params: {
   title: string;
   debug: boolean;
   debugLabel?: string;
-}): Promise<CheapSharkDeal[]> {
+}): Promise<CheapSharkDealsFetchResult> {
   const key = normalizeDealsMemoKey(params.title);
-  if (!key) return [];
+  if (!key) return { deals: [], rateLimited: false };
 
   const now = Date.now();
   const cached = dealsMemoByTitle.get(key);
   if (cached && now - cached.fetchedAt < DEALS_MEMO_TTL_MS) {
-    return cached.deals;
+    return { deals: cached.deals, rateLimited: false };
+  }
+
+  if (isCheapSharkDealsThrottled(params.title, now)) {
+    return { deals: [], rateLimited: true };
   }
 
   let inflight = dealsInflightByTitle.get(key);
@@ -141,9 +188,11 @@ async function cheapSharkGetDealsShared(params: {
       pageSize: DEALS_FETCH_PAGE_SIZE,
       debug: params.debug,
       debugLabel: params.debugLabel,
-    }).then((deals) => {
-      dealsMemoByTitle.set(key, { deals, fetchedAt: Date.now() });
-      return deals;
+    }).then((result) => {
+      if (!result.rateLimited) {
+        dealsMemoByTitle.set(key, { deals: result.deals, fetchedAt: Date.now() });
+      }
+      return result;
     });
     dealsInflightByTitle.set(key, inflight);
     inflight.finally(() => {
@@ -159,11 +208,14 @@ export async function cheapSharkLookupDealsByTitle(params: {
   limit?: number;
   debug?: boolean;
   debugLabel?: string;
-}): Promise<CheapSharkDeal[]> {
+}): Promise<CheapSharkDealsFetchResult> {
   const { title, limit = 5, debug = false, debugLabel } = params;
   const lim = Math.max(3, Math.min(limit, 12));
-  const all = await cheapSharkGetDealsShared({ title, debug, debugLabel });
-  return all.slice(0, lim);
+  const result = await cheapSharkGetDealsShared({ title, debug, debugLabel });
+  return {
+    deals: result.deals.slice(0, lim),
+    rateLimited: result.rateLimited,
+  };
 }
 
 const STORES_MEMO_TTL_MS = 60_000;
@@ -219,12 +271,19 @@ export async function cheapSharkLookupBestPrice(params: {
   debugLabel?: string;
 }): Promise<CheapSharkBestPrice | null> {
   const { title, debug = false, debugLabel } = params;
-  const deals = await cheapSharkLookupDealsByTitle({
+  const { deals, rateLimited } = await cheapSharkLookupDealsByTitle({
     title,
     limit: DEALS_FETCH_PAGE_SIZE,
     debug,
     debugLabel,
   });
+  if (rateLimited && !deals.length) {
+    if (shouldLogPricingDetailDebug(debug)) {
+      const evt: PricingDebugEvent = { type: "result", ok: false, reason: "rate_limited" };
+      console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
+    }
+    return null;
+  }
   if (!deals.length) {
     if (shouldLogPricingDetailDebug(debug)) {
       const evt: PricingDebugEvent = { type: "result", ok: false, reason: "no_deals" };

@@ -12,7 +12,14 @@ import {
   pricingExplicitRejectionLabel,
   shouldLogPricingDetailDebug,
 } from "@/lib/pricing/match";
-import { getCachedPriceQuote, setCachedPriceQuote } from "@/lib/pricing/price-cache";
+import {
+  getCachedDealQuotes,
+  getCachedPriceQuote,
+  getStaleDealQuotes,
+  setCachedDealQuotes,
+  setCachedPriceQuote,
+} from "@/lib/pricing/price-cache";
+import type { VerifiedDealRow } from "@/lib/pricing/verified-deal-row";
 
 function logPricingUnavailableSummary(params: {
   debug: boolean;
@@ -175,6 +182,7 @@ export async function lookupBestPrice(params: {
   // Free-to-play guardrail: do not accidentally attach prices from spinoffs/editions.
   // Also bypass cache to avoid serving stale/incorrect paid prices for known F2P titles.
   if (isKnownFreeToPlayTitle(params.title)) {
+    // F2P titles skip deal/price caches (avoid stale paid prices).
     const mapped: BestPriceResult = {
       price: "Free",
       provider: "free_to_play",
@@ -192,6 +200,45 @@ export async function lookupBestPrice(params: {
       });
     }
     return out;
+  }
+
+  const freshDealCache = await getCachedDealQuotes(params.title);
+  if (freshDealCache.fresh && freshDealCache.deals.length) {
+    const revalidated = revalidateVerifiedDealsForDisplay(params.title, freshDealCache.deals, {
+      debug,
+    });
+    const cheapest = pickCheapestTrustedVerifiedDeal(revalidated);
+    if (cheapest) {
+      const mappedRaw: BestPriceResult = {
+        price: cheapest.salePrice,
+        provider: "cheapshark",
+        currency: cheapest.currency ?? "USD",
+        store: {
+          id: cheapest.store.id,
+          name: cheapest.store.name,
+        },
+        deal: {
+          id: cheapest.deal.id,
+          url: cheapest.deal.url,
+        },
+        matchedTitle: cheapest.matchedTitle,
+      };
+      const gatedFromDeals = gatePricingByTitleMatch(
+        params.title,
+        mappedRaw,
+        "cheapshark",
+        debug
+      );
+      if (gatedFromDeals) {
+        if (debug) {
+          console.log("[pricing:service]", params.debugLabel ?? params.title, {
+            provider_used: "deal_cache",
+            returningToPage: gatedFromDeals,
+          });
+        }
+        return gatedFromDeals;
+      }
+    }
   }
 
   const cache = await getCachedPriceQuote({ title: params.title });
@@ -433,28 +480,7 @@ export async function lookupBestPrice(params: {
   return gatedItad;
 }
 
-export type VerifiedDealRow = {
-  requestedTitle: string;
-  matchedTitle: string;
-  provider: "cheapshark";
-  currency: string;
-  store: { id: string; name?: string };
-  salePrice: string;
-  normalPrice: string;
-  deal: { id: string; url?: string };
-  gate: {
-    score: number;
-    acceptedPrice: boolean;
-    trustedUrl: boolean;
-    reason: string;
-    requestedNorm: string;
-    matchedNorm: string;
-    isShortTitle: boolean;
-  };
-};
-
-/** @deprecated use VerifiedDealRow */
-export type DealRow = VerifiedDealRow;
+export type { DealRow, VerifiedDealRow } from "@/lib/pricing/verified-deal-row";
 
 function parseVerifiedDealSalePrice(deal: VerifiedDealRow): number {
   const n = Number(String(deal.salePrice).replace(/[^0-9.]/g, ""));
@@ -528,45 +554,61 @@ export function pickCheapestTrustedVerifiedDeal(deals: VerifiedDealRow[]): Verif
   );
 }
 
-export async function lookupDeals(params: {
-  title: string;
-  limit?: number;
-  debug?: boolean;
-  debugLabel?: string;
-}): Promise<VerifiedDealRow[]> {
-  const requestedTitle = params.title.trim();
-  const detailDebug = shouldLogPricingDetailDebug(params.debug);
-  const deals = (await cheapSharkLookupDealsByTitle({
-    title: params.title,
-    limit: params.limit ?? 8,
-    debug: params.debug,
-    debugLabel: params.debugLabel,
-  })) as CheapSharkDeal[];
+/** Re-run pricing gates on cached rows (rules may change; never trust stale JSON blindly). */
+function revalidateVerifiedDealsForDisplay(
+  requestedTitle: string,
+  rows: VerifiedDealRow[],
+  opts?: { debug?: boolean }
+): VerifiedDealRow[] {
+  const detailDebug = shouldLogPricingDetailDebug(opts?.debug);
+  const out: VerifiedDealRow[] = [];
 
-  if (!deals.length) {
-    if (detailDebug) {
-      console.log("[pricing:deals-aggregate-summary]", {
-        requestedTitle,
-        providerReturnedCount: 0,
-        acceptedAfterGateCount: 0,
-        trustedUrlCount: 0,
-        dedupedCount: 0,
-        finalDisplayCount: 0,
-      });
-    }
-    return [];
+  for (const row of rows) {
+    const dealUrl = row.deal.url ?? null;
+    const gate = evaluatePricingGate({
+      requestedTitle,
+      matchedTitle: row.matchedTitle,
+      dealUrl,
+      provider: "cheapshark",
+    });
+    if (!gate.acceptedPrice) continue;
+
+    out.push({
+      ...row,
+      requestedTitle,
+      deal: {
+        id: row.deal.id,
+        url: gate.trustedUrl ? dealUrl ?? undefined : undefined,
+      },
+      gate: {
+        score: gate.score,
+        acceptedPrice: gate.acceptedPrice,
+        trustedUrl: gate.trustedUrl,
+        reason: gate.reason,
+        requestedNorm: gate.requestedNorm,
+        matchedNorm: gate.matchedNorm,
+        isShortTitle: gate.isShortTitle,
+      },
+    });
   }
 
-  const stores = (await cheapSharkGetStores({
-    debug: params.debug,
-    debugLabel: params.debugLabel ? `${params.debugLabel}:stores` : undefined,
-  })) as CheapSharkStoreInfo[];
-  const storeNameById = new Map(stores.map((s) => [s.storeID, s.storeName]));
+  return prepareVerifiedDealsForDisplay(out, {
+    debug: opts?.debug,
+    requestedTitle,
+  });
+}
 
+function buildVerifiedDealsFromCheapShark(
+  requestedTitle: string,
+  rawDeals: CheapSharkDeal[],
+  storeNameById: Map<string, string>,
+  debug?: boolean
+): { accepted: VerifiedDealRow[]; rejectedDeals: number } {
+  const detailDebug = shouldLogPricingDetailDebug(debug);
   const out: VerifiedDealRow[] = [];
   let rejectedDeals = 0;
 
-  for (const d of deals) {
+  for (const d of rawDeals) {
     if (!d?.dealID || !d.storeID || typeof d.title !== "string") {
       rejectedDeals += 1;
       if (detailDebug) {
@@ -651,23 +693,143 @@ export async function lookupDeals(params: {
     });
   }
 
+  return { accepted: out, rejectedDeals };
+}
+
+export type LookupDealsResult = {
+  deals: VerifiedDealRow[];
+  /** ISO timestamp when deal rows were last persisted or refreshed. */
+  lastCheckedAt: string | null;
+  /** True when served from Supabase deal cache (fresh or stale). */
+  fromCache: boolean;
+};
+
+export async function lookupDeals(params: {
+  title: string;
+  limit?: number;
+  debug?: boolean;
+  debugLabel?: string;
+}): Promise<LookupDealsResult> {
+  const requestedTitle = params.title.trim();
+  const detailDebug = shouldLogPricingDetailDebug(params.debug);
+  const limit = params.limit ?? 8;
+
+  const freshCache = await getCachedDealQuotes(params.title);
+  if (freshCache.fresh && freshCache.deals.length) {
+    const deals = revalidateVerifiedDealsForDisplay(requestedTitle, freshCache.deals, {
+      debug: params.debug,
+    }).slice(0, limit);
+
+    if (deals.length) {
+      if (detailDebug) {
+        console.log("[pricing:deals-aggregate-summary]", {
+          requestedTitle,
+          cacheSource: "fresh",
+          finalDisplayCount: deals.length,
+        });
+      }
+
+      return {
+        deals,
+        lastCheckedAt: freshCache.updatedAt,
+        fromCache: true,
+      };
+    }
+  }
+
+  const cheapFetch = await cheapSharkLookupDealsByTitle({
+    title: params.title,
+    limit,
+    debug: params.debug,
+    debugLabel: params.debugLabel,
+  });
+
+  const providerFailed = cheapFetch.rateLimited || !cheapFetch.deals.length;
+
+  if (providerFailed) {
+    const stale = await getStaleDealQuotes(params.title);
+    if (stale.stale && stale.deals.length) {
+      const deals = revalidateVerifiedDealsForDisplay(requestedTitle, stale.deals, {
+        debug: params.debug,
+      }).slice(0, limit);
+
+      if (detailDebug) {
+        console.log("[pricing:deals-aggregate-summary]", {
+          requestedTitle,
+          cacheSource: "stale",
+          rateLimited: cheapFetch.rateLimited,
+          finalDisplayCount: deals.length,
+        });
+      }
+
+      return {
+        deals,
+        lastCheckedAt: stale.updatedAt,
+        fromCache: true,
+      };
+    }
+
+    if (detailDebug) {
+      console.log("[pricing:deals-aggregate-summary]", {
+        requestedTitle,
+        providerReturnedCount: 0,
+        rateLimited: cheapFetch.rateLimited,
+        finalDisplayCount: 0,
+      });
+    }
+
+    return { deals: [], lastCheckedAt: null, fromCache: false };
+  }
+
+  const stores = (await cheapSharkGetStores({
+    debug: params.debug,
+    debugLabel: params.debugLabel ? `${params.debugLabel}:stores` : undefined,
+  })) as CheapSharkStoreInfo[];
+  const storeNameById = new Map(stores.map((s) => [s.storeID, s.storeName]));
+
+  const { accepted: out, rejectedDeals } = buildVerifiedDealsFromCheapShark(
+    requestedTitle,
+    cheapFetch.deals,
+    storeNameById,
+    params.debug
+  );
+
   const finalDeals = prepareVerifiedDealsForDisplay(out, {
     debug: params.debug,
     requestedTitle,
-  });
+  }).slice(0, limit);
+
+  const nowIso = new Date().toISOString();
+  if (finalDeals.length) {
+    void setCachedDealQuotes({
+      title: params.title,
+      deals: finalDeals,
+      provider: "cheapshark",
+      meta: {
+        source: "live",
+        provider: "cheapshark",
+        rateLimited: false,
+      },
+    });
+  }
 
   if (detailDebug) {
     console.log("[pricing:deals-aggregate-summary]", {
       requestedTitle,
-      providerReturnedCount: deals.length,
+      providerReturnedCount: cheapFetch.deals.length,
       acceptedAfterGateCount: out.length,
       trustedUrlCount: out.filter((r) => r.gate.trustedUrl).length,
       dedupedCount: out.length - finalDeals.length,
       finalDisplayCount: finalDeals.length,
       rejectedInvalidOrGate: rejectedDeals,
+      cacheSource: "live",
     });
   }
 
-  return finalDeals;
+  return {
+    deals: finalDeals,
+    lastCheckedAt: nowIso,
+    fromCache: false,
+  };
 }
 
