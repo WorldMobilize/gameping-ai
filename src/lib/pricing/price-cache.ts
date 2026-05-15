@@ -81,6 +81,29 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return Boolean(v) && typeof v === "object" && !Array.isArray(v)
 }
 
+/** VerifiedDealRow currently only supports CheapShark-shaped listings. */
+function isCheapSharkCompatibleDealShape(dealId: string, dealUrl?: string): boolean {
+  const url = (dealUrl ?? "").trim().toLowerCase()
+  if (url.includes("cheapshark.com/redirect") || url.includes("dealid=")) return true
+  if (!url && /^\d+$/.test(dealId)) return true
+  return false
+}
+
+/**
+ * Resolve provider for cached rows. Never returns null — incompatible rows should be skipped by caller.
+ */
+function resolveCachedVerifiedDealProvider(
+  item: Record<string, unknown>,
+  dealId: string,
+  dealUrl?: string
+): "cheapshark" | null {
+  const raw = item.provider
+  if (raw === "itad" || raw === "mixed") return null
+  if (raw === "cheapshark") return "cheapshark"
+  if (isCheapSharkCompatibleDealShape(dealId, dealUrl)) return "cheapshark"
+  return null
+}
+
 /**
  * Structural parse only — caller should re-run pricing gates before display when serving stale rows.
  * Never returns rows that were stored without acceptedPrice or with untrusted URLs.
@@ -94,7 +117,6 @@ export function parseVerifiedDealsFromCacheJson(raw: unknown): VerifiedDealRow[]
 
     const requestedTitle = typeof item.requestedTitle === "string" ? item.requestedTitle.trim() : ""
     const matchedTitle = typeof item.matchedTitle === "string" ? item.matchedTitle.trim() : ""
-    const provider = item.provider === "cheapshark" ? "cheapshark" : null
     const currency = typeof item.currency === "string" ? item.currency : "USD"
     const salePrice = typeof item.salePrice === "string" ? item.salePrice : ""
     const normalPrice = typeof item.normalPrice === "string" ? item.normalPrice : ""
@@ -127,6 +149,9 @@ export function parseVerifiedDealsFromCacheJson(raw: unknown): VerifiedDealRow[]
     const isShortTitle = gateRaw.isShortTitle === true
 
     if (!requestedTitle || !matchedTitle || !salePrice) continue
+
+    const provider = resolveCachedVerifiedDealProvider(item, dealId, dealUrl)
+    if (!provider) continue
 
     out.push({
       requestedTitle,
