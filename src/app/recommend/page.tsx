@@ -916,8 +916,9 @@ export default function RecommendPage() {
                 </div>
 
                 <button
+                  type="button"
                   onClick={copyResults}
-                  className="rounded-full border border-cyan-400/40 px-6 py-3 text-sm font-bold text-cyan-300 transition hover:bg-cyan-400/10"
+                  className="text-xs font-semibold text-white/35 underline-offset-2 transition hover:text-white/55 hover:underline"
                 >
                   Copy results
                 </button>
@@ -1022,12 +1023,18 @@ export default function RecommendPage() {
                         <p className="mt-2 text-sm leading-6 text-white/70">{game.reason}</p>
                       </div>
 
-                      <div className="mt-6 border-t border-white/10 pt-5">
+                      <div className="mt-6 flex flex-wrap gap-3 border-t border-white/10 pt-5">
                         <a
                           href={gameDetailHrefFromRecommend(game)}
-                          className="inline-flex rounded-full border border-white/10 px-5 py-3 text-sm font-bold text-white/70 transition hover:border-cyan-400/50 hover:text-cyan-300"
+                          className="inline-flex rounded-full bg-cyan-400/90 px-5 py-3 text-sm font-bold text-black transition hover:bg-cyan-300"
                         >
                           View details
+                        </a>
+                        <a
+                          href={gameDetailHrefFromRecommend(game)}
+                          className="inline-flex rounded-full border border-cyan-400/40 px-5 py-3 text-sm font-bold text-cyan-200 transition hover:border-cyan-300/60 hover:bg-cyan-400/10"
+                        >
+                          Track price
                         </a>
                       </div>
                     </div>
@@ -1039,15 +1046,11 @@ export default function RecommendPage() {
                 onSubmit={handleEmailSubmit}
                 className="mt-10 rounded-3xl border border-purple-500/40 bg-purple-500/10 p-6"
               >
-                <h2 className="text-2xl font-black">
-                  Save this recommendation run
-                </h2>
+                <h2 className="text-2xl font-black">Save these recommendations</h2>
 
                 <p className="mt-2 text-white/60">
-                  Stores this vibe and your picks on your dashboard so we can match deals to your
-                  taste. To watch one title&apos;s price, open its game page and use{" "}
-                  <span className="font-semibold text-white/75">Track price</span> — that&apos;s
-                  separate from saving a full run here.
+                  Save this search to your dashboard so you can revisit these picks later. Price
+                  alerts for individual games are managed from each game page.
                 </p>
 
                 {loggedUserEmail && (
@@ -1062,7 +1065,7 @@ export default function RecommendPage() {
                       type="submit"
                       className="rounded-full bg-purple-500 px-8 py-4 font-bold text-white transition hover:bg-purple-400"
                     >
-                      Save search
+                      Save these recommendations
                     </button>
                   ) : (
                     <a

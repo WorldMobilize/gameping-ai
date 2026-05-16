@@ -101,6 +101,68 @@ function sleep(ms: number) {
   return new Promise<void>((r) => setTimeout(r, ms));
 }
 
+type TrackedGamePriceRow = {
+  last_known_price: number | string | null;
+  last_checked_at: string | null;
+};
+
+function parseStoredPrice(value: unknown): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Shift last_known → previous, then set last_known (+ optional alert fields). */
+function buildTrackedGamePriceStateUpdate(params: {
+  tg: TrackedGamePriceRow;
+  currentPrice: number;
+  nowIso: string;
+  alertSent?: boolean;
+}): Record<string, unknown> {
+  const update: Record<string, unknown> = {
+    previous_price: parseStoredPrice(params.tg.last_known_price),
+    previous_checked_at: params.tg.last_checked_at ?? null,
+    last_known_price: params.currentPrice,
+    last_checked_at: params.nowIso,
+  };
+
+  if (params.alertSent) {
+    update.last_alert_price = params.currentPrice;
+    update.last_alerted_at = params.nowIso;
+  }
+
+  return update;
+}
+
+function logCronPriceState(params: {
+  gameId: string;
+  title: string;
+  skippedReason: string;
+  lastKnownBefore: number | null;
+  currentPrice: number | null;
+  previousPrice: number | null;
+  previousCheckedAt: string | null;
+  lastAlertPrice?: number | null;
+  alertSent?: boolean;
+}) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.log("[cron:price-state]", {
+    gameId: params.gameId,
+    title: params.title,
+    skippedReason: params.skippedReason,
+    last_known_price_before: params.lastKnownBefore,
+    current_price: params.currentPrice,
+    previous_price: params.previousPrice,
+    previous_checked_at: params.previousCheckedAt,
+    ...(params.alertSent
+      ? {
+          last_alert_price: params.lastAlertPrice ?? params.currentPrice,
+          alert_sent: true,
+        }
+      : {}),
+  });
+}
+
 export async function GET(req: Request) {
   const misconfig = assertCronSecretConfigured();
   if (misconfig) return misconfig;
@@ -157,7 +219,7 @@ export async function GET(req: Request) {
     const { data: trackedRows, error: tgError } = await supabase
       .from("tracked_games")
       .select(
-        "id, user_id, rawg_id, title, target_price, last_known_price, is_active"
+        "id, user_id, rawg_id, title, target_price, last_known_price, last_checked_at, is_active"
       )
       .eq("is_active", true);
 
@@ -220,12 +282,41 @@ export async function GET(req: Request) {
         });
       }
 
-      const lastKnownBefore =
-        tg.last_known_price != null && Number.isFinite(Number(tg.last_known_price))
-          ? Number(tg.last_known_price)
-          : null;
+      const lastKnownBefore = parseStoredPrice(tg.last_known_price);
+      const previousCheckedAt =
+        typeof tg.last_checked_at === "string" ? tg.last_checked_at : null;
 
       let skippedReason = "pending";
+
+      let logTitle = titleStored;
+
+      const applyPriceStateUpdate = async (
+        currentPrice: number,
+        opts?: { alertSent?: boolean; reason?: string; title?: string }
+      ) => {
+        const nowIso = new Date().toISOString();
+        const update = buildTrackedGamePriceStateUpdate({
+          tg: {
+            last_known_price: tg.last_known_price,
+            last_checked_at: previousCheckedAt,
+          },
+          currentPrice,
+          nowIso,
+          alertSent: opts?.alertSent,
+        });
+        await supabase.from("tracked_games").update(update).eq("id", gameId);
+        logCronPriceState({
+          gameId,
+          title: opts?.title ?? logTitle,
+          skippedReason: opts?.reason ?? skippedReason,
+          lastKnownBefore,
+          currentPrice,
+          previousPrice: parseStoredPrice(tg.last_known_price),
+          previousCheckedAt,
+          lastAlertPrice: opts?.alertSent ? currentPrice : null,
+          alertSent: opts?.alertSent,
+        });
+      };
 
       if (!userEmail) {
         skippedReason = "no_user_email";
@@ -251,6 +342,7 @@ export async function GET(req: Request) {
         fallbackTitle: titleStored,
       });
       const pricingTitle = meta.title;
+      logTitle = pricingTitle;
 
       const verified = await lookupVerifiedBestPriceForAlert(pricingTitle);
 
@@ -278,13 +370,7 @@ export async function GET(req: Request) {
       if (priceNum <= 0) {
         skippedReason = "free_or_zero_skip";
         skipped += 1;
-        await supabase
-          .from("tracked_games")
-          .update({
-            last_checked_at: new Date().toISOString(),
-            last_known_price: priceNum,
-          })
-          .eq("id", gameId);
+        await applyPriceStateUpdate(priceNum, { reason: skippedReason });
         if (process.env.NODE_ENV === "development") {
           console.log("[cron:tracked-game]", {
             gameId,
@@ -326,13 +412,7 @@ export async function GET(req: Request) {
       if (!threshold.alert) {
         skippedReason = threshold.reason;
         skipped += 1;
-        await supabase
-          .from("tracked_games")
-          .update({
-            last_checked_at: new Date().toISOString(),
-            last_known_price: priceNum,
-          })
-          .eq("id", gameId);
+        await applyPriceStateUpdate(priceNum, { reason: skippedReason });
         if (process.env.NODE_ENV === "development") {
           console.log("[cron:tracked-game]", {
             gameId,
@@ -362,13 +442,7 @@ export async function GET(req: Request) {
             provider: best.provider,
           });
         }
-        await supabase
-          .from("tracked_games")
-          .update({
-            last_checked_at: new Date().toISOString(),
-            last_known_price: priceNum,
-          })
-          .eq("id", gameId);
+        await applyPriceStateUpdate(priceNum, { reason: skippedReason });
         if (process.env.NODE_ENV === "development") {
           console.log("[cron:tracked-game]", {
             gameId,
@@ -460,13 +534,10 @@ export async function GET(req: Request) {
         notified: true,
       });
 
-      await supabase
-        .from("tracked_games")
-        .update({
-          last_checked_at: new Date().toISOString(),
-          last_known_price: priceNum,
-        })
-        .eq("id", gameId);
+      await applyPriceStateUpdate(priceNum, {
+        alertSent: true,
+        reason: skippedReason,
+      });
 
       if (process.env.NODE_ENV === "development") {
         console.log("[cron:tracked-game]", {

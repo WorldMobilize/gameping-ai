@@ -116,7 +116,7 @@ export function stripWeakPricingSubtitlePhrases(normalizedSpaced: string): strin
  * repeated trailing edition/store tokens removed.
  */
 export function normalizeTitleForPricing(title: string): string {
-  let s = stripWeakPricingSubtitlePhrases(normalizeTitleForMatch(title));
+  const s = stripWeakPricingSubtitlePhrases(normalizeTitleForMatch(title));
   if (!s) return "";
   let tokens = s.split(/\s/).filter(Boolean);
   let prev = "";

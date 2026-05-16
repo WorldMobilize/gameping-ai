@@ -28,16 +28,63 @@ type SearchProfile = {
   created_at: string;
 };
 
+type TrackedGameRow = {
+  id: string;
+  title: string;
+  rawg_id: number | null;
+  is_active: boolean;
+  last_known_price: number | null;
+  last_checked_at: string | null;
+  created_at: string;
+};
+
+function formatTrackedPrice(value: number | null): string | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  return `Last seen approx. $${value.toFixed(2)}`;
+}
+
 export default function Dashboard() {
   const { showToast } = useToast();
   const [searches, setSearches] = useState<SearchProfile[]>([]);
+  const [trackedGames, setTrackedGames] = useState<TrackedGameRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [trackedLoading, setTrackedLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [trackedLoadError, setTrackedLoadError] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [trackedActionId, setTrackedActionId] = useState<string | null>(null);
+
+  const loadTrackedGames = useCallback(async () => {
+    setTrackedLoadError(false);
+    setTrackedLoading(true);
+
+    try {
+      const { data, error } = await supabase
+        .from("tracked_games")
+        .select(
+          "id, title, rawg_id, is_active, last_known_price, last_checked_at, created_at"
+        )
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        setTrackedLoadError(true);
+        setTrackedGames([]);
+        return;
+      }
+
+      setTrackedGames((data ?? []) as TrackedGameRow[]);
+    } catch {
+      setTrackedLoadError(true);
+      setTrackedGames([]);
+    } finally {
+      setTrackedLoading(false);
+    }
+  }, []);
 
   const loadSearches = useCallback(async () => {
     setLoadError(false);
     setLoading(true);
+    setTrackedLoading(true);
 
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -50,19 +97,22 @@ export default function Dashboard() {
 
       setUserId(user.id);
 
-      const res = await fetch("/api/get-searches", {
-        method: "POST",
-        credentials: "include",
-        body: JSON.stringify({ user_id: user.id }),
-      });
+      const [searchesRes] = await Promise.all([
+        fetch("/api/get-searches", {
+          method: "POST",
+          credentials: "include",
+          body: JSON.stringify({ user_id: user.id }),
+        }),
+        loadTrackedGames(),
+      ]);
 
-      if (!res.ok) {
+      if (!searchesRes.ok) {
         setLoadError(true);
         setSearches([]);
         return;
       }
 
-      const data = (await res.json().catch(() => ({}))) as {
+      const data = (await searchesRes.json().catch(() => ({}))) as {
         searches?: SearchProfile[];
       };
       setSearches(Array.isArray(data.searches) ? data.searches : []);
@@ -72,7 +122,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadTrackedGames]);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -119,6 +169,67 @@ export default function Dashboard() {
     }
   }
 
+  async function setTrackedGameActive(id: string, isActive: boolean) {
+    setTrackedActionId(id);
+    try {
+      const { error } = await supabase
+        .from("tracked_games")
+        .update({ is_active: isActive })
+        .eq("id", id);
+
+      if (error) {
+        showToast({
+          variant: "error",
+          message: isActive
+            ? "Couldn’t resume alerts. Try again."
+            : "Couldn’t pause alerts. Try again.",
+        });
+        return;
+      }
+
+      setTrackedGames((prev) =>
+        prev.map((row) => (row.id === id ? { ...row, is_active: isActive } : row))
+      );
+      showToast({
+        variant: "success",
+        message: isActive ? "Price alerts resumed." : "Price alerts paused.",
+      });
+    } finally {
+      setTrackedActionId(null);
+    }
+  }
+
+  async function deleteTrackedGame(id: string, title: string) {
+    const ok = confirm(
+      `Stop tracking and remove “${title}” from your dashboard? This deletes the tracking row and cannot be undone.`
+    );
+    if (!ok) return;
+
+    setTrackedActionId(id);
+    try {
+      const res = await fetch("/api/delete-tracked-game", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean };
+
+      if (!res.ok || !json.ok) {
+        showToast({
+          variant: "error",
+          message: "Couldn’t delete tracking. Try again.",
+        });
+        return;
+      }
+
+      setTrackedGames((prev) => prev.filter((row) => row.id !== id));
+      showToast({ variant: "success", message: "Tracking removed." });
+    } finally {
+      setTrackedActionId(null);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#05060f] text-white">
       <Navbar />
@@ -131,23 +242,14 @@ export default function Dashboard() {
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="max-w-2xl">
               <p className="mb-4 text-sm uppercase tracking-[0.4em] text-cyan-300">
-                Saved recommendation runs
+                Dashboard
               </p>
 
-              <h1 className="text-4xl font-black md:text-6xl">
-                Your game alerts
-              </h1>
+              <h1 className="text-4xl font-black md:text-6xl">Your dashboard</h1>
 
               <p className="mt-4 text-white/60">
-                Each row is a saved recommendation run — your vibe, filters, and picks in one
-                place. Follow a single game&apos;s price from its{" "}
-                <Link
-                  href="/games"
-                  className="font-semibold text-cyan-300 underline-offset-4 hover:underline"
-                >
-                  game detail
-                </Link>{" "}
-                page with Track price (that&apos;s separate from saving a full run here).
+                Saved recommendation runs are complete searches you can revisit. Tracked games are
+                individual titles you&apos;re monitoring for verified price drops.
               </p>
 
               <p className="mt-4 text-sm leading-relaxed text-white/50">
@@ -229,11 +331,24 @@ export default function Dashboard() {
             </div>
           )}
 
+          <section className="mt-14" aria-labelledby="dashboard-saved-runs-heading">
+            <div className="mb-6">
+              <h2
+                id="dashboard-saved-runs-heading"
+                className="text-2xl font-black md:text-3xl"
+              >
+                Saved recommendation runs
+              </h2>
+              <p className="mt-2 text-sm text-white/50">
+                Saved searches you can revisit later.
+              </p>
+            </div>
+
           {!loading && !loadError && searches.length === 0 && (
-            <div className="mt-10 rounded-3xl border border-white/10 bg-white/5 p-8">
-              <h2 className="text-2xl font-black">No saved recommendation runs yet</h2>
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+              <p className="text-lg font-black">No saved recommendation runs yet</p>
               <p className="mt-3 text-white/60">
-                Run a recommendation, then save it from the results page to build your dashboard.
+                Run a recommendation, then save it from the results page.
               </p>
               <Link
                 href="/recommend"
@@ -245,7 +360,7 @@ export default function Dashboard() {
           )}
 
           {!loading && !loadError && searches.length > 0 && (
-            <div className="mt-10 grid gap-6">
+            <div className="grid gap-6">
               {searches.map((search) => (
                 <div
                   key={search.id}
@@ -353,6 +468,140 @@ export default function Dashboard() {
               ))}
             </div>
           )}
+          </section>
+
+          <section className="mt-14" aria-labelledby="dashboard-tracked-games-heading">
+            <div className="mb-6">
+              <h2
+                id="dashboard-tracked-games-heading"
+                className="text-2xl font-black md:text-3xl"
+              >
+                Tracked games
+              </h2>
+              <p className="mt-2 text-sm text-white/50">
+                Games you&apos;re monitoring for price drops.
+              </p>
+            </div>
+
+            {trackedLoading && (
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+                <div className="gp-recommend-skeleton-bar relative h-8 max-w-xs animate-pulse overflow-hidden rounded-lg bg-white/[0.06] motion-reduce:animate-none" />
+              </div>
+            )}
+
+            {!trackedLoading && trackedLoadError && (
+              <div className="rounded-3xl border border-rose-400/25 bg-rose-500/[0.08] p-6">
+                <p className="text-sm text-white/70">
+                  Couldn&apos;t load tracked games.{" "}
+                  <button
+                    type="button"
+                    onClick={() => void loadTrackedGames()}
+                    className="font-bold text-cyan-300 underline-offset-2 hover:underline"
+                  >
+                    Retry
+                  </button>
+                </p>
+              </div>
+            )}
+
+            {!trackedLoading && !trackedLoadError && trackedGames.length === 0 && (
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+                <p className="text-lg font-black">No tracked games yet</p>
+                <p className="mt-3 text-sm text-white/60">
+                  Open a game page and use Track price to get email alerts when we detect a
+                  verified drop.
+                </p>
+                <Link
+                  href="/games"
+                  className="mt-6 inline-block rounded-full border border-cyan-400/40 px-6 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400/10"
+                >
+                  Browse games →
+                </Link>
+              </div>
+            )}
+
+            {!trackedLoading && !trackedLoadError && trackedGames.length > 0 && (
+              <div className="grid gap-4">
+                {trackedGames.map((row) => {
+                  const detailHref = gameDetailPath(row.title);
+                  const priceLabel = formatTrackedPrice(
+                    row.last_known_price != null
+                      ? Number(row.last_known_price)
+                      : null
+                  );
+                  const busy = trackedActionId === row.id;
+
+                  return (
+                    <div
+                      key={row.id}
+                      className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-5 md:flex-row md:items-center md:justify-between"
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-black">
+                            <Link
+                              href={detailHref}
+                              className="text-white transition hover:text-cyan-300"
+                            >
+                              {row.title}
+                            </Link>
+                          </h3>
+                          {!row.is_active && (
+                            <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/55">
+                              Alerts paused
+                            </span>
+                          )}
+                        </div>
+                        {priceLabel ? (
+                          <p className="mt-1 text-sm text-cyan-300/90">{priceLabel}</p>
+                        ) : (
+                          <p className="mt-1 text-sm text-white/45">
+                            Baseline set on first price check
+                          </p>
+                        )}
+                        {row.last_checked_at ? (
+                          <p className="mt-1 text-xs text-white/35">
+                            Last checked{" "}
+                            {new Date(row.last_checked_at).toLocaleDateString()}
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {row.is_active ? (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void setTrackedGameActive(row.id, false)}
+                            className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white/75 transition hover:border-white/30 disabled:opacity-50"
+                          >
+                            Pause alerts
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void setTrackedGameActive(row.id, true)}
+                            className="rounded-full border border-cyan-400/40 px-4 py-2 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50"
+                          >
+                            Resume alerts
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void deleteTrackedGame(row.id, row.title)}
+                          className="rounded-full border border-red-400/30 px-4 py-2 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-50"
+                        >
+                          Delete tracking
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </div>
       </section>
     </main>
