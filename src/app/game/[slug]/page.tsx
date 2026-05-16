@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import GameScreenshotLightbox from "@/components/GameScreenshotLightbox";
 import TrackPriceButton from "@/components/TrackPriceButton";
 import { getCachedRawgGame, setCachedRawgGame } from "@/lib/cache";
 import {
@@ -794,25 +795,10 @@ export default async function GameDetailPage({
           </p>
           <h2 className="mt-3 text-4xl font-black">Screenshots</h2>
 
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {screenshots.map((shot, index) => (
-              <a
-                key={shot.id}
-                href={shot.image}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`group overflow-hidden rounded-3xl border border-white/10 ${
-                  index === 0 ? "md:col-span-2 lg:col-span-2" : ""
-                }`}
-              >
-                <img
-                  src={shot.image}
-                  alt={`${title} screenshot ${index + 1}`}
-                  className="h-60 w-full object-cover transition duration-500 group-hover:scale-105"
-                />
-              </a>
-            ))}
-          </div>
+          <GameScreenshotLightbox
+            screenshots={screenshots}
+            gameTitle={rawg?.name || title}
+          />
         </section>
       )}
 
