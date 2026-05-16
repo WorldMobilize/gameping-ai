@@ -408,6 +408,7 @@ export async function GET(req: Request) {
         dashboardUrl,
         unsubscribeUrl,
         heroImageUrl: meta.backgroundImage,
+        alertReason: threshold.reason,
       };
 
       const html = buildAlertEmailHtml(emailContent);

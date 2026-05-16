@@ -13,6 +13,7 @@ import {
   buildUnifiedTrustedVerifiedOffers,
   lookupBestPrice,
   lookupDeals,
+  parseVerifiedDealSalePrice,
 } from "@/lib/pricing/price-service";
 import { verifiedDealDisplayDedupeKey } from "@/lib/pricing/verified-deal-row";
 
@@ -447,6 +448,17 @@ export default async function GameDetailPage({
     trustedOffers.length > 0 || showEstimatedPriceNoStoreLinks;
 
   const showSplitPrimaryLayout = Boolean(primaryDeal);
+
+  const trackBaselinePrice = (() => {
+    if (primaryDeal) {
+      const n = parseVerifiedDealSalePrice(primaryDeal);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+    const p = (bestPrice?.price ?? "").trim();
+    if (!p || p === "N/A") return null;
+    const n = Number(p.replace(/[^0-9.]/g, ""));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  })();
 
   const heroImage = rawg?.background_image || screenshots[0]?.image;
   const trailer = movies[0]?.data?.max || movies[0]?.data?.["480"];
@@ -989,6 +1001,7 @@ export default async function GameDetailPage({
             <TrackPriceButton
               title={rawg?.name || title}
               rawgId={rawg?.id ?? null}
+              baselinePrice={trackBaselinePrice}
             />
           </div>
         </aside>

@@ -321,7 +321,7 @@ export default function UpgradePage() {
               <div>
                 <p className="font-black text-white">How do price alerts work?</p>
                 <p className="mt-2 text-sm leading-6 text-white/60">
-                  When a tracked game drops under your budget, GamePing sends you a notification.
+                  When a tracked game&apos;s verified price drops significantly, GamePing sends you a notification.
                 </p>
               </div>
 

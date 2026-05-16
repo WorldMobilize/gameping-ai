@@ -8,9 +8,11 @@ import { useState } from "react";
 type Props = {
   title: string;
   rawgId?: number | null;
+  /** Verified sale price from game page, when available (sets tracking baseline). */
+  baselinePrice?: number | null;
 };
 
-export default function TrackPriceButton({ title, rawgId }: Props) {
+export default function TrackPriceButton({ title, rawgId, baselinePrice }: Props) {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -27,11 +29,21 @@ export default function TrackPriceButton({ title, rawgId }: Props) {
         return;
       }
 
-      const body: { title: string; rawgId?: number; targetPrice?: number } = {
-        title,
-      };
+      const body: {
+        title: string;
+        rawgId?: number;
+        targetPrice?: number;
+        lastKnownPrice?: number;
+      } = { title };
       if (typeof rawgId === "number" && Number.isFinite(rawgId)) {
         body.rawgId = rawgId;
+      }
+      if (
+        typeof baselinePrice === "number" &&
+        Number.isFinite(baselinePrice) &&
+        baselinePrice > 0
+      ) {
+        body.lastKnownPrice = baselinePrice;
       }
 
       const res = await fetch("/api/track-game", {
@@ -54,7 +66,7 @@ export default function TrackPriceButton({ title, rawgId }: Props) {
       showToast({
         variant: "success",
         message:
-          "You’re set — we’ll email you about price drops and deals for this game when we spot them.",
+          "You’re set — we’ll email you when we detect a verified price drop for this game.",
       });
     } catch {
       showToast({
@@ -77,8 +89,8 @@ export default function TrackPriceButton({ title, rawgId }: Props) {
         {loading ? "Saving…" : "Track price"}
       </button>
       <p className="mt-3 text-xs leading-relaxed text-white/45">
-        Track one game here for price alerts. To save a whole recommendation run to your dashboard,
-        use{" "}
+        We&apos;ll email you when we detect a verified price drop. Track one game here for alerts.
+        To save a whole recommendation run to your dashboard, use{" "}
         <Link
           href="/recommend"
           className="font-semibold text-cyan-300/90 underline-offset-2 hover:underline"

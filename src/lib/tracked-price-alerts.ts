@@ -49,29 +49,48 @@ export async function fetchRawgGameMeta(params: {
   }
 }
 
+/** Explicit target only when a finite number strictly greater than zero. */
+export function parseExplicitTargetPrice(
+  targetPrice: number | null | undefined
+): number | null {
+  if (targetPrice == null) return null;
+  const n = Number(targetPrice);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
+export function parseTrackedBaselinePrice(
+  value: number | null | undefined
+): number | null {
+  if (value == null) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
+export type PriceAlertDecisionReason =
+  | "baseline_only"
+  | "target_met"
+  | "above_target"
+  | "significant_drop"
+  | "no_significant_drop";
+
 export function shouldAlertOnPrice(params: {
   targetPrice: number | null | undefined;
   lastKnownPrice: number | null | undefined;
   newPriceNum: number;
-}): { alert: boolean; reason: string } {
-  const target =
-    params.targetPrice != null && Number.isFinite(Number(params.targetPrice))
-      ? Number(params.targetPrice)
-      : null;
-  const lastKnown =
-    params.lastKnownPrice != null &&
-    Number.isFinite(Number(params.lastKnownPrice))
-      ? Number(params.lastKnownPrice)
-      : null;
+}): { alert: boolean; reason: PriceAlertDecisionReason } {
+  const target = parseExplicitTargetPrice(params.targetPrice);
+  const lastKnown = parseTrackedBaselinePrice(params.lastKnownPrice);
   const newPriceNum = params.newPriceNum;
+
+  if (lastKnown == null) {
+    return { alert: false, reason: "baseline_only" };
+  }
 
   if (target != null) {
     if (newPriceNum <= target) return { alert: true, reason: "target_met" };
     return { alert: false, reason: "above_target" };
-  }
-
-  if (lastKnown == null) {
-    return { alert: false, reason: "baseline_only" };
   }
 
   if (newPriceNum < lastKnown) {
@@ -82,7 +101,19 @@ export function shouldAlertOnPrice(params: {
     }
   }
 
-  return { alert: false, reason: "no_significant_change" };
+  return { alert: false, reason: "no_significant_drop" };
+}
+
+export function priceAlertContextLine(
+  reason: PriceAlertDecisionReason | string | undefined
+): string | null {
+  if (reason === "target_met") {
+    return "This reached your target price.";
+  }
+  if (reason === "significant_drop") {
+    return "This dropped from your last tracked price.";
+  }
+  return null;
 }
 
 /** Accepts any Supabase JS client (browser, server, service role) used for alert queries. */
@@ -200,6 +231,7 @@ export type PriceAlertEmailContentParams = {
   unsubscribeUrl?: string | null;
   heroImageUrl?: string | null;
   supportEmail?: string;
+  alertReason?: PriceAlertDecisionReason | string;
 };
 
 export function buildAlertEmailText(params: PriceAlertEmailContentParams): string {
@@ -207,6 +239,7 @@ export function buildAlertEmailText(params: PriceAlertEmailContentParams): strin
   const listingLine = params.matchedListing
     ? `Listing: ${params.matchedListing}`
     : "Listing verified through our pricing checks.";
+  const contextLine = priceAlertContextLine(params.alertReason);
 
   const lines = [
     "GamePing AI — Price drop",
@@ -215,6 +248,13 @@ export function buildAlertEmailText(params: PriceAlertEmailContentParams): strin
     `Verified deal: ${params.priceDisplay}`,
     `Store: ${params.storeName}`,
     listingLine,
+  ];
+
+  if (contextLine) {
+    lines.push(contextLine);
+  }
+
+  lines.push(
     "",
     `View verified deal: ${params.ctaUrl}`,
     "",
@@ -222,8 +262,8 @@ export function buildAlertEmailText(params: PriceAlertEmailContentParams): strin
     "",
     "Why you received this: You turned on price tracking for this game on GamePing AI.",
     "",
-    `Manage tracked games: ${params.dashboardUrl}`,
-  ];
+    `Manage tracked games: ${params.dashboardUrl}`
+  );
 
   if (params.unsubscribeUrl) {
     lines.push(`Stop alerts for this game: ${params.unsubscribeUrl}`);
@@ -253,6 +293,11 @@ export function buildAlertEmailHtml(params: PriceAlertEmailContentParams): strin
     ? `<p style="margin:0 0 8px;font-size:12px;color:rgba(255,255,255,0.5);"><a href="${escapeHtml(params.unsubscribeUrl)}" style="color:#67e8f9;">Stop alerts for this game</a></p>`
     : "";
 
+  const contextLine = priceAlertContextLine(params.alertReason);
+  const contextBlock = contextLine
+    ? `<p style="margin:0 0 12px;font-size:14px;color:#a5f3fc;">${escapeHtml(contextLine)}</p>`
+    : "";
+
   return `
 <!DOCTYPE html>
 <html>
@@ -268,6 +313,7 @@ export function buildAlertEmailHtml(params: PriceAlertEmailContentParams): strin
               <p style="margin:0 0 8px;font-size:16px;color:#fff;"><strong>${escapeHtml(params.gameTitle)}</strong></p>
               <p style="margin:0 0 6px;font-size:15px;color:#a5f3fc;">Verified deal: <strong>${escapeHtml(params.priceDisplay)}</strong></p>
               <p style="margin:0 0 16px;font-size:13px;color:rgba(255,255,255,0.45);">Store: ${escapeHtml(params.storeName)} · ${listingMeta}</p>
+              ${contextBlock}
               ${img}
               <a href="${escapeHtml(params.ctaUrl)}" style="display:inline-block;margin-top:8px;padding:14px 28px;background:#22d3ee;color:#03040a;font-weight:800;text-decoration:none;border-radius:999px;">View verified deal →</a>
             </td>

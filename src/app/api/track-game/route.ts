@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  parseExplicitTargetPrice,
+  parseTrackedBaselinePrice,
+} from "@/lib/tracked-price-alerts";
 
 export const runtime = "nodejs";
 
@@ -29,12 +33,25 @@ export async function POST(req: Request) {
         : typeof body.rawgId === "string"
           ? Number(body.rawgId)
           : undefined;
-    const targetPrice =
+    const targetPriceRaw =
       typeof body.targetPrice === "number"
         ? body.targetPrice
         : typeof body.targetPrice === "string"
           ? Number(body.targetPrice)
           : undefined;
+    const explicitTarget = parseExplicitTargetPrice(targetPriceRaw);
+
+    const baselineRaw =
+      typeof body.lastKnownPrice === "number"
+        ? body.lastKnownPrice
+        : typeof body.lastKnownPrice === "string"
+          ? Number(body.lastKnownPrice)
+          : typeof body.baselinePrice === "number"
+            ? body.baselinePrice
+            : typeof body.baselinePrice === "string"
+              ? Number(body.baselinePrice)
+              : undefined;
+    const baselinePrice = parseTrackedBaselinePrice(baselineRaw);
 
     const title = titleRaw.trim();
     if (!title) {
@@ -56,8 +73,11 @@ export async function POST(req: Request) {
     if (Number.isFinite(rawgId)) {
       row.rawg_id = rawgId;
     }
-    if (Number.isFinite(targetPrice) && (targetPrice as number) >= 0) {
-      row.target_price = targetPrice;
+
+    row.target_price = explicitTarget;
+
+    if (baselinePrice != null) {
+      row.last_known_price = baselinePrice;
     }
 
     const { data: tracked, error } = await supabase
