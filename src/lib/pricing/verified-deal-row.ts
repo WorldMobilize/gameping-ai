@@ -27,7 +27,7 @@ export function verifiedDealDisplayDedupeKey(deal: VerifiedDealRow): string {
 export type VerifiedDealRow = {
   requestedTitle: string;
   matchedTitle: string;
-  provider: "cheapshark" | "steam";
+  provider: "cheapshark" | "steam" | "itad";
   currency: string;
   store: { id: string; name?: string };
   salePrice: string;

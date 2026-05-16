@@ -509,9 +509,120 @@ export function isTrustedBestPriceDistinctStore(
   return !deals.some((d) => verifiedDealStoreIdentity(d) === bestKey);
 }
 
-function parseVerifiedDealSalePrice(deal: VerifiedDealRow): number {
+export function parseVerifiedDealSalePrice(deal: VerifiedDealRow): number {
   const n = Number(String(deal.salePrice).replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) && n > 0 ? n : NaN;
+}
+
+function parseOfferPriceString(price: string | undefined): number {
+  if (!price) return NaN;
+  if (/^free$/i.test(price.trim())) return NaN;
+  const n = Number(String(price).replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : NaN;
+}
+
+/** Trusted lookupBestPrice row eligible for store comparison (passed gate upstream). */
+export function isTrustedBestPriceOffer(best: BestPriceResult | null): boolean {
+  if (!best || best.provider === "free_to_play") return false;
+  if (/^free$/i.test((best.price || "").trim())) return false;
+  if (Number.isNaN(parseOfferPriceString(best.price))) return false;
+  const url = best.deal?.url?.trim();
+  if (!url) return false;
+  return Boolean(best.store?.id?.trim() || best.store?.name?.trim());
+}
+
+export function verifiedDealRowFromTrustedBestPrice(
+  requestedTitle: string,
+  best: BestPriceResult
+): VerifiedDealRow | null {
+  if (!isTrustedBestPriceOffer(best)) return null;
+
+  const matchedTitle = (best.matchedTitle ?? requestedTitle).trim();
+  const dealUrl = best.deal!.url!.trim();
+  const provider: VerifiedDealRow["provider"] =
+    best.provider === "itad" ? "itad" : "cheapshark";
+  const storeId = best.store?.id?.trim() || best.store?.name?.trim() || "unknown";
+  const storeName = best.store?.name?.trim() || undefined;
+  const salePrice = best.price.trim();
+  const dealId =
+    best.deal?.id?.trim() || `${provider}-${storeId}-${salePrice.replace(/[^0-9.]/g, "")}`;
+
+  const gate = evaluatePricingGate({
+    requestedTitle,
+    matchedTitle,
+    dealUrl,
+    provider,
+  });
+  if (!gate.acceptedPrice || !gate.trustedUrl) return null;
+
+  return {
+    requestedTitle,
+    matchedTitle,
+    provider,
+    currency: best.currency?.trim() || "USD",
+    store: { id: storeId, name: storeName },
+    salePrice,
+    normalPrice: salePrice,
+    deal: { id: dealId, url: dealUrl },
+    gate: {
+      score: gate.score,
+      acceptedPrice: gate.acceptedPrice,
+      trustedUrl: gate.trustedUrl,
+      reason: gate.reason,
+      requestedNorm: gate.requestedNorm,
+      matchedNorm: gate.matchedNorm,
+      isShortTitle: gate.isShortTitle,
+    },
+  };
+}
+
+export type UnifiedTrustedOffersResult = {
+  /** Cheapest trusted verified row across deals + bestPrice. */
+  primaryDeal: VerifiedDealRow | null;
+  /** Remaining trusted rows, cheapest-first, deduped. */
+  otherTrustedDeals: VerifiedDealRow[];
+  /** All trusted rows in display order (ascending price). */
+  trustedOffers: VerifiedDealRow[];
+  /** Accepted deal rows without a trusted buy URL. */
+  untrustedDeals: VerifiedDealRow[];
+};
+
+/**
+ * Merge lookupDeals rows with a trusted lookupBestPrice offer; pick globally cheapest as primary.
+ */
+export function buildUnifiedTrustedVerifiedOffers(params: {
+  requestedTitle: string;
+  displayDeals: VerifiedDealRow[];
+  bestPrice: BestPriceResult | null;
+  debug?: boolean;
+}): UnifiedTrustedOffersResult {
+  const requestedTitle = params.requestedTitle.trim();
+  const untrustedDeals = params.displayDeals.filter(
+    (d) => !d.deal.url || Number.isNaN(parseVerifiedDealSalePrice(d))
+  );
+
+  const trustedFromDeals = params.displayDeals.filter(
+    (d) => Boolean(d.deal.url) && !Number.isNaN(parseVerifiedDealSalePrice(d))
+  );
+
+  const fromBest = params.bestPrice
+    ? verifiedDealRowFromTrustedBestPrice(requestedTitle, params.bestPrice)
+    : null;
+
+  const merged = prepareVerifiedDealsForDisplay(
+    fromBest ? [...trustedFromDeals, fromBest] : trustedFromDeals,
+    { debug: params.debug, requestedTitle }
+  );
+
+  const primaryDeal = merged[0] ?? null;
+  const otherTrustedDeals = primaryDeal ? merged.slice(1) : merged;
+
+  return {
+    primaryDeal,
+    otherTrustedDeals,
+    trustedOffers: merged,
+    untrustedDeals,
+  };
 }
 
 /** Dedupe true duplicates (same provider, store, title, price, and deal URL). */
