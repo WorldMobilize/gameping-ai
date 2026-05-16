@@ -24,6 +24,45 @@ export function verifiedDealDisplayDedupeKey(deal: VerifiedDealRow): string {
   ].join("|");
 }
 
+/** Normalized merchant for primary-vs-other exclusion (CheapShark Steam id "1" = steam). */
+export function verifiedDealMerchantIdentity(deal: VerifiedDealRow): string {
+  const id = deal.store.id.trim().toLowerCase();
+  const name = (deal.store.name ?? "").trim().toLowerCase();
+
+  if (id === "1" || id === "steam" || name === "steam") return "steam";
+  if (name.includes("humble") || id.includes("humble")) return "humble";
+  if (name.includes("gog") || id.includes("gog")) return "gog";
+  if (name.includes("epic") || id.includes("epic")) return "epic";
+  if (name) return name;
+  return id || "unknown";
+}
+
+/** True when row is the same listing as primary for UI (exact key or same merchant+title+price). */
+export function isSameVerifiedOfferAsPrimary(
+  row: VerifiedDealRow,
+  primary: VerifiedDealRow
+): boolean {
+  if (verifiedDealDisplayDedupeKey(row) === verifiedDealDisplayDedupeKey(primary)) {
+    return true;
+  }
+
+  const rowPrice = Number(String(row.salePrice).replace(/[^0-9.]/g, ""));
+  const primaryPrice = Number(String(primary.salePrice).replace(/[^0-9.]/g, ""));
+  if (
+    !Number.isFinite(rowPrice) ||
+    !Number.isFinite(primaryPrice) ||
+    rowPrice !== primaryPrice
+  ) {
+    return false;
+  }
+
+  if (row.matchedTitle.trim().toLowerCase() !== primary.matchedTitle.trim().toLowerCase()) {
+    return false;
+  }
+
+  return verifiedDealMerchantIdentity(row) === verifiedDealMerchantIdentity(primary);
+}
+
 export type VerifiedDealRow = {
   requestedTitle: string;
   matchedTitle: string;

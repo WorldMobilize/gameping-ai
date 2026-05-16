@@ -7,7 +7,10 @@ import {
   type CheapSharkDeal,
   type CheapSharkStoreInfo,
 } from "@/lib/pricing/providers/cheapshark";
-import { itadLookupBestPrice } from "@/lib/pricing/providers/isthereanydeal";
+import {
+  itadLookupBestPrice,
+  type ItadBestPrice,
+} from "@/lib/pricing/providers/isthereanydeal";
 import {
   hasSteamStoreDealRow,
   steamLookupVerifiedDealRow,
@@ -25,6 +28,7 @@ import {
   setCachedPriceQuote,
 } from "@/lib/pricing/price-cache";
 import {
+  isSameVerifiedOfferAsPrimary,
   verifiedDealDisplayDedupeKey,
   verifiedDealStoreIdentity,
   type VerifiedDealRow,
@@ -587,16 +591,47 @@ export type UnifiedTrustedOffersResult = {
   untrustedDeals: VerifiedDealRow[];
 };
 
+function bestPriceResultFromItad(itad: ItadBestPrice): BestPriceResult {
+  return {
+    price: itad.price,
+    provider: "itad",
+    currency: "USD",
+    store: {
+      id: itad.storeId,
+      name: itad.storeName,
+    },
+    deal: {
+      id: itad.storeId ? `itad-${itad.storeId}` : undefined,
+      url: itad.dealUrl,
+    },
+    matchedTitle: itad.matchedTitle,
+  };
+}
+
+function pushTrustedCandidate(
+  candidates: VerifiedDealRow[],
+  row: VerifiedDealRow | null,
+  seenKeys: Set<string>
+) {
+  if (!row) return;
+  const key = verifiedDealDisplayDedupeKey(row);
+  if (seenKeys.has(key)) return;
+  seenKeys.add(key);
+  candidates.push(row);
+}
+
 /**
- * Merge lookupDeals rows with a trusted lookupBestPrice offer; pick globally cheapest as primary.
+ * Merge lookupDeals + lookupBestPrice + supplemental ITAD; pick globally cheapest primary.
  */
-export function buildUnifiedTrustedVerifiedOffers(params: {
+export async function buildUnifiedTrustedVerifiedOffers(params: {
   requestedTitle: string;
   displayDeals: VerifiedDealRow[];
   bestPrice: BestPriceResult | null;
   debug?: boolean;
-}): UnifiedTrustedOffersResult {
+  debugLabel?: string;
+}): Promise<UnifiedTrustedOffersResult> {
   const requestedTitle = params.requestedTitle.trim();
+  const detailDebug = shouldLogPricingDetailDebug(params.debug);
   const untrustedDeals = params.displayDeals.filter(
     (d) => !d.deal.url || Number.isNaN(parseVerifiedDealSalePrice(d))
   );
@@ -605,17 +640,82 @@ export function buildUnifiedTrustedVerifiedOffers(params: {
     (d) => Boolean(d.deal.url) && !Number.isNaN(parseVerifiedDealSalePrice(d))
   );
 
-  const fromBest = params.bestPrice
+  const candidates: VerifiedDealRow[] = [];
+  const seenCandidateKeys = new Set<string>();
+
+  for (const row of trustedFromDeals) {
+    pushTrustedCandidate(candidates, row, seenCandidateKeys);
+  }
+
+  const fromBestPrice = params.bestPrice
     ? verifiedDealRowFromTrustedBestPrice(requestedTitle, params.bestPrice)
     : null;
+  pushTrustedCandidate(candidates, fromBestPrice, seenCandidateKeys);
 
-  const merged = prepareVerifiedDealsForDisplay(
-    fromBest ? [...trustedFromDeals, fromBest] : trustedFromDeals,
-    { debug: params.debug, requestedTitle }
-  );
+  let fromItadSupplement: VerifiedDealRow | null = null;
+  if (process.env.ITAD_API_KEY) {
+    const itadBest = await itadLookupBestPrice({
+      title: requestedTitle,
+      country: "US",
+      debug: params.debug,
+      debugLabel: params.debugLabel ? `${params.debugLabel}:unified-itad` : undefined,
+    });
+    if (itadBest) {
+      const itadMapped = bestPriceResultFromItad(itadBest);
+      const gated = gatePricingByTitleMatch(
+        requestedTitle,
+        itadMapped,
+        "itad",
+        params.debug
+      );
+      if (gated) {
+        fromItadSupplement = verifiedDealRowFromTrustedBestPrice(requestedTitle, gated);
+        pushTrustedCandidate(candidates, fromItadSupplement, seenCandidateKeys);
+      } else if (detailDebug) {
+        console.log("[pricing:unified-trusted-offers]", {
+          requestedTitle,
+          itadSupplementRejected: true,
+          reason: "itad_gate_reject",
+        });
+      }
+    }
+  }
 
-  const primaryDeal = merged[0] ?? null;
-  const otherTrustedDeals = primaryDeal ? merged.slice(1) : merged;
+  const merged = prepareVerifiedDealsForDisplay(candidates, {
+    debug: params.debug,
+    requestedTitle,
+  });
+
+  const primaryDeal = pickCheapestTrustedVerifiedDeal(merged);
+  const otherTrustedDeals = primaryDeal
+    ? merged.filter((row) => !isSameVerifiedOfferAsPrimary(row, primaryDeal))
+    : merged;
+
+  if (detailDebug) {
+    console.log("[pricing:unified-trusted-offers]", {
+      requestedTitle,
+      candidates: candidates.map((row) => ({
+        provider: row.provider,
+        store: row.store.name ?? row.store.id,
+        salePrice: row.salePrice,
+        url: row.deal.url ?? null,
+        dedupeKey: verifiedDealDisplayDedupeKey(row),
+      })),
+      mergedCount: merged.length,
+      primaryKey: primaryDeal ? verifiedDealDisplayDedupeKey(primaryDeal) : null,
+      primary: primaryDeal
+        ? {
+            provider: primaryDeal.provider,
+            store: primaryDeal.store.name ?? primaryDeal.store.id,
+            salePrice: primaryDeal.salePrice,
+            url: primaryDeal.deal.url ?? null,
+          }
+        : null,
+      otherTrustedCount: otherTrustedDeals.length,
+      includedFromBestPrice: Boolean(fromBestPrice),
+      includedFromItadSupplement: Boolean(fromItadSupplement),
+    });
+  }
 
   return {
     primaryDeal,

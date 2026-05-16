@@ -14,6 +14,7 @@ import {
   lookupBestPrice,
   lookupDeals,
 } from "@/lib/pricing/price-service";
+import { verifiedDealDisplayDedupeKey } from "@/lib/pricing/verified-deal-row";
 
 type RawgGame = {
   id: number;
@@ -423,11 +424,12 @@ export default async function GameDetailPage({
     otherTrustedDeals,
     trustedOffers,
     untrustedDeals: untrustedAcceptedDeals,
-  } = buildUnifiedTrustedVerifiedOffers({
+  } = await buildUnifiedTrustedVerifiedOffers({
     requestedTitle: title,
     displayDeals: deals,
     bestPrice,
     debug: pricingDebug,
+    debugLabel: `page:/game/${slug}:unified`,
   });
 
   const primaryTrustedBuyUrl =
@@ -873,7 +875,10 @@ export default async function GameDetailPage({
                       Other verified stores
                     </h3>
                     {otherTrustedDeals.map((deal) => (
-                      <VerifiedStoreDealCard key={deal.deal.id} deal={deal} />
+                      <VerifiedStoreDealCard
+                        key={verifiedDealDisplayDedupeKey(deal)}
+                        deal={deal}
+                      />
                     ))}
                   </div>
                 )}
@@ -881,7 +886,10 @@ export default async function GameDetailPage({
                 {!showSplitPrimaryLayout && trustedOffers.length > 0 && (
                   <div className="space-y-3">
                     {trustedOffers.map((deal) => (
-                      <VerifiedStoreDealCard key={deal.deal.id} deal={deal} />
+                      <VerifiedStoreDealCard
+                        key={verifiedDealDisplayDedupeKey(deal)}
+                        deal={deal}
+                      />
                     ))}
                   </div>
                 )}
