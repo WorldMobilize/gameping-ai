@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import GameScreenshotLightbox from "@/components/GameScreenshotLightbox";
@@ -16,10 +15,6 @@ import {
   lookupDeals,
   pickCheapestTrustedVerifiedDeal,
 } from "@/lib/pricing/price-service";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
 
 type RawgGame = {
   id: number;
@@ -52,10 +47,11 @@ type RawgMovie = {
   preview?: string;
 };
 
-type GameAiDetails = {
-  whyYouMayLikeIt: string;
-  bestFor: string;
-  pros: string[];
+type RecommendFitContext = {
+  reason: string;
+  matchNote?: string;
+  match?: number;
+  matchTier?: "best_match" | "good_alternative" | "partial_match";
 };
 
 type PricingUiMode =
@@ -198,54 +194,134 @@ async function getRawgMovies(gameId?: number): Promise<RawgMovie[]> {
   }
 }
 
-async function getGameAiDetails(title: string): Promise<GameAiDetails> {
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: `
-Return ONLY valid JSON:
-
-{
-  "whyYouMayLikeIt": "Max 3 sentences.",
-  "bestFor": "Short sentence.",
-  "pros": ["short benefit 1", "short benefit 2", "short benefit 3"]
+function searchParamString(
+  sp: Record<string, string | string[] | undefined>,
+  key: string
+): string | undefined {
+  const raw = sp[key];
+  if (typeof raw === "string") return raw;
+  if (Array.isArray(raw)) return raw[0];
+  return undefined;
 }
 
-No markdown.
-Do not invent prices.
-`,
-        },
-        {
-          role: "user",
-          content: `Explain why someone may like the game: ${title}`,
-        },
-      ],
-      temperature: 0.7,
-    });
+const RECOMMEND_FIT_REASON_MAX = 600;
+const RECOMMEND_FIT_NOTE_MAX = 220;
 
-    const parsed = JSON.parse(response.choices[0].message.content || "{}");
+/**
+ * Real recommendation context only when arriving from /recommend with a non-empty fit reason.
+ * Never inferred from catalog visits alone.
+ */
+function parseRecommendFitContext(
+  sp: Record<string, string | string[] | undefined>
+): RecommendFitContext | null {
+  if (searchParamString(sp, "from") !== "recommend") return null;
 
-    return {
-      whyYouMayLikeIt:
-        parsed.whyYouMayLikeIt ||
-        "A strong pick if it matches your current gaming mood.",
-      bestFor: parsed.bestFor || "Players looking for a great new game.",
-      pros: Array.isArray(parsed.pros)
-        ? parsed.pros.slice(0, 3)
-        : ["Strong atmosphere", "Good value", "Worth checking out"],
-    };
-  } catch {
-    return {
-      whyYouMayLikeIt:
-        "A strong pick if it matches your current gaming mood.",
-      bestFor: "Players looking for a great new game.",
-      pros: ["Strong atmosphere", "Good value", "Worth checking out"],
-    };
+  const reasonRaw = searchParamString(sp, "fitReason")?.trim();
+  if (!reasonRaw) return null;
+
+  const reason =
+    reasonRaw.length > RECOMMEND_FIT_REASON_MAX
+      ? `${reasonRaw.slice(0, RECOMMEND_FIT_REASON_MAX).trim()}…`
+      : reasonRaw;
+
+  const matchNoteRaw = searchParamString(sp, "fitNote")?.trim();
+  const matchNote =
+    matchNoteRaw && matchNoteRaw.length > RECOMMEND_FIT_NOTE_MAX
+      ? `${matchNoteRaw.slice(0, RECOMMEND_FIT_NOTE_MAX).trim()}…`
+      : matchNoteRaw || undefined;
+
+  const matchRaw = searchParamString(sp, "match");
+  const matchNum = matchRaw ? Number(matchRaw) : NaN;
+  const match = Number.isFinite(matchNum) ? Math.max(0, Math.min(100, Math.round(matchNum))) : undefined;
+
+  const tierRaw = searchParamString(sp, "fitTier");
+  const matchTier =
+    tierRaw === "best_match" || tierRaw === "good_alternative" || tierRaw === "partial_match"
+      ? tierRaw
+      : undefined;
+
+  return { reason, matchNote, match, matchTier };
+}
+
+function catalogAudienceLine(genres?: string): string {
+  const first = genres?.split(",")[0]?.trim();
+  if (first) return `Often clicks with ${first.toLowerCase()} fans exploring the catalog.`;
+  return "A solid pick to explore before you personalize GamePing with a recommendation search.";
+}
+
+function recommendMatchTierLabel(tier: RecommendFitContext["matchTier"]): string | null {
+  if (tier === "best_match") return "Best match";
+  if (tier === "good_alternative") return "Good alternative";
+  if (tier === "partial_match") return "Partial match";
+  return null;
+}
+
+function PersonalFitSection({ context }: { context: RecommendFitContext | null }) {
+  if (!context) {
+    return (
+      <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-7">
+        <p className="text-sm uppercase tracking-[0.35em] text-purple-300">Personal fit</p>
+        <h2 className="mt-4 text-3xl font-black">We don&apos;t know your taste yet</h2>
+        <p className="mt-5 max-w-2xl text-lg leading-8 text-white/70">
+          GamePing learns from the kinds of games, moods, and experiences you search for. Start a
+          recommendation search to unlock personalized picks and smarter game matches.
+        </p>
+        <p className="mt-4 text-sm text-white/40">
+          Personalized game matching becomes smarter as you search.
+        </p>
+        <div className="mt-8">
+          <Link
+            href="/recommend"
+            className="inline-flex rounded-full bg-white px-8 py-4 text-base font-black text-black shadow-[0_0_24px_rgba(255,255,255,0.1)] transition hover:bg-cyan-100"
+          >
+            Find games for me
+          </Link>
+        </div>
+      </div>
+    );
   }
+
+  const tierLabel = recommendMatchTierLabel(context.matchTier);
+
+  return (
+    <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-7">
+      <p className="text-sm uppercase tracking-[0.35em] text-purple-300">Personal fit</p>
+      <h2 className="mt-4 text-3xl font-black">Why this fits your vibe</h2>
+
+      {(tierLabel || context.match !== undefined) && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {tierLabel ? (
+            <span
+              className={
+                context.matchTier === "best_match"
+                  ? "rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-200"
+                  : context.matchTier === "good_alternative"
+                    ? "rounded-full bg-amber-500/25 px-3 py-1 text-xs font-bold text-amber-200"
+                    : "rounded-full bg-orange-500/25 px-3 py-1 text-xs font-bold text-orange-200"
+              }
+            >
+              {tierLabel}
+            </span>
+          ) : null}
+          {context.match !== undefined ? (
+            <span className="rounded-full bg-purple-500/20 px-3 py-1 text-sm font-bold text-purple-300">
+              {context.match}% match
+            </span>
+          ) : null}
+        </div>
+      )}
+
+      {context.matchNote ? (
+        <p className="mt-4 text-sm leading-6 text-white/50">{context.matchNote}</p>
+      ) : null}
+
+      <p className="mt-5 text-lg leading-8 text-white/70">{context.reason}</p>
+
+      <p className="mt-6 text-xs text-white/35">
+        Based on your latest recommendation search — not a saved taste profile yet.
+      </p>
+    </div>
+  );
 }
 
 function DetailRow({
@@ -358,6 +434,7 @@ export default async function GameDetailPage({
   const title = decodeURIComponent(slug);
   const sp = (await searchParams) ?? {};
   const pricingDebug = sp.debug === "1";
+  const recommendFitContext = parseRecommendFitContext(sp);
 
   const rawg = await getRawgGame(title);
   const gameId = rawg?.id;
@@ -377,7 +454,6 @@ export default async function GameDetailPage({
       debugLabel: `page:/game/${slug}:deals`,
       rawgStores: rawg?.stores,
     }),
-    getGameAiDetails(title),
   ]);
 
   const screenshots =
@@ -391,14 +467,6 @@ export default async function GameDetailPage({
       : { deals: [], lastCheckedAt: null, fromCache: false };
   const deals = dealsLookup.deals;
   const dealsLastCheckedAt = dealsLookup.lastCheckedAt;
-  const aiFallback: GameAiDetails = {
-    whyYouMayLikeIt:
-      "A strong pick if it matches your current gaming mood.",
-    bestFor: "Players looking for a great new game.",
-    pros: ["Strong atmosphere", "Good value", "Worth checking out"],
-  };
-  const ai =
-    settled[4].status === "fulfilled" ? settled[4].value : aiFallback;
 
   const pricingMode = derivePricingUiMode(bestPrice, rawg);
 
@@ -470,6 +538,9 @@ export default async function GameDetailPage({
     "No official description available for this game yet.";
 
   const genres = rawg?.genres?.map((g) => g.name).join(", ");
+  const audienceLine = recommendFitContext?.matchNote
+    ? recommendFitContext.matchNote
+    : catalogAudienceLine(genres);
   const platforms = rawg?.platforms
     ?.slice(0, 8)
     .map((p) => p.platform.name)
@@ -727,9 +798,7 @@ export default async function GameDetailPage({
                     </div>
                   </div>
 
-                  <p className="mt-5 text-sm leading-6 text-white/60">
-                    {ai.bestFor}
-                  </p>
+                  <p className="mt-5 text-sm leading-6 text-white/60">{audienceLine}</p>
                 </div>
               </div>
             </div>
@@ -768,11 +837,9 @@ export default async function GameDetailPage({
 
           <div className="rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 p-6">
             <p className="text-xs uppercase tracking-[0.3em] text-cyan-200">
-              Best for
+              {recommendFitContext ? "From your search" : "Catalog note"}
             </p>
-            <p className="mt-3 text-sm leading-6 text-white/75">
-              {ai.bestFor}
-            </p>
+            <p className="mt-3 text-sm leading-6 text-white/75">{audienceLine}</p>
           </div>
         </div>
       </section>
@@ -821,26 +888,7 @@ export default async function GameDetailPage({
             </p>
           </div>
 
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-7">
-            <p className="text-sm uppercase tracking-[0.35em] text-purple-300">
-              Personal fit
-            </p>
-            <h2 className="mt-4 text-3xl font-black">Why you may like it</h2>
-            <p className="mt-5 text-lg leading-8 text-white/70">
-              {ai.whyYouMayLikeIt}
-            </p>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {ai.pros.map((pro) => (
-                <div
-                  key={pro}
-                  className="rounded-2xl border border-white/10 bg-black/30 p-4"
-                >
-                  <p className="text-sm font-bold text-cyan-300">✓ {pro}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <PersonalFitSection context={recommendFitContext} />
 
           <div
             id="verified-store-deals"

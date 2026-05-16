@@ -29,6 +29,16 @@ type RecommendDebug = {
   finalResponse?: { count?: number; titles?: string[] };
 };
 
+function gameDetailHrefFromRecommend(game: Game): string {
+  const params = new URLSearchParams();
+  params.set("from", "recommend");
+  params.set("fitReason", game.reason);
+  if (game.matchNote?.trim()) params.set("fitNote", game.matchNote.trim());
+  if (Number.isFinite(game.match)) params.set("match", String(game.match));
+  if (game.matchTier) params.set("fitTier", game.matchTier);
+  return `/game/${encodeURIComponent(game.title)}?${params.toString()}`;
+}
+
 function prefersItalianRecommendCopy(prompt: string): boolean {
   const t = prompt.trim();
   if (!t) return false;
@@ -1014,7 +1024,7 @@ export default function RecommendPage() {
 
                       <div className="mt-6 border-t border-white/10 pt-5">
                         <a
-                          href={`/game/${encodeURIComponent(game.title)}`}
+                          href={gameDetailHrefFromRecommend(game)}
                           className="inline-flex rounded-full border border-white/10 px-5 py-3 text-sm font-bold text-white/70 transition hover:border-cyan-400/50 hover:text-cyan-300"
                         >
                           View details
