@@ -951,11 +951,11 @@ export default function RecommendPage() {
                 </div>
               )}
 
-              <section className="mt-6 grid gap-6 md:grid-cols-2">
+              <section className="mt-6 grid items-stretch gap-6 md:grid-cols-2">
                 {games.map((game, index) => (
                   <div
                     key={`${game.title}-${index}`}
-                    className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-[0_0_30px_rgba(168,85,247,0.12)] transition hover:-translate-y-1 hover:border-cyan-400/40"
+                    className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-[0_0_30px_rgba(168,85,247,0.12)] transition hover:-translate-y-1 hover:border-cyan-400/40"
                   >
                     {game.image ? (
                       <div className="h-48 w-full overflow-hidden bg-black/40">
@@ -971,7 +971,7 @@ export default function RecommendPage() {
                       </div>
                     )}
 
-                    <div className="p-6">
+                    <div className="flex flex-1 flex-col p-6">
                       <div className="mb-3">
                         <span className="rounded-full bg-cyan-400 px-3 py-1 text-xs font-black text-black">
                           #{index + 1}
@@ -1016,25 +1016,19 @@ export default function RecommendPage() {
                         </p>
                       ) : null}
 
-                      <div className="mt-4 min-h-[7.5rem] md:min-h-[6.5rem]">
+                      <div className="mt-4 flex flex-1 flex-col">
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">
                           Why it fits
                         </p>
                         <p className="mt-2 text-sm leading-6 text-white/70">{game.reason}</p>
                       </div>
 
-                      <div className="mt-6 flex flex-wrap gap-3 border-t border-white/10 pt-5">
+                      <div className="mt-auto border-t border-white/10 pt-5">
                         <a
                           href={gameDetailHrefFromRecommend(game)}
                           className="inline-flex rounded-full bg-cyan-400/90 px-5 py-3 text-sm font-bold text-black transition hover:bg-cyan-300"
                         >
                           View details
-                        </a>
-                        <a
-                          href={gameDetailHrefFromRecommend(game)}
-                          className="inline-flex rounded-full border border-cyan-400/40 px-5 py-3 text-sm font-bold text-cyan-200 transition hover:border-cyan-300/60 hover:bg-cyan-400/10"
-                        >
-                          Track price
                         </a>
                       </div>
                     </div>

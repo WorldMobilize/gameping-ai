@@ -43,6 +43,56 @@ function formatTrackedPrice(value: number | null): string | null {
   return `Last seen approx. $${value.toFixed(2)}`;
 }
 
+type PendingDelete =
+  | { kind: "search"; id: string }
+  | { kind: "tracked"; id: string };
+
+function DeleteConfirmCard({
+  confirmLabel,
+  onCancel,
+  onConfirm,
+  busy,
+}: {
+  confirmLabel: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+  busy?: boolean;
+}) {
+  return (
+    <div
+      className="w-full max-w-sm rounded-2xl border border-rose-400/30 bg-rose-500/10 p-4"
+      role="alertdialog"
+      aria-labelledby="delete-confirm-title"
+      aria-describedby="delete-confirm-desc"
+    >
+      <p id="delete-confirm-title" className="text-sm font-bold text-white">
+        Delete this item?
+      </p>
+      <p id="delete-confirm-desc" className="mt-1 text-xs leading-relaxed text-white/55">
+        This action can&apos;t be undone.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={busy}
+          className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white/75 transition hover:border-white/30 disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={busy}
+          className="rounded-full border border-red-400/50 bg-red-500/15 px-4 py-2 text-sm font-bold text-red-200 transition hover:bg-red-500/25 disabled:opacity-50"
+        >
+          {confirmLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { showToast } = useToast();
   const [searches, setSearches] = useState<SearchProfile[]>([]);
@@ -53,6 +103,8 @@ export default function Dashboard() {
   const [trackedLoadError, setTrackedLoadError] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [trackedActionId, setTrackedActionId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const loadTrackedGames = useCallback(async () => {
     setTrackedLoadError(false);
@@ -147,9 +199,7 @@ export default function Dashboard() {
   async function deleteSearch(id: string) {
     if (!userId) return;
 
-    const confirmDelete = confirm("Delete this saved search?");
-    if (!confirmDelete) return;
-
+    setDeleteBusy(true);
     const res = await fetch("/api/delete-search", {
       method: "POST",
       credentials: "include",
@@ -161,12 +211,14 @@ export default function Dashboard() {
 
     if (res.ok) {
       setSearches((prev) => prev.filter((search) => search.id !== id));
+      setPendingDelete(null);
     } else {
       showToast({
         variant: "error",
         message: "Couldn’t delete that saved search. Try again.",
       });
     }
+    setDeleteBusy(false);
   }
 
   async function setTrackedGameActive(id: string, isActive: boolean) {
@@ -199,13 +251,9 @@ export default function Dashboard() {
     }
   }
 
-  async function deleteTrackedGame(id: string, title: string) {
-    const ok = confirm(
-      `Stop tracking and remove “${title}” from your dashboard? This deletes the tracking row and cannot be undone.`
-    );
-    if (!ok) return;
-
+  async function deleteTrackedGame(id: string) {
     setTrackedActionId(id);
+    setDeleteBusy(true);
     try {
       const res = await fetch("/api/delete-tracked-game", {
         method: "POST",
@@ -224,9 +272,11 @@ export default function Dashboard() {
       }
 
       setTrackedGames((prev) => prev.filter((row) => row.id !== id));
+      setPendingDelete(null);
       showToast({ variant: "success", message: "Tracking removed." });
     } finally {
       setTrackedActionId(null);
+      setDeleteBusy(false);
     }
   }
 
@@ -331,15 +381,18 @@ export default function Dashboard() {
             </div>
           )}
 
-          <section className="mt-14" aria-labelledby="dashboard-saved-runs-heading">
-            <div className="mb-6">
+          <section
+            className="mt-14 rounded-3xl border border-white/10 bg-white/[0.02] p-6 md:p-8"
+            aria-labelledby="dashboard-saved-runs-heading"
+          >
+            <div className="mb-6 border-b border-white/10 pb-5">
               <h2
                 id="dashboard-saved-runs-heading"
                 className="text-2xl font-black md:text-3xl"
               >
                 Saved recommendation runs
               </h2>
-              <p className="mt-2 text-sm text-white/50">
+              <p className="mt-2 text-sm leading-relaxed text-white/50">
                 Saved searches you can revisit later.
               </p>
             </div>
@@ -359,7 +412,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          {!loading && !loadError && searches.length > 0 && (
+            {!loading && !loadError && searches.length > 0 && (
             <div className="grid gap-6">
               {searches.map((search) => (
                 <div
@@ -402,12 +455,25 @@ export default function Dashboard() {
                         {new Date(search.created_at).toLocaleDateString()}
                       </p>
 
-                      <button
-                        onClick={() => deleteSearch(search.id)}
-                        className="rounded-full border border-red-400/30 px-4 py-2 text-sm font-bold text-red-300 transition hover:bg-red-400/10"
-                      >
-                        Delete
-                      </button>
+                      {pendingDelete?.kind === "search" &&
+                      pendingDelete.id === search.id ? (
+                        <DeleteConfirmCard
+                          confirmLabel="Delete saved run"
+                          busy={deleteBusy}
+                          onCancel={() => setPendingDelete(null)}
+                          onConfirm={() => void deleteSearch(search.id)}
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPendingDelete({ kind: "search", id: search.id })
+                          }
+                          className="rounded-full border border-red-400/30 px-4 py-2 text-sm font-bold text-red-300 transition hover:bg-red-400/10"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -470,15 +536,18 @@ export default function Dashboard() {
           )}
           </section>
 
-          <section className="mt-14" aria-labelledby="dashboard-tracked-games-heading">
-            <div className="mb-6">
+          <section
+            className="mt-10 rounded-3xl border border-cyan-500/20 bg-cyan-500/[0.03] p-6 md:p-8"
+            aria-labelledby="dashboard-tracked-games-heading"
+          >
+            <div className="mb-6 border-b border-white/10 pb-5">
               <h2
                 id="dashboard-tracked-games-heading"
                 className="text-2xl font-black md:text-3xl"
               >
                 Tracked games
               </h2>
-              <p className="mt-2 text-sm text-white/50">
+              <p className="mt-2 text-sm leading-relaxed text-white/50">
                 Games you&apos;re monitoring for price drops.
               </p>
             </div>
@@ -529,12 +598,14 @@ export default function Dashboard() {
                       ? Number(row.last_known_price)
                       : null
                   );
-                  const busy = trackedActionId === row.id;
+                  const busy = trackedActionId === row.id || deleteBusy;
+                  const confirmingDelete =
+                    pendingDelete?.kind === "tracked" && pendingDelete.id === row.id;
 
                   return (
                     <div
                       key={row.id}
-                      className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-5 md:flex-row md:items-center md:justify-between"
+                      className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/20 p-5 md:flex-row md:items-center md:justify-between"
                     >
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -567,34 +638,47 @@ export default function Dashboard() {
                         ) : null}
                       </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        {row.is_active ? (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void setTrackedGameActive(row.id, false)}
-                            className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white/75 transition hover:border-white/30 disabled:opacity-50"
-                          >
-                            Pause alerts
-                          </button>
+                      <div className="flex w-full flex-col items-stretch gap-2 md:w-auto md:items-end">
+                        {confirmingDelete ? (
+                          <DeleteConfirmCard
+                            confirmLabel="Delete tracking"
+                            busy={deleteBusy}
+                            onCancel={() => setPendingDelete(null)}
+                            onConfirm={() => void deleteTrackedGame(row.id)}
+                          />
                         ) : (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void setTrackedGameActive(row.id, true)}
-                            className="rounded-full border border-cyan-400/40 px-4 py-2 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50"
-                          >
-                            Resume alerts
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            {row.is_active ? (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void setTrackedGameActive(row.id, false)}
+                                className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white/75 transition hover:border-white/30 disabled:opacity-50"
+                              >
+                                Pause alerts
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={busy}
+                                onClick={() => void setTrackedGameActive(row.id, true)}
+                                className="rounded-full border border-cyan-400/40 px-4 py-2 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50"
+                              >
+                                Resume alerts
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() =>
+                                setPendingDelete({ kind: "tracked", id: row.id })
+                              }
+                              className="rounded-full border border-red-400/30 px-4 py-2 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-50"
+                            >
+                              Delete tracking
+                            </button>
+                          </div>
                         )}
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void deleteTrackedGame(row.id, row.title)}
-                          className="rounded-full border border-red-400/30 px-4 py-2 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-50"
-                        >
-                          Delete tracking
-                        </button>
                       </div>
                     </div>
                   );
