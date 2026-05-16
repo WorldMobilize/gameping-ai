@@ -9,19 +9,64 @@ export function verifiedDealStoreIdentity(deal: {
   return "unknown";
 }
 
+/** Canonical URL for listing identity (Steam app id, CheapShark deal id, etc.). */
+export function normalizeDealUrlForListingIdentity(raw: string | undefined): string {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return "";
+
+  try {
+    const u = new URL(trimmed);
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+
+    if (host === "store.steampowered.com" || host.endsWith(".steampowered.com")) {
+      const appMatch = u.pathname.match(/\/app\/(\d+)/i);
+      if (appMatch?.[1]) return `steam:app:${appMatch[1]}`;
+    }
+
+    if (host === "cheapshark.com" || host.endsWith(".cheapshark.com")) {
+      const dealId = u.searchParams.get("dealid") ?? u.searchParams.get("dealID");
+      if (dealId) return `cheapshark:deal:${dealId}`;
+    }
+
+    const path = u.pathname.replace(/\/+$/, "") || "/";
+    return `${host}${path}`;
+  } catch {
+    return trimmed.toLowerCase();
+  }
+}
+
+/** Listing URL slot for dedupe (Steam redirect vs store URL → same merchant listing). */
+export function verifiedDealListingUrlSlot(deal: VerifiedDealRow): string {
+  if (verifiedDealMerchantIdentity(deal) === "steam") {
+    return "steam:listing";
+  }
+  return normalizeDealUrlForListingIdentity(deal.deal.url);
+}
+
 /**
- * Dedupe key for display rows: only collapse true duplicates (same provider + store + listing + price + URL).
- * Different stores/providers stay separate even when title and sale price match.
+ * Same real store listing across providers (merchant + title + price + canonical URL).
+ * Provider is intentionally excluded so Steam API + CheapShark Steam rows collapse.
  */
-export function verifiedDealDisplayDedupeKey(deal: VerifiedDealRow): string {
-  const url = (deal.deal.url ?? "").trim().toLowerCase();
+export function verifiedDealListingIdentityKey(deal: VerifiedDealRow): string {
   return [
-    deal.provider,
-    verifiedDealStoreIdentity(deal),
+    verifiedDealMerchantIdentity(deal),
     deal.matchedTitle.trim().toLowerCase(),
     String(deal.salePrice).trim(),
-    url,
+    verifiedDealListingUrlSlot(deal),
   ].join("|");
+}
+
+/** @deprecated alias — use verifiedDealListingIdentityKey */
+export function verifiedDealDisplayDedupeKey(deal: VerifiedDealRow): string {
+  return verifiedDealListingIdentityKey(deal);
+}
+
+/** Higher = preferred row when two providers resolve to the same listing. */
+export function verifiedOfferRowKeepPriority(deal: VerifiedDealRow): number {
+  if (deal.provider === "itad") return 3;
+  if (deal.provider === "steam") return 2;
+  if (deal.provider === "cheapshark") return 1;
+  return 0;
 }
 
 /** Normalized merchant for primary-vs-other exclusion (CheapShark Steam id "1" = steam). */
@@ -37,30 +82,12 @@ export function verifiedDealMerchantIdentity(deal: VerifiedDealRow): string {
   return id || "unknown";
 }
 
-/** True when row is the same listing as primary for UI (exact key or same merchant+title+price). */
+/** True when row is the same listing as primary for UI (merchant + title + price + URL). */
 export function isSameVerifiedOfferAsPrimary(
   row: VerifiedDealRow,
   primary: VerifiedDealRow
 ): boolean {
-  if (verifiedDealDisplayDedupeKey(row) === verifiedDealDisplayDedupeKey(primary)) {
-    return true;
-  }
-
-  const rowPrice = Number(String(row.salePrice).replace(/[^0-9.]/g, ""));
-  const primaryPrice = Number(String(primary.salePrice).replace(/[^0-9.]/g, ""));
-  if (
-    !Number.isFinite(rowPrice) ||
-    !Number.isFinite(primaryPrice) ||
-    rowPrice !== primaryPrice
-  ) {
-    return false;
-  }
-
-  if (row.matchedTitle.trim().toLowerCase() !== primary.matchedTitle.trim().toLowerCase()) {
-    return false;
-  }
-
-  return verifiedDealMerchantIdentity(row) === verifiedDealMerchantIdentity(primary);
+  return verifiedDealListingIdentityKey(row) === verifiedDealListingIdentityKey(primary);
 }
 
 export type VerifiedDealRow = {

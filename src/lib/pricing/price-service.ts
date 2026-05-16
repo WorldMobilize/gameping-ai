@@ -30,7 +30,9 @@ import {
 import {
   isSameVerifiedOfferAsPrimary,
   verifiedDealDisplayDedupeKey,
+  verifiedDealListingIdentityKey,
   verifiedDealStoreIdentity,
+  verifiedOfferRowKeepPriority,
   type VerifiedDealRow,
 } from "@/lib/pricing/verified-deal-row";
 
@@ -496,7 +498,10 @@ export async function lookupBestPrice(params: {
 export type { DealRow, VerifiedDealRow } from "@/lib/pricing/verified-deal-row";
 export {
   verifiedDealDisplayDedupeKey,
+  verifiedDealListingIdentityKey,
+  verifiedDealListingUrlSlot,
   verifiedDealStoreIdentity,
+  verifiedOfferRowKeepPriority,
 } from "@/lib/pricing/verified-deal-row";
 
 /** Whether a gated best-price row is from a different store than any verified deal row. */
@@ -611,12 +616,20 @@ function bestPriceResultFromItad(itad: ItadBestPrice): BestPriceResult {
 function pushTrustedCandidate(
   candidates: VerifiedDealRow[],
   row: VerifiedDealRow | null,
-  seenKeys: Set<string>
+  listingIndex: Map<string, number>
 ) {
   if (!row) return;
-  const key = verifiedDealDisplayDedupeKey(row);
-  if (seenKeys.has(key)) return;
-  seenKeys.add(key);
+  const key = verifiedDealListingIdentityKey(row);
+  const existingIdx = listingIndex.get(key);
+  if (existingIdx !== undefined) {
+    const existing = candidates[existingIdx];
+    if (verifiedOfferRowKeepPriority(row) <= verifiedOfferRowKeepPriority(existing)) {
+      return;
+    }
+    candidates[existingIdx] = row;
+    return;
+  }
+  listingIndex.set(key, candidates.length);
   candidates.push(row);
 }
 
@@ -641,16 +654,16 @@ export async function buildUnifiedTrustedVerifiedOffers(params: {
   );
 
   const candidates: VerifiedDealRow[] = [];
-  const seenCandidateKeys = new Set<string>();
+  const listingIndex = new Map<string, number>();
 
   for (const row of trustedFromDeals) {
-    pushTrustedCandidate(candidates, row, seenCandidateKeys);
+    pushTrustedCandidate(candidates, row, listingIndex);
   }
 
   const fromBestPrice = params.bestPrice
     ? verifiedDealRowFromTrustedBestPrice(requestedTitle, params.bestPrice)
     : null;
-  pushTrustedCandidate(candidates, fromBestPrice, seenCandidateKeys);
+  pushTrustedCandidate(candidates, fromBestPrice, listingIndex);
 
   let fromItadSupplement: VerifiedDealRow | null = null;
   if (process.env.ITAD_API_KEY) {
@@ -670,7 +683,7 @@ export async function buildUnifiedTrustedVerifiedOffers(params: {
       );
       if (gated) {
         fromItadSupplement = verifiedDealRowFromTrustedBestPrice(requestedTitle, gated);
-        pushTrustedCandidate(candidates, fromItadSupplement, seenCandidateKeys);
+        pushTrustedCandidate(candidates, fromItadSupplement, listingIndex);
       } else if (detailDebug) {
         console.log("[pricing:unified-trusted-offers]", {
           requestedTitle,
@@ -699,10 +712,11 @@ export async function buildUnifiedTrustedVerifiedOffers(params: {
         store: row.store.name ?? row.store.id,
         salePrice: row.salePrice,
         url: row.deal.url ?? null,
+        listingKey: verifiedDealListingIdentityKey(row),
         dedupeKey: verifiedDealDisplayDedupeKey(row),
       })),
       mergedCount: merged.length,
-      primaryKey: primaryDeal ? verifiedDealDisplayDedupeKey(primaryDeal) : null,
+      primaryKey: primaryDeal ? verifiedDealListingIdentityKey(primaryDeal) : null,
       primary: primaryDeal
         ? {
             provider: primaryDeal.provider,
@@ -725,42 +739,45 @@ export async function buildUnifiedTrustedVerifiedOffers(params: {
   };
 }
 
-/** Dedupe true duplicates (same provider, store, title, price, and deal URL). */
+/** Dedupe same merchant listing across providers (merchant + title + price + canonical URL). */
 export function dedupeVerifiedDealsForDisplay(
   deals: VerifiedDealRow[],
   opts?: { debug?: boolean; requestedTitle?: string }
 ): VerifiedDealRow[] {
-  const seen = new Set<string>();
-  const out: VerifiedDealRow[] = [];
+  const keptByListing = new Map<string, VerifiedDealRow>();
   for (const d of deals) {
-    const k = verifiedDealDisplayDedupeKey(d);
-    if (seen.has(k)) {
-      if (shouldLogPricingDetailDebug(opts?.debug)) {
-        const g = d.gate;
-        const rt = opts?.requestedTitle ?? d.requestedTitle;
-        console.log("[pricing:aggregate-row]", {
-          requestedTitle: rt,
-          provider: d.provider,
-          rawTitle: d.matchedTitle,
-          matchedTitle: d.matchedTitle,
-          store: d.store.name ?? d.store.id,
-          salePrice: d.salePrice,
-          normalPrice: d.normalPrice,
-          score: g.score,
-          accepted: false,
-          rejected: true,
-          gateReason: g.reason,
-          explicitRejection: pricingExplicitRejectionLabel(g, { deduped: true }),
-          hasUrl: Boolean(d.deal.url),
-          deduped: true,
-        });
-      }
+    const k = verifiedDealListingIdentityKey(d);
+    const existing = keptByListing.get(k);
+    if (!existing) {
+      keptByListing.set(k, d);
       continue;
     }
-    seen.add(k);
-    out.push(d);
+    if (verifiedOfferRowKeepPriority(d) > verifiedOfferRowKeepPriority(existing)) {
+      keptByListing.set(k, d);
+    }
+    if (shouldLogPricingDetailDebug(opts?.debug)) {
+      const g = d.gate;
+      const rt = opts?.requestedTitle ?? d.requestedTitle;
+      console.log("[pricing:aggregate-row]", {
+        requestedTitle: rt,
+        provider: d.provider,
+        rawTitle: d.matchedTitle,
+        matchedTitle: d.matchedTitle,
+        store: d.store.name ?? d.store.id,
+        salePrice: d.salePrice,
+        normalPrice: d.normalPrice,
+        score: g.score,
+        accepted: false,
+        rejected: true,
+        gateReason: g.reason,
+        explicitRejection: pricingExplicitRejectionLabel(g, { deduped: true }),
+        hasUrl: Boolean(d.deal.url),
+        deduped: true,
+        listingKey: k,
+      });
+    }
   }
-  return out;
+  return [...keptByListing.values()];
 }
 
 /** Ascending sale price; invalid prices sort last. */
