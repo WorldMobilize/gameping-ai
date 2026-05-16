@@ -218,6 +218,65 @@ export async function cheapSharkLookupDealsByTitle(params: {
   };
 }
 
+type CheapSharkGameLookup = {
+  steamAppID?: string;
+  external?: string;
+};
+
+const CHEAPSHARK_STEAM_APP_ID_MATCH_MIN = 0.68;
+
+/** Trusted Steam app id from CheapShark /games when the listing title matches the request. */
+export async function cheapSharkLookupSteamAppId(params: {
+  title: string;
+  debug?: boolean;
+  debugLabel?: string;
+}): Promise<string | null> {
+  const requestedTitle = params.title.trim();
+  if (!requestedTitle) return null;
+
+  const url = `https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(
+    requestedTitle
+  )}&limit=5`;
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+
+    const games = (await res.json()) as unknown;
+    if (!Array.isArray(games) || !games.length) return null;
+
+    let best: { steamAppID: string; score: number } | null = null;
+
+    for (const raw of games) {
+      if (!raw || typeof raw !== "object") continue;
+      const game = raw as CheapSharkGameLookup;
+      const external =
+        typeof game.external === "string" ? game.external.trim() : "";
+      const steamAppID =
+        typeof game.steamAppID === "string" ? game.steamAppID.trim() : "";
+      if (!external || !steamAppID || !/^\d+$/.test(steamAppID)) continue;
+
+      const score = titleMatchScore(requestedTitle, external);
+      if (score < CHEAPSHARK_STEAM_APP_ID_MATCH_MIN) continue;
+      if (!best || score > best.score) {
+        best = { steamAppID, score };
+      }
+    }
+
+    if (shouldLogPricingDetailDebug(params.debug)) {
+      console.log("[pricing:cheapshark]", params.debugLabel ?? requestedTitle, {
+        steamAppIdLookup: true,
+        found: Boolean(best?.steamAppID),
+        steamAppID: best?.steamAppID ?? null,
+      });
+    }
+
+    return best?.steamAppID ?? null;
+  } catch {
+    return null;
+  }
+}
+
 const STORES_MEMO_TTL_MS = 60_000;
 let storesMemo: { stores: CheapSharkStoreInfo[]; fetchedAt: number } | null = null;
 let storesInflight: Promise<CheapSharkStoreInfo[]> | null = null;

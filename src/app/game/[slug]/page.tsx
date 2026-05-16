@@ -30,6 +30,7 @@ type RawgGame = {
   released?: string;
   genres?: { name: string }[];
   platforms?: { platform: { name: string } }[];
+  stores?: { store?: { slug?: string; name?: string }; url?: string }[];
   developers?: { name: string }[];
   publishers?: { name: string }[];
   esrb_rating?: { name: string };
@@ -373,6 +374,7 @@ export default async function GameDetailPage({
       limit: 5,
       debug: pricingDebug,
       debugLabel: `page:/game/${slug}:deals`,
+      rawgStores: rawg?.stores,
     }),
     getGameAiDetails(title),
   ]);

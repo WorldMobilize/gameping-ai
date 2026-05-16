@@ -2,11 +2,16 @@ import {
   cheapSharkGetStores,
   cheapSharkLookupBestPrice,
   cheapSharkLookupDealsByTitle,
+  cheapSharkLookupSteamAppId,
   type CheapSharkBestPrice,
   type CheapSharkDeal,
   type CheapSharkStoreInfo,
 } from "@/lib/pricing/providers/cheapshark";
 import { itadLookupBestPrice } from "@/lib/pricing/providers/isthereanydeal";
+import {
+  hasSteamStoreDealRow,
+  steamLookupVerifiedDealRow,
+} from "@/lib/pricing/providers/steam";
 import {
   evaluatePricingGate,
   pricingExplicitRejectionLabel,
@@ -569,7 +574,7 @@ function revalidateVerifiedDealsForDisplay(
       requestedTitle,
       matchedTitle: row.matchedTitle,
       dealUrl,
-      provider: "cheapshark",
+      provider: row.provider,
     });
     if (!gate.acceptedPrice) continue;
 
@@ -704,15 +709,76 @@ export type LookupDealsResult = {
   fromCache: boolean;
 };
 
+function shouldTrySteamVerifiedDealFallback(params: {
+  rateLimited: boolean;
+  dealCount: number;
+  limit: number;
+}): boolean {
+  if (params.rateLimited) return true;
+  if (params.dealCount === 0) return true;
+  return params.dealCount < params.limit;
+}
+
+function resolveDealQuotesCacheProvider(deals: VerifiedDealRow[]): string {
+  const providers = new Set(deals.map((d) => d.provider));
+  if (providers.size > 1) return "mixed";
+  return deals[0]?.provider ?? "cheapshark";
+}
+
+async function appendSteamVerifiedDealFallback(params: {
+  requestedTitle: string;
+  deals: VerifiedDealRow[];
+  limit: number;
+  rateLimited: boolean;
+  debug?: boolean;
+  debugLabel?: string;
+  rawgStores?: unknown;
+  steamAppIdHint?: number | string | null;
+  cheapsharkSteamAppId?: string | null;
+}): Promise<VerifiedDealRow[]> {
+  if (hasSteamStoreDealRow(params.deals)) return params.deals;
+  if (
+    !shouldTrySteamVerifiedDealFallback({
+      rateLimited: params.rateLimited,
+      dealCount: params.deals.length,
+      limit: params.limit,
+    })
+  ) {
+    return params.deals;
+  }
+
+  const steamRow = await steamLookupVerifiedDealRow({
+    title: params.requestedTitle,
+    cheapsharkSteamAppId: params.cheapsharkSteamAppId,
+    rawgStores: params.rawgStores,
+    steamAppIdHint: params.steamAppIdHint,
+    debug: params.debug,
+    debugLabel: params.debugLabel ? `${params.debugLabel}:steam` : undefined,
+  });
+
+  if (!steamRow) return params.deals;
+  return [...params.deals, steamRow];
+}
+
 export async function lookupDeals(params: {
   title: string;
   limit?: number;
   debug?: boolean;
   debugLabel?: string;
+  /** RAWG game detail `stores` when available (Steam slug / URL only). */
+  rawgStores?: unknown;
+  /** Optional trusted Steam app id (e.g. from upstream mapping). */
+  steamAppIdHint?: number | string | null;
 }): Promise<LookupDealsResult> {
   const requestedTitle = params.title.trim();
   const detailDebug = shouldLogPricingDetailDebug(params.debug);
   const limit = params.limit ?? 8;
+
+  const cheapsharkSteamAppIdPromise = cheapSharkLookupSteamAppId({
+    title: params.title,
+    debug: params.debug,
+    debugLabel: params.debugLabel ? `${params.debugLabel}:steamAppId` : undefined,
+  });
 
   const freshCache = await getCachedDealQuotes(params.title);
   if (freshCache.fresh && freshCache.deals.length) {
@@ -737,20 +803,38 @@ export async function lookupDeals(params: {
     }
   }
 
-  const cheapFetch = await cheapSharkLookupDealsByTitle({
-    title: params.title,
-    limit,
-    debug: params.debug,
-    debugLabel: params.debugLabel,
-  });
+  const [cheapFetch, cheapsharkSteamAppId] = await Promise.all([
+    cheapSharkLookupDealsByTitle({
+      title: params.title,
+      limit,
+      debug: params.debug,
+      debugLabel: params.debugLabel,
+    }),
+    cheapsharkSteamAppIdPromise,
+  ]);
 
   const providerFailed = cheapFetch.rateLimited || !cheapFetch.deals.length;
 
   if (providerFailed) {
     const stale = await getStaleDealQuotes(params.title);
     if (stale.stale && stale.deals.length) {
-      const deals = revalidateVerifiedDealsForDisplay(requestedTitle, stale.deals, {
+      const revalidated = revalidateVerifiedDealsForDisplay(requestedTitle, stale.deals, {
         debug: params.debug,
+      });
+      const withSteam = await appendSteamVerifiedDealFallback({
+        requestedTitle,
+        deals: revalidated,
+        limit,
+        rateLimited: cheapFetch.rateLimited,
+        debug: params.debug,
+        debugLabel: params.debugLabel,
+        rawgStores: params.rawgStores,
+        steamAppIdHint: params.steamAppIdHint,
+        cheapsharkSteamAppId,
+      });
+      const deals = prepareVerifiedDealsForDisplay(withSteam, {
+        debug: params.debug,
+        requestedTitle,
       }).slice(0, limit);
 
       if (detailDebug) {
@@ -758,6 +842,7 @@ export async function lookupDeals(params: {
           requestedTitle,
           cacheSource: "stale",
           rateLimited: cheapFetch.rateLimited,
+          steamFallbackAppended: deals.length > revalidated.length,
           finalDisplayCount: deals.length,
         });
       }
@@ -766,6 +851,52 @@ export async function lookupDeals(params: {
         deals,
         lastCheckedAt: stale.updatedAt,
         fromCache: true,
+      };
+    }
+
+    const steamOnly = await appendSteamVerifiedDealFallback({
+      requestedTitle,
+      deals: [],
+      limit,
+      rateLimited: cheapFetch.rateLimited,
+      debug: params.debug,
+      debugLabel: params.debugLabel,
+      rawgStores: params.rawgStores,
+      steamAppIdHint: params.steamAppIdHint,
+      cheapsharkSteamAppId,
+    });
+    const steamFinal = prepareVerifiedDealsForDisplay(steamOnly, {
+      debug: params.debug,
+      requestedTitle,
+    }).slice(0, limit);
+
+    if (steamFinal.length) {
+      const nowIso = new Date().toISOString();
+      void setCachedDealQuotes({
+        title: params.title,
+        deals: steamFinal,
+        provider: resolveDealQuotesCacheProvider(steamFinal),
+        meta: {
+          source: "live",
+          provider: "steam",
+          rateLimited: cheapFetch.rateLimited,
+        },
+      });
+
+      if (detailDebug) {
+        console.log("[pricing:deals-aggregate-summary]", {
+          requestedTitle,
+          providerReturnedCount: 0,
+          rateLimited: cheapFetch.rateLimited,
+          steamFallbackOnly: true,
+          finalDisplayCount: steamFinal.length,
+        });
+      }
+
+      return {
+        deals: steamFinal,
+        lastCheckedAt: nowIso,
+        fromCache: false,
       };
     }
 
@@ -794,7 +925,19 @@ export async function lookupDeals(params: {
     params.debug
   );
 
-  const finalDeals = prepareVerifiedDealsForDisplay(out, {
+  const withSteam = await appendSteamVerifiedDealFallback({
+    requestedTitle,
+    deals: out,
+    limit,
+    rateLimited: cheapFetch.rateLimited,
+    debug: params.debug,
+    debugLabel: params.debugLabel,
+    rawgStores: params.rawgStores,
+    steamAppIdHint: params.steamAppIdHint,
+    cheapsharkSteamAppId,
+  });
+
+  const finalDeals = prepareVerifiedDealsForDisplay(withSteam, {
     debug: params.debug,
     requestedTitle,
   }).slice(0, limit);
@@ -804,10 +947,10 @@ export async function lookupDeals(params: {
     void setCachedDealQuotes({
       title: params.title,
       deals: finalDeals,
-      provider: "cheapshark",
+      provider: resolveDealQuotesCacheProvider(finalDeals),
       meta: {
         source: "live",
-        provider: "cheapshark",
+        provider: resolveDealQuotesCacheProvider(finalDeals),
         rateLimited: false,
       },
     });
@@ -818,8 +961,9 @@ export async function lookupDeals(params: {
       requestedTitle,
       providerReturnedCount: cheapFetch.deals.length,
       acceptedAfterGateCount: out.length,
-      trustedUrlCount: out.filter((r) => r.gate.trustedUrl).length,
-      dedupedCount: out.length - finalDeals.length,
+      steamFallbackAppended: withSteam.length > out.length,
+      trustedUrlCount: withSteam.filter((r) => r.gate.trustedUrl).length,
+      dedupedCount: withSteam.length - finalDeals.length,
       finalDisplayCount: finalDeals.length,
       rejectedInvalidOrGate: rejectedDeals,
       cacheSource: "live",

@@ -89,6 +89,14 @@ function isCheapSharkCompatibleDealShape(dealId: string, dealUrl?: string): bool
   return false
 }
 
+function isSteamCompatibleDealShape(dealId: string, dealUrl?: string): boolean {
+  const url = (dealUrl ?? "").trim().toLowerCase()
+  return (
+    /^steam-\d+$/.test(dealId) &&
+    url.includes("store.steampowered.com/app/")
+  )
+}
+
 /**
  * Resolve provider for cached rows. Never returns null — incompatible rows should be skipped by caller.
  */
@@ -96,10 +104,14 @@ function resolveCachedVerifiedDealProvider(
   item: Record<string, unknown>,
   dealId: string,
   dealUrl?: string
-): "cheapshark" | null {
+): "cheapshark" | "steam" | null {
   const raw = item.provider
   if (raw === "itad" || raw === "mixed") return null
+  if (raw === "steam") {
+    return isSteamCompatibleDealShape(dealId, dealUrl) ? "steam" : null
+  }
   if (raw === "cheapshark") return "cheapshark"
+  if (isSteamCompatibleDealShape(dealId, dealUrl)) return "steam"
   if (isCheapSharkCompatibleDealShape(dealId, dealUrl)) return "cheapshark"
   return null
 }

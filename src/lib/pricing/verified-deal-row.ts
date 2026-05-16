@@ -1,7 +1,7 @@
 export type VerifiedDealRow = {
   requestedTitle: string;
   matchedTitle: string;
-  provider: "cheapshark";
+  provider: "cheapshark" | "steam";
   currency: string;
   store: { id: string; name?: string };
   salePrice: string;
