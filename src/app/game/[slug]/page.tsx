@@ -61,6 +61,34 @@ type PricingUiMode =
   | "likely_console_or_unsupported"
   | "unavailable";
 
+const NO_VERIFIED_DEAL_TITLE = "No verified deal yet";
+const NO_VERIFIED_DEAL_BODY =
+  "We couldn't confirm a reliable current price from our supported stores.";
+const NO_VERIFIED_DEAL_HELPER =
+  "Check the store page or track this game to catch future drops.";
+
+function PricingUnavailableState({
+  variant = "default",
+}: {
+  variant?: "default" | "console";
+}) {
+  return (
+    <>
+      <p className="text-lg font-semibold leading-snug text-white/75">
+        {NO_VERIFIED_DEAL_TITLE}
+      </p>
+      <p className="text-xs leading-relaxed text-white/50">
+        {variant === "console"
+          ? "Verified PC store pricing may not be available for this platform."
+          : NO_VERIFIED_DEAL_BODY}
+      </p>
+      {variant === "default" ? (
+        <p className="text-xs leading-relaxed text-white/40">{NO_VERIFIED_DEAL_HELPER}</p>
+      ) : null}
+    </>
+  );
+}
+
 function parsePriceAmount(price: string | undefined): number | null {
   if (!price) return null;
   if (/^free$/i.test(price.trim())) return 0;
@@ -460,6 +488,19 @@ export default async function GameDetailPage({
     return Number.isFinite(n) && n > 0 ? n : null;
   })();
 
+  const sidebarShowsPriceFigure =
+    pricingMode === "free_to_play" ||
+    (hasTrustedVerifiedBuy && primaryDeal) ||
+    (showEstimatedPriceNoStoreLinks && bestPrice) ||
+    (pricingMode === "verified_price" &&
+      Boolean(bestPrice?.price && bestPrice.price !== "N/A"));
+
+  const sidebarIsGenericUnavailable =
+    !sidebarShowsPriceFigure &&
+    pricingMode !== "verified_price" &&
+    !hasVerifiedStoreListings &&
+    pricingMode !== "likely_console_or_unsupported";
+
   const heroImage = rawg?.background_image || screenshots[0]?.image;
   const trailer = movies[0]?.data?.max || movies[0]?.data?.["480"];
   const trailerPoster = movies[0]?.preview || heroImage;
@@ -594,7 +635,7 @@ export default async function GameDetailPage({
                   </span>
                 ) : (
                   <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/55">
-                    No verified pricing available
+                    No verified deal yet
                   </span>
                 )}
 
@@ -675,19 +716,9 @@ export default async function GameDetailPage({
                             <p className="text-xs text-white/40">{AGGREGATOR_PRICE_DISCLAIMER}</p>
                           </>
                         ) : pricingMode === "likely_console_or_unsupported" ? (
-                          <>
-                            <p className="text-2xl font-black text-cyan-300">Pricing unavailable</p>
-                            <p className="text-xs leading-relaxed text-white/45">
-                              Verified PC store pricing may not be available for this platform.
-                            </p>
-                          </>
+                          <PricingUnavailableState variant="console" />
                         ) : (
-                          <>
-                            <p className="text-2xl font-black text-cyan-300">Pricing unavailable</p>
-                            <p className="text-xs leading-relaxed text-white/45">
-                              We could not verify pricing from supported deal providers.
-                            </p>
-                          </>
+                          <PricingUnavailableState />
                         )}
                       </div>
                     </div>
@@ -925,7 +956,7 @@ export default async function GameDetailPage({
                         ? "No active verified deals right now."
                         : pricingMode === "likely_console_or_unsupported"
                           ? "Verified PC store deals may not be listed for this platform."
-                          : "We could not verify store rows from supported deal providers for this title."}
+                          : NO_VERIFIED_DEAL_BODY}
                     </p>
                   )}
               </div>
@@ -954,11 +985,27 @@ export default async function GameDetailPage({
             </div>
           </div>
 
-          <div className="sticky top-6 rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 p-7">
-            <p className="text-sm uppercase tracking-[0.35em] text-cyan-200">
+          <div
+            className={`sticky top-6 rounded-[2rem] border p-7 ${
+              sidebarShowsPriceFigure
+                ? "border-cyan-400/20 bg-cyan-400/10"
+                : "border-white/10 bg-white/[0.04]"
+            }`}
+          >
+            <p
+              className={`text-sm uppercase tracking-[0.35em] ${
+                sidebarShowsPriceFigure ? "text-cyan-200" : "text-white/40"
+              }`}
+            >
               {hasTrustedVerifiedBuy ? "Best verified store price" : "Estimated aggregator price"}
             </p>
-            <h2 className="mt-4 text-4xl font-black">
+            <h2
+              className={`mt-4 ${
+                sidebarShowsPriceFigure
+                  ? "text-4xl font-black"
+                  : "text-xl font-semibold text-white/75"
+              }`}
+            >
               {pricingMode === "free_to_play"
                 ? "Free to play"
                 : hasTrustedVerifiedBuy && primaryDeal
@@ -975,10 +1022,14 @@ export default async function GameDetailPage({
                           price: bestPrice.price,
                           currency: bestPrice.currency,
                         })
-                      : "Pricing unavailable"}
+                      : NO_VERIFIED_DEAL_TITLE}
             </h2>
             <p className="mt-2 text-xs text-white/45">{AGGREGATOR_PRICE_DISCLAIMER}</p>
-            <p className="mt-4 text-white/65">
+            <p
+              className={`mt-4 leading-relaxed ${
+                sidebarShowsPriceFigure ? "text-white/65" : "text-sm text-white/50"
+              }`}
+            >
               {pricingMode === "free_to_play"
                 ? "This game is listed as free-to-play where supported."
                 : hasTrustedVerifiedBuy && primaryDeal
@@ -995,8 +1046,11 @@ export default async function GameDetailPage({
                           ? "Aggregator estimate unavailable; verified prices are listed in store comparison."
                           : pricingMode === "likely_console_or_unsupported"
                             ? "Verified PC store pricing may not be available for this platform."
-                            : "We could not verify pricing from supported deal providers."}
+                            : NO_VERIFIED_DEAL_BODY}
             </p>
+            {sidebarIsGenericUnavailable ? (
+              <p className="mt-2 text-xs leading-relaxed text-white/40">{NO_VERIFIED_DEAL_HELPER}</p>
+            ) : null}
 
             <TrackPriceButton
               title={rawg?.name || title}
