@@ -24,7 +24,11 @@ import {
   setCachedDealQuotes,
   setCachedPriceQuote,
 } from "@/lib/pricing/price-cache";
-import type { VerifiedDealRow } from "@/lib/pricing/verified-deal-row";
+import {
+  verifiedDealDisplayDedupeKey,
+  verifiedDealStoreIdentity,
+  type VerifiedDealRow,
+} from "@/lib/pricing/verified-deal-row";
 
 function logPricingUnavailableSummary(params: {
   debug: boolean;
@@ -486,13 +490,31 @@ export async function lookupBestPrice(params: {
 }
 
 export type { DealRow, VerifiedDealRow } from "@/lib/pricing/verified-deal-row";
+export {
+  verifiedDealDisplayDedupeKey,
+  verifiedDealStoreIdentity,
+} from "@/lib/pricing/verified-deal-row";
+
+/** Whether a gated best-price row is from a different store than any verified deal row. */
+export function isTrustedBestPriceDistinctStore(
+  best: BestPriceResult,
+  deals: VerifiedDealRow[]
+): boolean {
+  const bestId = best.store?.id?.trim().toLowerCase();
+  const bestName = best.store?.name?.trim().toLowerCase();
+  const bestKey =
+    bestId ? `id:${bestId}` : bestName ? `name:${bestName}` : "";
+  if (!bestKey) return true;
+
+  return !deals.some((d) => verifiedDealStoreIdentity(d) === bestKey);
+}
 
 function parseVerifiedDealSalePrice(deal: VerifiedDealRow): number {
   const n = Number(String(deal.salePrice).replace(/[^0-9.]/g, ""));
   return Number.isFinite(n) && n > 0 ? n : NaN;
 }
 
-/** Dedupe rows that CheapShark may repeat (same store + listing + sale price). */
+/** Dedupe true duplicates (same provider, store, title, price, and deal URL). */
 export function dedupeVerifiedDealsForDisplay(
   deals: VerifiedDealRow[],
   opts?: { debug?: boolean; requestedTitle?: string }
@@ -500,7 +522,7 @@ export function dedupeVerifiedDealsForDisplay(
   const seen = new Set<string>();
   const out: VerifiedDealRow[] = [];
   for (const d of deals) {
-    const k = `${d.store.id}|${d.matchedTitle.trim().toLowerCase()}|${String(d.salePrice).trim()}`;
+    const k = verifiedDealDisplayDedupeKey(d);
     if (seen.has(k)) {
       if (shouldLogPricingDetailDebug(opts?.debug)) {
         const g = d.gate;

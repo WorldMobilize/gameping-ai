@@ -11,6 +11,7 @@ import {
 } from "@/lib/pricing/display";
 import type { BestPriceResult, VerifiedDealRow } from "@/lib/pricing/price-service";
 import {
+  isTrustedBestPriceDistinctStore,
   lookupBestPrice,
   lookupDeals,
   pickCheapestTrustedVerifiedDeal,
@@ -403,10 +404,14 @@ export default async function GameDetailPage({
 
   /** Sorted ascending, deduped; only rows that passed evaluatePricingGate (acceptedPrice). */
   const displayDeals = deals;
+  const trustedBestPriceDistinct =
+    bestPrice &&
+    isTrustedBestPriceForStoreComparison(bestPrice) &&
+    isTrustedBestPriceDistinctStore(bestPrice, displayDeals);
   const bestPriceStoreComparisonFallback =
-    displayDeals.length === 0 && isTrustedBestPriceForStoreComparison(bestPrice)
-      ? bestPrice
-      : null;
+    displayDeals.length === 0 && trustedBestPriceDistinct ? bestPrice : null;
+  const additionalDistinctBestPrice =
+    displayDeals.length > 0 && trustedBestPriceDistinct ? bestPrice : null;
   const primaryDeal = pickCheapestTrustedVerifiedDeal(displayDeals);
   const hasTrustedBestPriceOnly =
     Boolean(
@@ -911,7 +916,7 @@ export default async function GameDetailPage({
                   </div>
                 )}
 
-                {otherTrustedDeals.length > 0 && (
+                {(otherTrustedDeals.length > 0 || additionalDistinctBestPrice) && (
                   <div className="space-y-3">
                     <h3 className="text-sm font-black uppercase tracking-[0.28em] text-white/50">
                       Other verified stores
@@ -919,6 +924,12 @@ export default async function GameDetailPage({
                     {otherTrustedDeals.map((deal) => (
                       <VerifiedStoreDealCard key={deal.deal.id} deal={deal} />
                     ))}
+                    {additionalDistinctBestPrice ? (
+                      <TrustedBestPriceStoreCard
+                        best={additionalDistinctBestPrice}
+                        listingTitle={title}
+                      />
+                    ) : null}
                   </div>
                 )}
 
