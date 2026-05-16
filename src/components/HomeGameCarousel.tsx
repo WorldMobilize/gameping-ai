@@ -36,7 +36,7 @@ export default function HomeGameCarousel() {
             href="/games"
             className="text-sm font-bold text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
           >
-            Browse A–Z directory →
+            Browse A–Z directory
           </Link>
         </div>
       </div>

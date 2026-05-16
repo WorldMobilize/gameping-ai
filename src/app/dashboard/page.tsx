@@ -325,7 +325,7 @@ export default function Dashboard() {
               href="/recommend"
               className="inline-flex shrink-0 items-center justify-center rounded-full bg-cyan-400 px-8 py-4 text-sm font-black text-black shadow-[0_0_28px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
             >
-              New recommendation →
+              New recommendation
             </Link>
           </div>
 
@@ -375,7 +375,7 @@ export default function Dashboard() {
                   href="/recommend"
                   className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.05] px-8 py-3.5 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 hover:bg-white/10"
                 >
-                  New recommendation →
+                  New recommendation
                 </Link>
               </div>
             </div>
@@ -407,7 +407,7 @@ export default function Dashboard() {
                 href="/recommend"
                 className="mt-6 inline-block rounded-full bg-cyan-400 px-8 py-4 font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
               >
-                Create your first search →
+                Create your first search
               </Link>
             </div>
           )}
@@ -523,7 +523,7 @@ export default function Dashboard() {
                               href={detailHref}
                               className="mt-3 inline-flex text-sm font-bold text-cyan-300 underline-offset-4 transition hover:underline"
                             >
-                              View details →
+                              View details
                             </Link>
                           ) : null}
                         </div>
@@ -584,7 +584,7 @@ export default function Dashboard() {
                   href="/games"
                   className="mt-6 inline-block rounded-full border border-cyan-400/40 px-6 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400/10"
                 >
-                  Browse games →
+                  Browse games
                 </Link>
               </div>
             )}

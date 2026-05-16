@@ -36,7 +36,7 @@ export default function LegalHubPage() {
                 className="group rounded-3xl border border-white/10 bg-white/[0.04] p-6 transition hover:border-cyan-400/35 hover:bg-cyan-400/[0.06]"
               >
                 <p className="text-sm font-black text-cyan-300 transition group-hover:text-cyan-200">
-                  {item.title} →
+                  {item.title}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-white/55">{item.desc}</p>
               </Link>

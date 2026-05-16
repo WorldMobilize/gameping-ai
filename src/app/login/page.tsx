@@ -144,7 +144,7 @@ function LoginForm() {
               href="/upgrade"
               className="text-xs font-semibold text-white/45 underline-offset-4 transition hover:text-cyan-300 hover:underline"
             >
-              Compare Free vs Premium →
+              Compare Free vs Premium
             </Link>
           </p>
 

@@ -101,7 +101,7 @@ export default function ContactPage() {
 
           <p className="mt-6 text-sm text-white/45">
             <Link href="/legal" className="font-semibold text-cyan-300 hover:underline">
-              Legal hub →
+              Legal hub
             </Link>
           </p>
 
@@ -114,7 +114,7 @@ export default function ContactPage() {
               href="/recommend"
               className="mt-6 inline-flex rounded-full bg-cyan-400 px-8 py-3.5 text-sm font-black text-black shadow-[0_0_28px_rgba(34,211,238,0.2)] transition hover:bg-cyan-300 md:mt-0"
             >
-              Open GamePing AI →
+              Open GamePing AI
             </Link>
           </div>
         </div>

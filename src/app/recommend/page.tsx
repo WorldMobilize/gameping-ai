@@ -799,7 +799,7 @@ export default function RecommendPage() {
                   aria-disabled={loading}
                   className="rounded-full bg-cyan-400 px-10 py-4 font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:bg-cyan-300 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {loading ? "Analyzing your taste..." : "Find my perfect games →"}
+                  {loading ? "Analyzing your taste..." : "Find my perfect games"}
                 </button>
               </div>
             </div>
@@ -1083,7 +1083,7 @@ export default function RecommendPage() {
                       href="/upgrade"
                       className="mt-3 inline-block rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black transition hover:bg-cyan-300"
                     >
-                      Upgrade to Premium →
+                      Upgrade to Premium
                     </a>
                   </div>
                 )}

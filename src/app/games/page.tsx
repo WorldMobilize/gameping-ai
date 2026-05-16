@@ -85,7 +85,7 @@ export default function GamesDirectoryPage() {
                       >
                         <span className="font-black">{game.title}</span>
                         <span className="text-xs font-bold uppercase tracking-wider text-white/40 group-hover:text-cyan-300">
-                          Details →
+                          Details
                         </span>
                       </Link>
                     </li>

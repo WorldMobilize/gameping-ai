@@ -169,13 +169,13 @@ function UpgradeContent() {
               href="/dashboard"
               className="inline-flex items-center justify-center rounded-full bg-cyan-400 px-8 py-3.5 text-sm font-black text-black shadow-[0_0_28px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
             >
-              Open dashboard →
+              Open dashboard
             </Link>
             <Link
               href="/recommend"
               className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.06] px-8 py-3.5 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 hover:bg-white/10"
             >
-              New recommendation →
+              New recommendation
             </Link>
           </div>
         </div>

@@ -98,7 +98,7 @@ export default function Home() {
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
               <Link href="/recommend">
                 <button className="rounded-full bg-cyan-400 px-8 py-4 font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:bg-cyan-300">
-                  Find my perfect games →
+                  Find my perfect games
                 </button>
               </Link>
 
@@ -267,7 +267,7 @@ export default function Home() {
 
             <Link href="/recommend">
               <button className="mt-8 rounded-full bg-cyan-400 px-9 py-4 font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:bg-cyan-300">
-                Start now →
+                Start now
               </button>
             </Link>
           </div>

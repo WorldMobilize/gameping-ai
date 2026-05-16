@@ -364,7 +364,7 @@ function VerifiedStoreDealCard({
           rel="noopener noreferrer"
           className="rounded-full bg-white px-5 py-3 text-center text-sm font-black text-black transition hover:bg-cyan-100"
         >
-          {buyLabel ?? "Buy →"}
+          {buyLabel ?? "Buy"}
         </a>
       ) : (
         <span className="text-center text-sm text-white/45">No verified store link</span>
@@ -1028,7 +1028,7 @@ export default async function GameDetailPage({
                 href="/games"
                 className="text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
               >
-                Browse games A–Z →
+                Browse games A–Z
               </Link>
             </li>
             <li>
@@ -1036,7 +1036,7 @@ export default async function GameDetailPage({
                 href="/curated"
                 className="text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
               >
-                Explore curated lists →
+                Explore curated lists
               </Link>
             </li>
             <li>
@@ -1044,7 +1044,7 @@ export default async function GameDetailPage({
                 href="/recommend"
                 className="text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
               >
-                Try AI recommendations →
+                Try AI recommendations
               </Link>
             </li>
           </ul>

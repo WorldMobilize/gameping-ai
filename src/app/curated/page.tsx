@@ -46,7 +46,7 @@ export default function CuratedIndexPage() {
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">{c.intro}</p>
                   </div>
                   <span className="mt-4 shrink-0 text-sm font-black text-cyan-300 md:mt-0">
-                    Read →
+                    Read
                   </span>
                 </Link>
               </li>
@@ -61,7 +61,7 @@ export default function CuratedIndexPage() {
               href="/recommend"
               className="mt-3 inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black shadow-[0_0_24px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
             >
-              Try your own recommendation →
+              Try your own recommendation
             </Link>
           </div>
         </div>

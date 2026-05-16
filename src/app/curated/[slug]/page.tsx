@@ -77,7 +77,7 @@ export default async function CuratedCollectionPage({ params }: Props) {
               href="/recommend"
               className="mt-3 inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black shadow-[0_0_24px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
             >
-              Open GamePing AI →
+              Open GamePing AI
             </Link>
           </div>
         </div>
