@@ -11,16 +11,29 @@ type NavbarProps = {
   ctaHref?: string;
 };
 
-function initialsFromEmail(email: string): string {
-  const local = email.split("@")[0]?.trim() ?? email.trim();
-  if (!local) return "?";
-  const parts = local.split(/[._\-+]+/).filter(Boolean);
-  if (parts.length >= 2) {
-    const a = parts[0][0];
-    const b = parts[1][0];
-    if (a && b) return (a + b).toUpperCase();
+function displayNameFromMetadata(
+  metadata: Record<string, unknown> | undefined
+): string | null {
+  if (!metadata) return null;
+  for (const key of ["full_name", "name", "display_name"] as const) {
+    const value = metadata[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
   }
-  return local.slice(0, 2).toUpperCase();
+  return null;
+}
+
+function firstAvatarLetter(value: string): string | null {
+  const match = value.trim().match(/[a-zA-Z0-9]/);
+  return match ? match[0].toUpperCase() : null;
+}
+
+function avatarInitial(displayName: string | null, email: string): string {
+  if (displayName) {
+    const fromName = firstAvatarLetter(displayName);
+    if (fromName) return fromName;
+  }
+  const local = email.split("@")[0]?.trim() ?? email.trim();
+  return firstAvatarLetter(local) ?? "?";
 }
 
 function shortEmailLabel(email: string, max = 22): string {
@@ -36,6 +49,7 @@ export default function Navbar({
 }: NavbarProps) {
   const { showToast } = useToast();
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
 
@@ -45,13 +59,17 @@ export default function Navbar({
   useEffect(() => {
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
-      setUserEmail(data.user?.email ?? null);
+      const user = data.user;
+      setUserEmail(user?.email ?? null);
+      setUserDisplayName(displayNameFromMetadata(user?.user_metadata));
     };
 
     void getUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserEmail(session?.user?.email ?? null);
+      const user = session?.user;
+      setUserEmail(user?.email ?? null);
+      setUserDisplayName(displayNameFromMetadata(user?.user_metadata));
     });
 
     return () => {
@@ -121,6 +139,7 @@ export default function Navbar({
     closeMenu();
     await supabase.auth.signOut();
     setUserEmail(null);
+    setUserDisplayName(null);
     showToast({ variant: "success", message: "You’re logged out." });
     setTimeout(() => {
       window.location.href = "/";
@@ -243,10 +262,10 @@ export default function Navbar({
                   onClick={() => setMenuOpen((o) => !o)}
                 >
                   <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400/30 to-purple-500/35 text-xs font-black text-cyan-100 ring-1 ring-white/10"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-400/25 bg-gradient-to-br from-cyan-500/35 via-[#141a32] to-purple-600/40 text-sm font-extrabold leading-none text-white shadow-[0_0_14px_rgba(34,211,238,0.18)] ring-1 ring-white/15"
                     aria-hidden
                   >
-                    {initialsFromEmail(userEmail)}
+                    {avatarInitial(userDisplayName, userEmail)}
                   </span>
                   <span className="hidden min-w-0 flex-1 flex-col sm:flex">
                     <span className="truncate text-[11px] font-bold leading-tight text-white/85">
