@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { rateLimit } from "@/lib/rate-limit";
+import { resolveResendFrom } from "@/lib/resend-from";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
@@ -39,8 +38,19 @@ export async function POST(req: Request) {
 
     const { email, game } = await req.json();
 
+    if (!process.env.RESEND_API_KEY?.trim()) {
+      return NextResponse.json({ error: "Email not configured" }, { status: 500 });
+    }
+
+    const fromResult = resolveResendFrom();
+    if ("error" in fromResult) {
+      return NextResponse.json({ error: fromResult.error }, { status: 500 });
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     const { error } = await resend.emails.send({
-      from: "GamePing <onboarding@resend.dev>",
+      from: fromResult.from,
       to: email,
       subject: "🔥 New game match for you",
       html: `

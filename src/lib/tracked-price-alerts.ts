@@ -141,6 +141,32 @@ export async function lookupVerifiedBestPriceForAlert(requestedTitle: string) {
   return { ok: true as const, best, priceNum };
 }
 
+export const PRICE_ALERT_SUPPORT_EMAIL = "support@gamepingai.com";
+
+export function formatAlertEmailSubjectPrice(params: {
+  price: string;
+  currency?: string | null;
+}): string {
+  const p = (params.price || "").trim();
+  if (!p || p === "N/A") return "—";
+  if (/^free$/i.test(p)) return "Free";
+  const cur = (params.currency || "").trim().toUpperCase() || "USD";
+  if (cur === "USD") return `$${p}`;
+  return `${p} ${cur}`;
+}
+
+export function buildPriceAlertEmailSubject(params: {
+  gameTitle: string;
+  price: string;
+  currency?: string | null;
+}): string {
+  const priceLabel = formatAlertEmailSubjectPrice({
+    price: params.price,
+    currency: params.currency,
+  });
+  return `Price drop: ${params.gameTitle.trim()} — ${priceLabel}`;
+}
+
 export function buildOutboundAlertUrl(params: {
   dealUrl: string;
   gameTitle: string;
@@ -164,20 +190,68 @@ export function buildOutboundAlertUrl(params: {
   return `${origin}/api/out?${q.toString()}`;
 }
 
-export function buildAlertEmailHtml(params: {
+export type PriceAlertEmailContentParams = {
   gameTitle: string;
   priceDisplay: string;
   storeName: string;
   matchedListing?: string;
   ctaUrl: string;
+  dashboardUrl: string;
+  unsubscribeUrl?: string | null;
   heroImageUrl?: string | null;
-}) {
+  supportEmail?: string;
+};
+
+export function buildAlertEmailText(params: PriceAlertEmailContentParams): string {
+  const support = params.supportEmail ?? PRICE_ALERT_SUPPORT_EMAIL;
+  const listingLine = params.matchedListing
+    ? `Listing: ${params.matchedListing}`
+    : "Listing verified through our pricing checks.";
+
+  const lines = [
+    "GamePing AI — Price drop",
+    "",
+    params.gameTitle,
+    `Verified deal: ${params.priceDisplay}`,
+    `Store: ${params.storeName}`,
+    listingLine,
+    "",
+    `View verified deal: ${params.ctaUrl}`,
+    "",
+    "Price disclaimer: Prices can change quickly and may differ by region, platform, or store. Confirm the final price and availability on the store page before you buy.",
+    "",
+    "Why you received this: You turned on price tracking for this game on GamePing AI.",
+    "",
+    `Manage tracked games: ${params.dashboardUrl}`,
+  ];
+
+  if (params.unsubscribeUrl) {
+    lines.push(`Stop alerts for this game: ${params.unsubscribeUrl}`);
+  }
+
+  lines.push(`Questions: ${support}`, "", "— GamePing AI");
+
+  return lines.join("\n");
+}
+
+export function buildAlertEmailHtml(params: PriceAlertEmailContentParams): string {
+  const support = escapeHtml(params.supportEmail ?? PRICE_ALERT_SUPPORT_EMAIL);
+  const supportMailto = `mailto:${support}`;
+
   const img =
     params.heroImageUrl &&
     params.heroImageUrl.startsWith("http") &&
     !params.heroImageUrl.includes('"')
-      ? `<div style="margin:16px 0;"><img src="${params.heroImageUrl}" alt="" width="560" style="max-width:100%;border-radius:12px;" /></div>`
+      ? `<div style="margin:16px 0;"><img src="${escapeHtml(params.heroImageUrl)}" alt="" width="560" style="max-width:100%;border-radius:12px;" /></div>`
       : "";
+
+  const listingMeta = params.matchedListing
+    ? `Listing: ${escapeHtml(params.matchedListing)}`
+    : "Listing verified through our pricing checks";
+
+  const unsubscribeBlock = params.unsubscribeUrl
+    ? `<p style="margin:0 0 8px;font-size:12px;color:rgba(255,255,255,0.5);"><a href="${escapeHtml(params.unsubscribeUrl)}" style="color:#67e8f9;">Stop alerts for this game</a></p>`
+    : "";
 
   return `
 <!DOCTYPE html>
@@ -190,17 +264,26 @@ export function buildAlertEmailHtml(params: {
           <tr>
             <td>
               <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.28em;text-transform:uppercase;color:#67e8f9;">GamePing AI</p>
-              <h1 style="margin:0 0 12px;font-size:22px;color:#fff;">Price alert</h1>
+              <h1 style="margin:0 0 12px;font-size:22px;color:#fff;">Price drop</h1>
               <p style="margin:0 0 8px;font-size:16px;color:#fff;"><strong>${escapeHtml(params.gameTitle)}</strong></p>
               <p style="margin:0 0 6px;font-size:15px;color:#a5f3fc;">Verified deal: <strong>${escapeHtml(params.priceDisplay)}</strong></p>
-              <p style="margin:0 0 16px;font-size:13px;color:rgba(255,255,255,0.45);">Store: ${escapeHtml(params.storeName)} · ${params.matchedListing ? `Listing: ${escapeHtml(params.matchedListing)}` : "Listing verified via pricing gate"}</p>
+              <p style="margin:0 0 16px;font-size:13px;color:rgba(255,255,255,0.45);">Store: ${escapeHtml(params.storeName)} · ${listingMeta}</p>
               ${img}
-              <p style="margin:16px 0;font-size:12px;color:rgba(255,255,255,0.4);">Prices may vary by region/store. Link opens a verified store redirect.</p>
-              <a href="${params.ctaUrl}" style="display:inline-block;margin-top:8px;padding:14px 28px;background:#22d3ee;color:#03040a;font-weight:800;text-decoration:none;border-radius:999px;">View verified deal →</a>
+              <a href="${escapeHtml(params.ctaUrl)}" style="display:inline-block;margin-top:8px;padding:14px 28px;background:#22d3ee;color:#03040a;font-weight:800;text-decoration:none;border-radius:999px;">View verified deal →</a>
             </td>
           </tr>
         </table>
-        <p style="margin:16px 0 0;font-size:11px;color:rgba(255,255,255,0.35);">You’re receiving this because you tracked this game on GamePing AI.</p>
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;margin-top:20px;">
+          <tr>
+            <td style="font-size:12px;line-height:1.55;color:rgba(255,255,255,0.45);">
+              <p style="margin:0 0 10px;"><strong style="color:rgba(255,255,255,0.65);">Price disclaimer</strong><br />Prices can change quickly and may differ by region, platform, or store. Confirm the final price and availability on the store page before you buy. Deal links go through GamePing’s verified redirect.</p>
+              <p style="margin:0 0 10px;"><strong style="color:rgba(255,255,255,0.65);">Why you received this</strong><br />You turned on price tracking for this game on GamePing AI.</p>
+              <p style="margin:0 0 8px;"><a href="${escapeHtml(params.dashboardUrl)}" style="color:#67e8f9;">Open your dashboard</a> to manage tracked games.</p>
+              ${unsubscribeBlock}
+              <p style="margin:12px 0 0;">Questions? <a href="${supportMailto}" style="color:#67e8f9;">${support}</a></p>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
   </table>

@@ -4,9 +4,13 @@
 import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { formatAggregatorPriceLine } from "@/lib/pricing/display";
+import { buildPriceAlertUnsubscribeUrl } from "@/lib/price-alert-unsubscribe";
+import { resolveResendFrom } from "@/lib/resend-from";
 import {
   buildAlertEmailHtml,
+  buildAlertEmailText,
   buildOutboundAlertUrl,
+  buildPriceAlertEmailSubject,
   fetchRawgGameMeta,
   hasDuplicateAlertInCooldown,
   lookupVerifiedBestPriceForAlert,
@@ -68,18 +72,6 @@ function isAuthorizedCronRequest(req: Request, url: URL): boolean {
   const provided = querySecret || bearer;
   if (!provided) return false;
   return secretsMatch(expected, provided);
-}
-
-function resolveResendFrom(): { from: string } | { error: string } {
-  const configured = process.env.RESEND_FROM?.trim();
-  if (configured) return { from: configured };
-  if (isProductionDeploy()) {
-    return {
-      error:
-        "RESEND_FROM is required in production. Set a verified sender in Resend (e.g. GamePing <alerts@yourdomain.com>).",
-    };
-  }
-  return { from: "GamePing <onboarding@resend.dev>" };
 }
 
 function getCronSupabase(): SupabaseClient | null {
@@ -401,13 +393,29 @@ export async function GET(req: Request) {
         currency: best.currency,
       });
 
-      const html = buildAlertEmailHtml({
+      const dashboardUrl = `${origin}/dashboard`;
+      const unsubscribeUrl = buildPriceAlertUnsubscribeUrl({
+        siteOrigin: origin,
+        trackedGameId: gameId,
+      });
+
+      const emailContent = {
         gameTitle: pricingTitle,
         priceDisplay,
         storeName: best.store?.name || "Store",
         matchedListing: best.matchedTitle,
         ctaUrl,
+        dashboardUrl,
+        unsubscribeUrl,
         heroImageUrl: meta.backgroundImage,
+      };
+
+      const html = buildAlertEmailHtml(emailContent);
+      const text = buildAlertEmailText(emailContent);
+      const subject = buildPriceAlertEmailSubject({
+        gameTitle: pricingTitle,
+        price: best.price,
+        currency: best.currency,
       });
 
       emailsAttempted += 1;
@@ -415,8 +423,9 @@ export async function GET(req: Request) {
         await resend.emails.send({
           from,
           to: userEmail,
-          subject: `GamePing AI — Deal on ${pricingTitle}`,
+          subject,
           html,
+          text,
         });
       } catch (mailErr) {
         emailErrors += 1;
