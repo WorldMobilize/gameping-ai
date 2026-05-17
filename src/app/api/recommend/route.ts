@@ -12,6 +12,7 @@ import {
   shouldBypassRecommendLimits,
   tryConsumeRecommendDailySlot,
 } from "@/lib/recommend-usage";
+import { buildLimitErrorPayload } from "@/lib/product-copy";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 import {
   dedupeCandidates,
@@ -1616,11 +1617,13 @@ export async function POST(req: Request) {
 
       if (!usageAfter.allowed) {
         return NextResponse.json(
-          {
+          buildLimitErrorPayload({
             error: "daily_limit",
-            message:
-              "Daily AI recommendation limit reached. Try again tomorrow.",
-          },
+            limitType: "daily_recommendations",
+            plan: userId ? plan : null,
+            limit: usageAfter.limit,
+            anonymous: !userId,
+          }),
           { status: 429 }
         );
       }

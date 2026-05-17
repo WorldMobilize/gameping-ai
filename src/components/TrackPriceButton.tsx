@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useToast } from "@/components/ToastProvider";
 import {
-  FREE_LIMIT_BODY,
-  FREE_PLAN_LIMIT_TITLE,
-  PREMIUM_UNLOCK_LINE,
+  LIMIT_TOAST_DURATION_MS,
+  limitReachedToastMessage,
 } from "@/lib/product-copy";
 import { supabase } from "@/lib/supabase";
 import { useState } from "react";
@@ -62,14 +61,21 @@ export default function TrackPriceButton({ title, rawgId, baselinePrice }: Props
         ok?: boolean;
         error?: string;
         message?: string;
+        plan?: string;
+        limitType?: string;
       };
 
       if (!res.ok) {
         if (res.status === 403 && json.error === "track_limit_reached") {
+          const toast = limitReachedToastMessage({
+            limitType: "tracked_games",
+            plan: typeof json.plan === "string" ? json.plan : "free",
+          });
           showToast({
             variant: "info",
-            title: FREE_PLAN_LIMIT_TITLE,
-            message: `${FREE_LIMIT_BODY.tracked_games} ${PREMIUM_UNLOCK_LINE}`,
+            title: toast.title,
+            message: json.message || toast.message,
+            durationMs: LIMIT_TOAST_DURATION_MS,
           });
         } else {
           showToast({

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getTrackedGamesLimit, PLAN_LIMITS } from "@/lib/plan-limits";
+import { getTrackedGamesLimit } from "@/lib/plan-limits";
+import { buildLimitErrorPayload } from "@/lib/product-copy";
 import { createClient } from "@/lib/supabase/server";
 import {
   parseExplicitTargetPrice,
@@ -96,18 +97,15 @@ export async function POST(req: Request) {
       }
 
       if ((activeCount ?? 0) >= trackLimit) {
-        const premiumCap = PLAN_LIMITS.premiumTrackedGames;
-        const message =
-          plan === "premium" || plan === "admin"
-            ? `You can track up to ${trackLimit} active games on Premium. Pause or remove one on your dashboard to track another.`
-            : `Free accounts can track up to ${trackLimit} active games. Upgrade to Premium for ${premiumCap}, or pause a game on your dashboard.`;
-
         return NextResponse.json(
           {
             ok: false,
-            error: "track_limit_reached",
-            message,
-            limit: trackLimit,
+            ...buildLimitErrorPayload({
+              error: "track_limit_reached",
+              limitType: "tracked_games",
+              plan,
+              limit: trackLimit,
+            }),
           },
           { status: 403 }
         );

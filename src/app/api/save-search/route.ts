@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSavedSearchesLimit } from "@/lib/plan-limits";
+import { buildLimitErrorPayload } from "@/lib/product-copy";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
@@ -46,11 +47,12 @@ export async function POST(req: Request) {
 
     if ((count || 0) >= limit) {
       return NextResponse.json(
-        {
+        buildLimitErrorPayload({
           error: "limit_reached",
-          message: "Upgrade to Premium to save more searches",
+          limitType: "saved_runs",
+          plan,
           limit,
-        },
+        }),
         { status: 403 }
       );
     }

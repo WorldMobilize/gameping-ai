@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import FreePlanLimitReached from "@/components/FreePlanLimitReached";
+import PlanLimitReached from "@/components/PlanLimitReached";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
 import {
-  FREE_LIMIT_BODY,
-  FREE_PLAN_LIMIT_TITLE,
-  PREMIUM_UNLOCK_LINE,
+  LIMIT_TOAST_DURATION_MS,
+  limitReachedToastMessage,
 } from "@/lib/product-copy";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -245,7 +244,12 @@ export default function RecommendPage() {
   const [filtersEnabled, setFiltersEnabled] = useState(false);
   const [emailSaved, setEmailSaved] = useState(false);
   const [saveLimitReached, setSaveLimitReached] = useState(false);
+  const [saveLimitPlan, setSaveLimitPlan] = useState<string | null>(null);
   const [dailyLimitReached, setDailyLimitReached] = useState(false);
+  const [dailyLimitContext, setDailyLimitContext] = useState<{
+    plan: string | null;
+    anonymous: boolean;
+  } | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
@@ -256,6 +260,7 @@ export default function RecommendPage() {
 
   const [loggedUserEmail, setLoggedUserEmail] = useState<string | null>(null);
   const [loggedUserId, setLoggedUserId] = useState<string | null>(null);
+  const [userPlan, setUserPlan] = useState<string | null>(null);
   const [promptMaxForUi, setPromptMaxForUi] = useState(PROMPT_MAX_DEFAULT);
 
   useEffect(() => {
@@ -270,10 +275,12 @@ export default function RecommendPage() {
           .select("plan")
           .eq("user_id", data.user.id)
           .maybeSingle();
+        setUserPlan(profile?.plan ?? "free");
         setPromptMaxForUi(
           profile?.plan === "admin" ? PROMPT_MAX_ADMIN : PROMPT_MAX_DEFAULT
         );
       } else {
+        setUserPlan(null);
         setPromptMaxForUi(PROMPT_MAX_DEFAULT);
       }
     }
@@ -378,6 +385,9 @@ export default function RecommendPage() {
       const data = (await res.json().catch(() => ({}))) as {
         error?: string;
         message?: string;
+        plan?: string;
+        limit?: number;
+        limitType?: string;
         games?: Game[];
         debug?: RecommendDebug;
       };
@@ -391,11 +401,21 @@ export default function RecommendPage() {
               "Prompt too long. Please keep it under 500 characters.",
           });
         } else if (res.status === 429 && data?.error === "daily_limit") {
+          const limitPlan =
+            typeof data.plan === "string" ? data.plan : userPlan;
+          const anonymous = !loggedUserId;
+          setDailyLimitContext({ plan: limitPlan, anonymous });
           setDailyLimitReached(true);
+          const toast = limitReachedToastMessage({
+            limitType: "daily_recommendations",
+            plan: limitPlan,
+            anonymous,
+          });
           showToast({
             variant: "info",
-            title: FREE_PLAN_LIMIT_TITLE,
-            message: `${FREE_LIMIT_BODY.daily_recommendations} ${PREMIUM_UNLOCK_LINE}`,
+            title: toast.title,
+            message: data.message || toast.message,
+            durationMs: LIMIT_TOAST_DURATION_MS,
           });
         } else {
           showToast({
@@ -437,6 +457,7 @@ export default function RecommendPage() {
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaveLimitReached(false);
+    setSaveLimitPlan(null);
 
     if (!loggedUserEmail) {
       showToast({
@@ -472,11 +493,19 @@ export default function RecommendPage() {
         });
       } else {
         if (result.error === "limit_reached") {
+          const limitPlan =
+            typeof result.plan === "string" ? result.plan : userPlan;
+          setSaveLimitPlan(limitPlan);
           setSaveLimitReached(true);
+          const toast = limitReachedToastMessage({
+            limitType: "saved_runs",
+            plan: limitPlan,
+          });
           showToast({
             variant: "info",
-            title: FREE_PLAN_LIMIT_TITLE,
-            message: `${FREE_LIMIT_BODY.saved_runs} ${PREMIUM_UNLOCK_LINE}`,
+            title: toast.title,
+            message: result.message || toast.message,
+            durationMs: LIMIT_TOAST_DURATION_MS,
           });
         } else {
           showToast({
@@ -809,8 +838,10 @@ export default function RecommendPage() {
           </form>
 
           {dailyLimitReached && (
-            <FreePlanLimitReached
-              variant="daily_recommendations"
+            <PlanLimitReached
+              limitType="daily_recommendations"
+              plan={dailyLimitContext?.plan ?? userPlan}
+              anonymous={dailyLimitContext?.anonymous ?? !loggedUserId}
               className="mx-auto mt-8 max-w-xl"
             />
           )}
@@ -1077,7 +1108,11 @@ export default function RecommendPage() {
                 </div>
 
                 {saveLimitReached && (
-                  <FreePlanLimitReached variant="saved_runs" className="mt-5" />
+                  <PlanLimitReached
+                    limitType="saved_runs"
+                    plan={saveLimitPlan ?? userPlan}
+                    className="mt-5"
+                  />
                 )}
               </form>
 
