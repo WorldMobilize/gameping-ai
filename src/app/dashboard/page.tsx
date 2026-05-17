@@ -303,8 +303,8 @@ export default function Dashboard() {
               </p>
 
               <p className="mt-4 text-sm leading-relaxed text-white/50">
-                Free accounts can save up to 3 searches. Premium unlocks more saved searches and
-                stronger alerts.{" "}
+                Free: 5 recommendations/day, 3 saved runs, 5 tracked games. Premium: 50/day, 25 saved
+                runs, 50 tracked games.{" "}
                 <Link
                   href="/upgrade"
                   className="font-semibold text-cyan-300 underline-offset-4 hover:underline"

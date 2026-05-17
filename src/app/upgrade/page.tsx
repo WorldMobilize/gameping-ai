@@ -185,22 +185,19 @@ function UpgradeContent() {
             <h2 className="text-2xl font-black">Free</h2>
             <p className="mt-2 text-sm text-white/50">Included baseline.</p>
             <ul className="mt-6 space-y-3 text-white/60">
-              <li>✔ 3 saved searches</li>
-              <li>✔ Basic price alerts</li>
-              <li>✔ Standard recommendations</li>
+              <li>✔ 5 recommendations per day</li>
+              <li>✔ 3 saved recommendation runs</li>
+              <li>✔ 5 tracked games</li>
             </ul>
           </div>
 
           <div className="rounded-3xl border border-cyan-400/25 bg-cyan-400/10 p-8">
-            <h2 className="text-2xl font-black">
-              Premium <span className="text-cyan-300">+</span>
-            </h2>
+            <h2 className="text-2xl font-black">Premium</h2>
             <p className="mt-2 text-sm font-bold text-cyan-200">Your current tier</p>
             <ul className="mt-6 space-y-3 text-white/70">
-              <li>✔ 25 saved searches</li>
-              <li>✔ Advanced price alerts</li>
-              <li>✔ Priority recommendations</li>
-              <li>✔ More tracking slots</li>
+              <li>✔ 50 recommendations per day</li>
+              <li>✔ 25 saved recommendation runs</li>
+              <li>✔ 50 tracked games</li>
               <li>✔ Early access features</li>
             </ul>
             <p className="mt-6 text-sm text-white/45">
@@ -227,28 +224,25 @@ function UpgradeContent() {
           <p className="mt-2 text-sm text-white/50">Great to try GamePing.</p>
 
           <ul className="mt-6 space-y-3 text-white/70">
-            <li>✔ 3 saved searches</li>
-            <li>✔ Basic price alerts</li>
-            <li>✔ Standard recommendations</li>
+            <li>✔ 5 recommendations per day</li>
+            <li>✔ 3 saved recommendation runs</li>
+            <li>✔ 5 tracked games</li>
           </ul>
         </div>
 
         <div className="rounded-3xl border border-cyan-400/25 bg-cyan-400/10 p-8 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
-          <h2 className="text-2xl font-black">
-            Premium <span className="text-cyan-300">+</span>
-          </h2>
+          <h2 className="text-2xl font-black">Premium</h2>
           <p className="mt-2 text-sm font-bold text-cyan-200">
             Premium — $4.99/month (billed monthly via Stripe)
           </p>
           <p className="mt-2 text-sm text-white/55">
-            For people who want alerts that actually feel useful.
+            More daily recommendations, saved runs, and tracked games.
           </p>
 
           <ul className="mt-6 space-y-3 text-white/80">
-            <li>✔ 25 saved searches</li>
-            <li>✔ Advanced price alerts</li>
-            <li>✔ Priority recommendations</li>
-            <li>✔ More tracking slots</li>
+            <li>✔ 50 recommendations per day</li>
+            <li>✔ 25 saved recommendation runs</li>
+            <li>✔ 50 tracked games</li>
             <li>✔ Early access features</li>
           </ul>
 
@@ -291,7 +285,8 @@ export default function UpgradePage() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-white/60">
-            Save more searches, unlock smarter alerts, and get recommendations tuned to your intent.
+            Higher daily recommendation limits, more saved searches, and more tracked games for
+            price-drop emails.
           </p>
 
           <Suspense
@@ -314,7 +309,9 @@ export default function UpgradePage() {
               <div>
                 <p className="font-black text-white">What is a saved search?</p>
                 <p className="mt-2 text-sm leading-6 text-white/60">
-                  A saved search stores your taste + budget so GamePing can keep an eye on deals for you.
+                  A saved search stores a recommendation run (your prompt and filters) so you can
+                  revisit it from your dashboard. Price-drop emails come from tracking individual
+                  games on their game pages.
                 </p>
               </div>
 

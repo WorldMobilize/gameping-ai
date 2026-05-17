@@ -53,12 +53,19 @@ export default function TrackPriceButton({ title, rawgId, baselinePrice }: Props
         body: JSON.stringify(body),
       });
 
-      const json = (await res.json()) as { ok?: boolean; error?: string };
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        message?: string;
+      };
 
       if (!res.ok) {
         showToast({
-          variant: "error",
-          message: json.error || "Could not start tracking.",
+          variant: res.status === 403 ? "info" : "error",
+          message:
+            json.message ||
+            json.error ||
+            "Could not start tracking.",
         });
         return;
       }

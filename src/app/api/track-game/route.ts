@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getTrackedGamesLimit, PLAN_LIMITS } from "@/lib/plan-limits";
 import { createClient } from "@/lib/supabase/server";
 import {
   parseExplicitTargetPrice,
@@ -62,6 +63,56 @@ export async function POST(req: Request) {
     }
 
     const title_norm = normalizeTitleNorm(title);
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const plan = profile?.plan ?? "free";
+    const trackLimit = getTrackedGamesLimit(plan);
+
+    const { data: existingRow } = await supabase
+      .from("tracked_games")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("title_norm", title_norm)
+      .maybeSingle();
+
+    if (!existingRow) {
+      const { count: activeCount, error: countError } = await supabase
+        .from("tracked_games")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_active", true);
+
+      if (countError) {
+        console.error("[track-game] active count", countError);
+        return NextResponse.json(
+          { ok: false, error: "Could not verify tracking limit. Try again." },
+          { status: 500 }
+        );
+      }
+
+      if ((activeCount ?? 0) >= trackLimit) {
+        const premiumCap = PLAN_LIMITS.premiumTrackedGames;
+        const message =
+          plan === "premium" || plan === "admin"
+            ? `You can track up to ${trackLimit} active games on Premium. Pause or remove one on your dashboard to track another.`
+            : `Free accounts can track up to ${trackLimit} active games. Upgrade to Premium for ${premiumCap}, or pause a game on your dashboard.`;
+
+        return NextResponse.json(
+          {
+            ok: false,
+            error: "track_limit_reached",
+            message,
+            limit: trackLimit,
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     const row: Record<string, unknown> = {
       user_id: user.id,

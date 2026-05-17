@@ -4,10 +4,11 @@ import {
   PROMPT_MAX_ADMIN,
   PROMPT_MAX_DEFAULT,
 } from "@/lib/recommend-limits";
+import { getRecommendDailyLimit } from "@/lib/plan-limits";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
 
-export { PROMPT_MAX_ADMIN, PROMPT_MAX_DEFAULT };
+export { PROMPT_MAX_ADMIN, PROMPT_MAX_DEFAULT, getRecommendDailyLimit };
 
 export function getClientIp(req: Request): string | null {
   const xff = req.headers.get("x-forwarded-for");
@@ -23,17 +24,6 @@ export function hashIpForRecommend(ip: string): string {
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     "gameping-recommend-ip";
   return createHash("sha256").update(`${salt}:${ip}`, "utf8").digest("hex");
-}
-
-/** Daily cap for recommend; admin uses bypass at call site (no RPC). */
-export function getRecommendDailyLimit(params: {
-  plan: string | null | undefined;
-  userId: string | null;
-}): number {
-  const { plan, userId } = params;
-  if (!userId) return 10;
-  if (plan === "premium") return 150;
-  return 30;
 }
 
 export function shouldBypassRecommendLimits(

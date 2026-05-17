@@ -390,7 +390,8 @@ export default function RecommendPage() {
           showToast({
             variant: "error",
             message:
-              "You’ve reached today’s free recommendation limit.",
+              data.message ||
+              "You’ve reached today’s recommendation limit. Try again tomorrow or upgrade for more.",
           });
         } else {
           showToast({
@@ -1091,7 +1092,7 @@ export default function RecommendPage() {
 
               {!emailSaved && (
                 <p className="mt-4 text-sm text-white/50">
-                  Free plan: up to 3 saved searches • Upgrade to unlock more
+                  Free: 5 recommendations/day, 3 saved runs, 5 tracked games • Premium unlocks more
                 </p>
               )}
             </div>

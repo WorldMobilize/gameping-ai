@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSavedSearchesLimit } from "@/lib/plan-limits";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
@@ -41,10 +42,7 @@ export async function POST(req: Request) {
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id);
 
-    // plan-based saved search limit
-    // free: 3 saved searches
-    // premium: 25 saved searches
-    const limit = plan === "premium" ? 25 : 3;
+    const limit = getSavedSearchesLimit(plan);
 
     if ((count || 0) >= limit) {
       return NextResponse.json(
