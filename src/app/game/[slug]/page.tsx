@@ -3,6 +3,8 @@ import Navbar from "@/components/Navbar";
 import GameScreenshotLightbox from "@/components/GameScreenshotLightbox";
 import TrackPriceButton from "@/components/TrackPriceButton";
 import { getCachedRawgGame, setCachedRawgGame } from "@/lib/cache";
+import { resolveGameDetailFreeToPlay } from "@/lib/game-detail-free-to-play";
+import { getRawgGameMedia } from "@/lib/rawg-game-media-cache";
 import {
   AGGREGATOR_PRICE_DISCLAIMER,
   formatAggregatorPriceLine,
@@ -26,26 +28,12 @@ type RawgGame = {
   metacritic?: number;
   released?: string;
   genres?: { name: string }[];
+  tags?: { name: string }[];
   platforms?: { platform: { name: string } }[];
   stores?: { store?: { slug?: string; name?: string }; url?: string }[];
   developers?: { name: string }[];
   publishers?: { name: string }[];
   esrb_rating?: { name: string };
-};
-
-type RawgScreenshot = {
-  id: number;
-  image: string;
-};
-
-type RawgMovie = {
-  id: number;
-  name: string;
-  data?: {
-    max?: string;
-    "480"?: string;
-  };
-  preview?: string;
 };
 
 type RecommendFitContext = {
@@ -66,6 +54,31 @@ const NO_VERIFIED_DEAL_BODY =
   "We couldn't confirm a reliable current price from our supported stores.";
 const NO_VERIFIED_DEAL_HELPER =
   "Check the store page or track this game to catch future drops.";
+
+const FREE_TO_PLAY_TITLE = "Free to play";
+const FREE_TO_PLAY_BODY =
+  "This game appears to be free to play on supported stores.";
+
+function FreeToPlayPricingState({ storeUrl }: { storeUrl?: string }) {
+  return (
+    <>
+      <p className="text-lg font-semibold leading-snug text-white/75">
+        {FREE_TO_PLAY_TITLE}
+      </p>
+      <p className="text-xs leading-relaxed text-white/50">{FREE_TO_PLAY_BODY}</p>
+      {storeUrl ? (
+        <a
+          href={storeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex rounded-full border border-cyan-400/35 bg-cyan-400/10 px-4 py-2 text-xs font-black text-cyan-200 transition hover:bg-cyan-400/20"
+        >
+          View store page
+        </a>
+      ) : null}
+    </>
+  );
+}
 
 function PricingUnavailableState({
   variant = "default",
@@ -175,38 +188,6 @@ async function getRawgGame(title: string): Promise<RawgGame | null> {
     return payload;
   } catch {
     return null;
-  }
-}
-
-async function getRawgScreenshots(gameId?: number): Promise<RawgScreenshot[]> {
-  if (!gameId) return [];
-
-  try {
-    const res = await fetch(
-      `https://api.rawg.io/api/games/${gameId}/screenshots?key=${process.env.RAWG_API_KEY}`,
-      { cache: "no-store" }
-    );
-
-    const data = await res.json();
-    return data.results?.slice(0, 8) || [];
-  } catch {
-    return [];
-  }
-}
-
-async function getRawgMovies(gameId?: number): Promise<RawgMovie[]> {
-  if (!gameId) return [];
-
-  try {
-    const res = await fetch(
-      `https://api.rawg.io/api/games/${gameId}/movies?key=${process.env.RAWG_API_KEY}`,
-      { cache: "no-store" }
-    );
-
-    const data = await res.json();
-    return data.results?.slice(0, 2) || [];
-  } catch {
-    return [];
   }
 }
 
@@ -418,8 +399,6 @@ export default async function GameDetailPage({
   const gameId = rawg?.id;
 
   const settled = await Promise.allSettled([
-    getRawgScreenshots(gameId),
-    getRawgMovies(gameId),
     lookupBestPrice({
       title,
       debug: pricingDebug,
@@ -434,19 +413,20 @@ export default async function GameDetailPage({
     }),
   ]);
 
-  const screenshots =
-    settled[0].status === "fulfilled" ? settled[0].value : [];
-  const movies = settled[1].status === "fulfilled" ? settled[1].value : [];
   const bestPrice =
-    settled[2].status === "fulfilled" ? settled[2].value : null;
+    settled[0].status === "fulfilled" ? settled[0].value : null;
   const dealsLookup =
-    settled[3].status === "fulfilled"
-      ? settled[3].value
+    settled[1].status === "fulfilled"
+      ? settled[1].value
       : { deals: [], lastCheckedAt: null, fromCache: false };
   const deals = dealsLookup.deals;
   const dealsLastCheckedAt = dealsLookup.lastCheckedAt;
 
-  const pricingMode = derivePricingUiMode(bestPrice, rawg);
+  const { screenshots, movies } = await getRawgGameMedia({
+    title,
+    gameId,
+    rawgPayload: rawg,
+  });
 
   const {
     primaryDeal,
@@ -463,6 +443,16 @@ export default async function GameDetailPage({
 
   const primaryTrustedBuyUrl =
     primaryDeal?.deal.url?.trim() ? primaryDeal.deal.url.trim() : undefined;
+
+  const freeToPlay = await resolveGameDetailFreeToPlay({
+    title,
+    rawg,
+    trustedOffers,
+  });
+  const pricingMode: PricingUiMode = freeToPlay.isFreeToPlay
+    ? "free_to_play"
+    : derivePricingUiMode(bestPrice, rawg);
+  const freeToPlayStoreUrl = freeToPlay.storeUrl?.trim() || undefined;
 
   const hasTrustedVerifiedBuy = Boolean(primaryTrustedBuyUrl);
   const showEstimatedPriceNoStoreLinks =
@@ -603,9 +593,18 @@ export default async function GameDetailPage({
               </div>
 
               <div className="mt-10 flex flex-wrap items-center gap-4">
-                {pricingMode === "free_to_play" ? (
+                {pricingMode === "free_to_play" && freeToPlayStoreUrl ? (
+                  <a
+                    href={freeToPlayStoreUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
+                  >
+                    View store page
+                  </a>
+                ) : pricingMode === "free_to_play" ? (
                   <span className="rounded-full bg-white/10 px-8 py-4 font-bold text-white/60">
-                    Free-to-play title
+                    {FREE_TO_PLAY_TITLE}
                   </span>
                 ) : hasTrustedVerifiedBuy ? (
                   <a
@@ -676,12 +675,7 @@ export default async function GameDetailPage({
                       </p>
                       <div className="mt-3 flex min-h-0 flex-1 flex-col justify-start gap-2">
                         {pricingMode === "free_to_play" ? (
-                          <>
-                            <p className="text-2xl font-black text-cyan-300">Free to play</p>
-                            <p className="text-xs leading-relaxed text-white/45">
-                              This game is listed as free-to-play where supported.
-                            </p>
-                          </>
+                          <FreeToPlayPricingState storeUrl={freeToPlayStoreUrl} />
                         ) : hasTrustedVerifiedBuy && primaryDeal ? (
                           <>
                             <p className="text-2xl font-black text-cyan-300">
@@ -854,10 +848,20 @@ export default async function GameDetailPage({
             ) : null}
 
             {pricingMode === "free_to_play" ? (
-              <p className="mt-6 text-white/55">
-                Free-to-play titles are distributed through first-party clients. We do not show empty
-                verified deal rows here.
-              </p>
+              <div className="mt-6">
+                <p className="text-lg font-semibold text-white/75">{FREE_TO_PLAY_TITLE}</p>
+                <p className="mt-2 text-sm leading-relaxed text-white/55">{FREE_TO_PLAY_BODY}</p>
+                {freeToPlayStoreUrl ? (
+                  <a
+                    href={freeToPlayStoreUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex rounded-full border border-cyan-400/35 bg-cyan-400/10 px-5 py-2.5 text-sm font-black text-cyan-200 transition hover:bg-cyan-400/20"
+                  >
+                    View store page
+                  </a>
+                ) : null}
+              </div>
             ) : (
               <div className="mt-6 space-y-8">
                 {showSplitPrimaryLayout && (
@@ -1007,7 +1011,7 @@ export default async function GameDetailPage({
               }`}
             >
               {pricingMode === "free_to_play"
-                ? "Free to play"
+                ? FREE_TO_PLAY_TITLE
                 : hasTrustedVerifiedBuy && primaryDeal
                   ? formatAggregatorPriceLine({
                       price: primaryDeal.salePrice,
@@ -1031,7 +1035,7 @@ export default async function GameDetailPage({
               }`}
             >
               {pricingMode === "free_to_play"
-                ? "This game is listed as free-to-play where supported."
+                ? FREE_TO_PLAY_BODY
                 : hasTrustedVerifiedBuy && primaryDeal
                   ? `Trusted store link — ${primaryDeal.store.name || "Store"}. Other offers are listed below when available.`
                   : showEstimatedPriceNoStoreLinks
@@ -1048,6 +1052,16 @@ export default async function GameDetailPage({
                             ? "Verified PC store pricing may not be available for this platform."
                             : NO_VERIFIED_DEAL_BODY}
             </p>
+            {pricingMode === "free_to_play" && freeToPlayStoreUrl ? (
+              <a
+                href={freeToPlayStoreUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex rounded-full border border-cyan-400/35 bg-cyan-400/10 px-5 py-2.5 text-sm font-black text-cyan-200 transition hover:bg-cyan-400/20"
+              >
+                View store page
+              </a>
+            ) : null}
             {sidebarIsGenericUnavailable ? (
               <p className="mt-2 text-xs leading-relaxed text-white/40">{NO_VERIFIED_DEAL_HELPER}</p>
             ) : null}
