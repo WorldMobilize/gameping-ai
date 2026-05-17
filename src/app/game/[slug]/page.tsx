@@ -18,6 +18,7 @@ import {
   parseVerifiedDealSalePrice,
 } from "@/lib/pricing/price-service";
 import { verifiedDealDisplayDedupeKey } from "@/lib/pricing/verified-deal-row";
+import { formatDisplayDate } from "@/lib/format-display-date";
 
 type RawgGame = {
   id: number;
@@ -508,6 +509,7 @@ export default async function GameDetailPage({
     .join(", ");
   const developers = rawg?.developers?.map((d) => d.name).join(", ");
   const publishers = rawg?.publishers?.map((p) => p.name).join(", ");
+  const releaseDateDisplay = formatDisplayDate(rawg?.released) ?? "N/A";
 
   return (
     <main className="min-h-screen bg-[#05060f] text-white">
@@ -764,7 +766,7 @@ export default async function GameDetailPage({
               Release
             </p>
             <p className="mt-3 text-2xl font-black text-white">
-              {rawg?.released || "N/A"}
+              {releaseDateDisplay}
             </p>
           </div>
 
@@ -975,7 +977,7 @@ export default async function GameDetailPage({
             </p>
 
             <div className="mt-5">
-              <DetailRow label="Release date" value={rawg?.released} />
+              <DetailRow label="Release date" value={releaseDateDisplay} />
               <DetailRow label="Genres" value={genres} />
               <DetailRow label="Platforms" value={platforms} />
               <DetailRow label="Developer" value={developers} />

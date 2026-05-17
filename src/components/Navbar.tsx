@@ -256,7 +256,7 @@ export default function Navbar({
             <>
               <Link
                 href="/recommend"
-                className="relative z-0 rounded-full bg-white/10 px-2.5 py-2 text-[11px] font-bold leading-tight transition hover:bg-white/20 sm:px-5 sm:text-sm"
+                className="relative z-0 hidden rounded-full bg-white/10 px-5 py-2 text-sm font-bold transition hover:bg-white/20 sm:inline-flex sm:items-center"
               >
                 <span className="whitespace-nowrap">New recommendation</span>
               </Link>

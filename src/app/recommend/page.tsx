@@ -610,7 +610,7 @@ export default function RecommendPage() {
 "Like Elden Ring, but less punishing"
 "A cozy game for short evening sessions"`}
                 maxLength={promptMaxForUi}
-                className="mt-6 min-h-44 w-full rounded-3xl border border-white/10 bg-black/40 p-5 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-cyan-400/70 focus:shadow-[0_0_30px_rgba(34,211,238,0.12)]"
+                className="gp-textarea-scroll mt-6 min-h-44 w-full resize-y rounded-3xl border border-white/10 bg-black/40 p-5 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-cyan-400/70 focus:shadow-[0_0_30px_rgba(34,211,238,0.12)]"
                 value={form.userPrompt}
                 onChange={(e) => updateField("userPrompt", e.target.value)}
               />

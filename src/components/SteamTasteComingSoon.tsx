@@ -40,7 +40,6 @@ function LibraryGlyph({
         strokeLinecap="round"
         opacity="0.85"
       />
-      <circle cx="38" cy="16" r="3" fill={`url(#${gradientId})`} opacity="0.5" />
     </svg>
   );
 }

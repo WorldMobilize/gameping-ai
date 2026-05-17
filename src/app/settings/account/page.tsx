@@ -7,12 +7,22 @@ import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
+type PlanKey = "free" | "premium" | "admin" | null;
+
+function planLabel(plan: PlanKey): string {
+  if (plan === "premium") return "Premium";
+  if (plan === "admin") return "Admin";
+  if (plan === "free") return "Free";
+  return "Unknown";
+}
+
 export default function AccountSettingsPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const [ready, setReady] = useState(false);
   const [hasEmailPassword, setHasEmailPassword] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [plan, setPlan] = useState<PlanKey>(null);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmPhrase, setConfirmPhrase] = useState("");
@@ -31,6 +41,21 @@ export default function AccountSettingsPage() {
       }
       if (cancelled) return;
       setUserEmail(user.email ?? null);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!cancelled) {
+        const raw = profile?.plan;
+        if (raw === "premium" || raw === "admin" || raw === "free") {
+          setPlan(raw);
+        } else {
+          setPlan("free");
+        }
+      }
 
       try {
         const res = await fetch("/api/account-auth-hint", { credentials: "include" });
@@ -102,6 +127,8 @@ export default function AccountSettingsPage() {
     );
   }
 
+  const isPaid = plan === "premium" || plan === "admin";
+
   return (
     <main className="min-h-screen bg-[#05060f] text-white">
       <Navbar />
@@ -121,33 +148,108 @@ export default function AccountSettingsPage() {
             .
           </p>
 
-          <div className="mt-10 rounded-3xl border border-red-400/25 bg-red-500/[0.06] p-8">
-            <p className="text-xs font-black uppercase tracking-[0.35em] text-red-200/90">
-              Danger zone
-            </p>
-            <h2 className="mt-3 text-2xl font-black text-white">Delete account</h2>
-            <p className="mt-4 text-sm leading-7 text-white/70">
-              Permanently delete your GamePing account, saved recommendation runs, tracked games,
-              alert history tied to those games, profile row, and outbound-click records linked to
-              your user ID. This cannot be undone.
-            </p>
-            <p className="mt-4 text-sm leading-7 text-white/60">
-              If you have an active Premium subscription, cancel it in Stripe (use the billing links
-              from Stripe&apos;s emails) before deleting your account so you are not charged again.
-              GamePing does not cancel Stripe subscriptions automatically from this screen.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setModalOpen(true);
-                setConfirmPhrase("");
-                setPassword("");
-                setConfirmEmail("");
-              }}
-              className="mt-6 rounded-full border border-red-400/50 bg-red-500/20 px-8 py-3.5 text-sm font-black text-red-100 transition hover:bg-red-500/30"
-            >
-              Delete my account…
-            </button>
+          <div className="mt-10 space-y-6">
+            <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-8">
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-white/40">
+                Account
+              </p>
+              <dl className="mt-5 space-y-4">
+                <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-6">
+                  <dt className="text-sm text-white/45">Email</dt>
+                  <dd className="text-sm font-bold text-white/90">{userEmail ?? "—"}</dd>
+                </div>
+                <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-6">
+                  <dt className="text-sm text-white/45">Current plan</dt>
+                  <dd className="text-sm font-bold text-cyan-200">{planLabel(plan)}</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="rounded-3xl border border-cyan-400/20 bg-cyan-400/[0.06] p-8">
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-200/90">
+                Plan
+              </p>
+              <p className="mt-3 text-sm leading-7 text-white/65">
+                {isPaid
+                  ? "You have access to higher daily limits and more saved searches. Billing is managed through Stripe."
+                  : "Upgrade for higher daily recommendation limits, more saved runs, and more tracked games."}
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                {isPaid ? (
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex rounded-full border border-white/15 bg-white/[0.06] px-6 py-3 text-sm font-bold text-white/85 transition hover:border-cyan-400/40"
+                  >
+                    Open dashboard
+                  </Link>
+                ) : (
+                  <Link
+                    href="/upgrade"
+                    className="inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black transition hover:bg-cyan-300"
+                  >
+                    Upgrade to Premium
+                  </Link>
+                )}
+                <Link
+                  href="/upgrade"
+                  className="inline-flex rounded-full border border-white/15 px-6 py-3 text-sm font-bold text-white/70 transition hover:bg-white/10"
+                >
+                  {isPaid ? "View plan details" : "Compare plans"}
+                </Link>
+              </div>
+              {isPaid ? (
+                <p className="mt-4 text-xs leading-relaxed text-white/45">
+                  To cancel or change billing, use the links in Stripe&apos;s emails after purchase.
+                  GamePing does not host a separate billing portal yet.
+                </p>
+              ) : null}
+            </section>
+
+            <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-8">
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-white/40">
+                Preferences & notifications
+              </p>
+              <p className="mt-3 text-sm leading-7 text-white/60">
+                Price-drop emails are sent when you track games from their game pages. Alert
+                preferences per game (pause/resume) are available on your{" "}
+                <Link href="/dashboard" className="font-bold text-cyan-300 hover:underline">
+                  dashboard
+                </Link>
+                .
+              </p>
+              <p className="mt-3 text-sm leading-7 text-white/45">
+                Global notification settings (email frequency, digest mode) are coming soon.
+              </p>
+            </section>
+
+            <section className="rounded-3xl border border-red-400/25 bg-red-500/[0.06] p-8">
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-red-200/90">
+                Danger zone
+              </p>
+              <h2 className="mt-3 text-2xl font-black text-white">Delete account</h2>
+              <p className="mt-4 text-sm leading-7 text-white/70">
+                Permanently delete your GamePing account, saved recommendation runs, tracked games,
+                alert history tied to those games, profile row, and outbound-click records linked to
+                your user ID. This cannot be undone.
+              </p>
+              <p className="mt-4 text-sm leading-7 text-white/60">
+                If you have an active Premium subscription, cancel it in Stripe (use the billing links
+                from Stripe&apos;s emails) before deleting your account so you are not charged again.
+                GamePing does not cancel Stripe subscriptions automatically from this screen.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setModalOpen(true);
+                  setConfirmPhrase("");
+                  setPassword("");
+                  setConfirmEmail("");
+                }}
+                className="mt-6 rounded-full border border-red-400/50 bg-red-500/20 px-8 py-3.5 text-sm font-black text-red-100 transition hover:bg-red-500/30"
+              >
+                Delete my account…
+              </button>
+            </section>
           </div>
 
           <p className="mt-10 text-sm text-white/45">

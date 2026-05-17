@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import PremiumEarlyAccessHint from "@/components/PremiumEarlyAccessHint";
 import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
 import {
   EARLY_ACCESS_NOTICE,
@@ -205,6 +206,7 @@ function UpgradeContent() {
               <li>✔ 50 tracked games</li>
               <li>✔ Early access features</li>
             </ul>
+            <PremiumEarlyAccessHint />
             <p className="mt-6 text-sm text-white/45">
               Manage billing through Stripe (emails from Stripe) or contact support if you need
               help.
@@ -259,6 +261,8 @@ function UpgradeContent() {
             <li>✔ 50 tracked games</li>
             <li>✔ Early access features</li>
           </ul>
+
+          <PremiumEarlyAccessHint />
 
           <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <button

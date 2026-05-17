@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { formatDisplayDate } from "@/lib/format-display-date";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
@@ -452,7 +453,7 @@ export default function Dashboard() {
 
                     <div className="flex flex-col items-start gap-3 md:items-end">
                       <p className="text-sm text-white/40">
-                        {new Date(search.created_at).toLocaleDateString()}
+                        {formatDisplayDate(search.created_at) ?? "—"}
                       </p>
 
                       {pendingDelete?.kind === "search" &&
@@ -633,7 +634,7 @@ export default function Dashboard() {
                         {row.last_checked_at ? (
                           <p className="mt-1 text-xs text-white/35">
                             Last checked{" "}
-                            {new Date(row.last_checked_at).toLocaleDateString()}
+                            {formatDisplayDate(row.last_checked_at) ?? "—"}
                           </p>
                         ) : null}
                       </div>

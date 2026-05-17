@@ -107,6 +107,13 @@ export default function Home() {
                   How it works
                 </button>
               </a>
+
+              <Link
+                href="/curated"
+                className="text-center text-sm font-bold text-purple-300/90 underline-offset-4 transition hover:text-purple-200 hover:underline sm:px-2"
+              >
+                Curated game lists
+              </Link>
             </div>
 
             <p className="mt-6 text-sm text-white/40">

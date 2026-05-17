@@ -32,12 +32,23 @@ export default function HomeGameCarousel() {
             </p>
           </div>
 
-          <Link
-            href="/games"
-            className="text-sm font-bold text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
-          >
-            Browse A–Z directory
-          </Link>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Link
+              href="/games"
+              className="text-sm font-bold text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
+            >
+              Browse A–Z directory
+            </Link>
+            <span className="hidden text-white/25 sm:inline" aria-hidden>
+              ·
+            </span>
+            <Link
+              href="/curated"
+              className="text-sm font-bold text-purple-300/90 underline-offset-4 transition hover:text-purple-200 hover:underline"
+            >
+              Curated collections
+            </Link>
+          </div>
         </div>
       </div>
 

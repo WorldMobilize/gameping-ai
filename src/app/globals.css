@@ -117,3 +117,31 @@ body {
     animation: none;
   }
 }
+
+/* Recommend prompt textarea — dark integrated scrollbar */
+.gp-textarea-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.35) rgba(255, 255, 255, 0.06);
+}
+
+.gp-textarea-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+
+.gp-textarea-scroll::-webkit-scrollbar-track {
+  margin: 10px 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gp-textarea-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.28);
+  background-clip: padding-box;
+}
+
+.gp-textarea-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.45);
+  background-clip: padding-box;
+}
