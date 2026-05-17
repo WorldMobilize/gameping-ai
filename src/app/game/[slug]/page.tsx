@@ -668,14 +668,14 @@ export default async function GameDetailPage({
                 )}
 
                 <div className="p-6">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-stretch">
-                    <div className="flex min-h-[13.5rem] flex-col rounded-2xl bg-black/30 p-4 sm:min-h-[14.5rem]">
-                      <p className="shrink-0 text-xs uppercase tracking-widest text-white/40">
+                  <div className="flex flex-col gap-3">
+                    <div className="rounded-2xl bg-black/30 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-white/40">
                         {hasTrustedVerifiedBuy
                           ? "Best verified store price"
                           : "Estimated aggregator price"}
                       </p>
-                      <div className="mt-3 flex min-h-0 flex-1 flex-col justify-start gap-2">
+                      <div className="mt-2 flex flex-col gap-2">
                         {pricingMode === "free_to_play" ? (
                           <FreeToPlayPricingState storeUrl={freeToPlayStoreUrl} />
                         ) : hasTrustedVerifiedBuy && primaryDeal ? (
@@ -719,23 +719,21 @@ export default async function GameDetailPage({
                       </div>
                     </div>
 
-                    <div className="flex min-h-[13.5rem] flex-col rounded-2xl bg-black/30 p-4 sm:min-h-[14.5rem]">
-                      <p className="shrink-0 text-xs uppercase tracking-widest text-white/40">
-                        Rating
-                      </p>
-                      <div className="mt-3 flex min-h-0 flex-1 flex-col items-center justify-center text-center">
-                        <p className="text-2xl font-black leading-none text-yellow-300 sm:text-3xl">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between gap-3 rounded-2xl bg-black/30 px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                          Rating
+                        </p>
+                        <p className="text-lg font-black leading-none text-yellow-300 sm:text-xl">
                           {rawg?.rating ? `${rawg.rating}/5` : "N/A"}
                         </p>
                       </div>
-                    </div>
 
-                    <div className="flex min-h-[13.5rem] flex-col rounded-2xl bg-black/30 p-4 sm:min-h-[14.5rem]">
-                      <p className="shrink-0 text-xs uppercase tracking-widest text-white/40">
-                        Metacritic
-                      </p>
-                      <div className="mt-3 flex min-h-0 flex-1 flex-col items-center justify-center text-center">
-                        <p className="text-2xl font-black leading-none text-green-300 sm:text-3xl">
+                      <div className="flex items-center justify-between gap-3 rounded-2xl bg-black/30 px-4 py-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                          Metacritic
+                        </p>
+                        <p className="text-lg font-black leading-none text-green-300 sm:text-xl">
                           {rawg?.metacritic || "N/A"}
                         </p>
                       </div>
