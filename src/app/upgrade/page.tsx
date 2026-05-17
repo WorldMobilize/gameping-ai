@@ -5,7 +5,11 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
-import { EARLY_ACCESS_NOTICE } from "@/lib/product-copy";
+import {
+  EARLY_ACCESS_NOTICE,
+  PREMIUM_EARLY_ACCESS_PRICE_MONTHLY,
+  PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH,
+} from "@/lib/product-copy";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -237,9 +241,13 @@ function UpgradeContent() {
             Early access pricing
           </p>
           <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-3xl font-black text-white">$2.99</span>
+            <span className="text-3xl font-black text-white">
+              {PREMIUM_EARLY_ACCESS_PRICE_MONTHLY}
+            </span>
             <span className="text-sm font-bold text-white/55">/month</span>
-            <span className="text-sm text-white/40 line-through">$4.99</span>
+            <span className="text-sm text-white/40 line-through">
+              {PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH}
+            </span>
           </div>
           <p className="mt-2 text-sm text-white/55">
             Early supporters lock in lower pricing during beta. Billed monthly via Stripe.

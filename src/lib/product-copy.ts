@@ -8,6 +8,10 @@ export const EARLY_ACCESS_NOTICE =
 export const PREMIUM_UNLOCK_LINE =
   "Premium unlocks 25 saved runs, 50 tracked games, and 50 recommendations/day.";
 
+/** Premium subscription marketing (EUR, matches Stripe). */
+export const PREMIUM_EARLY_ACCESS_PRICE_MONTHLY = "€2.99";
+export const PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH = "€4.99";
+
 export const LIMIT_TOAST_DURATION_MS = 9000;
 
 export type LimitType =
