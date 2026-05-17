@@ -213,8 +213,19 @@ export default function Navbar({
   return (
     <nav className="relative z-30 border-b border-white/10 bg-[#05060f]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
-        <Link href="/" className="relative z-0 min-w-0 shrink font-black tracking-tight">
-          GamePing <span className="text-cyan-300">AI</span>
+        <Link
+          href="/"
+          className="relative z-0 flex min-w-0 shrink items-center gap-2 font-black tracking-tight"
+        >
+          <span className="truncate">
+            GamePing <span className="text-cyan-300">AI</span>
+          </span>
+          <span
+            className="hidden shrink-0 rounded-full border border-purple-400/35 bg-purple-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.22em] text-purple-200/90 sm:inline"
+            title="GamePing AI early access"
+          >
+            Early Access
+          </span>
         </Link>
 
         <div className="relative z-0 flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EARLY_ACCESS_NOTICE } from "@/lib/product-copy";
 
 export default function Footer() {
   return (
@@ -127,7 +128,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row sm:items-start sm:justify-between">
+        <p className="mt-10 max-w-3xl border-t border-white/10 pt-6 text-xs leading-relaxed text-slate-500">
+          {EARLY_ACCESS_NOTICE}
+        </p>
+
+        <div className="mt-6 flex flex-col gap-3 text-xs text-slate-500 sm:flex-row sm:items-start sm:justify-between">
           <p className="whitespace-nowrap">
             © {new Date().getFullYear()} GamePing AI. All rights reserved.
           </p>

@@ -5,6 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
+import { EARLY_ACCESS_NOTICE } from "@/lib/product-copy";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -232,11 +233,16 @@ function UpgradeContent() {
 
         <div className="rounded-3xl border border-cyan-400/25 bg-cyan-400/10 p-8 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
           <h2 className="text-2xl font-black">Premium</h2>
-          <p className="mt-2 text-sm font-bold text-cyan-200">
-            Premium — $4.99/month (billed monthly via Stripe)
+          <p className="text-[10px] font-black uppercase tracking-[0.32em] text-cyan-200/90">
+            Early access pricing
           </p>
+          <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="text-3xl font-black text-white">$2.99</span>
+            <span className="text-sm font-bold text-white/55">/month</span>
+            <span className="text-sm text-white/40 line-through">$4.99</span>
+          </div>
           <p className="mt-2 text-sm text-white/55">
-            More daily recommendations, saved runs, and tracked games.
+            Early supporters lock in lower pricing during beta. Billed monthly via Stripe.
           </p>
 
           <ul className="mt-6 space-y-3 text-white/80">
@@ -287,6 +293,10 @@ export default function UpgradePage() {
           <p className="mt-4 max-w-2xl text-white/60">
             Higher daily recommendation limits, more saved searches, and more tracked games for
             price-drop emails.
+          </p>
+
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/45">
+            {EARLY_ACCESS_NOTICE}
           </p>
 
           <Suspense

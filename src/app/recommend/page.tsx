@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import FreePlanLimitReached from "@/components/FreePlanLimitReached";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
+import {
+  FREE_LIMIT_BODY,
+  FREE_PLAN_LIMIT_TITLE,
+  PREMIUM_UNLOCK_LINE,
+} from "@/lib/product-copy";
 import { useEffect, useRef, useState } from "react";
 import {
   PROMPT_MAX_ADMIN,
@@ -238,10 +244,8 @@ export default function RecommendPage() {
   /** When true, user sees budget/tags/platform and backend applies strict filter mode. */
   const [filtersEnabled, setFiltersEnabled] = useState(false);
   const [emailSaved, setEmailSaved] = useState(false);
-  const [limitReached, setLimitReached] = useState<{
-    message: string;
-    limit?: number;
-  } | null>(null);
+  const [saveLimitReached, setSaveLimitReached] = useState(false);
+  const [dailyLimitReached, setDailyLimitReached] = useState(false);
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingStepIndex, setLoadingStepIndex] = useState(0);
@@ -387,11 +391,11 @@ export default function RecommendPage() {
               "Prompt too long. Please keep it under 500 characters.",
           });
         } else if (res.status === 429 && data?.error === "daily_limit") {
+          setDailyLimitReached(true);
           showToast({
-            variant: "error",
-            message:
-              data.message ||
-              "You’ve reached today’s recommendation limit. Try again tomorrow or upgrade for more.",
+            variant: "info",
+            title: FREE_PLAN_LIMIT_TITLE,
+            message: `${FREE_LIMIT_BODY.daily_recommendations} ${PREMIUM_UNLOCK_LINE}`,
           });
         } else {
           showToast({
@@ -432,7 +436,7 @@ export default function RecommendPage() {
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLimitReached(null);
+    setSaveLimitReached(false);
 
     if (!loggedUserEmail) {
       showToast({
@@ -468,18 +472,11 @@ export default function RecommendPage() {
         });
       } else {
         if (result.error === "limit_reached") {
-          setLimitReached({
-            message:
-              result.message ||
-              "Upgrade to Premium to save more searches",
-            limit: typeof result.limit === "number" ? result.limit : undefined,
-          });
+          setSaveLimitReached(true);
           showToast({
             variant: "info",
-            title: "Saved search limit reached",
-            message:
-              result.message ||
-              "You’ve used all saved searches on your current plan. Upgrade to save more.",
+            title: FREE_PLAN_LIMIT_TITLE,
+            message: `${FREE_LIMIT_BODY.saved_runs} ${PREMIUM_UNLOCK_LINE}`,
           });
         } else {
           showToast({
@@ -811,6 +808,13 @@ export default function RecommendPage() {
             </p>
           </form>
 
+          {dailyLimitReached && (
+            <FreePlanLimitReached
+              variant="daily_recommendations"
+              className="mx-auto mt-8 max-w-xl"
+            />
+          )}
+
           {loading && (
             <div
               className="mt-10 md:mt-12"
@@ -1072,21 +1076,8 @@ export default function RecommendPage() {
                   )}
                 </div>
 
-                {limitReached && (
-                  <div className="mt-5 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-4">
-                    <p className="text-sm font-bold text-cyan-200">
-                      {limitReached.message}
-                      {typeof limitReached.limit === "number"
-                        ? ` (limit: ${limitReached.limit})`
-                        : ""}
-                    </p>
-                    <a
-                      href="/upgrade"
-                      className="mt-3 inline-block rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black transition hover:bg-cyan-300"
-                    >
-                      Upgrade to Premium
-                    </a>
-                  </div>
+                {saveLimitReached && (
+                  <FreePlanLimitReached variant="saved_runs" className="mt-5" />
                 )}
               </form>
 

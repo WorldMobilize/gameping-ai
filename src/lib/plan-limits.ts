@@ -4,11 +4,11 @@ import "server-only";
 export const PLAN_LIMITS = {
   anonRecommendDaily: 10,
   freeRecommendDaily: 5,
-  premiumRecommendDaily: 50,
+  premiumRecommendDaily: 7,
   freeSavedSearches: 3,
-  premiumSavedSearches: 25,
+  premiumSavedSearches: 5,
   freeTrackedGames: 5,
-  premiumTrackedGames: 50,
+  premiumTrackedGames: 7,
 } as const;
 
 /** Daily cap for recommend; admin bypass is applied at call site (no RPC). */

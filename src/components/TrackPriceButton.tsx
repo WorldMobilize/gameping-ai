@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { useToast } from "@/components/ToastProvider";
+import {
+  FREE_LIMIT_BODY,
+  FREE_PLAN_LIMIT_TITLE,
+  PREMIUM_UNLOCK_LINE,
+} from "@/lib/product-copy";
 import { supabase } from "@/lib/supabase";
 import { useState } from "react";
 
@@ -60,13 +65,21 @@ export default function TrackPriceButton({ title, rawgId, baselinePrice }: Props
       };
 
       if (!res.ok) {
-        showToast({
-          variant: res.status === 403 ? "info" : "error",
-          message:
-            json.message ||
-            json.error ||
-            "Could not start tracking.",
-        });
+        if (res.status === 403 && json.error === "track_limit_reached") {
+          showToast({
+            variant: "info",
+            title: FREE_PLAN_LIMIT_TITLE,
+            message: `${FREE_LIMIT_BODY.tracked_games} ${PREMIUM_UNLOCK_LINE}`,
+          });
+        } else {
+          showToast({
+            variant: res.status === 403 ? "info" : "error",
+            message:
+              json.message ||
+              json.error ||
+              "Could not start tracking.",
+          });
+        }
         return;
       }
 
