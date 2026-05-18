@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+import {
+  buildActiveCapLimitErrorPayload,
+  buildLimitErrorPayload,
+} from "@/lib/product-copy";
 import { getSavedSearchesLimit } from "@/lib/plan-limits";
-import { buildLimitErrorPayload } from "@/lib/product-copy";
+import { canCreateResourceRow } from "@/lib/plan-enforcement";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
@@ -28,7 +32,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔥 prendi piano utente
     const { data: profile } = await supabase
       .from("profiles")
       .select("plan")
@@ -36,34 +39,39 @@ export async function POST(req: Request) {
       .single();
 
     const plan = profile?.plan || "free";
-
-    // 🔥 conta ricerche esistenti
-    const { count } = await supabase
-      .from("search_profiles")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id);
-
     const limit = getSavedSearchesLimit(plan);
 
-    if ((count || 0) >= limit) {
-      return NextResponse.json(
-        buildLimitErrorPayload({
-          error: "limit_reached",
-          limitType: "saved_runs",
-          plan,
-          limit,
-        }),
-        { status: 403 }
-      );
+    const gate = await canCreateResourceRow({
+      supabase,
+      userId: user.id,
+      plan,
+      resource: "search_profiles",
+    });
+
+    if (!gate.ok) {
+      const payload =
+        gate.reason === "active_limit"
+          ? buildActiveCapLimitErrorPayload({
+              error: "active_saved_run_limit_reached",
+              limitType: "saved_runs",
+              limit,
+            })
+          : buildLimitErrorPayload({
+              error: "limit_reached",
+              limitType: "saved_runs",
+              plan,
+              limit,
+            });
+      return NextResponse.json(payload, { status: 403 });
     }
 
-    // salva
     const { error } = await supabase.from("search_profiles").insert({
       user_id: user.id,
       email,
       name,
       preferences,
       games,
+      is_active: true,
     });
 
     if (error) {

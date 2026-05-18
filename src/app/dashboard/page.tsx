@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
 import Link from "next/link";
 import { gameDetailPath } from "@/lib/curated/game-links";
+import { PLAN_QUOTAS } from "@/lib/plan-quotas";
 
 type Game = {
   title: string;
@@ -27,6 +28,7 @@ type SearchProfile = {
   };
   games: Game[];
   created_at: string;
+  is_active?: boolean;
 };
 
 type TrackedGameRow = {
@@ -104,6 +106,8 @@ export default function Dashboard() {
   const [trackedLoadError, setTrackedLoadError] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [trackedActionId, setTrackedActionId] = useState<string | null>(null);
+  const [savedRunActionId, setSavedRunActionId] = useState<string | null>(null);
+  const [userPlan, setUserPlan] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
@@ -149,6 +153,13 @@ export default function Dashboard() {
       }
 
       setUserId(user.id);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setUserPlan(profile?.plan ?? "free");
 
       const [searchesRes] = await Promise.all([
         fetch("/api/get-searches", {
@@ -225,17 +236,26 @@ export default function Dashboard() {
   async function setTrackedGameActive(id: string, isActive: boolean) {
     setTrackedActionId(id);
     try {
-      const { error } = await supabase
-        .from("tracked_games")
-        .update({ is_active: isActive })
-        .eq("id", id);
+      const res = await fetch("/api/set-tracked-game-active", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, isActive }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+      };
 
-      if (error) {
+      if (!res.ok || !json.ok) {
         showToast({
           variant: "error",
-          message: isActive
-            ? "Couldn’t resume alerts. Try again."
-            : "Couldn’t pause alerts. Try again.",
+          message:
+            typeof json.message === "string" && json.message.length > 0
+              ? json.message
+              : isActive
+                ? "Couldn’t resume alerts. Try again."
+                : "Couldn’t pause alerts. Try again.",
         });
         return;
       }
@@ -249,6 +269,47 @@ export default function Dashboard() {
       });
     } finally {
       setTrackedActionId(null);
+    }
+  }
+
+  async function setSavedRunActive(id: string, isActive: boolean) {
+    setSavedRunActionId(id);
+    try {
+      const res = await fetch("/api/set-saved-run-active", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, isActive }),
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        message?: string;
+      };
+
+      if (!res.ok || !json.ok) {
+        showToast({
+          variant: "error",
+          message:
+            typeof json.message === "string" && json.message.length > 0
+              ? json.message
+              : isActive
+                ? "Couldn’t activate this saved run. Try again."
+                : "Couldn’t pause this saved run. Try again.",
+        });
+        return;
+      }
+
+      setSearches((prev) =>
+        prev.map((row) =>
+          row.id === id ? { ...row, is_active: isActive } : row
+        )
+      );
+      showToast({
+        variant: "success",
+        message: isActive ? "Saved run activated." : "Saved run paused.",
+      });
+    } finally {
+      setSavedRunActionId(null);
     }
   }
 
@@ -280,6 +341,13 @@ export default function Dashboard() {
       setDeleteBusy(false);
     }
   }
+
+  const showLegacyPlanNotice =
+    userPlan === "free" &&
+    (searches.length > PLAN_QUOTAS.freeSavedSearches ||
+      trackedGames.length > PLAN_QUOTAS.freeTrackedGames ||
+      searches.some((s) => s.is_active === false) ||
+      trackedGames.some((g) => !g.is_active));
 
   return (
     <main className="min-h-screen bg-[#05060f] text-white">
@@ -329,6 +397,21 @@ export default function Dashboard() {
               New recommendation
             </Link>
           </div>
+
+          {showLegacyPlanNotice && (
+            <p className="mt-6 max-w-3xl rounded-2xl border border-amber-400/25 bg-amber-500/10 px-5 py-4 text-sm leading-relaxed text-amber-100/90">
+              Some items were paused because your plan changed. Free users can keep{" "}
+              {PLAN_QUOTAS.freeSavedSearches} saved runs and {PLAN_QUOTAS.freeTrackedGames}{" "}
+              tracked games active. Pause one to activate another, or{" "}
+              <Link
+                href="/upgrade"
+                className="font-bold text-cyan-200 underline-offset-2 hover:underline"
+              >
+                upgrade to Premium
+              </Link>
+              .
+            </p>
+          )}
 
           {loading && (
             <div
@@ -415,14 +498,29 @@ export default function Dashboard() {
 
             {!loading && !loadError && searches.length > 0 && (
             <div className="grid gap-6">
-              {searches.map((search) => (
+              {searches.map((search) => {
+                const runActive = search.is_active !== false;
+                const runBusy = savedRunActionId === search.id || deleteBusy;
+
+                return (
                 <div
                   key={search.id}
-                  className="rounded-3xl border border-white/10 bg-white/5 p-6"
+                  className={`rounded-3xl border p-6 transition ${
+                    runActive
+                      ? "border-white/10 bg-white/5"
+                      : "border-white/5 bg-white/[0.02] opacity-55 saturate-[0.7]"
+                  }`}
                 >
                   <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                     <div>
-                      <h2 className="text-2xl font-black">{search.name}</h2>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-2xl font-black">{search.name}</h2>
+                        {!runActive && (
+                          <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/55">
+                            Paused
+                          </span>
+                        )}
+                      </div>
 
                       <div className="mt-3 flex flex-wrap gap-2">
                         {search.preferences?.genres && (
@@ -456,25 +554,47 @@ export default function Dashboard() {
                         {formatDisplayDate(search.created_at) ?? "—"}
                       </p>
 
-                      {pendingDelete?.kind === "search" &&
-                      pendingDelete.id === search.id ? (
-                        <DeleteConfirmCard
-                          confirmLabel="Delete saved run"
-                          busy={deleteBusy}
-                          onCancel={() => setPendingDelete(null)}
-                          onConfirm={() => void deleteSearch(search.id)}
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setPendingDelete({ kind: "search", id: search.id })
-                          }
-                          className="rounded-full border border-red-400/30 px-4 py-2 text-sm font-bold text-red-300 transition hover:bg-red-400/10"
-                        >
-                          Delete
-                        </button>
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {runActive ? (
+                          <button
+                            type="button"
+                            disabled={runBusy}
+                            onClick={() => void setSavedRunActive(search.id, false)}
+                            className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white/75 transition hover:border-white/30 disabled:opacity-50"
+                          >
+                            Pause
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={runBusy}
+                            onClick={() => void setSavedRunActive(search.id, true)}
+                            className="rounded-full border border-cyan-400/40 px-4 py-2 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50"
+                          >
+                            Activate
+                          </button>
+                        )}
+                        {pendingDelete?.kind === "search" &&
+                        pendingDelete.id === search.id ? (
+                          <DeleteConfirmCard
+                            confirmLabel="Delete saved run"
+                            busy={deleteBusy}
+                            onCancel={() => setPendingDelete(null)}
+                            onConfirm={() => void deleteSearch(search.id)}
+                          />
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={runBusy}
+                            onClick={() =>
+                              setPendingDelete({ kind: "search", id: search.id })
+                            }
+                            className="rounded-full border border-red-400/30 px-4 py-2 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-50"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -532,7 +652,8 @@ export default function Dashboard() {
                     })}
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
           </section>
@@ -606,7 +727,11 @@ export default function Dashboard() {
                   return (
                     <div
                       key={row.id}
-                      className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-black/20 p-5 md:flex-row md:items-center md:justify-between"
+                      className={`flex flex-col gap-4 rounded-2xl border p-5 transition md:flex-row md:items-center md:justify-between ${
+                      row.is_active
+                        ? "border-white/10 bg-black/20"
+                        : "border-white/5 bg-black/10 opacity-55 saturate-[0.7]"
+                    }`}
                     >
                       <div>
                         <div className="flex flex-wrap items-center gap-2">

@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { formatAggregatorPriceLine } from "@/lib/pricing/display";
 import { lookupBestPrice } from "@/lib/pricing/price-service";
 
 function parsePriceToNumber(price: string): number | null {
@@ -114,6 +115,62 @@ export function priceAlertContextLine(
     return "This dropped from your last tracked price.";
   }
   return null;
+}
+
+function formatAlertEmailNumericPrice(params: {
+  amount: number;
+  currency?: string | null;
+}): string | null {
+  if (!Number.isFinite(params.amount) || params.amount <= 0) return null;
+  const price = params.amount.toFixed(2);
+  return formatAggregatorPriceLine({ price, currency: params.currency });
+}
+
+/** Was/now line for alert emails; null when comparison is invalid or unsafe to show. */
+export function buildPriceChangeContextLine(params: {
+  wasPrice: number | null | undefined;
+  nowPrice: number | null | undefined;
+  currency?: string | null;
+  alertReason?: PriceAlertDecisionReason | string;
+}): string | null {
+  const was = params.wasPrice;
+  const now = params.nowPrice;
+  if (was == null || now == null || !Number.isFinite(was) || !Number.isFinite(now)) {
+    return null;
+  }
+  if (was <= 0 || now <= 0) return null;
+  if (Math.abs(was - now) < 0.005) return null;
+
+  const wasDisplay = formatAlertEmailNumericPrice({ amount: was, currency: params.currency });
+  const nowDisplay = formatAlertEmailNumericPrice({ amount: now, currency: params.currency });
+  if (!wasDisplay || !nowDisplay) return null;
+
+  if (params.alertReason === "significant_drop") {
+    if (was <= now) return null;
+    return `Price dropped from ${wasDisplay} to ${nowDisplay}`;
+  }
+
+  if (params.alertReason === "target_met") {
+    return `Your tracked game reached ${nowDisplay} (previously ${wasDisplay})`;
+  }
+
+  return null;
+}
+
+function resolvePriceAlertContextLine(
+  params: Pick<
+    PriceAlertEmailContentParams,
+    "wasPriceNum" | "nowPriceNum" | "currency" | "alertReason"
+  >
+): string | null {
+  return (
+    buildPriceChangeContextLine({
+      wasPrice: params.wasPriceNum,
+      nowPrice: params.nowPriceNum,
+      currency: params.currency,
+      alertReason: params.alertReason,
+    }) ?? priceAlertContextLine(params.alertReason)
+  );
 }
 
 /** Accepts any Supabase JS client (browser, server, service role) used for alert queries. */
@@ -232,6 +289,11 @@ export type PriceAlertEmailContentParams = {
   heroImageUrl?: string | null;
   supportEmail?: string;
   alertReason?: PriceAlertDecisionReason | string;
+  /** Prior stored baseline (cron `lastKnownBefore`). */
+  wasPriceNum?: number | null;
+  /** Provider price at alert time. */
+  nowPriceNum?: number | null;
+  currency?: string | null;
 };
 
 export function buildAlertEmailText(params: PriceAlertEmailContentParams): string {
@@ -239,7 +301,7 @@ export function buildAlertEmailText(params: PriceAlertEmailContentParams): strin
   const listingLine = params.matchedListing
     ? `Listing: ${params.matchedListing}`
     : "Listing verified through our pricing checks.";
-  const contextLine = priceAlertContextLine(params.alertReason);
+  const contextLine = resolvePriceAlertContextLine(params);
 
   const lines = [
     "GamePing AI — Price drop",
@@ -293,7 +355,7 @@ export function buildAlertEmailHtml(params: PriceAlertEmailContentParams): strin
     ? `<p style="margin:0 0 8px;font-size:12px;color:rgba(255,255,255,0.5);"><a href="${escapeHtml(params.unsubscribeUrl)}" style="color:#67e8f9;">Stop alerts for this game</a></p>`
     : "";
 
-  const contextLine = priceAlertContextLine(params.alertReason);
+  const contextLine = resolvePriceAlertContextLine(params);
   const contextBlock = contextLine
     ? `<p style="margin:0 0 12px;font-size:14px;color:#a5f3fc;">${escapeHtml(contextLine)}</p>`
     : "";

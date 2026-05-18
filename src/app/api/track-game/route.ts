@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { getTrackedGamesLimit } from "@/lib/plan-limits";
-import { buildLimitErrorPayload } from "@/lib/product-copy";
+import {
+  buildActiveCapLimitErrorPayload,
+  buildLimitErrorPayload,
+} from "@/lib/product-copy";
+import {
+  canActivateResourceRow,
+  canCreateResourceRow,
+} from "@/lib/plan-enforcement";
 import { createClient } from "@/lib/supabase/server";
 import {
   parseExplicitTargetPrice,
@@ -76,39 +83,58 @@ export async function POST(req: Request) {
 
     const { data: existingRow } = await supabase
       .from("tracked_games")
-      .select("id")
+      .select("id, is_active")
       .eq("user_id", user.id)
       .eq("title_norm", title_norm)
       .maybeSingle();
 
     if (!existingRow) {
-      const { count: activeCount, error: countError } = await supabase
-        .from("tracked_games")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("is_active", true);
+      const gate = await canCreateResourceRow({
+        supabase,
+        userId: user.id,
+        plan,
+        resource: "tracked_games",
+      });
 
-      if (countError) {
-        console.error("[track-game] active count", countError);
-        return NextResponse.json(
-          { ok: false, error: "Could not verify tracking limit. Try again." },
-          { status: 500 }
-        );
+      if (!gate.ok) {
+        const payload =
+          gate.reason === "active_limit"
+            ? buildActiveCapLimitErrorPayload({
+                error: "active_track_limit_reached",
+                limitType: "tracked_games",
+                limit: trackLimit,
+              })
+            : buildLimitErrorPayload({
+                error: "track_limit_reached",
+                limitType: "tracked_games",
+                plan,
+                limit: trackLimit,
+              });
+        return NextResponse.json({ ok: false, ...payload }, { status: 403 });
       }
+    } else if (existingRow.is_active !== true) {
+      const gate = await canActivateResourceRow({
+        supabase,
+        userId: user.id,
+        plan,
+        resource: "tracked_games",
+      });
 
-      if ((activeCount ?? 0) >= trackLimit) {
-        return NextResponse.json(
-          {
-            ok: false,
-            ...buildLimitErrorPayload({
-              error: "track_limit_reached",
-              limitType: "tracked_games",
-              plan,
-              limit: trackLimit,
-            }),
-          },
-          { status: 403 }
-        );
+      if (!gate.ok) {
+        const payload =
+          gate.reason === "active_limit"
+            ? buildActiveCapLimitErrorPayload({
+                error: "active_track_limit_reached",
+                limitType: "tracked_games",
+                limit: trackLimit,
+              })
+            : buildLimitErrorPayload({
+                error: "track_limit_reached",
+                limitType: "tracked_games",
+                plan,
+                limit: trackLimit,
+              });
+        return NextResponse.json({ ok: false, ...payload }, { status: 403 });
       }
     }
 

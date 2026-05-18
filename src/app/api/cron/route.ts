@@ -483,6 +483,9 @@ export async function GET(req: Request) {
         unsubscribeUrl,
         heroImageUrl: meta.backgroundImage,
         alertReason: threshold.reason,
+        wasPriceNum: lastKnownBefore,
+        nowPriceNum: priceNum,
+        currency: best.currency,
       };
 
       const html = buildAlertEmailHtml(emailContent);

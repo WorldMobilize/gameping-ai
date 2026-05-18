@@ -114,6 +114,31 @@ export function limitReachedToastMessage(params: {
 }
 
 /** API-facing limit error payload (no new endpoints). */
+/** Free legacy storage: active cap reached (pause one to swap). */
+export function buildActiveCapLimitErrorPayload(params: {
+  error: string;
+  limitType: Exclude<LimitType, "daily_recommendations">;
+  limit: number;
+}): {
+  error: string;
+  limitType: LimitType;
+  plan: string;
+  limit: number;
+  message: string;
+} {
+  const noun =
+    params.limitType === "saved_runs"
+      ? "saved recommendation runs"
+      : "tracked games";
+  return {
+    error: params.error,
+    limitType: params.limitType,
+    plan: "free",
+    limit: params.limit,
+    message: `Free plan allows ${params.limit} active ${noun}. Pause one to activate another, or upgrade to Premium.`,
+  };
+}
+
 export function buildLimitErrorPayload(params: {
   error: string;
   limitType: LimitType;

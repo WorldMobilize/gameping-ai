@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { enforceFreePlanActiveCaps } from "@/lib/plan-enforcement";
 import { getStripe } from "@/lib/stripe";
 
 export const runtime = "nodejs";
@@ -82,6 +83,24 @@ function sessionCheckoutEmail(session: Stripe.Checkout.Session): string | null {
     return details.email.trim();
   }
   return null;
+}
+
+async function applyPremiumDowngradeEnforcement(
+  supabase: SupabaseClient,
+  userId: string,
+  previousPlan: string | null | undefined
+): Promise<void> {
+  if (previousPlan !== "premium") return;
+
+  try {
+    const result = await enforceFreePlanActiveCaps(supabase, userId);
+    console.log("[stripe webhook] downgrade active caps enforced", {
+      userId,
+      ...result,
+    });
+  } catch (err) {
+    console.error("[stripe webhook] downgrade enforcement failed", userId, err);
+  }
 }
 
 async function resolveSessionEmailWithStripeFallback(
@@ -295,6 +314,10 @@ async function syncProfilePlanFromSubscription(
   console.log(
     `[stripe webhook] ${eventType}: plan transition ${previousPlan} → ${targetPlan} (stripe_status=${subscription.status})`
   );
+
+  if (targetPlan === "free") {
+    await applyPremiumDowngradeEnforcement(supabase, userId, previousPlan);
+  }
 }
 
 async function handleSubscriptionDeleted(
@@ -348,6 +371,8 @@ async function handleSubscriptionDeleted(
   console.log(
     `[stripe webhook] customer.subscription.deleted: plan set to free (was ${profile?.plan ?? "unknown"})`
   );
+
+  await applyPremiumDowngradeEnforcement(supabase, userId, profile?.plan);
 }
 
 export async function POST(req: Request) {

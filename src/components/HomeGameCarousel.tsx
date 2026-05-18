@@ -2,11 +2,26 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useLayoutEffect, useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useSyncExternalStore, type CSSProperties } from "react";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import { HOME_CAROUSEL_PICKS, type HomeGamePick } from "@/lib/curated/home-picks";
 
 const CAROUSEL_SEED_KEY = "gp-home-carousel-seed";
+
+type CarouselSessionState = {
+  picks: HomeGamePick[];
+  trackStyle: CSSProperties;
+};
+
+const DEFAULT_CAROUSEL_STATE: CarouselSessionState = {
+  picks: HOME_CAROUSEL_PICKS,
+  trackStyle: {},
+};
+
+const carouselSessionStore = {
+  state: null as CarouselSessionState | null,
+  listeners: new Set<() => void>(),
+};
 
 function mulberry32(seed: number) {
   let state = seed >>> 0;
@@ -39,23 +54,55 @@ function getOrCreateCarouselSeed(): number {
   return seed;
 }
 
-export default function HomeGameCarousel() {
-  const [carouselPicks, setCarouselPicks] = useState(HOME_CAROUSEL_PICKS);
-  const [trackStyle, setTrackStyle] = useState<CSSProperties>({});
-
-  useLayoutEffect(() => {
-    const seed = getOrCreateCarouselSeed();
-    const shuffled = shufflePicks(HOME_CAROUSEL_PICKS, seed);
-    const offset = seed % shuffled.length;
-    setCarouselPicks([...shuffled.slice(offset), ...shuffled.slice(0, offset)]);
-
-    const durationSec = 84 + (seed % 14);
-    const delaySec = (seed % 37) + (seed % 5) * 0.35;
-    setTrackStyle({
+function buildCarouselSessionState(): CarouselSessionState {
+  const seed = getOrCreateCarouselSeed();
+  const shuffled = shufflePicks(HOME_CAROUSEL_PICKS, seed);
+  const offset = seed % shuffled.length;
+  const durationSec = 84 + (seed % 14);
+  const delaySec = (seed % 37) + (seed % 5) * 0.35;
+  return {
+    picks: [...shuffled.slice(offset), ...shuffled.slice(0, offset)],
+    trackStyle: {
       ["--home-carousel-duration" as string]: `${durationSec}s`,
       animationDelay: `-${delaySec}s`,
+    },
+  };
+}
+
+function subscribeCarouselSession(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  carouselSessionStore.listeners.add(onStoreChange);
+
+  if (!carouselSessionStore.state) {
+    queueMicrotask(() => {
+      if (!carouselSessionStore.state) {
+        carouselSessionStore.state = buildCarouselSessionState();
+        carouselSessionStore.listeners.forEach((listener) => listener());
+      }
     });
-  }, []);
+  }
+
+  return () => {
+    carouselSessionStore.listeners.delete(onStoreChange);
+  };
+}
+
+function getCarouselSessionSnapshot(): CarouselSessionState {
+  if (typeof window === "undefined") return DEFAULT_CAROUSEL_STATE;
+  return carouselSessionStore.state ?? DEFAULT_CAROUSEL_STATE;
+}
+
+function getCarouselSessionServerSnapshot(): CarouselSessionState {
+  return DEFAULT_CAROUSEL_STATE;
+}
+
+export default function HomeGameCarousel() {
+  const { picks: carouselPicks, trackStyle } = useSyncExternalStore(
+    subscribeCarouselSession,
+    getCarouselSessionSnapshot,
+    getCarouselSessionServerSnapshot
+  );
 
   const loop = useMemo(() => [...carouselPicks, ...carouselPicks], [carouselPicks]);
 
