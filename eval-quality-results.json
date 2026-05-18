@@ -1,0 +1,2278 @@
+[
+  {
+    "index": 1,
+    "prompt": "cozy game chill",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 42742,
+    "data": {
+      "games": [
+        {
+          "id": 421698,
+          "title": "Animal Crossing: New Horizons",
+          "slug": "animal-crossing-2019",
+          "image": "https://media.rawg.io/media/games/42f/42fe1abd4d7c11ca92d93a0fb0f8662b.jpg",
+          "match": 95,
+          "reason": "Perfetto se vuoi immergerti in una vita tranquilla su un'isola, dove puoi costruire, decorare e socializzare con i tuoi vicini. Ogni giorno porta nuove attività rilassanti e opportunità di esplorazione.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 654,
+          "title": "Stardew Valley",
+          "slug": "stardew-valley",
+          "image": "https://media.rawg.io/media/games/713/713269608dc8f2f40f5a670a14b2de94.jpg",
+          "match": 90,
+          "reason": "Funziona bene quando cerchi un'esperienza di farming e comunità, dove puoi coltivare, allevare animali e interagire con i tuoi amici del villaggio. Ha quella sensazione da 'ancora una run e poi smetto' se ti piace.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 576532,
+          "title": "Cozy Grove",
+          "slug": "cozy-grove",
+          "image": "https://media.rawg.io/media/screenshots/ea5/ea586b50b2cfe7ffa946488a91275dd1.jpg",
+          "match": 85,
+          "reason": "Rispetto agli altri pick, questo è più orientato verso l'esplorazione di un'isola misteriosa e la cura di spiriti, con un'atmosfera accogliente e un ritmo rilassato. Perfetto per chi ama il crafting e le storie dolci.",
+          "matchTier": "good_alternative",
+          "matchNote": "Più enfasi sulla narrazione, meno sulla gestione agricola.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 326236,
+          "title": "Spiritfarer",
+          "slug": "spiritfire",
+          "image": "https://media.rawg.io/media/games/727/727f889060e688bbdcba7b2a5d26a603.jpg",
+          "match": 80,
+          "reason": "Ha un'atmosfera toccante e un gameplay che invita alla riflessione, mentre gestisci il passaggio delle anime. È un viaggio emozionante e rilassante che ti farà sentire in pace.",
+          "matchTier": "good_alternative",
+          "matchNote": "Più profondo emotivamente, meno leggero rispetto agli altri.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 621,
+          "completion_tokens": 519,
+          "total_tokens": 1140,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1359,
+          "completion_tokens": 406,
+          "total_tokens": 1765,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": false,
+          "used": 1,
+          "limit": 10,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "2c6ed0a67ff56487eadc40420dd0b3e695b7c5b46571252f523be9d215335318",
+        "resolvedInput": "cozy game chill",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 5
+        },
+        "selected": {
+          "titles": [
+            "Animal Crossing: New Horizons",
+            "Stardew Valley",
+            "Cozy Grove",
+            "Spiritfarer"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "Animal Crossing: New Horizons",
+            "Stardew Valley",
+            "Cozy Grove",
+            "Spiritfarer"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 2,
+    "prompt": "giochi horror psicologici",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 29687,
+    "data": {
+      "games": [
+        {
+          "id": 13668,
+          "title": "Amnesia: The Dark Descent",
+          "slug": "amnesia-the-dark-descent",
+          "image": "https://media.rawg.io/media/games/b54/b54598d1d5cc31899f4f0a7e3122a7b0.jpg",
+          "match": 90,
+          "reason": "Perfetto se vuoi un'esperienza horror che gioca con la tua mente. La tensione e la vulnerabilità di Daniel ti faranno sentire costantemente in pericolo, rendendo ogni momento carico di suspense.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 3168,
+          "title": "SOMA",
+          "slug": "soma",
+          "image": "https://media.rawg.io/media/games/149/149bbed9d90dc09328ba79bbacfda3c8.jpg",
+          "match": 85,
+          "reason": "Funziona bene quando cerchi domande esistenziali mescolate a un'atmosfera inquietante. La storia di Simon ti porterà a riflettere su temi profondi mentre esplori ambienti angoscianti.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 2792,
+          "title": "Layers of Fear",
+          "slug": "layers-of-fear",
+          "image": "https://media.rawg.io/media/games/6a2/6a2e48933245e2cd3c92248c75c925e1.jpg",
+          "match": 80,
+          "reason": "Ha quella sensazione da 'ancora una run e poi smetto' se ti piace esplorare e risolvere enigmi in un contesto disturbante. La narrativa ti coinvolgerà in un viaggio psicologico unico.",
+          "matchTier": "good_alternative",
+          "matchNote": "Più focus su enigmi, meno azione diretta.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 3790,
+          "title": "Outlast",
+          "slug": "outlast",
+          "image": "https://media.rawg.io/media/games/9dd/9ddabb34840ea9227556670606cf8ea3.jpg",
+          "match": 75,
+          "reason": "Rispetto agli altri pick, questo è più frenetico e ti regala brividi e adrenalina. La storia di Miles ti porterà in un incubo che non vorrai abbandonare.",
+          "matchTier": "good_alternative",
+          "matchNote": "Più azione e tensione, meno introspezione.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 623,
+          "completion_tokens": 545,
+          "total_tokens": 1168,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1810,
+          "completion_tokens": 378,
+          "total_tokens": 2188,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": false,
+          "used": 2,
+          "limit": 10,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "cca389169a1d0321a0725fddb91500fba59caafbcc41cde6b835f899a970e70d",
+        "resolvedInput": "giochi horror psicologici",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 7
+        },
+        "selected": {
+          "titles": [
+            "Amnesia: The Dark Descent",
+            "SOMA",
+            "Layers of Fear",
+            "Outlast"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "Amnesia: The Dark Descent",
+            "SOMA",
+            "Layers of Fear",
+            "Outlast"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 3,
+    "prompt": "soulslike difficile",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 30349,
+    "data": {
+      "games": [
+        {
+          "id": 2551,
+          "title": "Dark Souls III",
+          "slug": "dark-souls-iii",
+          "image": "https://media.rawg.io/media/games/da1/da1b267764d77221f07a4386b6548e5a.jpg",
+          "match": 95,
+          "reason": "Great if you want a challenging experience with a dark, immersive atmosphere. The intricate level design and punishing combat will keep you on your toes.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 3387,
+          "title": "Bloodborne",
+          "slug": "bloodborne",
+          "image": "https://media.rawg.io/media/games/214/214b29aeff13a0ae6a70fc4426e85991.jpg",
+          "match": 90,
+          "reason": "Works well when you're after fast-paced combat and a hauntingly beautiful world. The relentless enemies and deep lore create a gripping challenge.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 50734,
+          "title": "Sekiro: Shadows Die Twice",
+          "slug": "shadows-die-twice",
+          "image": "https://media.rawg.io/media/games/67f/67f62d1f062a6164f57575e0604ee9f6.jpg",
+          "match": 85,
+          "reason": "Has that 'one more try' pull if you enjoy skill-based combat in a dark setting. The atmosphere is thick with tension, making every encounter feel significant.",
+          "matchTier": "good_alternative",
+          "matchNote": "More focus on stealth, less traditional soulslike pacing.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 423947,
+          "title": "Mortal Shell",
+          "slug": "mortal-shell",
+          "image": "https://media.rawg.io/media/games/0b3/0b32976c5406a0a646cfc4cdc2297b17.jpg",
+          "match": 80,
+          "reason": "Great for those who want a unique twist on the soulslike formula. The dark atmosphere and challenging mechanics will test your resolve.",
+          "matchTier": "good_alternative",
+          "matchNote": "More experimental, less classic soulslike feel.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 621,
+          "completion_tokens": 533,
+          "total_tokens": 1154,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1353,
+          "completion_tokens": 299,
+          "total_tokens": 1652,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": false,
+          "used": 3,
+          "limit": 10,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "694b2756db68ade4cc99772aa9fa725c5ad748dd1f29a82efbe73f4de5630f0d",
+        "resolvedInput": "soulslike difficile",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 5
+        },
+        "selected": {
+          "titles": [
+            "Dark Souls III",
+            "Bloodborne",
+            "Sekiro: Shadows Die Twice",
+            "Mortal Shell"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "Dark Souls III",
+            "Bloodborne",
+            "Sekiro: Shadows Die Twice",
+            "Mortal Shell"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 4,
+    "prompt": "gioco dove posso perdermi per ore senza stress",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 29396,
+    "data": {
+      "games": [
+        {
+          "id": 654,
+          "title": "Stardew Valley",
+          "slug": "stardew-valley",
+          "image": "https://media.rawg.io/media/games/713/713269608dc8f2f40f5a670a14b2de94.jpg",
+          "match": 90,
+          "reason": "Perfetto se vuoi immergerti in una vita di campagna senza fretta. Puoi esplorare, coltivare e costruire il tuo mondo a ritmo lento, senza alcuna pressione.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 3254,
+          "title": "Journey",
+          "slug": "journey",
+          "image": "https://media.rawg.io/media/games/baf/baf9905270314e07e6850cffdb51df41.jpg",
+          "match": 85,
+          "reason": "Funziona bene quando cerchi un'esperienza visivamente affascinante e meditativa. Ogni viaggio nel deserto è un'opportunità per esplorare e riflettere.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 421698,
+          "title": "Animal Crossing: New Horizons",
+          "slug": "animal-crossing-2019",
+          "image": "https://media.rawg.io/media/games/42f/42fe1abd4d7c11ca92d93a0fb0f8662b.jpg",
+          "match": 95,
+          "reason": "Ha quella sensazione da 'ancora un giorno' mentre gestisci la tua isola. È un gioco dove puoi rilassarti e goderti la vita quotidiana senza scadenze.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 627,
+          "completion_tokens": 521,
+          "total_tokens": 1148,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1150,
+          "completion_tokens": 246,
+          "total_tokens": 1396,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": false,
+          "used": 4,
+          "limit": 10,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "81c9fe8cf8409be06e0d891d50b77d8efc49d665f835e5c3a83e64eb0e69c35e",
+        "resolvedInput": "gioco dove posso perdermi per ore senza stress",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 7,
+          "afterAiFilter": 3
+        },
+        "selected": {
+          "titles": [
+            "Stardew Valley",
+            "Journey",
+            "Animal Crossing: New Horizons"
+          ]
+        },
+        "finalResponse": {
+          "count": 3,
+          "titles": [
+            "Stardew Valley",
+            "Journey",
+            "Animal Crossing: New Horizons"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 5,
+    "prompt": "giochi di spaccio",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 26158,
+    "data": {
+      "games": [
+        {
+          "id": 288681,
+          "title": "Drug Dealer Simulator",
+          "slug": "drug-dealer-simulator",
+          "image": "https://media.rawg.io/media/screenshots/659/65974809e9a0ae5e3be1a1a18afeda45.jpg",
+          "match": 90,
+          "reason": "Perfetto se vuoi immergerti nella gestione di un impero criminale, con una forte componente di simulazione e strategia. Ogni decisione conta e il gameplay è avvincente.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 457900,
+          "title": "Cartel Tycoon",
+          "slug": "cartel-tycoon",
+          "image": "https://media.rawg.io/media/games/7b0/7b057a481dbc578f25c236c5279799ce.jpg",
+          "match": 85,
+          "reason": "Funziona bene quando cerchi un'esperienza di simulazione profonda, con una narrativa ispirata al traffico di droga degli anni '80. La gestione delle risorse e delle relazioni è centrale.",
+          "matchTier": "good_alternative",
+          "matchNote": "Più focus sulla storia, meno azione diretta.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 1169,
+          "title": "Mafia III",
+          "slug": "mafia-iii",
+          "image": "https://media.rawg.io/media/games/a34/a348e613424260bc7e034fb6031c762e.jpg",
+          "match": 62,
+          "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano mafia senza essere identico ai pick principali.",
+          "matchTier": "partial_match",
+          "matchNote": "Match parziale — utile se vuoi esplorare oltre i titoli più stretti.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 622,
+          "completion_tokens": 533,
+          "total_tokens": 1155,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1053,
+          "completion_tokens": 186,
+          "total_tokens": 1239,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": false,
+          "used": 5,
+          "limit": 10,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "6232938c106b6cf202fa25b6840d76aff134f8c4e8f5c445e3ddb7370da2b78a",
+        "resolvedInput": "giochi di spaccio",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 7,
+          "afterAiFilter": 2
+        },
+        "selected": {
+          "titles": [
+            "Drug Dealer Simulator",
+            "Cartel Tycoon",
+            "Mafia III"
+          ]
+        },
+        "finalResponse": {
+          "count": 3,
+          "titles": [
+            "Drug Dealer Simulator",
+            "Cartel Tycoon",
+            "Mafia III"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 6,
+    "prompt": "multiplayer caotico con amici",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 30721,
+    "data": {
+      "games": [
+        {
+          "id": 58827,
+          "title": "Overcooked! 2",
+          "slug": "overcooked-2",
+          "image": "https://media.rawg.io/media/games/d11/d11470677a829e34562e95a4002c2c7f.jpg",
+          "match": 95,
+          "reason": "Perfetto se vuoi un'esperienza frenetica e divertente con gli amici, dove la cooperazione è fondamentale per superare le sfide culinarie. Ogni partita è un mix di caos e risate.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 11729,
+          "title": "Gang Beasts",
+          "slug": "gang-beasts",
+          "image": "https://media.rawg.io/media/screenshots/160/160f894fc774f4cc51a99f435abadd4e.jpg",
+          "match": 90,
+          "reason": "Funziona bene quando cerchi un gioco caotico e divertente, dove i personaggi gelatinosi si affrontano in situazioni esilaranti. È ideale per serate di gioco con gli amici.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 326292,
+          "title": "Fall Guys: Ultimate Knockout",
+          "slug": "fall-guys",
+          "image": "https://media.rawg.io/media/games/5eb/5eb49eb2fa0738fdb5bacea557b1bc57.jpg",
+          "match": 85,
+          "reason": "Ha quella sensazione da 'ancora una run e poi smetto' se ti piace la competizione colorata e le sfide folli. Ottimo per divertirsi in gruppo.",
+          "matchTier": "good_alternative",
+          "matchNote": "Più competizione, meno cooperazione diretta.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 356714,
+          "title": "Among Us",
+          "slug": "among-us",
+          "image": "https://media.rawg.io/media/games/e74/e74458058b35e01c1ae3feeb39a3f724.jpg",
+          "match": 80,
+          "reason": "Rispetto agli altri pick, questo è più strategico e richiede comunicazione tra i giocatori. Perfetto se vuoi un mix di caos e inganno.",
+          "matchTier": "good_alternative",
+          "matchNote": "Più strategia, meno azione frenetica.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 624,
+          "completion_tokens": 523,
+          "total_tokens": 1147,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1396,
+          "completion_tokens": 352,
+          "total_tokens": 1748,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": false,
+          "used": 6,
+          "limit": 10,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "cd6e9ddeb40972b9a2dc49f27d7fc4e5523e5397146b18ed8d888f2e75361015",
+        "resolvedInput": "multiplayer caotico con amici",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 5
+        },
+        "selected": {
+          "titles": [
+            "Overcooked! 2",
+            "Gang Beasts",
+            "Fall Guys: Ultimate Knockout",
+            "Among Us"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "Overcooked! 2",
+            "Gang Beasts",
+            "Fall Guys: Ultimate Knockout",
+            "Among Us"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 7,
+    "prompt": "city builder rilassante",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 20041,
+    "data": {
+      "games": [
+        {
+          "id": 10065,
+          "title": "Cities: Skylines",
+          "slug": "cities-skylines",
+          "image": "https://media.rawg.io/media/games/25c/25c4776ab5723d5d735d8bf617ca12d9.jpg",
+          "match": 90,
+          "reason": "Perfetto se vuoi costruire la tua città senza fretta, godendoti ogni dettaglio e pianificando con calma. Ha una grande varietà di opzioni per personalizzare e gestire la tua metropoli, rendendo ogni partita unica e rilassante.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 9644,
+          "title": "Planet Coaster",
+          "slug": "planet-coaster",
+          "image": "https://media.rawg.io/media/games/aea/aea1581227fa10cbc006a6594845a01e.jpg",
+          "match": 61,
+          "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano building senza essere identico ai pick principali.",
+          "matchTier": "partial_match",
+          "matchNote": "Match parziale — utile se vuoi esplorare oltre i titoli più stretti.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 11407,
+          "title": "Banished",
+          "slug": "banished",
+          "image": "https://media.rawg.io/media/screenshots/0bf/0bfa18254ae627cab7f0159a24d178cd.jpg",
+          "match": 61,
+          "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano city, builder, building, relaxing senza essere identico ai pick principali.",
+          "matchTier": "good_alternative",
+          "matchNote": "Alternativa più ampia: c’entra con city, builder, building, relaxing, ma meno precisa dei pick migliori.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 23322,
+          "title": "Surviving Mars",
+          "slug": "surviving-mars",
+          "image": "https://media.rawg.io/media/games/08b/08b2eee52a9876a48b955e5149affe5b.jpg",
+          "match": 61,
+          "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano city, builder senza essere identico ai pick principali.",
+          "matchTier": "good_alternative",
+          "matchNote": "Alternativa più ampia: c’entra con city, builder, ma meno precisa dei pick migliori.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 59314,
+          "title": "Anno 1800",
+          "slug": "anno-1800",
+          "image": "https://media.rawg.io/media/games/065/0650c381e12c28053e1c98779d996305.jpg",
+          "match": 61,
+          "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano city, builder senza essere identico ai pick principali.",
+          "matchTier": "good_alternative",
+          "matchNote": "Alternativa più ampia: c’entra con city, builder, ma meno precisa dei pick migliori.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 15457,
+          "title": "Cities in Motion 2",
+          "slug": "cities-in-motion-2",
+          "image": "https://media.rawg.io/media/games/ce6/ce6c9b58be2ca76688a768cffcb043d1.jpg",
+          "match": 60,
+          "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano city, builder, building senza essere identico ai pick principali.",
+          "matchTier": "good_alternative",
+          "matchNote": "Alternativa più ampia: c’entra con city, builder, building, ma meno precisa dei pick migliori.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 623,
+          "completion_tokens": 551,
+          "total_tokens": 1174,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 932,
+          "completion_tokens": 103,
+          "total_tokens": 1035,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": false,
+          "used": 7,
+          "limit": 10,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "515429d51d6f1ec4baa3f63caf9119bddc8a53ed5a5fae0edfd569850a149787",
+        "resolvedInput": "city builder rilassante",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 1
+        },
+        "selected": {
+          "titles": [
+            "Cities: Skylines",
+            "Planet Coaster",
+            "Banished",
+            "Surviving Mars",
+            "Anno 1800",
+            "Cities in Motion 2"
+          ]
+        },
+        "finalResponse": {
+          "count": 6,
+          "titles": [
+            "Cities: Skylines",
+            "Planet Coaster",
+            "Banished",
+            "Surviving Mars",
+            "Anno 1800",
+            "Cities in Motion 2"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 8,
+    "prompt": "gioco con atmosfera malinconica",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 23982,
+    "data": {
+      "games": [
+        {
+          "id": 42,
+          "title": "What Remains of Edith Finch",
+          "slug": "what-remains-of-edith-finch",
+          "image": "https://media.rawg.io/media/games/34e/34e100b1f648de99f32d477065f04653.jpg",
+          "match": 95,
+          "reason": "Perfetto se vuoi immergerti in storie toccanti e malinconiche. Ogni racconto della famiglia Finch è un viaggio emotivo che ti farà riflettere sulla vita e sulla perdita.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 13194,
+          "title": "To the Moon",
+          "slug": "to-the-moon",
+          "image": "https://media.rawg.io/media/games/fae/faebf3c8cbf30db3f46bfbecf6ada3d6.jpg",
+          "match": 90,
+          "reason": "Ha una storia commovente e nostalgica che esplora i sogni non realizzati e i ricordi. Ogni momento è carico di emozione e ti invita a riflettere sulla vita.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 3254,
+          "title": "Journey",
+          "slug": "journey",
+          "image": "https://media.rawg.io/media/games/baf/baf9905270314e07e6850cffdb51df41.jpg",
+          "match": 85,
+          "reason": "Funziona bene quando cerchi un'esperienza di esplorazione e bellezza malinconica. La narrazione visiva ti trasporta in un viaggio senza parole, ricco di emozioni.",
+          "matchTier": "good_alternative",
+          "matchNote": "Meno trama diretta, più focus sull'esperienza visiva.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 59313,
+          "title": "Gris",
+          "slug": "gris",
+          "image": "https://media.rawg.io/media/games/51c/51c430f1795c79b78f863a9f22dc422d.jpg",
+          "match": 80,
+          "reason": "L'arte e la musica evocativa creano un'atmosfera malinconica che accompagna il viaggio della protagonista. Ogni livello è un'esperienza emotiva unica.",
+          "matchTier": "good_alternative",
+          "matchNote": "Più platforming, meno narrazione tradizionale.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 624,
+          "completion_tokens": 579,
+          "total_tokens": 1203,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1855,
+          "completion_tokens": 356,
+          "total_tokens": 2211,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": false,
+          "used": 8,
+          "limit": 10,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "d48321d63eaee1fd842efb3b7ff15b96c62b4f45efddfe6456cdc83fd1d3f753",
+        "resolvedInput": "gioco con atmosfera malinconica",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 7
+        },
+        "selected": {
+          "titles": [
+            "What Remains of Edith Finch",
+            "To the Moon",
+            "Journey",
+            "Gris"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "What Remains of Edith Finch",
+            "To the Moon",
+            "Journey",
+            "Gris"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 9,
+    "prompt": "survival crafting non troppo hardcore",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 25446,
+    "data": {
+      "games": [
+        {
+          "id": 654,
+          "title": "Stardew Valley",
+          "slug": "stardew-valley",
+          "image": "https://media.rawg.io/media/games/713/713269608dc8f2f40f5a670a14b2de94.jpg",
+          "match": 90,
+          "reason": "Great if you want a relaxing experience where you can craft, farm, and build at your own pace. The charming atmosphere and accessible gameplay make it perfect for casual players.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 422,
+          "title": "Terraria",
+          "slug": "terraria",
+          "image": "https://media.rawg.io/media/games/f46/f466571d536f2e3ea9e815ad17177501.jpg",
+          "match": 80,
+          "reason": "Works well when you're after a mix of exploration and crafting with a bit of action. The 2D world is inviting and not overly punishing, making it accessible for all players.",
+          "matchTier": "good_alternative",
+          "matchNote": "More combat elements, less pure crafting focus.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 60817,
+          "title": "Forager",
+          "slug": "forager",
+          "image": "https://media.rawg.io/media/screenshots/467/467ec166bdb3c8f8232e205047194dba.jpg",
+          "match": 75,
+          "reason": "Has that 'one more run' pull if you like casual crafting adventures. The gameplay loop is engaging without being too hardcore, perfect for a laid-back experience.",
+          "matchTier": "good_alternative",
+          "matchNote": "More puzzle elements, less survival tension.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 44029,
+          "title": "My Time At Portia",
+          "slug": "my-time-at-portia",
+          "image": "https://media.rawg.io/media/games/176/1765390b699b432edc3a208d544c6ba0.jpg",
+          "match": 70,
+          "reason": "Great for those who enjoy charming crafting experiences in a post-apocalyptic setting. The game encourages creativity and exploration without harsh penalties.",
+          "matchTier": "partial_match",
+          "matchNote": "More story-driven, less survival focus.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 623,
+          "completion_tokens": 512,
+          "total_tokens": 1135,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1678,
+          "completion_tokens": 318,
+          "total_tokens": 1996,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": false,
+          "used": 9,
+          "limit": 10,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "5ee380d31d5ac9ee92dbc0cf1a2a0a8f92cfb63387aa7fa96e058386485bcba1",
+        "resolvedInput": "survival crafting non troppo hardcore",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 6
+        },
+        "selected": {
+          "titles": [
+            "Stardew Valley",
+            "Terraria",
+            "Forager",
+            "My Time At Portia"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "Stardew Valley",
+            "Terraria",
+            "Forager",
+            "My Time At Portia"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 10,
+    "prompt": "voglio qualcosa che mi sorprenda",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 30676,
+    "data": {
+      "games": [
+        {
+          "id": 9767,
+          "title": "Hollow Knight",
+          "slug": "hollow-knight",
+          "image": "https://media.rawg.io/media/games/4cf/4cfc6b7f1850590a4634b08bfab308ab.jpg",
+          "match": 95,
+          "reason": "Great if you want a beautifully crafted world filled with unexpected challenges and atmospheric storytelling. The unique art style and intricate lore will keep you engaged and surprised at every turn.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 13627,
+          "title": "Undertale",
+          "slug": "undertale",
+          "image": "https://media.rawg.io/media/games/ffe/ffed87105b14f5beff72ff44a7793fd5.jpg",
+          "match": 90,
+          "reason": "Works well when you're after a game that subverts expectations with its humor and surprising choices. The narrative depth and quirky characters make for a truly unique experience.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 58764,
+          "title": "Outer Wilds",
+          "slug": "outer-wilds",
+          "image": "https://media.rawg.io/media/games/9f4/9f418898f5415668ca47b5f4ab1ecfeb.jpg",
+          "match": 92,
+          "reason": "Has that 'one more run' pull if you like exploring mysteries in a beautifully crafted universe. The time loop mechanic offers unique discoveries that will keep you on your toes.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 15002,
+          "title": "The Stanley Parable",
+          "slug": "the-stanley-parable",
+          "image": "https://media.rawg.io/media/screenshots/8f0/8f0b94922ad5e59968852649697b2643.jpg",
+          "match": 87,
+          "reason": "Perfect for those who enjoy narrative surprises and unexpected choices that challenge your perception of storytelling in games. The interactive nature keeps you guessing.",
+          "matchTier": "good_alternative",
+          "matchNote": "More focus on narrative than gameplay mechanics.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 625,
+          "completion_tokens": 581,
+          "total_tokens": 1206,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 2028,
+          "completion_tokens": 298,
+          "total_tokens": 2326,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": false,
+          "used": 10,
+          "limit": 10,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "ff207d0e42dc3004a13cf2d33f89b2ef477e1148cc73ee0d71b26a7564b38363",
+        "resolvedInput": "voglio qualcosa che mi sorprenda",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 8
+        },
+        "selected": {
+          "titles": [
+            "Hollow Knight",
+            "Undertale",
+            "Outer Wilds",
+            "The Stanley Parable"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "Hollow Knight",
+            "Undertale",
+            "Outer Wilds",
+            "The Stanley Parable"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 11,
+    "prompt": "detective mystery investigativo",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 28090,
+    "data": {
+      "games": [
+        {
+          "id": 262382,
+          "title": "Disco Elysium",
+          "slug": "disco-elysium",
+          "image": "https://media.rawg.io/media/games/840/8408ad3811289a6a5830cae60fb0b62a.jpg",
+          "match": 90,
+          "reason": "Disco Elysium offers a rich narrative experience where you play as a detective unraveling a complex case. The game encourages deep exploration and interaction with a vibrant world, making every choice impactful.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 1682,
+          "title": "The Wolf Among Us",
+          "slug": "the-wolf-among-us",
+          "image": "https://media.rawg.io/media/games/be0/be084b850302abe81675bc4ffc08a0d0.jpg",
+          "match": 85,
+          "reason": "The Wolf Among Us immerses you in a gripping story filled with mystery and tough choices, perfect for fans of detective narratives. Its episodic format keeps the tension high and the plot engaging.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 4514,
+          "title": "L.A. Noire",
+          "slug": "la-noire",
+          "image": "https://media.rawg.io/media/games/e2d/e2d3f396b16dded0f841c17c9799a882.jpg",
+          "match": 80,
+          "reason": "L.A. Noire combines detective work with a noir atmosphere, allowing you to solve crimes through investigation and interrogation. The detailed world and realistic cases create a compelling experience.",
+          "matchTier": "good_alternative",
+          "matchNote": "More action elements, less pure mystery focus.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 46508,
+          "title": "Return Of The Obra Dinn",
+          "slug": "return-of-the-obra-dinn",
+          "image": "https://media.rawg.io/media/games/052/052f9afc7aaeea3e2c5d46eafa92c64e.jpg",
+          "match": 85,
+          "reason": "Return Of The Obra Dinn challenges you to piece together a maritime mystery through deduction and puzzle-solving. Its unique art style and narrative depth make it a standout choice for investigative gameplay.",
+          "matchTier": "good_alternative",
+          "matchNote": "More puzzle-focused, less character interaction.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 622,
+          "completion_tokens": 553,
+          "total_tokens": 1175,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1724,
+          "completion_tokens": 332,
+          "total_tokens": 2056,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": true,
+          "used": 0,
+          "limit": null,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "efe01b5e4e0558b6040b557f60ff682f2d5ed887c298efb1fe6dd1db162a18f1",
+        "resolvedInput": "detective mystery investigativo",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 6
+        },
+        "selected": {
+          "titles": [
+            "Disco Elysium",
+            "The Wolf Among Us",
+            "L.A. Noire",
+            "Return Of The Obra Dinn"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "Disco Elysium",
+            "The Wolf Among Us",
+            "L.A. Noire",
+            "Return Of The Obra Dinn"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 12,
+    "prompt": "gioco dove senti di vivere in un mondo",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 36487,
+    "data": {
+      "games": [
+        {
+          "id": 3328,
+          "title": "The Witcher 3: Wild Hunt",
+          "slug": "the-witcher-3-wild-hunt",
+          "image": "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
+          "match": 95,
+          "reason": "Perfetto se vuoi immergerti in una narrativa profonda e complessa, mentre esplori un mondo ricco di dettagli e storie. Ogni scelta che fai ha un impatto, facendoti sentire parte della vita di Geralt.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 28,
+          "title": "Red Dead Redemption 2",
+          "slug": "red-dead-redemption-2",
+          "image": "https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg",
+          "match": 90,
+          "reason": "Funziona bene quando cerchi un'esperienza immersiva e realistica, con una trama avvincente che ti coinvolge emotivamente. L'atmosfera del Far West ti fa sentire come se fossi davvero lì.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 22511,
+          "title": "The Legend of Zelda: Breath of the Wild",
+          "slug": "the-legend-of-zelda-breath-of-the-wild",
+          "image": "https://media.rawg.io/media/games/cc1/cc196a5ad763955d6532cdba236f730c.jpg",
+          "match": 90,
+          "reason": "Ha quella sensazione da 'ancora una run e poi smetto' se ti piace esplorare un vasto mondo aperto pieno di segreti e avventure. Ogni angolo nasconde qualcosa di unico da scoprire.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 5679,
+          "title": "The Elder Scrolls V: Skyrim",
+          "slug": "the-elder-scrolls-v-skyrim",
+          "image": "https://media.rawg.io/media/games/7cf/7cfc9220b401b7a300e409e539c9afd5.jpg",
+          "match": 80,
+          "reason": "Rispetto agli altri pick, questo è più focalizzato sulla libertà di esplorazione in un mondo fantastico, dove puoi scegliere il tuo percorso e vivere avventure indimenticabili.",
+          "matchTier": "good_alternative",
+          "matchNote": "Meno narrativa profonda, più libertà di scelta.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 626,
+          "completion_tokens": 535,
+          "total_tokens": 1161,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1836,
+          "completion_tokens": 366,
+          "total_tokens": 2202,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": true,
+          "used": 0,
+          "limit": null,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "08a28a6e0bfcb1cb99171e8c73c966cdd28cfad6ee567f979b5e4d7153634dec",
+        "resolvedInput": "gioco dove senti di vivere in un mondo",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 7
+        },
+        "selected": {
+          "titles": [
+            "The Witcher 3: Wild Hunt",
+            "Red Dead Redemption 2",
+            "The Legend of Zelda: Breath of the Wild",
+            "The Elder Scrolls V: Skyrim"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "The Witcher 3: Wild Hunt",
+            "Red Dead Redemption 2",
+            "The Legend of Zelda: Breath of the Wild",
+            "The Elder Scrolls V: Skyrim"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 13,
+    "prompt": "RPG fantasy con magia e worldbuilding",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 31221,
+    "data": {
+      "games": [
+        {
+          "id": 10073,
+          "title": "Divinity: Original Sin 2",
+          "slug": "divinity-original-sin-2",
+          "image": "https://media.rawg.io/media/games/424/424facd40f4eb1f2794fe4b4bb28a277.jpg",
+          "match": 95,
+          "reason": "Great if you want a deep narrative with rich worldbuilding and strategic magic mechanics. The choices you make significantly impact the story and your character's development.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 3328,
+          "title": "The Witcher 3: Wild Hunt",
+          "slug": "the-witcher-3-wild-hunt",
+          "image": "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
+          "match": 90,
+          "reason": "Works well when you're after an immersive fantasy experience filled with magic and complex characters. The open world is beautifully crafted, allowing for exploration and discovery.",
+          "matchTier": "good_alternative",
+          "matchNote": "More action-oriented, less turn-based strategy.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 326243,
+          "title": "Elden Ring",
+          "slug": "elden-ring",
+          "image": "https://media.rawg.io/media/games/b29/b294fdd866dcdb643e7bab370a552855.jpg",
+          "match": 85,
+          "reason": "Has that 'one more run' pull if you like exploring a vast, magical world with deep lore. The combat is engaging, and the atmosphere is captivating.",
+          "matchTier": "good_alternative",
+          "matchNote": "More challenging, less narrative focus.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 28559,
+          "title": "Dragon Age: Inquisition",
+          "slug": "dragon-age-inquisition",
+          "image": "https://media.rawg.io/media/games/260/26023c855f1769a93411d6a7ea084632.jpeg",
+          "match": 80,
+          "reason": "Great for those who enjoy intricate worldbuilding and a blend of magic and politics. The story unfolds through your decisions, making it feel personal.",
+          "matchTier": "partial_match",
+          "matchNote": "More focus on strategy, less on pure exploration.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 625,
+          "completion_tokens": 583,
+          "total_tokens": 1208,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1853,
+          "completion_tokens": 312,
+          "total_tokens": 2165,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": true,
+          "used": 0,
+          "limit": null,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "694e576d1e748f9baf93b6aaa3e881449f88fcac3970b1ec17cf4450bf37a8ab",
+        "resolvedInput": "RPG fantasy con magia e worldbuilding",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 7
+        },
+        "selected": {
+          "titles": [
+            "Divinity: Original Sin 2",
+            "The Witcher 3: Wild Hunt",
+            "Elden Ring",
+            "Dragon Age: Inquisition"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "Divinity: Original Sin 2",
+            "The Witcher 3: Wild Hunt",
+            "Elden Ring",
+            "Dragon Age: Inquisition"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 14,
+    "prompt": "farming game cozy ma non noioso",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 29023,
+    "data": {
+      "games": [
+        {
+          "id": 654,
+          "title": "Stardew Valley",
+          "slug": "stardew-valley",
+          "image": "https://media.rawg.io/media/games/713/713269608dc8f2f40f5a670a14b2de94.jpg",
+          "match": 90,
+          "reason": "Perfetto se vuoi un'esperienza di farming che ti coinvolga senza essere noiosa. La gestione della fattoria è avvincente e puoi anche socializzare con gli NPC.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 60731,
+          "title": "Farm Together",
+          "slug": "farm-together",
+          "image": "https://media.rawg.io/media/screenshots/cf9/cf970e84fffa9e95f750e01ad225c3a6.jpg",
+          "match": 75,
+          "reason": "Funziona bene quando cerchi un gioco di farming che puoi affrontare con amici. Ha un'atmosfera rilassata, ma offre anche un buon ritmo di progressione.",
+          "matchTier": "good_alternative",
+          "matchNote": "Più multiplayer, meno focus sulla storia.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 625,
+          "completion_tokens": 548,
+          "total_tokens": 1173,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1043,
+          "completion_tokens": 171,
+          "total_tokens": 1214,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": true,
+          "used": 0,
+          "limit": null,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "564da4a776ee13fa79812a137f58a55a4a73d0844441da01488f13219a3de1e4",
+        "resolvedInput": "farming game cozy ma non noioso",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 2
+        },
+        "selected": {
+          "titles": [
+            "Stardew Valley",
+            "Farm Together"
+          ]
+        },
+        "finalResponse": {
+          "count": 2,
+          "titles": [
+            "Stardew Valley",
+            "Farm Together"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  },
+  {
+    "index": 15,
+    "prompt": "immersive sim intelligente",
+    "ok": true,
+    "status": 200,
+    "latencyMs": 29066,
+    "data": {
+      "games": [
+        {
+          "id": 4248,
+          "title": "Dishonored",
+          "slug": "dishonored",
+          "image": "https://media.rawg.io/media/games/4e6/4e6e8e7f50c237d76f38f3c885dae3d2.jpg",
+          "match": 95,
+          "reason": "Great if you want a rich narrative experience where your choices significantly impact the world around you. The immersive atmosphere and freedom to approach situations in various ways keep the gameplay engaging.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 4440,
+          "title": "Deus Ex: Human Revolution",
+          "slug": "deus-ex-human-revolution",
+          "image": "https://media.rawg.io/media/games/81e/81e6c6819d4322caf375b6735c3043ec.jpg",
+          "match": 90,
+          "reason": "Works well when you're after a deep story with meaningful choices that affect the outcome. The cyberpunk setting adds a layer of intrigue, making every decision feel weighty.",
+          "matchTier": "best_match",
+          "matchNote": "",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 39,
+          "title": "Prey",
+          "slug": "prey",
+          "image": "https://media.rawg.io/media/games/e6d/e6de699bd788497f4b52e2f41f9698f2.jpg",
+          "match": 85,
+          "reason": "Has that 'one more run' pull if you like exploring a richly crafted world with strategic choices. The immersive environment and narrative depth create a compelling experience.",
+          "matchTier": "good_alternative",
+          "matchNote": "More sci-fi elements, less traditional fantasy.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        },
+        {
+          "id": 28110,
+          "title": "Vampyr",
+          "slug": "vampyr",
+          "image": "https://media.rawg.io/media/games/23b/23b42b7a896140f4ce1d0df8c42fa012.jpg",
+          "match": 80,
+          "reason": "Great for those who enjoy moral dilemmas and a strong narrative. The atmosphere is captivating, and your choices as a vampire doctor add a unique twist to the gameplay.",
+          "matchTier": "good_alternative",
+          "matchNote": "More focus on moral choices, less on pure immersion.",
+          "price": null,
+          "currency": null,
+          "buyLink": null,
+          "budgetStatus": null,
+          "budgetNote": null
+        }
+      ],
+      "usage": {
+        "intent": {
+          "prompt_tokens": 621,
+          "completion_tokens": 550,
+          "total_tokens": 1171,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        },
+        "rerank": {
+          "prompt_tokens": 1861,
+          "completion_tokens": 317,
+          "total_tokens": 2178,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "audio_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 0,
+            "audio_tokens": 0,
+            "accepted_prediction_tokens": 0,
+            "rejected_prediction_tokens": 0
+          }
+        }
+      },
+      "debug": {
+        "filtersEnabled": false,
+        "usageLimit": {
+          "plan": null,
+          "bypass": true,
+          "used": 0,
+          "limit": null,
+          "dailyCap": 10
+        },
+        "cacheHit": false,
+        "inputHash": "4d6becbe3b61a8d12a932b801f52b40bece4c51a09ec5e35fbd1820a41163645",
+        "resolvedInput": "immersive sim intelligente",
+        "noCache": true,
+        "cacheReadSkipped": true,
+        "cacheWriteSkipped": true,
+        "pricingMode": "cards_only_no_live_pricing",
+        "recommendLivePrices": false,
+        "models": {
+          "discovery": "gpt-4o-mini",
+          "relevance": "gpt-4o-mini",
+          "rerank": "gpt-4o-mini"
+        },
+        "env": {
+          "hasOpenAiKey": true,
+          "hasRawgKey": true,
+          "nodeEnv": "development",
+          "siteUrl": "http://localhost:3000"
+        },
+        "candidates": {
+          "beforeAiFilter": 8,
+          "afterAiFilter": 7
+        },
+        "selected": {
+          "titles": [
+            "Dishonored",
+            "Deus Ex: Human Revolution",
+            "Prey",
+            "Vampyr"
+          ]
+        },
+        "finalResponse": {
+          "count": 4,
+          "titles": [
+            "Dishonored",
+            "Deus Ex: Human Revolution",
+            "Prey",
+            "Vampyr"
+          ]
+        },
+        "cheapShark": []
+      }
+    }
+  }
+]

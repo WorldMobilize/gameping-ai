@@ -2,7 +2,7 @@
 
 import {
   getEmailVerificationRedirectUrl,
-  LOGIN_VERIFIED_PATH,
+  VERIFY_SUCCESS_PATH,
 } from "@/lib/auth-redirects";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -57,7 +57,7 @@ function LoginForm() {
 
   useEffect(() => {
     if (authCode && !emailVerified) {
-      const next = encodeURIComponent(LOGIN_VERIFIED_PATH);
+      const next = encodeURIComponent(VERIFY_SUCCESS_PATH);
       window.location.replace(
         `/auth/callback?code=${encodeURIComponent(authCode)}&next=${next}`
       );
@@ -81,17 +81,13 @@ function LoginForm() {
     void (async () => {
       await supabase.auth.signOut();
       if (cancelled) return;
-      window.history.replaceState(null, "", LOGIN_VERIFIED_PATH);
-      showToast({
-        variant: "success",
-        message: "Email verified. You can now log in.",
-      });
+      window.location.replace(VERIFY_SUCCESS_PATH);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [showToast]);
+  }, []);
 
   const redirectAfterAuth = useCallback(() => {
     window.location.href = safeRedirect;

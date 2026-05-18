@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
-  LOGIN_VERIFIED_PATH,
+  VERIFY_SUCCESS_PATH,
   sanitizeAuthCallbackNext,
 } from "@/lib/auth-redirects";
 import { getSiteOrigin } from "@/lib/site-url";
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
     console.error("[auth/callback] exchangeCodeForSession", error);
-    return NextResponse.redirect(new URL(LOGIN_VERIFIED_PATH, siteOrigin));
+    return NextResponse.redirect(new URL(VERIFY_SUCCESS_PATH, siteOrigin));
   }
 
   // Confirm email on Supabase, then require an explicit login.
