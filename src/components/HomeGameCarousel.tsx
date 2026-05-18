@@ -1,10 +1,63 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useLayoutEffect, useMemo, useState, type CSSProperties } from "react";
 import { gameDetailPath } from "@/lib/curated/game-links";
-import { HOME_CAROUSEL_PICKS } from "@/lib/curated/home-picks";
+import { HOME_CAROUSEL_PICKS, type HomeGamePick } from "@/lib/curated/home-picks";
+
+const CAROUSEL_SEED_KEY = "gp-home-carousel-seed";
+
+function mulberry32(seed: number) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(state ^ (state >>> 15), state | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), state | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shufflePicks(items: HomeGamePick[], seed: number): HomeGamePick[] {
+  const out = [...items];
+  const rand = mulberry32(seed);
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function getOrCreateCarouselSeed(): number {
+  const existing = sessionStorage.getItem(CAROUSEL_SEED_KEY);
+  if (existing) {
+    const parsed = Number(existing);
+    if (Number.isFinite(parsed)) return parsed >>> 0;
+  }
+  const seed = Math.floor(Math.random() * 0x7fffffff);
+  sessionStorage.setItem(CAROUSEL_SEED_KEY, String(seed));
+  return seed;
+}
 
 export default function HomeGameCarousel() {
-  const loop = [...HOME_CAROUSEL_PICKS, ...HOME_CAROUSEL_PICKS];
+  const [carouselPicks, setCarouselPicks] = useState(HOME_CAROUSEL_PICKS);
+  const [trackStyle, setTrackStyle] = useState<CSSProperties>({});
+
+  useLayoutEffect(() => {
+    const seed = getOrCreateCarouselSeed();
+    const shuffled = shufflePicks(HOME_CAROUSEL_PICKS, seed);
+    const offset = seed % shuffled.length;
+    setCarouselPicks([...shuffled.slice(offset), ...shuffled.slice(0, offset)]);
+
+    const durationSec = 84 + (seed % 14);
+    const delaySec = (seed % 37) + (seed % 5) * 0.35;
+    setTrackStyle({
+      ["--home-carousel-duration" as string]: `${durationSec}s`,
+      animationDelay: `-${delaySec}s`,
+    });
+  }, []);
+
+  const loop = useMemo(() => [...carouselPicks, ...carouselPicks], [carouselPicks]);
 
   return (
     <section
@@ -53,7 +106,7 @@ export default function HomeGameCarousel() {
       </div>
 
       <div className="home-carousel-viewport relative z-[2] w-full">
-        <div className="home-carousel-track px-6 md:px-10">
+        <div className="home-carousel-track px-6 md:px-10" style={trackStyle}>
           {loop.map((game, index) => (
             <article
               key={`${game.title}-${index}`}

@@ -8,7 +8,7 @@ import {
   LIMIT_TOAST_DURATION_MS,
   limitReachedToastMessage,
 } from "@/lib/product-copy";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   PROMPT_MAX_ADMIN,
   PROMPT_MAX_DEFAULT,
@@ -227,6 +227,14 @@ export default function RecommendPage() {
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const emptyResultsRef = useRef<HTMLDivElement | null>(null);
   const submitBusyRef = useRef(false);
+  const promptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [promptScrollable, setPromptScrollable] = useState(false);
+
+  const syncPromptTextareaOverflow = useCallback(() => {
+    const el = promptTextareaRef.current;
+    if (!el) return;
+    setPromptScrollable(el.scrollHeight > el.clientHeight + 1);
+  }, []);
 
   const [apiDebug, setApiDebug] = useState<RecommendDebug | null>(null);
 
@@ -287,6 +295,15 @@ export default function RecommendPage() {
 
     getUser();
   }, []);
+
+  useEffect(() => {
+    syncPromptTextareaOverflow();
+    const el = promptTextareaRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => syncPromptTextareaOverflow());
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [form.userPrompt, syncPromptTextareaOverflow]);
 
   useEffect(() => {
     if (!loading) return;
@@ -603,6 +620,7 @@ export default function RecommendPage() {
               </p>
 
               <textarea
+                ref={promptTextareaRef}
                 id="recommend-prompt"
                 placeholder={`Examples:
 "Something like Stardew Valley but with more action"
@@ -610,9 +628,14 @@ export default function RecommendPage() {
 "Like Elden Ring, but less punishing"
 "A cozy game for short evening sessions"`}
                 maxLength={promptMaxForUi}
-                className="mt-6 min-h-44 w-full resize-y overflow-y-auto rounded-3xl border border-white/10 bg-black/40 p-5 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-cyan-400/70 focus:shadow-[0_0_30px_rgba(34,211,238,0.12)]"
+                className={`gp-prompt-textarea mt-6 min-h-48 w-full resize-y rounded-3xl border border-white/10 bg-black/40 p-5 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-cyan-400/70 focus:shadow-[0_0_30px_rgba(34,211,238,0.12)] ${
+                  promptScrollable ? "overflow-y-auto" : "overflow-y-hidden"
+                }`}
                 value={form.userPrompt}
-                onChange={(e) => updateField("userPrompt", e.target.value)}
+                onChange={(e) => {
+                  updateField("userPrompt", e.target.value);
+                  requestAnimationFrame(syncPromptTextareaOverflow);
+                }}
               />
 
               <p
