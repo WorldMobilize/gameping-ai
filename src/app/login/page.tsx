@@ -1,6 +1,10 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useState } from "react";
+import {
+  getEmailVerificationRedirectUrl,
+  LOGIN_VERIFIED_PATH,
+} from "@/lib/auth-redirects";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
@@ -41,6 +45,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectParam =
     searchParams.get("redirect") ?? searchParams.get("next");
+  const emailVerified = searchParams.get("verified") === "1";
+  const authCode = searchParams.get("code");
   const safeRedirect = useMemo(
     () => sanitizeInternalRedirect(redirectParam),
     [redirectParam]
@@ -48,6 +54,44 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (authCode && !emailVerified) {
+      const next = encodeURIComponent(LOGIN_VERIFIED_PATH);
+      window.location.replace(
+        `/auth/callback?code=${encodeURIComponent(authCode)}&next=${next}`
+      );
+    }
+  }, [authCode, emailVerified]);
+
+  useEffect(() => {
+    if (!emailVerified) return;
+    showToast({
+      variant: "success",
+      message: "Email verified. You can now log in.",
+    });
+  }, [emailVerified, showToast]);
+
+  useEffect(() => {
+    const hash = typeof window !== "undefined" ? window.location.hash : "";
+    if (!hash || hash.includes("type=recovery")) return;
+    if (!hash.includes("access_token")) return;
+
+    let cancelled = false;
+    void (async () => {
+      await supabase.auth.signOut();
+      if (cancelled) return;
+      window.history.replaceState(null, "", LOGIN_VERIFIED_PATH);
+      showToast({
+        variant: "success",
+        message: "Email verified. You can now log in.",
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showToast]);
 
   const redirectAfterAuth = useCallback(() => {
     window.location.href = safeRedirect;
@@ -62,7 +106,7 @@ function LoginForm() {
 
     const emailRedirectTo =
       typeof window !== "undefined"
-        ? `${window.location.origin}/login`
+        ? getEmailVerificationRedirectUrl(window.location.origin)
         : undefined;
 
     const { data, error } = await supabase.auth.signUp({
@@ -145,6 +189,15 @@ function LoginForm() {
           <p className="mt-3 text-center text-sm text-white/60">
             Save your game preferences and get smart alerts.
           </p>
+
+          {emailVerified ? (
+            <p
+              className="mt-5 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-center text-sm font-semibold text-emerald-100"
+              role="status"
+            >
+              Email verified. You can now log in.
+            </p>
+          ) : null}
 
           <ul className="mt-6 space-y-2 text-sm leading-relaxed text-white/55">
             <li className="flex gap-2">

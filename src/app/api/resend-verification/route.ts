@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isEmailVerified } from "@/lib/auth-email-verification";
-import { getSiteOrigin } from "@/lib/site-url";
+import { getEmailVerificationRedirectUrl } from "@/lib/auth-redirects";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -51,12 +51,12 @@ export async function POST(req: Request) {
 
     const requestOrigin =
       req.headers.get("origin") ?? new URL(req.url).origin ?? null;
-    const redirectTo = `${getSiteOrigin(requestOrigin)}/login`;
+    const emailRedirectTo = getEmailVerificationRedirectUrl(requestOrigin);
 
     const { error: resendError } = await supabase.auth.resend({
       type: "signup",
       email,
-      options: { emailRedirectTo: redirectTo },
+      options: { emailRedirectTo },
     });
 
     if (resendError) {
