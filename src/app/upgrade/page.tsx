@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import ManageBillingButton from "@/components/ManageBillingButton";
 import Navbar from "@/components/Navbar";
 import PremiumEarlyAccessHint from "@/components/PremiumEarlyAccessHint";
 import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
@@ -183,6 +184,9 @@ function UpgradeContent() {
             >
               New recommendation
             </Link>
+            {profilePlan === "premium" ? (
+              <ManageBillingButton className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.06] px-8 py-3.5 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 disabled:cursor-not-allowed disabled:opacity-60" />
+            ) : null}
           </div>
         </div>
 
@@ -208,8 +212,7 @@ function UpgradeContent() {
             </ul>
             <PremiumEarlyAccessHint />
             <p className="mt-6 text-sm text-white/45">
-              Manage billing through Stripe (emails from Stripe) or contact support if you need
-              help.
+              Use Manage billing to cancel or update your subscription in Stripe&apos;s portal.
             </p>
           </div>
         </div>
@@ -349,8 +352,8 @@ export default function UpgradePage() {
                 <p className="mt-2 text-sm leading-6 text-white/60">
                   Premium is a monthly subscription billed through Stripe. After checkout, plan
                   updates automatically when your subscription status changes. To cancel or change
-                  billing, use the options Stripe emails you after purchase, or contact support if
-                  you need help — there is no separate cancel button inside GamePing yet.
+                  billing, open Manage billing on your account or upgrade page (Premium subscribers),
+                  or use the Stripe Customer Portal from there.
                 </p>
               </div>
             </div>

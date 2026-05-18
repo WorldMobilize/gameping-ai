@@ -70,6 +70,26 @@ function resolveSupabaseUserIdFromSubscription(
   return null;
 }
 
+function resolveStripeCustomerId(
+  customer: string | Stripe.Customer | Stripe.DeletedCustomer | null | undefined
+): string | null {
+  if (typeof customer === "string" && customer.startsWith("cus_")) {
+    return customer;
+  }
+  return null;
+}
+
+function buildProfileStripePatch(params: {
+  plan: string;
+  customerId: string | null;
+}): Record<string, string> {
+  const patch: Record<string, string> = { plan: params.plan };
+  if (params.customerId) {
+    patch.stripe_customer_id = params.customerId;
+  }
+  return patch;
+}
+
 /** Best-effort email from Checkout Session (webhook payload varies by flow). */
 function sessionCheckoutEmail(session: Stripe.Checkout.Session): string | null {
   const direct = session.customer_email?.trim();
@@ -171,12 +191,15 @@ async function setPremiumFromSession(
   }
 
   const supabase = getServiceRoleClient();
+  const stripeCustomerId = resolveStripeCustomerId(session.customer);
 
   console.log("[stripe webhook] profile update attempted for user_id match");
 
   const { data: updated, error: updateError } = await supabase
     .from("profiles")
-    .update({ plan: "premium" })
+    .update(
+      buildProfileStripePatch({ plan: "premium", customerId: stripeCustomerId })
+    )
     .eq("user_id", userId)
     .select("user_id");
 
@@ -229,6 +252,7 @@ async function setPremiumFromSession(
     user_id: userId,
     email,
     plan: "premium",
+    ...(stripeCustomerId ? { stripe_customer_id: stripeCustomerId } : {}),
   });
 
   if (insertError) {
@@ -293,9 +317,12 @@ async function syncProfilePlanFromSubscription(
   }
 
   const targetPlan = subscriptionStatusToPlan(subscription.status);
+  const stripeCustomerId = resolveStripeCustomerId(subscription.customer);
   const { data: updatedRows, error: updErr } = await supabase
     .from("profiles")
-    .update({ plan: targetPlan })
+    .update(
+      buildProfileStripePatch({ plan: targetPlan, customerId: stripeCustomerId })
+    )
     .eq("user_id", userId)
     .select("user_id");
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ManageBillingButton from "@/components/ManageBillingButton";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
@@ -128,6 +129,7 @@ export default function AccountSettingsPage() {
   }
 
   const isPaid = plan === "premium" || plan === "admin";
+  const isPremium = plan === "premium";
 
   return (
     <main className="min-h-screen bg-[#05060f] text-white">
@@ -190,6 +192,7 @@ export default function AccountSettingsPage() {
                     Upgrade to Premium
                   </Link>
                 )}
+                {isPremium ? <ManageBillingButton /> : null}
                 <Link
                   href="/upgrade"
                   className="inline-flex rounded-full border border-white/15 px-6 py-3 text-sm font-bold text-white/70 transition hover:bg-white/10"
@@ -197,10 +200,10 @@ export default function AccountSettingsPage() {
                   {isPaid ? "View plan details" : "Compare plans"}
                 </Link>
               </div>
-              {isPaid ? (
+              {isPremium ? (
                 <p className="mt-4 text-xs leading-relaxed text-white/45">
-                  To cancel or change billing, use the links in Stripe&apos;s emails after purchase.
-                  GamePing does not host a separate billing portal yet.
+                  Cancel or update your subscription in Stripe&apos;s secure billing portal. You
+                  will return here when finished.
                 </p>
               ) : null}
             </section>
