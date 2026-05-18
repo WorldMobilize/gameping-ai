@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import { supabase } from "@/lib/supabase";
+import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
 import Link from "next/link";
 import { gameDetailPath } from "@/lib/curated/game-links";
+import { EMAIL_NOT_VERIFIED_MESSAGE } from "@/lib/auth-email-verification";
 import { PLAN_QUOTAS } from "@/lib/plan-quotas";
 
 type Game = {
@@ -171,6 +173,15 @@ export default function Dashboard() {
       ]);
 
       if (!searchesRes.ok) {
+        if (searchesRes.status === 403) {
+          const errBody = (await searchesRes.json().catch(() => ({}))) as {
+            message?: string;
+          };
+          showToast({
+            variant: "error",
+            message: errBody.message || EMAIL_NOT_VERIFIED_MESSAGE,
+          });
+        }
         setLoadError(true);
         setSearches([]);
         return;
@@ -186,7 +197,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [loadTrackedGames]);
+  }, [loadTrackedGames, showToast]);
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -358,6 +369,8 @@ export default function Dashboard() {
         <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/15 blur-3xl" />
 
         <div className="relative z-10 mx-auto max-w-6xl">
+          <EmailVerificationNotice className="mb-8" />
+
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="max-w-2xl">
               <p className="mb-4 text-sm uppercase tracking-[0.4em] text-cyan-300">

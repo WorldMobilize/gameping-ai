@@ -8,6 +8,7 @@ import {
   canActivateResourceRow,
   canCreateResourceRow,
 } from "@/lib/plan-enforcement";
+import { requireVerifiedUser } from "@/lib/require-verified-email";
 import { createClient } from "@/lib/supabase/server";
 import {
   parseExplicitTargetPrice,
@@ -23,16 +24,9 @@ function normalizeTitleNorm(title: string) {
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { ok: false, error: "Sign in to track prices for this game." },
-        { status: 401 }
-      );
-    }
+    const auth = await requireVerifiedUser(supabase);
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
 
     const body = (await req.json()) as Record<string, unknown>;
     const titleRaw = typeof body.title === "string" ? body.title : "";

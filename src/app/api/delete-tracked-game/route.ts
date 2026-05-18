@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireVerifiedUser } from "@/lib/require-verified-email";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 
@@ -16,13 +17,9 @@ function getServiceSupabase() {
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ ok: false, error: "Sign in required." }, { status: 401 });
-    }
+    const auth = await requireVerifiedUser(supabase);
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
 
     const body = (await req.json()) as { id?: string };
     const id = typeof body.id === "string" ? body.id.trim() : "";

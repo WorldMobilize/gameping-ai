@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import PlanLimitReached from "@/components/PlanLimitReached";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
@@ -10,9 +11,13 @@ import {
 } from "@/lib/product-copy";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  isEmailVerified,
+} from "@/lib/auth-email-verification";
+import {
   PROMPT_MAX_ADMIN,
   PROMPT_MAX_DEFAULT,
 } from "@/lib/recommend-limits";
+import { EMAIL_NOT_VERIFIED_MESSAGE } from "@/lib/auth-email-verification";
 import { supabase } from "@/lib/supabase";
 type Game = {
   title: string;
@@ -268,6 +273,7 @@ export default function RecommendPage() {
 
   const [loggedUserEmail, setLoggedUserEmail] = useState<string | null>(null);
   const [loggedUserId, setLoggedUserId] = useState<string | null>(null);
+  const [emailVerifiedForFeatures, setEmailVerifiedForFeatures] = useState(true);
   const [userPlan, setUserPlan] = useState<string | null>(null);
   const [promptMaxForUi, setPromptMaxForUi] = useState(PROMPT_MAX_DEFAULT);
 
@@ -283,11 +289,18 @@ export default function RecommendPage() {
           .select("plan")
           .eq("user_id", data.user.id)
           .maybeSingle();
-        setUserPlan(profile?.plan ?? "free");
+        const plan = profile?.plan ?? "free";
+        setUserPlan(plan);
+        setEmailVerifiedForFeatures(
+          isEmailVerified(data.user) || plan === "admin"
+        );
         setPromptMaxForUi(
-          profile?.plan === "admin" ? PROMPT_MAX_ADMIN : PROMPT_MAX_DEFAULT
+          plan === "admin" ? PROMPT_MAX_ADMIN : PROMPT_MAX_DEFAULT
         );
       } else {
+        setLoggedUserId(null);
+        setLoggedUserEmail(null);
+        setEmailVerifiedForFeatures(true);
         setUserPlan(null);
         setPromptMaxForUi(PROMPT_MAX_DEFAULT);
       }
@@ -366,6 +379,10 @@ export default function RecommendPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitBusyRef.current || loading) return;
+    if (loggedUserId && !emailVerifiedForFeatures) {
+      showToast({ variant: "error", message: EMAIL_NOT_VERIFIED_MESSAGE });
+      return;
+    }
     if (form.userPrompt.trim().length > promptMaxForUi) {
       showToast({
         variant: "error",
@@ -416,6 +433,11 @@ export default function RecommendPage() {
             message:
               data.message ||
               "Prompt too long. Please keep it under 500 characters.",
+          });
+        } else if (res.status === 403 && data?.error === "email_not_verified") {
+          showToast({
+            variant: "error",
+            message: data.message || EMAIL_NOT_VERIFIED_MESSAGE,
           });
         } else if (res.status === 429 && data?.error === "daily_limit") {
           const limitPlan =
@@ -484,6 +506,11 @@ export default function RecommendPage() {
       return;
     }
 
+    if (loggedUserId && !emailVerifiedForFeatures) {
+      showToast({ variant: "error", message: EMAIL_NOT_VERIFIED_MESSAGE });
+      return;
+    }
+
     try {
       const res = await fetch("/api/save-search", {
         method: "POST",
@@ -509,7 +536,12 @@ export default function RecommendPage() {
           message: "Search saved. We’ll watch for deals that match your taste.",
         });
       } else {
-        if (result.error === "limit_reached") {
+        if (result.error === "email_not_verified") {
+          showToast({
+            variant: "error",
+            message: result.message || EMAIL_NOT_VERIFIED_MESSAGE,
+          });
+        } else if (result.error === "limit_reached") {
           const limitPlan =
             typeof result.plan === "string" ? result.plan : userPlan;
           setSaveLimitPlan(limitPlan);
@@ -559,6 +591,8 @@ export default function RecommendPage() {
         <div className="absolute bottom-0 left-1/2 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
 
         <div className="relative z-10 mx-auto max-w-6xl">
+          <EmailVerificationNotice className="mb-8" />
+
           <div className="grid gap-10 lg:grid-cols-[1fr_360px] lg:items-start">
             <div>
               <p className="mb-4 text-xs font-black uppercase tracking-[0.5em] text-cyan-300">

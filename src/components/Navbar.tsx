@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -211,6 +212,7 @@ export default function Navbar({
     ) : null;
 
   return (
+    <>
     <nav className="relative z-30 border-b border-white/10 bg-[#05060f]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <Link
@@ -315,5 +317,13 @@ export default function Navbar({
         </div>
       </div>
     </nav>
+    {userEmail ? (
+      <div className="relative z-20 border-b border-white/10 bg-[#05060f]/90">
+        <div className="mx-auto max-w-6xl px-4 py-2 sm:px-6">
+          <EmailVerificationNotice compact />
+        </div>
+      </div>
+    ) : null}
+    </>
   );
 }

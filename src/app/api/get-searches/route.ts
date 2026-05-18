@@ -1,19 +1,13 @@
 import { NextResponse } from "next/server";
+import { requireVerifiedUser } from "@/lib/require-verified-email";
 import { createClient } from "@/lib/supabase/server";
 
 export async function POST(_req: Request) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not logged in" },
-        { status: 401 }
-      );
-    }
+    const auth = await requireVerifiedUser(supabase);
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
 
     const { data, error } = await supabase
       .from("search_profiles")

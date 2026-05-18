@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
+import { validateSignupPassword } from "@/lib/auth-email-verification";
 
 const DEFAULT_POST_AUTH_REDIRECT = "/";
 
@@ -53,9 +54,21 @@ function LoginForm() {
   }, [safeRedirect]);
 
   const signUp = async () => {
+    const passwordError = validateSignupPassword(password);
+    if (passwordError) {
+      showToast({ variant: "error", message: passwordError });
+      return;
+    }
+
+    const emailRedirectTo =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/login`
+        : undefined;
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: emailRedirectTo ? { emailRedirectTo } : undefined,
     });
 
     if (error) {
@@ -77,6 +90,15 @@ function LoginForm() {
           email: user.email,
         }),
       });
+    }
+
+    if (user && !data.session) {
+      showToast({
+        variant: "success",
+        message:
+          "Account created. Check your email to verify your account before using recommendations, saved runs, tracking, and Premium.",
+      });
+      return;
     }
 
     showToast({
@@ -162,6 +184,10 @@ function LoginForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
+
+          <p className="mt-2 text-xs text-white/45">
+            Password: at least 8 characters with one letter and one number.
+          </p>
 
           <p className="mt-2 text-right">
             <Link

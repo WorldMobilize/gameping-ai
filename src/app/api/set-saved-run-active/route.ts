@@ -5,6 +5,7 @@ import {
 } from "@/lib/product-copy";
 import { getSavedSearchesLimit } from "@/lib/plan-limits";
 import { canActivateResourceRow } from "@/lib/plan-enforcement";
+import { requireVerifiedUser } from "@/lib/require-verified-email";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -12,13 +13,9 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireVerifiedUser(supabase);
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
 
     const body = (await req.json()) as Record<string, unknown>;
     const id = typeof body.id === "string" ? body.id.trim() : "";

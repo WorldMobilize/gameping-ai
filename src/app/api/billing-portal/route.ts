@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSiteOrigin } from "@/lib/site-url";
 import { getStripe } from "@/lib/stripe";
+import { requireVerifiedUser } from "@/lib/require-verified-email";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -8,13 +9,9 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const auth = await requireVerifiedUser(supabase);
+    if (!auth.ok) return auth.response;
+    const user = auth.user;
 
     const { data: profile, error: profileErr } = await supabase
       .from("profiles")

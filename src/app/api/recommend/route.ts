@@ -13,6 +13,7 @@ import {
   tryConsumeRecommendDailySlot,
 } from "@/lib/recommend-usage";
 import { buildLimitErrorPayload } from "@/lib/product-copy";
+import { blockUnverifiedLoggedInUser } from "@/lib/require-verified-email";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 import {
   dedupeCandidates,
@@ -1548,8 +1549,10 @@ export async function POST(req: Request) {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      userId = user?.id ?? null;
-      if (userId) {
+      if (user) {
+        const blocked = await blockUnverifiedLoggedInUser(supabase, user);
+        if (blocked) return blocked;
+        userId = user.id;
         const { data: profile } = await supabase
           .from("profiles")
           .select("plan")

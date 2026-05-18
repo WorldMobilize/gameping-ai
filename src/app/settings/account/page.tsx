@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import ManageBillingButton from "@/components/ManageBillingButton";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
@@ -140,6 +141,8 @@ export default function AccountSettingsPage() {
         <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/10 blur-3xl" />
 
         <div className="relative z-10 mx-auto max-w-3xl">
+          <EmailVerificationNotice className="mb-8" />
+
           <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">Settings</p>
           <h1 className="mt-4 text-4xl font-black md:text-5xl">Account</h1>
           <p className="mt-4 text-white/60">
