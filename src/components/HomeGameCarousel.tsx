@@ -115,8 +115,7 @@ export default function HomeGameCarousel() {
       <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-16 bg-gradient-to-l from-[#05060f] to-transparent md:w-24" />
 
       <div className="relative z-[2] mx-auto max-w-6xl px-6">
-        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
+        <div className="mb-8">
             <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
               Explore
             </p>
@@ -130,25 +129,6 @@ export default function HomeGameCarousel() {
               Discover games by mood, vibe, or taste—hover to pause the drift, or scroll on your
               phone.
             </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Link
-              href="/games"
-              className="text-sm font-bold text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
-            >
-              Browse A–Z directory
-            </Link>
-            <span className="hidden text-white/25 sm:inline" aria-hidden>
-              ·
-            </span>
-            <Link
-              href="/curated"
-              className="text-sm font-bold text-purple-300/90 underline-offset-4 transition hover:text-purple-200 hover:underline"
-            >
-              Curated collections
-            </Link>
-          </div>
         </div>
       </div>
 

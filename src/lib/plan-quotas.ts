@@ -1,7 +1,7 @@
 /** Plan quota numbers (safe to import from client and server). */
 export const PLAN_QUOTAS = {
-  anonRecommendDaily: 10,
-  freeRecommendDaily: 5,
+  anonRecommendDaily: 3,
+  freeRecommendDaily: 10,
   premiumRecommendDaily: 50,
   freeSavedSearches: 3,
   premiumSavedSearches: 25,

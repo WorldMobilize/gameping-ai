@@ -9,7 +9,6 @@ import {
 type Props = {
   limitType: LimitType;
   plan: string | null | undefined;
-  /** Anonymous visitor (daily recommendations without account). */
   anonymous?: boolean;
   className?: string;
 };
@@ -36,23 +35,32 @@ export default function PlanLimitReached({
       {display.footer ? (
         <p className="mt-2 text-xs leading-relaxed text-white/50">{display.footer}</p>
       ) : null}
-      {display.showUpgradeCta ? (
-        <Link
-          href="/upgrade"
-          className="mt-4 inline-flex items-center justify-center rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black shadow-[0_0_24px_rgba(34,211,238,0.22)] transition hover:bg-cyan-300"
-        >
-          Unlock Premium
-        </Link>
-      ) : null}
-      {display.showManageDashboard ? (
-        <Link
-          href="/dashboard"
-          className="mt-4 inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.06] px-6 py-3 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 hover:bg-white/10"
-        >
-          Manage on dashboard
-        </Link>
-      ) : null}
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        {display.showSignupCta ? (
+          <Link
+            href={display.signupHref}
+            className="inline-flex items-center justify-center rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black shadow-[0_0_24px_rgba(34,211,238,0.22)] transition hover:bg-cyan-300"
+          >
+            {display.signupLabel}
+          </Link>
+        ) : null}
+        {display.showUpgradeCta ? (
+          <Link
+            href="/upgrade"
+            className="inline-flex items-center justify-center rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black shadow-[0_0_24px_rgba(34,211,238,0.22)] transition hover:bg-cyan-300"
+          >
+            Unlock Premium
+          </Link>
+        ) : null}
+        {display.showManageDashboard ? (
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.06] px-6 py-3 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 hover:bg-white/10"
+          >
+            Manage on dashboard
+          </Link>
+        ) : null}
+      </div>
     </div>
   );
 }
-

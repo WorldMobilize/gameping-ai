@@ -1,0 +1,1020 @@
+{
+  "site": "https://gamepingai.com",
+  "ranAt": "2026-05-19T10:11:46.801Z",
+  "results": [
+    {
+      "index": 1,
+      "prompt": "gioco che ti fa sentire solo ma in modo bello",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 43473,
+      "data": {
+        "games": [
+          {
+            "id": 3254,
+            "title": "Journey",
+            "slug": "journey",
+            "image": "https://media.rawg.io/media/games/baf/baf9905270314e07e6850cffdb51df41.jpg",
+            "match": 95,
+            "reason": "Perfetto se vuoi un'esperienza che ti faccia sentire solo ma in modo poetico. La bellezza del deserto e la mancanza di dialogo creano un'atmosfera malinconica che ti invita a riflettere.",
+            "matchTier": "best_match",
+            "matchNote": "",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 2819,
+            "title": "Firewatch",
+            "slug": "firewatch",
+            "image": "https://media.rawg.io/media/games/0be/0bea0a08a4d954337305391b778a7f37.jpg",
+            "match": 90,
+            "reason": "Funziona bene quando cerchi una storia profonda e un'atmosfera di isolamento. La solitudine del protagonista e la bellezza dei paesaggi ti coinvolgono emotivamente.",
+            "matchTier": "best_match",
+            "matchNote": "",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 42,
+            "title": "What Remains of Edith Finch",
+            "slug": "what-remains-of-edith-finch",
+            "image": "https://media.rawg.io/media/games/34e/34e100b1f648de99f32d477065f04653.jpg",
+            "match": 88,
+            "reason": "Ha quella sensazione da 'ancora una run e poi smetto' se ti piace esplorare storie di vita e tragedie familiari. Ogni racconto è un viaggio emotivo che ti lascia riflettere.",
+            "matchTier": "best_match",
+            "matchNote": "",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 1450,
+            "title": "INSIDE",
+            "slug": "inside",
+            "image": "https://media.rawg.io/media/games/d5a/d5a24f9f71315427fa6e966fdd98dfa6.jpg",
+            "match": 85,
+            "reason": "Rispetto agli altri pick, questo è più teso e oscuro, ma la solitudine del protagonista e l'atmosfera inquietante creano un'esperienza unica e coinvolgente.",
+            "matchTier": "good_alternative",
+            "matchNote": "Più tensione e meno introspezione.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          }
+        ],
+        "usage": {
+          "intent": {
+            "prompt_tokens": 629,
+            "completion_tokens": 567,
+            "total_tokens": 1196,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "rerank": {
+            "prompt_tokens": 1863,
+            "completion_tokens": 352,
+            "total_tokens": 2215,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        },
+        "debug": {
+          "filtersEnabled": false,
+          "usageLimit": {
+            "plan": null,
+            "bypass": false,
+            "used": 2,
+            "limit": 10,
+            "dailyCap": 10
+          },
+          "cacheHit": false,
+          "inputHash": "987cbb380d2003df22634c3893acc74c1b526912e78cf7797ece5d7da514773f",
+          "resolvedInput": "gioco che ti fa sentire solo ma in modo bello",
+          "noCache": true,
+          "cacheReadSkipped": true,
+          "cacheWriteSkipped": true,
+          "pricingMode": "cards_only_no_live_pricing",
+          "recommendLivePrices": false,
+          "models": {
+            "discovery": "gpt-4o-mini",
+            "relevance": "gpt-4o-mini",
+            "rerank": "gpt-4o-mini"
+          },
+          "env": {
+            "hasOpenAiKey": true,
+            "hasRawgKey": true,
+            "nodeEnv": "production",
+            "siteUrl": "https://gamepingai.com"
+          },
+          "candidates": {
+            "beforeAiFilter": 8,
+            "afterAiFilter": 7
+          },
+          "selected": {
+            "titles": [
+              "Journey",
+              "Firewatch",
+              "What Remains of Edith Finch",
+              "INSIDE"
+            ]
+          },
+          "finalResponse": {
+            "count": 4,
+            "titles": [
+              "Journey",
+              "Firewatch",
+              "What Remains of Edith Finch",
+              "INSIDE"
+            ]
+          },
+          "cheapShark": []
+        }
+      }
+    },
+    {
+      "index": 2,
+      "prompt": "voglio un gioco con un mondo strano che non capisci subito",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 50320,
+      "data": {
+        "games": [
+          {
+            "id": 1450,
+            "title": "INSIDE",
+            "slug": "inside",
+            "image": "https://media.rawg.io/media/games/d5a/d5a24f9f71315427fa6e966fdd98dfa6.jpg",
+            "match": 95,
+            "reason": "Perfetto se vuoi immergerti in un mondo distopico e misterioso, dove ogni angolo nasconde enigmi e tensione. La narrazione visiva ti tiene sempre sul chi vive, rendendo ogni scoperta intrigante.",
+            "matchTier": "best_match",
+            "matchNote": "",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 41,
+            "title": "Little Nightmares",
+            "slug": "little-nightmares",
+            "image": "https://media.rawg.io/media/games/8a0/8a02f84a5916ede2f923b88d5f8217ba.jpg",
+            "match": 90,
+            "reason": "Funziona bene quando cerchi un'atmosfera inquietante e un mondo strano da esplorare. La storia di Six e il suo viaggio attraverso il Maw sono pieni di mistero e tensione.",
+            "matchTier": "best_match",
+            "matchNote": "",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 2873,
+            "title": "The Witness",
+            "slug": "the-witness",
+            "image": "https://media.rawg.io/media/games/00b/00b164224ebaf381104d0b215a37afb3.jpg",
+            "match": 85,
+            "reason": "Ha quella sensazione da 'ancora una run e poi smetto' se ti piace risolvere enigmi in un'isola misteriosa. Ogni angolo offre nuove scoperte e un'atmosfera affascinante.",
+            "matchTier": "good_alternative",
+            "matchNote": "Più puzzle e meno narrazione diretta.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 3740,
+            "title": "FEZ",
+            "slug": "fez",
+            "image": "https://media.rawg.io/media/games/4cb/4cb855e8ef1578415a928e53c9f51867.png",
+            "match": 80,
+            "reason": "Rispetto agli altri pick, questo è più giocoso e creativo, con un mondo che puoi manipolare. L'esplorazione è al centro dell'esperienza, ma il mistero è sempre presente.",
+            "matchTier": "good_alternative",
+            "matchNote": "Più puzzle e meno atmosfera cupa.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          }
+        ],
+        "usage": {
+          "intent": {
+            "prompt_tokens": 632,
+            "completion_tokens": 539,
+            "total_tokens": 1171,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "rerank": {
+            "prompt_tokens": 1730,
+            "completion_tokens": 369,
+            "total_tokens": 2099,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        },
+        "debug": {
+          "filtersEnabled": false,
+          "usageLimit": {
+            "plan": null,
+            "bypass": false,
+            "used": 3,
+            "limit": 10,
+            "dailyCap": 10
+          },
+          "cacheHit": false,
+          "inputHash": "ea869744e13fb872a2c78ed78c6ee8b8452042e6ee6445711b052a5af70c83f6",
+          "resolvedInput": "voglio un gioco con un mondo strano che non capisci subito",
+          "noCache": true,
+          "cacheReadSkipped": true,
+          "cacheWriteSkipped": true,
+          "pricingMode": "cards_only_no_live_pricing",
+          "recommendLivePrices": false,
+          "models": {
+            "discovery": "gpt-4o-mini",
+            "relevance": "gpt-4o-mini",
+            "rerank": "gpt-4o-mini"
+          },
+          "env": {
+            "hasOpenAiKey": true,
+            "hasRawgKey": true,
+            "nodeEnv": "production",
+            "siteUrl": "https://gamepingai.com"
+          },
+          "candidates": {
+            "beforeAiFilter": 8,
+            "afterAiFilter": 6
+          },
+          "selected": {
+            "titles": [
+              "INSIDE",
+              "Little Nightmares",
+              "The Witness",
+              "FEZ"
+            ]
+          },
+          "finalResponse": {
+            "count": 4,
+            "titles": [
+              "INSIDE",
+              "Little Nightmares",
+              "The Witness",
+              "FEZ"
+            ]
+          },
+          "cheapShark": []
+        }
+      }
+    },
+    {
+      "index": 3,
+      "prompt": "gioco da ascoltare con musica di notte mentre piove",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 26547,
+      "data": {
+        "games": [
+          {
+            "id": 3254,
+            "title": "Journey",
+            "slug": "journey",
+            "image": "https://media.rawg.io/media/games/baf/baf9905270314e07e6850cffdb51df41.jpg",
+            "match": 63,
+            "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano con, music, atmospheric senza essere identico ai pick principali.",
+            "matchTier": "good_alternative",
+            "matchNote": "Alternativa più ampia: c’entra con con, music, atmospheric, ma meno precisa dei pick migliori.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 2819,
+            "title": "Firewatch",
+            "slug": "firewatch",
+            "image": "https://media.rawg.io/media/games/0be/0bea0a08a4d954337305391b778a7f37.jpg",
+            "match": 63,
+            "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano atmospheric senza essere identico ai pick principali.",
+            "matchTier": "partial_match",
+            "matchNote": "Match parziale — utile se vuoi esplorare oltre i titoli più stretti.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 42,
+            "title": "What Remains of Edith Finch",
+            "slug": "what-remains-of-edith-finch",
+            "image": "https://media.rawg.io/media/games/34e/34e100b1f648de99f32d477065f04653.jpg",
+            "match": 62,
+            "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano con, atmospheric senza essere identico ai pick principali.",
+            "matchTier": "good_alternative",
+            "matchNote": "Alternativa più ampia: c’entra con con, atmospheric, ma meno precisa dei pick migliori.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 59313,
+            "title": "Gris",
+            "slug": "gris",
+            "image": "https://media.rawg.io/media/games/51c/51c430f1795c79b78f863a9f22dc422d.jpg",
+            "match": 62,
+            "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano con, relaxing, atmospheric senza essere identico ai pick principali.",
+            "matchTier": "good_alternative",
+            "matchNote": "Alternativa più ampia: c’entra con con, relaxing, atmospheric, ma meno precisa dei pick migliori.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 295,
+            "title": "Oxenfree",
+            "slug": "oxenfree",
+            "image": "https://media.rawg.io/media/games/7ba/7baf4663962bad7197e2470d59a6e322.jpg",
+            "match": 62,
+            "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano con, atmospheric senza essere identico ai pick principali.",
+            "matchTier": "good_alternative",
+            "matchNote": "Alternativa più ampia: c’entra con con, atmospheric, ma meno precisa dei pick migliori.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 693,
+            "title": "The Last Guardian",
+            "slug": "the-last-guardian",
+            "image": "https://media.rawg.io/media/games/276/2769b1982cd132a60c69dc5d574445fa.jpg",
+            "match": 61,
+            "reason": "Non era nel top stretto, ma ha senso come opzione in più se ti interessano atmospheric senza essere identico ai pick principali.",
+            "matchTier": "partial_match",
+            "matchNote": "Match parziale — utile se vuoi esplorare oltre i titoli più stretti.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          }
+        ],
+        "usage": {
+          "intent": {
+            "prompt_tokens": 629,
+            "completion_tokens": 542,
+            "total_tokens": 1171,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "rerank": {
+            "prompt_tokens": 836,
+            "completion_tokens": 7,
+            "total_tokens": 843,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        },
+        "debug": {
+          "filtersEnabled": false,
+          "usageLimit": {
+            "plan": null,
+            "bypass": false,
+            "used": 5,
+            "limit": 10,
+            "dailyCap": 10
+          },
+          "cacheHit": false,
+          "inputHash": "b0499f0f0d7de6a61ec4035ab0e4c7352e96a7a08249f0416fb11be35c11afb6",
+          "resolvedInput": "gioco da ascoltare con musica di notte mentre piove",
+          "noCache": true,
+          "cacheReadSkipped": true,
+          "cacheWriteSkipped": true,
+          "pricingMode": "cards_only_no_live_pricing",
+          "recommendLivePrices": false,
+          "models": {
+            "discovery": "gpt-4o-mini",
+            "relevance": "gpt-4o-mini",
+            "rerank": "gpt-4o-mini"
+          },
+          "env": {
+            "hasOpenAiKey": true,
+            "hasRawgKey": true,
+            "nodeEnv": "production",
+            "siteUrl": "https://gamepingai.com"
+          },
+          "candidates": {
+            "beforeAiFilter": 7,
+            "afterAiFilter": 0
+          },
+          "selected": {
+            "titles": [
+              "Journey",
+              "Firewatch",
+              "What Remains of Edith Finch",
+              "Gris",
+              "Oxenfree",
+              "The Last Guardian"
+            ]
+          },
+          "finalResponse": {
+            "count": 6,
+            "titles": [
+              "Journey",
+              "Firewatch",
+              "What Remains of Edith Finch",
+              "Gris",
+              "Oxenfree",
+              "The Last Guardian"
+            ]
+          },
+          "cheapShark": []
+        }
+      }
+    },
+    {
+      "index": 4,
+      "prompt": "qualcosa che mi faccia sentire intelligente quando gioco",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 41802,
+      "data": {
+        "games": [
+          {
+            "id": 4200,
+            "title": "Portal 2",
+            "slug": "portal-2",
+            "image": "https://media.rawg.io/media/games/2ba/2bac0e87cf45e5b508f227d281c9252a.jpg",
+            "match": 95,
+            "reason": "Perfetto se vuoi mettere alla prova la tua mente con enigmi ingegnosi e meccaniche di gioco uniche. Ogni livello ti sfida a pensare in modo creativo e a trovare soluzioni non convenzionali.",
+            "matchTier": "best_match",
+            "matchNote": "",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 2873,
+            "title": "The Witness",
+            "slug": "the-witness",
+            "image": "https://media.rawg.io/media/games/00b/00b164224ebaf381104d0b215a37afb3.jpg",
+            "match": 90,
+            "reason": "Funziona bene quando cerchi un'esperienza di scoperta e puzzle intricati. Ogni enigma ti spinge a osservare attentamente l'ambiente e a riflettere sulle tue scelte.",
+            "matchTier": "best_match",
+            "matchNote": "",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 10297,
+            "title": "Sid Meier’s Civilization VI",
+            "slug": "civilization-vi",
+            "image": "https://media.rawg.io/media/games/997/997ab4d67e96fb20a4092383477d4463.jpg",
+            "match": 85,
+            "reason": "Rispetto agli altri pick, questo è più strategico e richiede pianificazione a lungo termine. Ogni decisione può influenzare il corso della tua civiltà, facendoti sentire un vero leader.",
+            "matchTier": "good_alternative",
+            "matchNote": "Più gestione e strategia, meno puzzle diretti.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 50839,
+            "title": "Baba Is You",
+            "slug": "baba-is-you",
+            "image": "https://media.rawg.io/media/games/0bc/0bca854021e14ffa9005a85c4567d25c.jpg",
+            "match": 80,
+            "reason": "Ha quella sensazione da 'ancora una run e poi smetto' se ti piace risolvere problemi in modo creativo. Ogni livello ti permette di manipolare le regole stesse del gioco.",
+            "matchTier": "good_alternative",
+            "matchNote": "Più astuzia e creatività, meno linearità.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          }
+        ],
+        "usage": {
+          "intent": {
+            "prompt_tokens": 628,
+            "completion_tokens": 584,
+            "total_tokens": 1212,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "rerank": {
+            "prompt_tokens": 1723,
+            "completion_tokens": 370,
+            "total_tokens": 2093,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        },
+        "debug": {
+          "filtersEnabled": false,
+          "usageLimit": {
+            "plan": null,
+            "bypass": false,
+            "used": 6,
+            "limit": 10,
+            "dailyCap": 10
+          },
+          "cacheHit": false,
+          "inputHash": "80cb1878cef71d787c55c8fb473d72bbe8f2a3b262cbb2b16112201e58a78be0",
+          "resolvedInput": "qualcosa che mi faccia sentire intelligente quando gioco",
+          "noCache": true,
+          "cacheReadSkipped": true,
+          "cacheWriteSkipped": true,
+          "pricingMode": "cards_only_no_live_pricing",
+          "recommendLivePrices": false,
+          "models": {
+            "discovery": "gpt-4o-mini",
+            "relevance": "gpt-4o-mini",
+            "rerank": "gpt-4o-mini"
+          },
+          "env": {
+            "hasOpenAiKey": true,
+            "hasRawgKey": true,
+            "nodeEnv": "production",
+            "siteUrl": "https://gamepingai.com"
+          },
+          "candidates": {
+            "beforeAiFilter": 8,
+            "afterAiFilter": 6
+          },
+          "selected": {
+            "titles": [
+              "Portal 2",
+              "The Witness",
+              "Sid Meier’s Civilization VI",
+              "Baba Is You"
+            ]
+          },
+          "finalResponse": {
+            "count": 4,
+            "titles": [
+              "Portal 2",
+              "The Witness",
+              "Sid Meier’s Civilization VI",
+              "Baba Is You"
+            ]
+          },
+          "cheapShark": []
+        }
+      }
+    },
+    {
+      "index": 5,
+      "prompt": "gioco dove esplorare è più importante del combattere",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 40559,
+      "data": {
+        "games": [
+          {
+            "id": 3254,
+            "title": "Journey",
+            "slug": "journey",
+            "image": "https://media.rawg.io/media/games/baf/baf9905270314e07e6850cffdb51df41.jpg",
+            "match": 90,
+            "reason": "Perfetto se vuoi un'esperienza di esplorazione immersiva in un deserto misterioso. La bellezza visiva e l'atmosfera ti faranno sentire parte di un viaggio unico.",
+            "matchTier": "best_match",
+            "matchNote": "",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 58764,
+            "title": "Outer Wilds",
+            "slug": "outer-wilds",
+            "image": "https://media.rawg.io/media/games/9f4/9f418898f5415668ca47b5f4ab1ecfeb.jpg",
+            "match": 90,
+            "reason": "Funziona bene quando cerchi un'avventura spaziale dove l'esplorazione è al centro. Ogni pianeta offre segreti da scoprire in un ciclo temporale affascinante.",
+            "matchTier": "best_match",
+            "matchNote": "",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 2819,
+            "title": "Firewatch",
+            "slug": "firewatch",
+            "image": "https://media.rawg.io/media/games/0be/0bea0a08a4d954337305391b778a7f37.jpg",
+            "match": 85,
+            "reason": "Rispetto agli altri pick, questo è più focalizzato sulla narrazione e sull'atmosfera. Esplora un bellissimo ambiente mentre segui una storia avvincente.",
+            "matchTier": "good_alternative",
+            "matchNote": "Più narrativa, meno esplorazione pura.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 2873,
+            "title": "The Witness",
+            "slug": "the-witness",
+            "image": "https://media.rawg.io/media/games/00b/00b164224ebaf381104d0b215a37afb3.jpg",
+            "match": 80,
+            "reason": "Ha quella sensazione da 'ancora una run e poi smetto' se ti piace risolvere enigmi mentre esplori un'isola misteriosa. Ogni angolo nasconde un nuovo puzzle.",
+            "matchTier": "good_alternative",
+            "matchNote": "Più enigmi, meno atmosfera narrativa.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          }
+        ],
+        "usage": {
+          "intent": {
+            "prompt_tokens": 630,
+            "completion_tokens": 528,
+            "total_tokens": 1158,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "rerank": {
+            "prompt_tokens": 1381,
+            "completion_tokens": 350,
+            "total_tokens": 1731,
+            "prompt_tokens_details": {
+              "cached_tokens": 1024,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        },
+        "debug": {
+          "filtersEnabled": false,
+          "usageLimit": {
+            "plan": null,
+            "bypass": false,
+            "used": 8,
+            "limit": 10,
+            "dailyCap": 10
+          },
+          "cacheHit": false,
+          "inputHash": "879a71a88165e8c5e22c3dbd0b08732d4845623a7c44827734cfc89b9f0b730d",
+          "resolvedInput": "gioco dove esplorare è più importante del combattere",
+          "noCache": true,
+          "cacheReadSkipped": true,
+          "cacheWriteSkipped": true,
+          "pricingMode": "cards_only_no_live_pricing",
+          "recommendLivePrices": false,
+          "models": {
+            "discovery": "gpt-4o-mini",
+            "relevance": "gpt-4o-mini",
+            "rerank": "gpt-4o-mini"
+          },
+          "env": {
+            "hasOpenAiKey": true,
+            "hasRawgKey": true,
+            "nodeEnv": "production",
+            "siteUrl": "https://gamepingai.com"
+          },
+          "candidates": {
+            "beforeAiFilter": 7,
+            "afterAiFilter": 5
+          },
+          "selected": {
+            "titles": [
+              "Journey",
+              "Outer Wilds",
+              "Firewatch",
+              "The Witness"
+            ]
+          },
+          "finalResponse": {
+            "count": 4,
+            "titles": [
+              "Journey",
+              "Outer Wilds",
+              "Firewatch",
+              "The Witness"
+            ]
+          },
+          "cheapShark": []
+        }
+      }
+    },
+    {
+      "index": 6,
+      "prompt": "voglio un gioco che sembri un sogno strano",
+      "ok": true,
+      "status": 200,
+      "latencyMs": 36235,
+      "data": {
+        "games": [
+          {
+            "id": 3254,
+            "title": "Journey",
+            "slug": "journey",
+            "image": "https://media.rawg.io/media/games/baf/baf9905270314e07e6850cffdb51df41.jpg",
+            "match": 95,
+            "reason": "Perfetto se vuoi un'esperienza che ti trasporti in un deserto onirico, dove ogni passo è un viaggio emotivo verso l'ignoto. La mancanza di dialogo rende la narrazione ancora più surreale e immersiva.",
+            "matchTier": "best_match",
+            "matchNote": "",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 1450,
+            "title": "INSIDE",
+            "slug": "inside",
+            "image": "https://media.rawg.io/media/games/d5a/d5a24f9f71315427fa6e966fdd98dfa6.jpg",
+            "match": 85,
+            "reason": "Funziona bene quando cerchi un'atmosfera tesa e inquietante, con un'ambientazione che sembra un incubo in bianco e nero. Ogni puzzle che risolvi ti immerge di più in questo mondo surreale.",
+            "matchTier": "good_alternative",
+            "matchNote": "Più tensione e oscurità, meno luminosità e speranza.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 59313,
+            "title": "Gris",
+            "slug": "gris",
+            "image": "https://media.rawg.io/media/games/51c/51c430f1795c79b78f863a9f22dc422d.jpg",
+            "match": 80,
+            "reason": "Ha quella sensazione da 'ancora una run e poi smetto' se ti piace esplorare un mondo visivamente unico e poetico, dove ogni colore rappresenta un'emozione da affrontare.",
+            "matchTier": "good_alternative",
+            "matchNote": "Più focus sulla crescita personale, meno atmosfera inquietante.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          },
+          {
+            "id": 42,
+            "title": "What Remains of Edith Finch",
+            "slug": "what-remains-of-edith-finch",
+            "image": "https://media.rawg.io/media/games/34e/34e100b1f648de99f32d477065f04653.jpg",
+            "match": 75,
+            "reason": "Rispetto agli altri pick, questo è più narrativo e ti porta a esplorare storie surreali di una famiglia sfortunata, con un'atmosfera che ti fa riflettere su vita e morte.",
+            "matchTier": "partial_match",
+            "matchNote": "Più narrazione e meno esplorazione visiva.",
+            "price": null,
+            "currency": null,
+            "buyLink": null,
+            "budgetStatus": null,
+            "budgetNote": null
+          }
+        ],
+        "usage": {
+          "intent": {
+            "prompt_tokens": 630,
+            "completion_tokens": 540,
+            "total_tokens": 1170,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          },
+          "rerank": {
+            "prompt_tokens": 1715,
+            "completion_tokens": 401,
+            "total_tokens": 2116,
+            "prompt_tokens_details": {
+              "cached_tokens": 0,
+              "audio_tokens": 0
+            },
+            "completion_tokens_details": {
+              "reasoning_tokens": 0,
+              "audio_tokens": 0,
+              "accepted_prediction_tokens": 0,
+              "rejected_prediction_tokens": 0
+            }
+          }
+        },
+        "debug": {
+          "filtersEnabled": false,
+          "usageLimit": {
+            "plan": null,
+            "bypass": false,
+            "used": 9,
+            "limit": 10,
+            "dailyCap": 10
+          },
+          "cacheHit": false,
+          "inputHash": "3625ffefadcfc6726ab6e87e779c40b1cc11728ba249013de83ed52d9ab37242",
+          "resolvedInput": "voglio un gioco che sembri un sogno strano",
+          "noCache": true,
+          "cacheReadSkipped": true,
+          "cacheWriteSkipped": true,
+          "pricingMode": "cards_only_no_live_pricing",
+          "recommendLivePrices": false,
+          "models": {
+            "discovery": "gpt-4o-mini",
+            "relevance": "gpt-4o-mini",
+            "rerank": "gpt-4o-mini"
+          },
+          "env": {
+            "hasOpenAiKey": true,
+            "hasRawgKey": true,
+            "nodeEnv": "production",
+            "siteUrl": "https://gamepingai.com"
+          },
+          "candidates": {
+            "beforeAiFilter": 8,
+            "afterAiFilter": 6
+          },
+          "selected": {
+            "titles": [
+              "Journey",
+              "INSIDE",
+              "Gris",
+              "What Remains of Edith Finch"
+            ]
+          },
+          "finalResponse": {
+            "count": 4,
+            "titles": [
+              "Journey",
+              "INSIDE",
+              "Gris",
+              "What Remains of Edith Finch"
+            ]
+          },
+          "cheapShark": []
+        }
+      }
+    },
+    {
+      "index": 7,
+      "prompt": "gioco che ti prende lentamente e poi ti ossessiona",
+      "ok": false,
+      "status": 429,
+      "latencyMs": 803,
+      "data": {
+        "error": "daily_limit",
+        "limitType": "daily_recommendations",
+        "plan": "anonymous",
+        "limit": 10,
+        "message": "You've used all 10 daily recommendations available without signing in. Create a free account for higher limits."
+      }
+    },
+    {
+      "index": 8,
+      "prompt": "qualcosa con una community chill e non tossica",
+      "ok": false,
+      "status": 429,
+      "latencyMs": 464,
+      "data": {
+        "error": "daily_limit",
+        "limitType": "daily_recommendations",
+        "plan": "anonymous",
+        "limit": 10,
+        "message": "You've used all 10 daily recommendations available without signing in. Create a free account for higher limits."
+      }
+    },
+    {
+      "index": 9,
+      "prompt": "gioco dove puoi vivere una seconda vita",
+      "ok": false,
+      "status": 429,
+      "latencyMs": 428,
+      "data": {
+        "error": "daily_limit",
+        "limitType": "daily_recommendations",
+        "plan": "anonymous",
+        "limit": 10,
+        "message": "You've used all 10 daily recommendations available without signing in. Create a free account for higher limits."
+      }
+    },
+    {
+      "index": 10,
+      "prompt": "gioco che dà la sensazione di avventura vera",
+      "ok": false,
+      "status": 429,
+      "latencyMs": 431,
+      "data": {
+        "error": "daily_limit",
+        "limitType": "daily_recommendations",
+        "plan": "anonymous",
+        "limit": 10,
+        "message": "You've used all 10 daily recommendations available without signing in. Create a free account for higher limits."
+      }
+    }
+  ]
+}

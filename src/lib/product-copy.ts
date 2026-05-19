@@ -6,11 +6,17 @@ export const EARLY_ACCESS_NOTICE =
   "GamePing AI is currently in early access. Recommendations and pricing coverage will improve over time.";
 
 export const PREMIUM_UNLOCK_LINE =
-  "Premium unlocks 25 saved runs, 50 tracked games, and 50 recommendations/day.";
+  "Premium unlocks saved runs, tracked games, taste memory, and deeper personalization—including Steam import when it ships.";
 
 /** Premium subscription marketing (EUR, matches Stripe). */
 export const PREMIUM_EARLY_ACCESS_PRICE_MONTHLY = "€2.99";
+export const PREMIUM_EARLY_ACCESS_PRICE_ANNUAL = "€19.99";
 export const PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH = "€4.99";
+
+/** Approximate annual savings vs monthly early-access price (for display only). */
+export const PREMIUM_ANNUAL_SAVE_LABEL = "Save vs monthly";
+
+export const SIGNUP_REDIRECT_RECOMMEND = "/login?redirect=%2Frecommend";
 
 export const LIMIT_TOAST_DURATION_MS = 9000;
 
@@ -43,6 +49,9 @@ export function getLimitReachedDisplay(params: {
   body: string;
   footer?: string;
   showUpgradeCta: boolean;
+  showSignupCta: boolean;
+  signupHref: string;
+  signupLabel: string;
   showManageDashboard: boolean;
 } {
   const planKey = normalizeLimitPlan(params.plan, {
@@ -52,50 +61,67 @@ export function getLimitReachedDisplay(params: {
   const Q = PLAN_QUOTAS;
 
   if (premium) {
-    const title = "Premium limit reached";
+    const title = "Come back tomorrow";
     let body: string;
     switch (params.limitType) {
       case "saved_runs":
-        body = `You've used all ${Q.premiumSavedSearches} saved recommendation runs available on your Premium plan.`;
+        body = `You've used all ${Q.premiumSavedSearches} saved recommendation runs on Premium. Pause one on your dashboard to swap in another.`;
         break;
       case "tracked_games":
-        body = `You've reached the ${Q.premiumTrackedGames} tracked games available on your Premium plan.`;
+        body = `You've reached ${Q.premiumTrackedGames} tracked games on Premium. Pause one to track something new.`;
         break;
       case "daily_recommendations":
-        body = `You've used all ${Q.premiumRecommendDaily} daily recommendations available on your Premium plan. Try again tomorrow.`;
+        body = `You've had a big discovery day—${Q.premiumRecommendDaily} recommendations is the daily cap on Premium. Your limit resets at midnight UTC.`;
         break;
     }
     return {
       title,
       body,
       showUpgradeCta: false,
+      showSignupCta: false,
+      signupHref: SIGNUP_REDIRECT_RECOMMEND,
+      signupLabel: "Create free account",
       showManageDashboard: params.limitType !== "daily_recommendations",
     };
   }
 
-  const title = "Free plan limit reached";
+  if (planKey === "anonymous" && params.limitType === "daily_recommendations") {
+    return {
+      title: "GamePing gets better once it learns your taste",
+      body: "Create a free account to unlock more recommendations, save searches, track games, and build your personal discovery profile.",
+      showUpgradeCta: false,
+      showSignupCta: true,
+      signupHref: SIGNUP_REDIRECT_RECOMMEND,
+      signupLabel: "Create free account",
+      showManageDashboard: false,
+    };
+  }
+
+  const title =
+    params.limitType === "daily_recommendations"
+      ? "You've explored a lot today"
+      : "Free plan limit reached";
   let body: string;
   switch (params.limitType) {
     case "saved_runs":
-      body = `You've used all ${Q.freeSavedSearches} saved recommendation runs available on the free plan.`;
+      body = `You've used all ${Q.freeSavedSearches} saved recommendation runs on the free plan. Upgrade for more room to keep taste profiles and deal alerts.`;
       break;
     case "tracked_games":
-      body = `You've reached the ${Q.freeTrackedGames} tracked games available on the free plan.`;
+      body = `You've reached ${Q.freeTrackedGames} tracked games on the free plan. Upgrade to follow more deals on games you care about.`;
       break;
     case "daily_recommendations":
-      if (planKey === "anonymous") {
-        body = `You've used all ${Q.anonRecommendDaily} daily recommendations available without signing in. Create a free account for higher limits.`;
-      } else {
-        body = `You've used all ${Q.freeRecommendDaily} daily recommendations available on the free plan.`;
-      }
+      body = `You've used today's ${Q.freeRecommendDaily} free recommendations. Come back tomorrow—or upgrade for saved taste memory, more saved runs, and more tracked games.`;
       break;
   }
 
   return {
     title,
     body,
-    footer: planKey === "anonymous" ? undefined : PREMIUM_UNLOCK_LINE,
+    footer: PREMIUM_UNLOCK_LINE,
     showUpgradeCta: true,
+    showSignupCta: false,
+    signupHref: SIGNUP_REDIRECT_RECOMMEND,
+    signupLabel: "Create free account",
     showManageDashboard: false,
   };
 }

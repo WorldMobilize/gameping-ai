@@ -7,8 +7,11 @@ import ManageBillingButton from "@/components/ManageBillingButton";
 import Navbar from "@/components/Navbar";
 import PremiumEarlyAccessHint from "@/components/PremiumEarlyAccessHint";
 import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
+import { PLAN_QUOTAS } from "@/lib/plan-quotas";
 import {
   EARLY_ACCESS_NOTICE,
+  PREMIUM_ANNUAL_SAVE_LABEL,
+  PREMIUM_EARLY_ACCESS_PRICE_ANNUAL,
   PREMIUM_EARLY_ACCESS_PRICE_MONTHLY,
   PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH,
 } from "@/lib/product-copy";
@@ -21,6 +24,9 @@ function UpgradeContent() {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [billingInterval, setBillingInterval] = useState<"month" | "year">(
+    "year"
+  );
   const [planLoading, setPlanLoading] = useState(true);
   const [profilePlan, setProfilePlan] = useState<LoadedPlan>(null);
 
@@ -90,6 +96,8 @@ function UpgradeContent() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interval: billingInterval }),
       });
 
       const body = await res.json().catch(() => ({}));
@@ -195,9 +203,9 @@ function UpgradeContent() {
             <h2 className="text-2xl font-black">Free</h2>
             <p className="mt-2 text-sm text-white/50">Included baseline.</p>
             <ul className="mt-6 space-y-3 text-white/60">
-              <li>✔ 5 recommendations per day</li>
-              <li>✔ 3 saved recommendation runs</li>
-              <li>✔ 5 tracked games</li>
+              <li>✔ {PLAN_QUOTAS.freeRecommendDaily} recommendations per day</li>
+              <li>✔ {PLAN_QUOTAS.freeSavedSearches} saved recommendation runs</li>
+              <li>✔ {PLAN_QUOTAS.freeTrackedGames} tracked games</li>
             </ul>
           </div>
 
@@ -205,10 +213,10 @@ function UpgradeContent() {
             <h2 className="text-2xl font-black">Premium</h2>
             <p className="mt-2 text-sm font-bold text-cyan-200">Your current tier</p>
             <ul className="mt-6 space-y-3 text-white/70">
-              <li>✔ 50 recommendations per day</li>
-              <li>✔ 25 saved recommendation runs</li>
-              <li>✔ 50 tracked games</li>
-              <li>✔ Early access features</li>
+              <li>✔ Persistent taste memory across sessions</li>
+              <li>✔ {PLAN_QUOTAS.premiumSavedSearches} saved recommendation runs</li>
+              <li>✔ {PLAN_QUOTAS.premiumTrackedGames} tracked games with deal alerts</li>
+              <li>✔ Steam library import (coming soon)</li>
             </ul>
             <PremiumEarlyAccessHint />
             <p className="mt-6 text-sm text-white/45">
@@ -234,35 +242,66 @@ function UpgradeContent() {
           <p className="mt-2 text-sm text-white/50">Great to try GamePing.</p>
 
           <ul className="mt-6 space-y-3 text-white/70">
-            <li>✔ 5 recommendations per day</li>
-            <li>✔ 3 saved recommendation runs</li>
-            <li>✔ 5 tracked games</li>
+            <li>✔ {PLAN_QUOTAS.freeRecommendDaily} recommendations per day</li>
+            <li>✔ {PLAN_QUOTAS.freeSavedSearches} saved recommendation runs</li>
+            <li>✔ {PLAN_QUOTAS.freeTrackedGames} tracked games</li>
+            <li>✔ Build your taste profile over time</li>
           </ul>
         </div>
 
         <div className="rounded-3xl border border-cyan-400/25 bg-cyan-400/10 p-8 shadow-[0_0_40px_rgba(34,211,238,0.12)]">
           <h2 className="text-2xl font-black">Premium</h2>
           <p className="text-[10px] font-black uppercase tracking-[0.32em] text-cyan-200/90">
-            Early access pricing
-          </p>
-          <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="text-3xl font-black text-white">
-              {PREMIUM_EARLY_ACCESS_PRICE_MONTHLY}
-            </span>
-            <span className="text-sm font-bold text-white/55">/month</span>
-            <span className="text-sm text-white/40 line-through">
-              {PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH}
-            </span>
-          </div>
-          <p className="mt-2 text-sm text-white/55">
-            Early supporters lock in lower pricing during beta. Billed monthly via Stripe.
+            Early supporter pricing
           </p>
 
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setBillingInterval("year")}
+              className={`rounded-2xl border p-4 text-left transition ${
+                billingInterval === "year"
+                  ? "border-cyan-400/50 bg-cyan-400/15 ring-1 ring-cyan-400/30"
+                  : "border-white/10 bg-black/20 hover:border-white/20"
+              }`}
+            >
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-200">
+                Best value
+              </span>
+              <p className="mt-2 text-2xl font-black text-white">
+                {PREMIUM_EARLY_ACCESS_PRICE_ANNUAL}
+                <span className="text-sm font-bold text-white/55">/year</span>
+              </p>
+              <p className="mt-1 text-xs text-white/50">{PREMIUM_ANNUAL_SAVE_LABEL}</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setBillingInterval("month")}
+              className={`rounded-2xl border p-4 text-left transition ${
+                billingInterval === "month"
+                  ? "border-cyan-400/50 bg-cyan-400/15 ring-1 ring-cyan-400/30"
+                  : "border-white/10 bg-black/20 hover:border-white/20"
+              }`}
+            >
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+                Monthly
+              </span>
+              <p className="mt-2 text-2xl font-black text-white">
+                {PREMIUM_EARLY_ACCESS_PRICE_MONTHLY}
+                <span className="text-sm font-bold text-white/55">/month</span>
+              </p>
+              <p className="mt-1 text-xs text-white/40 line-through">
+                {PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH} standard
+              </p>
+            </button>
+          </div>
+
           <ul className="mt-6 space-y-3 text-white/80">
-            <li>✔ 50 recommendations per day</li>
-            <li>✔ 25 saved recommendation runs</li>
-            <li>✔ 50 tracked games</li>
-            <li>✔ Early access features</li>
+            <li>✔ Persistent taste memory across sessions</li>
+            <li>✔ {PLAN_QUOTAS.premiumSavedSearches} saved recommendation runs</li>
+            <li>✔ {PLAN_QUOTAS.premiumTrackedGames} tracked games with deal alerts</li>
+            <li>✔ Steam library import (coming soon)</li>
           </ul>
 
           <PremiumEarlyAccessHint />
@@ -274,7 +313,11 @@ function UpgradeContent() {
               onClick={startCheckout}
               className="rounded-full bg-cyan-400 px-8 py-4 font-black text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Redirecting…" : "Upgrade with Stripe"}
+              {loading
+                ? "Redirecting…"
+                : billingInterval === "year"
+                  ? "Upgrade yearly with Stripe"
+                  : "Upgrade monthly with Stripe"}
             </button>
 
             <span className="text-sm text-white/55">
@@ -306,8 +349,8 @@ export default function UpgradePage() {
           </h1>
 
           <p className="mt-4 max-w-2xl text-white/60">
-            Higher daily recommendation limits, more saved searches, and more tracked games for
-            price-drop emails.
+            AI game discovery that learns your taste—save searches, track deals, and build a
+            personal profile that gets smarter over time.
           </p>
 
           <p className="mt-4 max-w-2xl text-sm leading-relaxed text-white/45">
@@ -350,7 +393,7 @@ export default function UpgradePage() {
               <div>
                 <p className="font-black text-white">How does billing work?</p>
                 <p className="mt-2 text-sm leading-6 text-white/60">
-                  Premium is a monthly subscription billed through Stripe. After checkout, plan
+                  Premium is billed monthly or yearly through Stripe. After checkout, your plan
                   updates automatically when your subscription status changes. To cancel or change
                   billing, open Manage billing on your account or upgrade page (Premium subscribers),
                   or use the Stripe Customer Portal from there.

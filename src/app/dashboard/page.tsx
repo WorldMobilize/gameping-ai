@@ -385,7 +385,7 @@ export default function Dashboard() {
               </p>
 
               <p className="mt-4 text-sm leading-relaxed text-white/50">
-                Free: 5 recommendations/day, 3 saved runs, 5 tracked games. Premium: 50/day, 25 saved
+                Free: 10 recommendations/day, 3 saved runs, 5 tracked games. Premium: 50/day, 25 saved
                 runs, 50 tracked games.{" "}
                 <Link
                   href="/upgrade"

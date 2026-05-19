@@ -379,6 +379,7 @@ export default function RecommendPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitBusyRef.current || loading) return;
+    if (dailyLimitReached) return;
     if (loggedUserId && !emailVerifiedForFeatures) {
       showToast({ variant: "error", message: EMAIL_NOT_VERIFIED_MESSAGE });
       return;
@@ -879,11 +880,15 @@ export default function RecommendPage() {
 
                 <button
                   type="submit"
-                  disabled={loading}
-                  aria-disabled={loading}
+                  disabled={loading || dailyLimitReached}
+                  aria-disabled={loading || dailyLimitReached}
                   className="rounded-full bg-cyan-400 px-10 py-4 font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:bg-cyan-300 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {loading ? "Analyzing your taste..." : "Find my perfect games"}
+                  {dailyLimitReached
+                    ? "Daily limit reached"
+                    : loading
+                      ? "Analyzing your taste..."
+                      : "Find my perfect games"}
                 </button>
               </div>
             </div>
@@ -1175,7 +1180,7 @@ export default function RecommendPage() {
 
               {!emailSaved && (
                 <p className="mt-4 text-sm text-white/50">
-                  Free: 5 recommendations/day, 3 saved runs, 5 tracked games • Premium unlocks more
+                  Free: 10 recommendations/day, 3 saved runs, 5 tracked games • Premium unlocks taste memory and more
                 </p>
               )}
             </div>

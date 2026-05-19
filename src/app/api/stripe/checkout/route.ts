@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireVerifiedUser } from "@/lib/require-verified-email";
 import { createClient } from "@/lib/supabase/server";
-import { getStripe, getStripePriceId } from "@/lib/stripe";
+import {
+  getStripe,
+  getStripePriceId,
+  type StripeBillingInterval,
+} from "@/lib/stripe";
 
 export const runtime = "nodejs";
 
@@ -42,8 +46,19 @@ export async function POST(req: Request) {
       );
     }
 
+    let interval: StripeBillingInterval = "month";
+    try {
+      const raw = await req.text();
+      if (raw.trim()) {
+        const body = JSON.parse(raw) as { interval?: string };
+        if (body.interval === "year") interval = "year";
+      }
+    } catch {
+      /* invalid/empty body → monthly */
+    }
+
     const stripe = getStripe();
-    const priceId = getStripePriceId();
+    const priceId = getStripePriceId(interval);
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",

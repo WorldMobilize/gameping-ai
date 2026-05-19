@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import EmailVerificationNotice from "@/components/EmailVerificationNotice";
+import NavDrawer from "@/components/NavDrawer";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -51,11 +52,12 @@ export default function Navbar({
   const { showToast } = useToast();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
 
-  const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const menuPanelRef = useRef<HTMLDivElement>(null);
+  const accountMenuButtonRef = useRef<HTMLButtonElement>(null);
+  const accountMenuPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -78,10 +80,11 @@ export default function Navbar({
     };
   }, []);
 
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
+  const closeAccountMenu = useCallback(() => setAccountMenuOpen(false), []);
+  const closeNav = useCallback(() => setNavOpen(false), []);
 
   const updateMenuPosition = useCallback(() => {
-    const btn = menuButtonRef.current;
+    const btn = accountMenuButtonRef.current;
     if (!btn) return;
     const r = btn.getBoundingClientRect();
     setMenuCoords({
@@ -91,7 +94,7 @@ export default function Navbar({
   }, []);
 
   useLayoutEffect(() => {
-    if (!menuOpen) {
+    if (!accountMenuOpen) {
       requestAnimationFrame(() => {
         setMenuCoords(null);
       });
@@ -100,10 +103,10 @@ export default function Navbar({
     requestAnimationFrame(() => {
       updateMenuPosition();
     });
-  }, [menuOpen, updateMenuPosition]);
+  }, [accountMenuOpen, updateMenuPosition]);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!accountMenuOpen) return;
 
     const onScrollOrResize = () => updateMenuPosition();
     window.addEventListener("scroll", onScrollOrResize, true);
@@ -112,20 +115,20 @@ export default function Navbar({
       window.removeEventListener("scroll", onScrollOrResize, true);
       window.removeEventListener("resize", onScrollOrResize);
     };
-  }, [menuOpen, updateMenuPosition]);
+  }, [accountMenuOpen, updateMenuPosition]);
 
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!accountMenuOpen) return;
 
     const onPointerDown = (e: MouseEvent | PointerEvent) => {
       const t = e.target as Node;
-      if (menuButtonRef.current?.contains(t)) return;
-      if (menuPanelRef.current?.contains(t)) return;
-      closeMenu();
+      if (accountMenuButtonRef.current?.contains(t)) return;
+      if (accountMenuPanelRef.current?.contains(t)) return;
+      closeAccountMenu();
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeMenu();
+      if (e.key === "Escape") closeAccountMenu();
     };
 
     document.addEventListener("pointerdown", onPointerDown);
@@ -134,10 +137,10 @@ export default function Navbar({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [menuOpen, closeMenu]);
+  }, [accountMenuOpen, closeAccountMenu]);
 
   const handleLogout = async () => {
-    closeMenu();
+    closeAccountMenu();
     await supabase.auth.signOut();
     setUserEmail(null);
     setUserDisplayName(null);
@@ -148,9 +151,9 @@ export default function Navbar({
   };
 
   const accountMenu =
-    menuOpen && userEmail && menuCoords ? (
+    accountMenuOpen && userEmail && menuCoords ? (
       <div
-        ref={menuPanelRef}
+        ref={accountMenuPanelRef}
         id="account-menu"
         role="menu"
         aria-labelledby="account-menu-button"
@@ -171,7 +174,7 @@ export default function Navbar({
             href="/dashboard"
             role="menuitem"
             className="flex w-full items-center px-4 py-3 text-sm font-bold text-white/90 no-underline transition hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:bg-cyan-400/10 focus-visible:outline-none"
-            onClick={closeMenu}
+            onClick={closeAccountMenu}
           >
             Dashboard
           </Link>
@@ -180,7 +183,7 @@ export default function Navbar({
             href="/settings/account"
             role="menuitem"
             className="flex w-full flex-col items-stretch px-4 py-3 text-left text-sm font-bold text-white/90 no-underline transition hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:bg-cyan-400/10 focus-visible:outline-none"
-            onClick={closeMenu}
+            onClick={closeAccountMenu}
           >
             <span className="block w-full">Account settings</span>
             <span className="mt-0.5 block w-full text-[11px] font-semibold leading-snug text-white/45">
@@ -192,7 +195,7 @@ export default function Navbar({
             href="/upgrade"
             role="menuitem"
             className="flex w-full items-center px-4 py-3 text-sm font-bold text-white/90 no-underline transition hover:bg-purple-500/15 hover:text-purple-200 focus-visible:bg-purple-500/15 focus-visible:outline-none"
-            onClick={closeMenu}
+            onClick={closeAccountMenu}
           >
             Premium / Billing
           </Link>
@@ -215,10 +218,31 @@ export default function Navbar({
     <>
     <nav className="relative z-30 border-b border-white/10 bg-[#05060f]/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
-        <Link
-          href="/"
-          className="relative z-0 flex min-w-0 shrink flex-col gap-1 sm:flex-row sm:items-center sm:gap-2"
-        >
+        <div className="relative z-0 flex min-w-0 items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => setNavOpen(true)}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.06] text-white/80 transition hover:border-cyan-400/40 hover:bg-white/10 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+            aria-label="Open navigation menu"
+            aria-expanded={navOpen}
+          >
+            <svg
+              className="h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden
+            >
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
+          </button>
+
+          <Link
+            href="/"
+            className="flex min-w-0 shrink flex-col gap-1 sm:flex-row sm:items-center sm:gap-2"
+          >
           <span className="truncate font-black tracking-tight">
             GamePing <span className="text-cyan-300">AI</span>
           </span>
@@ -234,7 +258,8 @@ export default function Navbar({
           >
             Early Access
           </span>
-        </Link>
+          </Link>
+        </div>
 
         <div className="relative z-0 flex min-w-0 shrink-0 items-center gap-2 sm:gap-3">
           <Link
@@ -271,14 +296,14 @@ export default function Navbar({
 
               <div className="relative z-0 shrink-0">
                 <button
-                  ref={menuButtonRef}
+                  ref={accountMenuButtonRef}
                   type="button"
                   className="flex max-w-[min(100vw-8rem,14rem)] items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] py-1.5 pl-1.5 pr-2 text-left transition hover:border-cyan-400/35 hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 sm:gap-2 sm:pl-2 sm:pr-2.5"
-                  aria-expanded={menuOpen}
+                  aria-expanded={accountMenuOpen}
                   aria-haspopup="menu"
                   aria-controls="account-menu"
                   id="account-menu-button"
-                  onClick={() => setMenuOpen((o) => !o)}
+                  onClick={() => setAccountMenuOpen((o) => !o)}
                 >
                   <span
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-400/25 bg-gradient-to-br from-cyan-500/35 via-[#141a32] to-purple-600/40 text-sm font-extrabold leading-none text-white shadow-[0_0_14px_rgba(34,211,238,0.18)] ring-1 ring-white/15"
@@ -295,7 +320,7 @@ export default function Navbar({
                     </span>
                   </span>
                   <svg
-                    className={`h-4 w-4 shrink-0 text-white/45 transition sm:h-4 sm:w-4 ${menuOpen ? "rotate-180" : ""}`}
+                    className={`h-4 w-4 shrink-0 text-white/45 transition sm:h-4 sm:w-4 ${accountMenuOpen ? "rotate-180" : ""}`}
                     viewBox="0 0 20 20"
                     fill="currentColor"
                     aria-hidden
@@ -316,6 +341,7 @@ export default function Navbar({
           )}
         </div>
       </div>
+      <NavDrawer open={navOpen} onClose={closeNav} />
     </nav>
     {userEmail ? (
       <div className="relative z-20 border-b border-white/10 bg-[#05060f]/90">
