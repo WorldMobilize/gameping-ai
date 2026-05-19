@@ -10,7 +10,6 @@ import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
 import { PLAN_QUOTAS } from "@/lib/plan-quotas";
 import {
   EARLY_ACCESS_NOTICE,
-  PREMIUM_ANNUAL_SAVE_LABEL,
   PREMIUM_EARLY_ACCESS_PRICE_ANNUAL,
   PREMIUM_EARLY_ACCESS_PRICE_MONTHLY,
   PREMIUM_STANDARD_PRICE_ANNUAL_STRIKETHROUGH,
@@ -276,11 +275,6 @@ function UpgradeContent() {
               <p className="mt-1 min-h-4 text-xs leading-4 text-white/40 line-through">
                 {PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH} standard
               </p>
-              <p className="mt-1 min-h-4 text-xs leading-4 text-white/50">
-                <span className="invisible select-none" aria-hidden="true">
-                  {PREMIUM_ANNUAL_SAVE_LABEL}
-                </span>
-              </p>
             </button>
 
             <button
@@ -301,9 +295,6 @@ function UpgradeContent() {
               </p>
               <p className="mt-1 min-h-4 text-xs leading-4 text-white/40 line-through">
                 {PREMIUM_STANDARD_PRICE_ANNUAL_STRIKETHROUGH}/year
-              </p>
-              <p className="mt-1 min-h-4 text-xs leading-4 text-white/50">
-                {PREMIUM_ANNUAL_SAVE_LABEL}
               </p>
             </button>
           </div>
