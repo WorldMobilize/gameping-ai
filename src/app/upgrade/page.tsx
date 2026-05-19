@@ -256,48 +256,55 @@ function UpgradeContent() {
             Early supporter pricing
           </p>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 sm:items-stretch">
             <button
               type="button"
               onClick={() => setBillingInterval("month")}
-              className={`rounded-2xl border p-4 text-left transition ${
+              className={`flex h-full flex-col rounded-2xl border p-4 text-left transition ${
                 billingInterval === "month"
                   ? "border-cyan-400/50 bg-cyan-400/15 ring-1 ring-cyan-400/30"
                   : "border-white/10 bg-black/20 hover:border-white/20"
               }`}
             >
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+              <span className="block min-h-[1.125rem] text-[10px] font-black uppercase leading-none tracking-[0.2em] text-white/45">
                 Monthly
               </span>
-              <p className="mt-2 text-2xl font-black text-white">
+              <p className="mt-2 flex min-h-8 items-end text-2xl font-black leading-none text-white">
                 {PREMIUM_EARLY_ACCESS_PRICE_MONTHLY}
                 <span className="text-sm font-bold text-white/55">/month</span>
               </p>
-              <p className="mt-1 text-xs text-white/40 line-through">
+              <p className="mt-1 min-h-4 text-xs leading-4 text-white/40 line-through">
                 {PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH} standard
+              </p>
+              <p className="mt-1 min-h-4 text-xs leading-4 text-white/50">
+                <span className="invisible select-none" aria-hidden="true">
+                  {PREMIUM_ANNUAL_SAVE_LABEL}
+                </span>
               </p>
             </button>
 
             <button
               type="button"
               onClick={() => setBillingInterval("year")}
-              className={`rounded-2xl border p-4 text-left transition ${
+              className={`flex h-full flex-col rounded-2xl border p-4 text-left transition ${
                 billingInterval === "year"
                   ? "border-cyan-400/50 bg-cyan-400/15 ring-1 ring-cyan-400/30"
                   : "border-white/10 bg-black/20 hover:border-white/20"
               }`}
             >
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-200">
+              <span className="block min-h-[1.125rem] text-[10px] font-black uppercase leading-none tracking-[0.2em] text-purple-200">
                 Best value
               </span>
-              <p className="mt-2 text-2xl font-black text-white">
+              <p className="mt-2 flex min-h-8 items-end text-2xl font-black leading-none text-white">
                 {PREMIUM_EARLY_ACCESS_PRICE_ANNUAL}
                 <span className="text-sm font-bold text-white/55">/year</span>
               </p>
-              <p className="mt-1 text-xs text-white/40 line-through">
+              <p className="mt-1 min-h-4 text-xs leading-4 text-white/40 line-through">
                 {PREMIUM_STANDARD_PRICE_ANNUAL_STRIKETHROUGH}/year
               </p>
-              <p className="mt-1 text-xs text-white/50">{PREMIUM_ANNUAL_SAVE_LABEL}</p>
+              <p className="mt-1 min-h-4 text-xs leading-4 text-white/50">
+                {PREMIUM_ANNUAL_SAVE_LABEL}
+              </p>
             </button>
           </div>
 
