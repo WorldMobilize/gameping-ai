@@ -13,6 +13,14 @@ import {
   tryConsumeRecommendDailySlot,
 } from "@/lib/recommend-usage";
 import { buildLimitErrorPayload } from "@/lib/product-copy";
+import {
+  applyDiversityScoreAdjustments,
+  balanceFinalPicksDiversity,
+  buildDeterministicFallbackPicks,
+  buildRecoveryReason,
+  RECOVERY_MAX_ADDITIONS,
+  RECOVERY_MAX_TOTAL_PICKS,
+} from "@/lib/recommend-diversity-rerank";
 import { blockUnverifiedLoggedInUser } from "@/lib/require-verified-email";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 import {
@@ -1384,10 +1392,11 @@ function buildRecoveryPick(params: {
       : tier === "good_alternative"
         ? `Broader alternative: touches ${themes}, but less exact than top picks.`
         : `Partial match — worth a look if you want options beyond the tightest fits.`;
-  const reason =
-    locale === "it"
-      ? `Non era nel top stretto, ma ha senso come opzione in più se ti interessano ${themes} senza essere identico ai pick principali.`
-      : `Didn’t make the tightest shortlist, but it’s a sensible extra if you care about ${themes} without matching the top picks exactly.`;
+  const reason = buildRecoveryReason({
+    overlapping,
+    locale,
+    title: c.name,
+  });
   return {
     id: c.id,
     title: c.name,
@@ -1469,7 +1478,13 @@ function augmentPicksWithRecovery(params: {
   extras.sort((a, b) => b.score - a.score);
 
   for (const extra of extras) {
-    if (merged.length >= 6) break;
+    if (merged.length >= RECOVERY_MAX_TOTAL_PICKS) break;
+    if (
+      primaryPicks.length > 0 &&
+      merged.length >= primaryPicks.length + RECOVERY_MAX_ADDITIONS
+    ) {
+      break;
+    }
     if (merged.length >= 3) {
       const minOverlap = filtersEnabled ? 2 : 1;
       const minScore = filtersEnabled ? 42 : 34;
@@ -1902,7 +1917,7 @@ export async function POST(req: Request) {
     candidatePool = filterCandidatesByExclude(candidatePool, excludeNormalized);
 
     // 4) Final candidate scoring and pruning.
-    const scoredFinal = scoreVerifiedCandidates({
+    let scoredFinal = scoreVerifiedCandidates({
       normalizedIntent: intent.normalizedIntent,
       coreNeeds: intent.coreNeeds ?? [],
       avoid: intent.avoid ?? [],
@@ -1910,6 +1925,8 @@ export async function POST(req: Request) {
       tagTokens,
       candidates: candidatePool,
     });
+    // Conservative diversity: soften canonical anchors, nudge discovery gems when already relevant.
+    scoredFinal = applyDiversityScoreAdjustments(scoredFinal);
 
     // Quality rule: better 3 strong than 5 filler.
     let strong = scoredFinal
@@ -2013,6 +2030,7 @@ matchTier MUST be one of: "best_match", "good_alternative", "partial_match".
 Rules:
 - Target 3 to 4 strong games when the pool supports it; never exceed 6. Minimum 3 only when at least 3 are genuinely good fits.
 - Prefer 3–4 excellent picks over 6 weak fillers; omit weak ids rather than writing confident reasons for loose matches.
+- When several candidates fit equally, prefer some variety over repeating the same famous "safe" picks; include at most 1–2 lesser-known discoveries only when they clearly fit the request.
 - Use good_alternative / partial_match honestly when tradeoffs exist; never label a weak fit as best_match.
 - You MUST pick ONLY ids from the provided candidate pool. Do not invent titles. Do not output titles.
 - Match must be a number from 0 to 100 (semantic fit including tags/genres/platforms intent).
@@ -2124,7 +2142,25 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
       .filter((x): x is NonNullable<typeof x> => Boolean(x))
       .slice(0, 6);
 
-    let picksForEnrichment: PreEnrichPick[] = pickedVerified;
+    let picksForEnrichment: PreEnrichPick[] = balanceFinalPicksDiversity(
+      pickedVerified
+    );
+
+    if (picksForEnrichment.length === 0 && scoredFinal.length > 0) {
+      picksForEnrichment = buildDeterministicFallbackPicks({
+        scoredFinal,
+        isExcluded: (title) => excludeNormalized.has(normalizeTitleForMatch(title)),
+        locale: copyLocale,
+        max: 4,
+        mapCandidate: (c) => ({
+          id: c.id,
+          title: c.name,
+          slug: c.slug ?? null,
+          image: c.background_image ?? null,
+        }),
+      });
+    }
+
     const tRecovery = performance.now();
     if (picksForEnrichment.length < 3) {
       picksForEnrichment = augmentPicksWithRecovery({
@@ -2143,6 +2179,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
         locale: copyLocale,
       });
     }
+    picksForEnrichment = balanceFinalPicksDiversity(picksForEnrichment);
     timing.recoveryMs = performance.now() - tRecovery;
 
     if (process.env.NODE_ENV === "development") {
