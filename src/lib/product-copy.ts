@@ -12,6 +12,7 @@ export const PREMIUM_UNLOCK_LINE =
 export const PREMIUM_EARLY_ACCESS_PRICE_MONTHLY = "€2.99";
 export const PREMIUM_EARLY_ACCESS_PRICE_ANNUAL = "€19.99";
 export const PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH = "€4.99";
+export const PREMIUM_STANDARD_PRICE_ANNUAL_STRIKETHROUGH = "€34.99";
 
 /** Approximate annual savings vs monthly early-access price (for display only). */
 export const PREMIUM_ANNUAL_SAVE_LABEL = "Save vs monthly";
