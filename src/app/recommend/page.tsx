@@ -384,6 +384,13 @@ export default function RecommendPage() {
       showToast({ variant: "error", message: EMAIL_NOT_VERIFIED_MESSAGE });
       return;
     }
+    if (!form.userPrompt.trim()) {
+      showToast({
+        variant: "info",
+        message: "Start with a vibe, genre, mood, or game idea first.",
+      });
+      return;
+    }
     if (form.userPrompt.trim().length > promptMaxForUi) {
       showToast({
         variant: "error",
