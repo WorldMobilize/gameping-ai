@@ -5,6 +5,7 @@ import {
   hashNormalizedInput,
   setCachedAiRecommendation,
 } from "@/lib/cache";
+import { hasMeaningfulRecommendInput } from "@/lib/recommend-input";
 import { PROMPT_MAX_DEFAULT } from "@/lib/recommend-limits";
 import {
   getPromptMaxChars,
@@ -1589,7 +1590,7 @@ export async function POST(req: Request) {
       normalizeInput(body),
       filtersEnabled
     );
-    if (!normalizedInput.userPrompt.trim()) {
+    if (!hasMeaningfulRecommendInput(normalizedInput, filtersEnabled)) {
       return NextResponse.json(
         { error: "Missing recommendation query" },
         { status: 400 }

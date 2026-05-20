@@ -18,6 +18,13 @@ import {
   PROMPT_MAX_DEFAULT,
 } from "@/lib/recommend-limits";
 import { EMAIL_NOT_VERIFIED_MESSAGE } from "@/lib/auth-email-verification";
+import { hasMeaningfulRecommendInput } from "@/lib/recommend-input";
+import {
+  clearRecommendSessionState,
+  loadRecommendSessionState,
+  saveRecommendSessionState,
+  type RecommendSessionSnapshot,
+} from "@/lib/recommend-session-state";
 import { supabase } from "@/lib/supabase";
 type Game = {
   title: string;
@@ -276,6 +283,67 @@ export default function RecommendPage() {
   const [emailVerifiedForFeatures, setEmailVerifiedForFeatures] = useState(true);
   const [userPlan, setUserPlan] = useState<string | null>(null);
   const [promptMaxForUi, setPromptMaxForUi] = useState(PROMPT_MAX_DEFAULT);
+  const sessionRestoredRef = useRef(false);
+
+  function buildRecommendSessionSnapshot(
+    overrides: Partial<RecommendSessionSnapshot> = {}
+  ): RecommendSessionSnapshot {
+    return {
+      version: 1,
+      form: { ...form },
+      filtersEnabled,
+      games,
+      noStrongMatchesAfterSuccess,
+      dailyLimitReached,
+      dailyLimitContext,
+      resultsReveal,
+      ...overrides,
+    };
+  }
+
+  function persistRecommendSession(overrides: Partial<RecommendSessionSnapshot> = {}) {
+    const snapshot = buildRecommendSessionSnapshot(overrides);
+    const hasResults = snapshot.games.length > 0;
+    const hasInput = hasMeaningfulRecommendInput(snapshot.form, snapshot.filtersEnabled);
+    if (!hasResults && !hasInput) return;
+    saveRecommendSessionState(snapshot);
+  }
+
+  useEffect(() => {
+    if (sessionRestoredRef.current) return;
+    sessionRestoredRef.current = true;
+    const stored = loadRecommendSessionState();
+    if (!stored) return;
+    /* One-time hydrate from sessionStorage after mount (e.g. browser back from game detail). */
+    /* eslint-disable react-hooks/set-state-in-effect -- external store → React state sync */
+    setForm(stored.form);
+    setFiltersEnabled(stored.filtersEnabled);
+    setGames(stored.games);
+    setNoStrongMatchesAfterSuccess(stored.noStrongMatchesAfterSuccess);
+    setDailyLimitReached(stored.dailyLimitReached);
+    setDailyLimitContext(stored.dailyLimitContext);
+    setResultsReveal(stored.resultsReveal || stored.games.length > 0);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
+
+  useEffect(() => {
+    if (!sessionRestoredRef.current) return;
+    if (loading) return;
+    const snapshot = buildRecommendSessionSnapshot();
+    const hasResults = snapshot.games.length > 0;
+    const hasInput = hasMeaningfulRecommendInput(snapshot.form, snapshot.filtersEnabled);
+    if (!hasResults && !hasInput) return;
+    saveRecommendSessionState(snapshot);
+  }, [
+    form,
+    filtersEnabled,
+    games,
+    noStrongMatchesAfterSuccess,
+    dailyLimitReached,
+    dailyLimitContext,
+    resultsReveal,
+    loading,
+  ]);
 
   useEffect(() => {
     async function getUser() {
@@ -384,7 +452,7 @@ export default function RecommendPage() {
       showToast({ variant: "error", message: EMAIL_NOT_VERIFIED_MESSAGE });
       return;
     }
-    if (!form.userPrompt.trim()) {
+    if (!hasMeaningfulRecommendInput(form, filtersEnabled)) {
       showToast({
         variant: "info",
         message: "Start with a vibe, genre, mood, or game idea first.",
@@ -402,6 +470,7 @@ export default function RecommendPage() {
       return;
     }
 
+    clearRecommendSessionState();
     submitBusyRef.current = true;
     setLoading(true);
     setLoadingStepIndex(0);
@@ -453,6 +522,10 @@ export default function RecommendPage() {
           const anonymous = !loggedUserId;
           setDailyLimitContext({ plan: limitPlan, anonymous });
           setDailyLimitReached(true);
+          persistRecommendSession({
+            dailyLimitReached: true,
+            dailyLimitContext: { plan: limitPlan, anonymous },
+          });
           const toast = limitReachedToastMessage({
             limitType: "daily_recommendations",
             plan: limitPlan,
@@ -478,6 +551,15 @@ export default function RecommendPage() {
       const nextGames = data.games ?? [];
       setGames(nextGames);
       setNoStrongMatchesAfterSuccess(nextGames.length === 0);
+      const reveal = nextGames.length > 0;
+      if (reveal) setResultsReveal(true);
+      persistRecommendSession({
+        form: { ...form },
+        filtersEnabled,
+        games: nextGames,
+        noStrongMatchesAfterSuccess: nextGames.length === 0,
+        resultsReveal: reveal,
+      });
       if (debugEnabled && data?.debug) {
         setApiDebug(data.debug as RecommendDebug);
       }
