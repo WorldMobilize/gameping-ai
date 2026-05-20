@@ -1,6 +1,27 @@
 import { NextResponse } from "next/server";
 
+/**
+ * Debug/development CheapShark games proxy (GET ?title=...).
+ * Not used by the app UI. Disabled in production unless ENABLE_PUBLIC_DEALS_API=true
+ * to avoid bot/crawler abuse amplifying CheapShark 429s on our server IP.
+ */
+function isPublicDealsApiEnabled(): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  return process.env.ENABLE_PUBLIC_DEALS_API === "true";
+}
+
 export async function GET(req: Request) {
+  if (!isPublicDealsApiEnabled()) {
+    return NextResponse.json(
+      {
+        error: "gone",
+        message:
+          "This debug CheapShark proxy is disabled in production. Set ENABLE_PUBLIC_DEALS_API=true only if you intentionally need it.",
+      },
+      { status: 410 }
+    );
+  }
+
   const { searchParams } = new URL(req.url);
   const title = searchParams.get("title");
 

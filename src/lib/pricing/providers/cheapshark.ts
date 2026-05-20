@@ -31,16 +31,14 @@ export type CheapSharkBestPrice = {
   reason?: string;
 };
 
-function sleep(ms: number) {
-  return new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
-
 type PricingDebugEvent =
   | {
       type: "http";
       url: string;
       status: number;
       retried: boolean;
+      retryAfterSeconds?: number | null;
+      globalCooldownUntil?: number | null;
     }
   | {
       type: "raw_deals";
@@ -74,9 +72,12 @@ const DEALS_MEMO_TTL_MS = 25_000;
 const dealsMemoByTitle = new Map<string, { deals: CheapSharkDeal[]; fetchedAt: number }>();
 const dealsInflightByTitle = new Map<string, Promise<CheapSharkDealsFetchResult>>();
 
-/** After 429, skip CheapShark /deals for this normalized title (5–10 min). */
+/** Default cooldown when CheapShark 429 has no Retry-After header. */
 const CHEAPSHARK_429_COOLDOWN_MS = 8 * 60 * 1000;
 const cheapShark429UntilByTitle = new Map<string, number>();
+
+/** IP-level backoff: any 429 pauses all CheapShark calls until this timestamp (ms). */
+let globalCheapSharkCooldownUntil = 0;
 
 export type CheapSharkDealsFetchResult = {
   deals: CheapSharkDeal[];
@@ -87,7 +88,75 @@ function normalizeDealsMemoKey(title: string) {
   return title.trim().toLowerCase();
 }
 
+/** Parse Retry-After (seconds) per CheapShark API docs. */
+export function parseRetryAfterSeconds(
+  header: string | null | undefined
+): number | null {
+  if (!header) return null;
+  const trimmed = header.trim();
+  if (!trimmed) return null;
+  const asInt = Number.parseInt(trimmed, 10);
+  if (Number.isFinite(asInt) && asInt >= 0) return asInt;
+  const asDate = Date.parse(trimmed);
+  if (Number.isFinite(asDate)) {
+    const deltaSec = Math.ceil((asDate - Date.now()) / 1000);
+    return Math.max(0, deltaSec);
+  }
+  return null;
+}
+
+export function getGlobalCheapSharkCooldownUntil(): number {
+  return globalCheapSharkCooldownUntil;
+}
+
+export function isCheapSharkGloballyThrottled(now = Date.now()): boolean {
+  if (globalCheapSharkCooldownUntil <= now) {
+    if (globalCheapSharkCooldownUntil > 0) globalCheapSharkCooldownUntil = 0;
+    return false;
+  }
+  return true;
+}
+
+function applyCheapShark429Cooldown(params: {
+  retryAfterHeader: string | null;
+  title?: string;
+  now?: number;
+}): { cooldownMs: number; retryAfterSeconds: number | null } {
+  const now = params.now ?? Date.now();
+  const retryAfterSeconds = parseRetryAfterSeconds(params.retryAfterHeader);
+  const cooldownMs =
+    retryAfterSeconds !== null
+      ? retryAfterSeconds * 1000
+      : CHEAPSHARK_429_COOLDOWN_MS;
+  const until = now + cooldownMs;
+
+  globalCheapSharkCooldownUntil = Math.max(globalCheapSharkCooldownUntil, until);
+
+  if (params.title) {
+    const key = normalizeDealsMemoKey(params.title);
+    if (key) {
+      const prev = cheapShark429UntilByTitle.get(key) ?? 0;
+      cheapShark429UntilByTitle.set(key, Math.max(prev, until));
+    }
+  }
+
+  return { cooldownMs, retryAfterSeconds };
+}
+
+function logCheapSharkDebug(
+  debug: boolean,
+  debugLabel: string | undefined,
+  payload: Record<string, unknown>
+) {
+  if (!shouldLogPricingDetailDebug(debug)) return;
+  console.log("[pricing:cheapshark]", debugLabel ?? "cheapshark", {
+    globalCooldownUntil: globalCheapSharkCooldownUntil || null,
+    ...payload,
+  });
+}
+
 export function isCheapSharkDealsThrottled(title: string, now = Date.now()): boolean {
+  if (isCheapSharkGloballyThrottled(now)) return true;
   const key = normalizeDealsMemoKey(title);
   if (!key) return false;
   const until = cheapShark429UntilByTitle.get(key);
@@ -99,10 +168,98 @@ export function isCheapSharkDealsThrottled(title: string, now = Date.now()): boo
   return true;
 }
 
-function markCheapShark429(title: string, now = Date.now()) {
-  const key = normalizeDealsMemoKey(title);
-  if (!key) return;
-  cheapShark429UntilByTitle.set(key, now + CHEAPSHARK_429_COOLDOWN_MS);
+type CheapSharkFetchOk = { ok: true; response: Response };
+type CheapSharkFetchRateLimited = {
+  ok: false;
+  rateLimited: true;
+  retryAfterSeconds: number | null;
+};
+type CheapSharkFetchFailed = { ok: false; rateLimited: false; response: Response };
+
+type CheapSharkFetchResult =
+  | CheapSharkFetchOk
+  | CheapSharkFetchRateLimited
+  | CheapSharkFetchFailed;
+
+async function cheapSharkFetch(
+  url: string,
+  params: {
+    debug: boolean;
+    debugLabel?: string;
+    endpoint: "deals" | "games" | "stores";
+    titleForThrottle?: string;
+  }
+): Promise<CheapSharkFetchResult> {
+  const { debug, debugLabel, endpoint, titleForThrottle } = params;
+
+  if (isCheapSharkGloballyThrottled()) {
+    logCheapSharkDebug(debug, debugLabel, {
+      skipped: true,
+      reason: "global_cooldown",
+      endpoint,
+      globalCooldownUntil: globalCheapSharkCooldownUntil,
+    });
+    return { ok: false, rateLimited: true, retryAfterSeconds: null };
+  }
+
+  if (titleForThrottle && isCheapSharkDealsThrottled(titleForThrottle)) {
+    logCheapSharkDebug(debug, debugLabel, {
+      skipped: true,
+      reason: "title_cooldown",
+      endpoint,
+      globalCooldownUntil: globalCheapSharkCooldownUntil,
+    });
+    return { ok: false, rateLimited: true, retryAfterSeconds: null };
+  }
+
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+
+    if (res.status !== 429) {
+      if (shouldLogPricingDetailDebug(debug)) {
+        const evt: PricingDebugEvent = {
+          type: "http",
+          url,
+          status: res.status,
+          retried: false,
+          globalCooldownUntil: globalCheapSharkCooldownUntil || null,
+        };
+        console.log("[pricing:cheapshark]", debugLabel ?? endpoint, evt);
+      }
+      return { ok: true, response: res };
+    }
+
+    const retryAfterHeader = res.headers.get("retry-after");
+    const { retryAfterSeconds } = applyCheapShark429Cooldown({
+      retryAfterHeader,
+      title: titleForThrottle,
+    });
+
+    logCheapSharkDebug(debug, debugLabel, {
+      status: 429,
+      endpoint,
+      retryAfterSeconds,
+      retryAfterHeader: retryAfterHeader ?? null,
+      globalCooldownUntil: globalCheapSharkCooldownUntil,
+      immediateRetry: false,
+    });
+
+    if (shouldLogPricingDetailDebug(debug)) {
+      const evt: PricingDebugEvent = {
+        type: "http",
+        url,
+        status: 429,
+        retried: false,
+        retryAfterSeconds,
+        globalCooldownUntil: globalCheapSharkCooldownUntil,
+      };
+      console.log("[pricing:cheapshark]", debugLabel ?? endpoint, evt);
+    }
+
+    return { ok: false, rateLimited: true, retryAfterSeconds };
+  } catch {
+    return { ok: false, rateLimited: false, response: new Response(null, { status: 0 }) };
+  }
 }
 
 async function cheapSharkFetchDealsFromNetwork(params: {
@@ -116,51 +273,34 @@ async function cheapSharkFetchDealsFromNetwork(params: {
     title
   )}&pageSize=${encodeURIComponent(String(pageSize))}&sortBy=Price`;
 
-  if (isCheapSharkDealsThrottled(title)) {
-    if (shouldLogPricingDetailDebug(debug)) {
-      console.log("[pricing:cheapshark]", debugLabel ?? title, {
-        type: "throttled",
-        reason: "recent_429",
-      });
-    }
-    return { deals: [], rateLimited: true };
-  }
+  const fetched = await cheapSharkFetch(url, {
+    debug,
+    debugLabel,
+    endpoint: "deals",
+    titleForThrottle: title,
+  });
 
-  try {
-    const res1 = await fetch(url, { cache: "no-store" });
-    let res = res1;
-    let retried = false;
-    if (res1.status === 429) {
-      retried = true;
-      await sleep(800);
-      res = await fetch(url, { cache: "no-store" });
-    }
-
-    if (shouldLogPricingDetailDebug(debug)) {
-      const evt: PricingDebugEvent = { type: "http", url, status: res.status, retried };
-      console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
-    }
-
-    if (res.status === 429) {
-      markCheapShark429(title);
+  if (!fetched.ok) {
+    if ("rateLimited" in fetched && fetched.rateLimited) {
       return { deals: [], rateLimited: true };
     }
-
-    if (!res.ok) return { deals: [], rateLimited: false };
-    const data = (await res.json()) as unknown;
-    const deals = Array.isArray(data) ? (data as CheapSharkDeal[]) : [];
-    if (shouldLogPricingDetailDebug(debug)) {
-      const titles = deals
-        .map((d) => (d && typeof d.title === "string" ? d.title : ""))
-        .filter(Boolean)
-        .slice(0, 12);
-      const evt: PricingDebugEvent = { type: "raw_deals", count: deals.length, titles };
-      console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
-    }
-    return { deals, rateLimited: false };
-  } catch {
     return { deals: [], rateLimited: false };
   }
+
+  const res = fetched.response;
+  if (!res.ok) return { deals: [], rateLimited: false };
+
+  const data = (await res.json()) as unknown;
+  const deals = Array.isArray(data) ? (data as CheapSharkDeal[]) : [];
+  if (shouldLogPricingDetailDebug(debug)) {
+    const titles = deals
+      .map((d) => (d && typeof d.title === "string" ? d.title : ""))
+      .filter(Boolean)
+      .slice(0, 12);
+    const evt: PricingDebugEvent = { type: "raw_deals", count: deals.length, titles };
+    console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
+  }
+  return { deals, rateLimited: false };
 }
 
 async function cheapSharkGetDealsShared(params: {
@@ -234,14 +374,34 @@ export async function cheapSharkLookupSteamAppId(params: {
   const requestedTitle = params.title.trim();
   if (!requestedTitle) return null;
 
+  if (isCheapSharkGloballyThrottled()) {
+    logCheapSharkDebug(params.debug ?? false, params.debugLabel, {
+      skipped: true,
+      reason: "global_cooldown",
+      endpoint: "games",
+    });
+    return null;
+  }
+
   const url = `https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(
     requestedTitle
   )}&limit=5`;
 
-  try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return null;
+  const fetched = await cheapSharkFetch(url, {
+    debug: params.debug ?? false,
+    debugLabel: params.debugLabel,
+    endpoint: "games",
+    titleForThrottle: requestedTitle,
+  });
 
+  if (!fetched.ok) {
+    return null;
+  }
+
+  const res = fetched.response;
+  if (!res.ok) return null;
+
+  try {
     const games = (await res.json()) as unknown;
     if (!Array.isArray(games) || !games.length) return null;
 
@@ -268,6 +428,7 @@ export async function cheapSharkLookupSteamAppId(params: {
         steamAppIdLookup: true,
         found: Boolean(best?.steamAppID),
         steamAppID: best?.steamAppID ?? null,
+        globalCooldownUntil: globalCheapSharkCooldownUntil || null,
       });
     }
 
@@ -292,27 +453,33 @@ export async function cheapSharkGetStores(params?: {
     return storesMemo.stores;
   }
 
+  if (isCheapSharkGloballyThrottled()) {
+    logCheapSharkDebug(debug, debugLabel, {
+      skipped: true,
+      reason: "global_cooldown",
+      endpoint: "stores",
+    });
+    return storesMemo?.stores ?? [];
+  }
+
   if (!storesInflight) {
     storesInflight = (async () => {
       try {
         const url = "https://www.cheapshark.com/api/1.0/stores";
-        const res1 = await fetch(url, { cache: "no-store" });
-        let res = res1;
-        let retried = false;
-        if (res1.status === 429) {
-          retried = true;
-          await sleep(800);
-          res = await fetch(url, { cache: "no-store" });
+        const fetched = await cheapSharkFetch(url, {
+          debug,
+          debugLabel,
+          endpoint: "stores",
+        });
+        if (!fetched.ok) {
+          return storesMemo?.stores ?? [];
         }
-        if (shouldLogPricingDetailDebug(debug)) {
-          const evt: PricingDebugEvent = { type: "http", url, status: res.status, retried };
-          console.log("[pricing:cheapshark]", debugLabel ?? "stores", evt);
-        }
-        if (!res.ok) return [];
+        const res = fetched.response;
+        if (!res.ok) return storesMemo?.stores ?? [];
         const data = (await res.json()) as unknown;
         return Array.isArray(data) ? (data as CheapSharkStoreInfo[]) : [];
       } catch {
-        return [];
+        return storesMemo?.stores ?? [];
       } finally {
         storesInflight = null;
       }
@@ -353,8 +520,6 @@ export async function cheapSharkLookupBestPrice(params: {
 
   const detailDebug = shouldLogPricingDetailDebug(debug);
 
-  // The /deals endpoint can return fuzzy matches for short/generic queries.
-  // Keep only plausible matches and ignore low-quality entries.
   const scored: Array<{ deal: CheapSharkDeal; score: number }> = [];
   for (const d of deals) {
     if (!d || typeof d.title !== "string") {
@@ -473,7 +638,10 @@ export async function cheapSharkLookupBestPrice(params: {
       score: bestScore,
     };
     console.log("[pricing:cheapshark]", debugLabel ?? title, evt);
-    console.log("[pricing:cheapshark]", debugLabel ?? title, { type: "result", ok: true } satisfies PricingDebugEvent);
+    console.log("[pricing:cheapshark]", debugLabel ?? title, {
+      type: "result",
+      ok: true,
+    } satisfies PricingDebugEvent);
   }
 
   return {
@@ -485,4 +653,3 @@ export async function cheapSharkLookupBestPrice(params: {
     matchedTitle: best.title,
   };
 }
-
