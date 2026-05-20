@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import PlanLimitReached from "@/components/PlanLimitReached";
 import Navbar from "@/components/Navbar";
@@ -9,7 +10,7 @@ import {
   LIMIT_TOAST_DURATION_MS,
   limitReachedToastMessage,
 } from "@/lib/product-copy";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   isEmailVerified,
 } from "@/lib/auth-email-verification";
@@ -234,7 +235,13 @@ const tagGroups = [
   },
 ] as const;
 
+function isRecommendRoute(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return pathname === "/recommend" || pathname.endsWith("/recommend");
+}
+
 export default function RecommendPage() {
+  const pathname = usePathname();
   const { showToast } = useToast();
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const emptyResultsRef = useRef<HTMLDivElement | null>(null);
@@ -283,7 +290,7 @@ export default function RecommendPage() {
   const [emailVerifiedForFeatures, setEmailVerifiedForFeatures] = useState(true);
   const [userPlan, setUserPlan] = useState<string | null>(null);
   const [promptMaxForUi, setPromptMaxForUi] = useState(PROMPT_MAX_DEFAULT);
-  const sessionRestoredRef = useRef(false);
+  const loadingRef = useRef(false);
 
   function buildRecommendSessionSnapshot(
     overrides: Partial<RecommendSessionSnapshot> = {}
@@ -309,13 +316,7 @@ export default function RecommendPage() {
     saveRecommendSessionState(snapshot);
   }
 
-  useEffect(() => {
-    if (sessionRestoredRef.current) return;
-    sessionRestoredRef.current = true;
-    const stored = loadRecommendSessionState();
-    if (!stored) return;
-    /* One-time hydrate from sessionStorage after mount (e.g. browser back from game detail). */
-    /* eslint-disable react-hooks/set-state-in-effect -- external store → React state sync */
+  const applyRecommendSessionSnapshot = useCallback((stored: RecommendSessionSnapshot) => {
     setForm(stored.form);
     setFiltersEnabled(stored.filtersEnabled);
     setGames(stored.games);
@@ -323,11 +324,49 @@ export default function RecommendPage() {
     setDailyLimitReached(stored.dailyLimitReached);
     setDailyLimitContext(stored.dailyLimitContext);
     setResultsReveal(stored.resultsReveal || stored.games.length > 0);
-    /* eslint-enable react-hooks/set-state-in-effect */
+    setLoading(false);
+    setLoadingStepIndex(0);
   }, []);
 
+  const syncRecommendSessionFromStorage = useCallback(() => {
+    if (loadingRef.current) return;
+    const stored = loadRecommendSessionState();
+    if (!stored) return;
+    applyRecommendSessionSnapshot(stored);
+  }, [applyRecommendSessionSnapshot]);
+
   useEffect(() => {
-    if (!sessionRestoredRef.current) return;
+    loadingRef.current = loading;
+  }, [loading]);
+
+  /* Before paint: hydrate from sessionStorage (F5, client nav, browser back). */
+  useLayoutEffect(() => {
+    if (!isRecommendRoute(pathname)) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- sync sessionStorage → React on navigation/back */
+    syncRecommendSessionFromStorage();
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [pathname, syncRecommendSessionFromStorage]);
+
+  /* bfcache / browser back can restore an old in-memory tree without re-running mount effects. */
+  useEffect(() => {
+    const onPageShow = () => {
+      if (!isRecommendRoute(window.location.pathname)) return;
+      syncRecommendSessionFromStorage();
+    };
+    const onPopState = () => {
+      if (!isRecommendRoute(window.location.pathname)) return;
+      syncRecommendSessionFromStorage();
+    };
+
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("popstate", onPopState);
+    };
+  }, [pathname, syncRecommendSessionFromStorage]);
+
+  useEffect(() => {
     if (loading) return;
     const snapshot = buildRecommendSessionSnapshot();
     const hasResults = snapshot.games.length > 0;
@@ -1213,6 +1252,7 @@ export default function RecommendPage() {
                       <div className="mt-auto border-t border-white/10 pt-5">
                         <a
                           href={gameDetailHrefFromRecommend(game)}
+                          onClick={() => persistRecommendSession()}
                           className="inline-flex rounded-full bg-cyan-400/90 px-5 py-3 text-sm font-bold text-black transition hover:bg-cyan-300"
                         >
                           View details
