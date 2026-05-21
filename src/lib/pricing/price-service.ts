@@ -26,6 +26,10 @@ import {
 } from "@/lib/pricing/pricing-context";
 import { pickCheapestTrustedVerifiedDeal } from "@/lib/pricing/pricing-selection";
 import {
+  logRegionalPricingSelection,
+  regionalCurrencyTier,
+} from "@/lib/pricing/pricing-regional";
+import {
   getCachedDealQuotes,
   getCachedPriceQuote,
   getStaleDealQuotes,
@@ -276,7 +280,11 @@ export async function lookupBestPrice(params: {
     const revalidated = revalidateVerifiedDealsForDisplay(params.title, freshDealCache.deals, {
       debug,
     });
-    const cheapest = pickCheapestTrustedVerifiedDeal(revalidated, { countryCode });
+    const cheapest = pickCheapestTrustedVerifiedDeal(revalidated, {
+      countryCode,
+      debug,
+      source: "lookupBestPrice:deal_cache",
+    });
     if (cheapest) {
       const mappedRaw = bestPriceResultFromVerifiedDeal(cheapest);
       const gatedFromDeals = gatePricingByTitleMatch(
@@ -286,6 +294,18 @@ export async function lookupBestPrice(params: {
         debug
       );
       if (gatedFromDeals) {
+        logRegionalPricingSelection({
+          debug,
+          source: "lookupBestPrice",
+          requestedCountry: countryCode,
+          fromCache: true,
+          cacheLayer: "deal_quotes_cache",
+          provider: cheapest.provider,
+          store: cheapest.store.name ?? cheapest.store.id,
+          currency: cheapest.currency,
+          salePrice: cheapest.salePrice,
+          finalSelected: gatedFromDeals,
+        });
         if (debug) {
           console.log("[pricing:service]", params.debugLabel ?? params.title, {
             provider_used: "deal_cache",
@@ -363,28 +383,47 @@ export async function lookupBestPrice(params: {
     const mappedItad = bestPriceResultFromItad(bestItad);
     const gatedItad = gatePricingByTitleMatch(params.title, mappedItad, "itad", debug);
     if (gatedItad) {
-      const savedToCache = await setCachedPriceQuote({
-        title: params.title,
-        countryCode,
+      const itadTier = regionalCurrencyTier(countryCode, gatedItad.currency);
+      const skipGlobalItadForRegion =
+        itadTier === "global" && countryCode !== "US" && countryCode !== "GB";
+
+      logRegionalPricingSelection({
+        debug,
+        source: "lookupBestPrice",
+        requestedCountry: countryCode,
+        fromCache: false,
         provider: "itad",
-        matchedTitle: bestItad.matchedTitle ?? null,
-        price: Number(bestItad.price),
-        currency: gatedItad.currency ?? "USD",
-        storeName: bestItad.storeName ?? null,
-        dealUrl: gatedItad.deal?.url ?? null,
-        rawPayload: debug ? bestItad : null,
+        store: gatedItad.store?.name ?? gatedItad.store?.id,
+        currency: gatedItad.currency,
+        salePrice: gatedItad.price,
+        currencyTier: itadTier,
+        skipGlobalItadForRegion,
       });
 
-      if (debug) {
-        console.log("[pricing:service]", params.debugLabel ?? params.title, {
-          provider_used: "itad",
+      if (!skipGlobalItadForRegion) {
+        const savedToCache = await setCachedPriceQuote({
+          title: params.title,
           countryCode,
-          returningToPage: gatedItad,
-          saved_to_cache: savedToCache,
+          provider: "itad",
+          matchedTitle: bestItad.matchedTitle ?? null,
+          price: Number(bestItad.price),
+          currency: gatedItad.currency ?? "USD",
+          storeName: bestItad.storeName ?? null,
+          dealUrl: gatedItad.deal?.url ?? null,
+          rawPayload: debug ? bestItad : null,
         });
-      }
 
-      return gatedItad;
+        if (debug) {
+          console.log("[pricing:service]", params.debugLabel ?? params.title, {
+            provider_used: "itad",
+            countryCode,
+            returningToPage: gatedItad,
+            saved_to_cache: savedToCache,
+          });
+        }
+
+        return gatedItad;
+      }
     }
 
     logPricingUnavailableSummary({
@@ -610,7 +649,7 @@ function pushTrustedCandidate(
 }
 
 /**
- * Merge lookupDeals + lookupBestPrice + supplemental ITAD; pick globally cheapest primary.
+ * Merge lookupDeals + lookupBestPrice + supplemental ITAD; pick regionally best primary.
  */
 export async function buildUnifiedTrustedVerifiedOffers(params: {
   requestedTitle: string;
@@ -677,17 +716,42 @@ export async function buildUnifiedTrustedVerifiedOffers(params: {
     requestedTitle,
   });
 
-  const primaryDeal = pickCheapestTrustedVerifiedDeal(merged, { countryCode });
+  const primaryDeal = pickCheapestTrustedVerifiedDeal(merged, {
+    countryCode,
+    debug: params.debug,
+    source: "buildUnifiedTrustedVerifiedOffers",
+  });
   const otherTrustedDeals = primaryDeal
     ? merged.filter((row) => !isSameVerifiedOfferAsPrimary(row, primaryDeal))
     : merged;
 
+  logRegionalPricingSelection({
+    debug: params.debug,
+    source: "buildUnifiedTrustedVerifiedOffers",
+    requestedCountry: countryCode,
+    fromCache: false,
+    mergedCount: merged.length,
+    finalSelected: primaryDeal
+      ? {
+          provider: primaryDeal.provider,
+          store: primaryDeal.store.name ?? primaryDeal.store.id,
+          currency: primaryDeal.currency,
+          salePrice: primaryDeal.salePrice,
+          url: primaryDeal.deal.url ?? null,
+        }
+      : null,
+    includedFromBestPrice: Boolean(fromBestPrice),
+    includedFromItadSupplement: Boolean(fromItadSupplement),
+  });
+
   if (detailDebug) {
     console.log("[pricing:unified-trusted-offers]", {
       requestedTitle,
+      countryCode,
       candidates: candidates.map((row) => ({
         provider: row.provider,
         store: row.store.name ?? row.store.id,
+        currency: row.currency,
         salePrice: row.salePrice,
         url: row.deal.url ?? null,
         listingKey: verifiedDealListingIdentityKey(row),
@@ -700,6 +764,7 @@ export async function buildUnifiedTrustedVerifiedOffers(params: {
             provider: primaryDeal.provider,
             store: primaryDeal.store.name ?? primaryDeal.store.id,
             salePrice: primaryDeal.salePrice,
+            currency: primaryDeal.currency,
             url: primaryDeal.deal.url ?? null,
           }
         : null,

@@ -5,6 +5,12 @@ import {
   shouldLogPricingDetailDebug,
   titleMatchScore,
 } from "@/lib/pricing/match";
+import {
+  fallbackCurrenciesForCountry,
+  logRegionalPricingSelection,
+  normalizeOfferCurrency,
+  scoreRegionalOffer,
+} from "@/lib/pricing/pricing-regional";
 
 type ItadSearchResult = {
   id?: unknown;
@@ -55,6 +61,61 @@ function readItadPriceCurrency(price: ItadPriceAmount | null | undefined): strin
   if (!price || typeof price.currency !== "string") return null;
   const c = price.currency.trim().toUpperCase();
   return c || null;
+}
+
+function pickBestItadDealForCountry(deals: ItadDeal[], country: string): ItadDeal | null {
+  type Parsed = {
+    deal: ItadDeal;
+    amount: number;
+    currency: string;
+    storeName: string | undefined;
+    score: number;
+  };
+
+  const parsed: Parsed[] = [];
+  for (const deal of deals) {
+    const shop = (deal?.shop ?? null) as ItadShop | null;
+    const price = (deal?.price ?? null) as ItadPriceAmount | null;
+    const amountRaw = price && typeof price.amount === "number" ? price.amount : NaN;
+    const amount = Number.isFinite(amountRaw) ? amountRaw : NaN;
+    const currency = readItadPriceCurrency(price);
+    if (!Number.isFinite(amount) || !currency) continue;
+
+    const storeName = shop && typeof shop.name === "string" ? shop.name : undefined;
+    parsed.push({
+      deal,
+      amount,
+      currency: normalizeOfferCurrency(currency),
+      storeName,
+      score: scoreRegionalOffer({
+        countryCode: country,
+        currency,
+        storeName,
+        provider: "itad",
+      }),
+    });
+  }
+
+  if (!parsed.length) return null;
+
+  const chain = fallbackCurrenciesForCountry(country);
+  for (const cur of chain) {
+    const inCur = parsed.filter((p) => p.currency === cur);
+    if (inCur.length) {
+      return inCur.reduce((best, row) => (row.amount < best.amount ? row : best)).deal;
+    }
+  }
+
+  const globalPool = parsed.filter((p) => !chain.includes(p.currency));
+  if (!globalPool.length) return null;
+
+  globalPool.sort((a, b) => b.score - a.score);
+  const topScore = globalPool[0]?.score ?? -Infinity;
+  const topTier = globalPool.filter((p) => p.score === topScore);
+  const leadCurrency = topTier[0]?.currency;
+  const sameCurrency = topTier.filter((p) => p.currency === leadCurrency);
+  const pick = sameCurrency.reduce((best, row) => (row.amount < best.amount ? row : best));
+  return pick.deal;
 }
 
 function sleep(ms: number) {
@@ -424,16 +485,32 @@ export async function itadLookupBestPrice(params: {
     });
   }
 
-  const first = deals[0];
+  const first = pickBestItadDealForCountry(deals, country);
 
   const shop = (first?.shop ?? null) as ItadShop | null;
   const price = (first?.price ?? null) as ItadPriceAmount | null;
   const url = typeof first?.url === "string" && first.url.trim() ? first.url.trim() : undefined;
 
+  if (detailDebug && first) {
+    logRegionalPricingSelection({
+      debug: true,
+      source: "itadLookupBestPrice",
+      requestedCountry: country,
+      selectionReason: "itad_prices_v3",
+      provider: "itad",
+      store: shop && typeof shop.name === "string" ? shop.name : null,
+      currency: readItadPriceCurrency(price),
+      salePrice:
+        price && typeof price.amount === "number" ? formatAmount2(price.amount) : null,
+      dealsConsidered: deals.length,
+    });
+  }
+
   if (detailDebug) {
     console.log("[pricing:itad]", debugLabel ?? title, {
       step: "selected_deal",
       dealsCount: deals.length,
+      requestedCountry: country,
       selected: {
         shop: shop
           ? {
@@ -458,7 +535,7 @@ export async function itadLookupBestPrice(params: {
 
   const amountRaw = price && typeof price.amount === "number" ? price.amount : NaN;
   const amount = Number.isFinite(amountRaw) ? amountRaw : NaN;
-  if (!Number.isFinite(amount)) {
+  if (!first || !Number.isFinite(amount)) {
     // Fallback: Overview endpoint can include a "current" best price even when prices/v3 returns no deals.
     const overviewUrl = `https://api.isthereanydeal.com/games/overview/v2?key=${encodeURIComponent(
       apiKey
