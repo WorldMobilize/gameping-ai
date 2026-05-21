@@ -2,7 +2,9 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import Navbar from "@/components/Navbar";
 import GameScreenshotLightbox from "@/components/GameScreenshotLightbox";
-import TrackPriceButton from "@/components/TrackPriceButton";
+import TrackPriceButton, {
+  type TrackPriceOfferSnapshot,
+} from "@/components/TrackPriceButton";
 import { getCachedRawgGame, setCachedRawgGame } from "@/lib/cache";
 import { resolveGameDetailFreeToPlay } from "@/lib/game-detail-free-to-play";
 import { getRawgGameMedia } from "@/lib/rawg-game-media-cache";
@@ -526,6 +528,33 @@ export default async function GameDetailPage({
     if (!p || p === "N/A") return null;
     const n = Number(p.replace(/[^0-9.]/g, ""));
     return Number.isFinite(n) && n > 0 ? n : null;
+  })();
+
+  const trackPricingCountry = pricing.countryCode;
+
+  const trackOfferSnapshot: TrackPriceOfferSnapshot = (() => {
+    if (primaryDeal) {
+      return {
+        currency: primaryDeal.currency ?? null,
+        provider: primaryDeal.provider ?? null,
+        storeName: primaryDeal.store.name ?? null,
+        url: primaryDeal.deal.url?.trim() || null,
+      };
+    }
+    if (bestPrice?.price && bestPrice.price !== "N/A") {
+      return {
+        currency: bestPrice.currency ?? null,
+        provider: bestPrice.provider ?? null,
+        storeName: bestPrice.store?.name ?? null,
+        url: bestPrice.deal?.url?.trim() || null,
+      };
+    }
+    return {
+      currency: null,
+      provider: null,
+      storeName: null,
+      url: primaryTrustedBuyUrl ?? null,
+    };
   })();
 
   const sidebarShowsPriceFigure =
@@ -1134,16 +1163,8 @@ export default async function GameDetailPage({
               title={rawg?.name || title}
               rawgId={rawg?.id ?? null}
               baselinePrice={trackBaselinePrice}
-              pricingCountry={pricing.countryCode}
-              offerSnapshot={{
-                currency: primaryDeal?.currency ?? bestPrice?.currency ?? null,
-                provider: primaryDeal?.provider ?? bestPrice?.provider ?? null,
-                storeName:
-                  primaryDeal?.store.name ??
-                  bestPrice?.store?.name ??
-                  null,
-                url: primaryTrustedBuyUrl ?? bestPrice?.deal?.url ?? null,
-              }}
+              pricingCountry={trackPricingCountry}
+              offerSnapshot={trackOfferSnapshot}
             />
           </div>
         </aside>

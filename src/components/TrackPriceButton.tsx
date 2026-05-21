@@ -16,6 +16,63 @@ export type TrackPriceOfferSnapshot = {
   url?: string | null;
 };
 
+/** POST /api/track-game body (regional fields validated server-side). */
+export type TrackGameRequestBody = {
+  title: string;
+  rawgId?: number;
+  lastKnownPrice?: number;
+  pricingCountry: string;
+  lastKnownCurrency?: string;
+  lastKnownProvider?: string;
+  lastKnownStore?: string;
+  lastKnownUrl?: string;
+};
+
+export function buildTrackGameRequestBody(params: {
+  title: string;
+  rawgId?: number | null;
+  baselinePrice?: number | null;
+  pricingCountry: string;
+  offerSnapshot?: TrackPriceOfferSnapshot;
+}): TrackGameRequestBody {
+  const body: TrackGameRequestBody = {
+    title: params.title.trim(),
+    pricingCountry: regionLabel(params.pricingCountry),
+  };
+
+  if (typeof params.rawgId === "number" && Number.isFinite(params.rawgId)) {
+    body.rawgId = params.rawgId;
+  }
+
+  if (
+    typeof params.baselinePrice === "number" &&
+    Number.isFinite(params.baselinePrice) &&
+    params.baselinePrice > 0
+  ) {
+    body.lastKnownPrice = params.baselinePrice;
+  }
+
+  const snap = params.offerSnapshot;
+  const currency = snap?.currency?.trim();
+  if (currency) {
+    body.lastKnownCurrency = currency;
+  }
+  const provider = snap?.provider?.trim();
+  if (provider) {
+    body.lastKnownProvider = provider;
+  }
+  const store = snap?.storeName?.trim();
+  if (store) {
+    body.lastKnownStore = store;
+  }
+  const url = snap?.url?.trim();
+  if (url) {
+    body.lastKnownUrl = url;
+  }
+
+  return body;
+}
+
 type Props = {
   title: string;
   rawgId?: number | null;
@@ -56,32 +113,13 @@ export default function TrackPriceButton({
         return;
       }
 
-      const body: Record<string, unknown> = {
+      const body = buildTrackGameRequestBody({
         title,
-        pricingCountry: region,
-      };
-      if (typeof rawgId === "number" && Number.isFinite(rawgId)) {
-        body.rawgId = rawgId;
-      }
-      if (
-        typeof baselinePrice === "number" &&
-        Number.isFinite(baselinePrice) &&
-        baselinePrice > 0
-      ) {
-        body.lastKnownPrice = baselinePrice;
-      }
-      if (offerSnapshot?.currency?.trim()) {
-        body.currency = offerSnapshot.currency.trim();
-      }
-      if (offerSnapshot?.provider?.trim()) {
-        body.provider = offerSnapshot.provider.trim();
-      }
-      if (offerSnapshot?.storeName?.trim()) {
-        body.storeName = offerSnapshot.storeName.trim();
-      }
-      if (offerSnapshot?.url?.trim()) {
-        body.url = offerSnapshot.url.trim();
-      }
+        rawgId,
+        baselinePrice,
+        pricingCountry,
+        offerSnapshot,
+      });
 
       const res = await fetch("/api/track-game", {
         method: "POST",
