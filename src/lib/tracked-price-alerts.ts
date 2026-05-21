@@ -259,6 +259,8 @@ export function buildOutboundAlertUrl(params: {
   dealUrl: string;
   gameTitle: string;
   siteOrigin: string;
+  storeID?: string | null;
+  storeName?: string | null;
 }) {
   const origin = params.siteOrigin.replace(/\/$/, "");
   const q = new URLSearchParams({
@@ -266,6 +268,10 @@ export function buildOutboundAlertUrl(params: {
     gameTitle: params.gameTitle,
     source: "price_alert",
   });
+  const storeId = params.storeID?.trim();
+  const storeName = params.storeName?.trim();
+  if (storeId) q.set("storeID", storeId);
+  if (storeName) q.set("storeName", storeName);
   if (params.dealUrl.includes("cheapshark.com") && params.dealUrl.includes("dealID=")) {
     try {
       const u = new URL(params.dealUrl);

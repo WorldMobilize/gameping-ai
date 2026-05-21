@@ -460,6 +460,8 @@ export async function GET(req: Request) {
         dealUrl,
         gameTitle: pricingTitle,
         siteOrigin: origin,
+        storeID: best.store?.id ?? null,
+        storeName: best.store?.name ?? null,
       });
 
       const priceDisplay = formatAggregatorPriceLine({
