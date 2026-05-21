@@ -7,7 +7,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Browse Games A–Z | GamePing AI",
   description:
-    "Discover popular games from A to Z and jump into each title’s page. Use GamePing’s AI recommendations to find what to play next based on your tastes.",
+    "Discover popular games from A to Z and jump into each title’s page. Use GamePing’s AI recommendations to find what to play next from your current search.",
 };
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");

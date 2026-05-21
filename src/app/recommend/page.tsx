@@ -26,6 +26,10 @@ import {
   saveRecommendSessionState,
   type RecommendSessionSnapshot,
 } from "@/lib/recommend-session-state";
+import {
+  resolveRecommendFitBody,
+  sanitizeRecommendFitCopy,
+} from "@/lib/recommend-fit-display";
 import { supabase } from "@/lib/supabase";
 type Game = {
   title: string;
@@ -1206,11 +1210,12 @@ export default function RecommendPage() {
 
                       <h2 className="text-2xl font-black">{game.title}</h2>
 
-                      {game.matchNote ? (
-                        <p className="mt-2 text-xs leading-5 text-white/50">
-                          {game.matchNote}
-                        </p>
-                      ) : null}
+                      {(() => {
+                        const fitNote = sanitizeRecommendFitCopy(game.matchNote);
+                        return fitNote ? (
+                          <p className="mt-2 text-xs leading-5 text-white/50">{fitNote}</p>
+                        ) : null;
+                      })()}
 
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         {game.matchTier === "good_alternative" && (
@@ -1244,9 +1249,15 @@ export default function RecommendPage() {
 
                       <div className="mt-4 flex flex-1 flex-col">
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">
-                          Why it fits
+                          Why it fits your search
                         </p>
-                        <p className="mt-2 text-sm leading-6 text-white/70">{game.reason}</p>
+                        <p className="mt-2 text-sm leading-6 text-white/70">
+                          {resolveRecommendFitBody(game.reason)}
+                        </p>
+                        <p className="mt-2 text-xs text-white/40">
+                          Mood, pacing, and mechanics from this recommendation search — not a
+                          saved taste profile yet.
+                        </p>
                       </div>
 
                       <div className="mt-auto border-t border-white/10 pt-5">
