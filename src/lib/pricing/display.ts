@@ -1,24 +1,57 @@
 /**
- * Human-readable price lines for aggregator-sourced data (region/store may vary).
+ * Human-readable price lines for game detail and alert copy.
  */
 
-export function formatAggregatorPriceLine(params: {
+const SYMBOL_BY_CURRENCY: Record<string, string> = {
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  CAD: "CA$",
+  AUD: "A$",
+  NZD: "NZ$",
+  JPY: "¥",
+  BRL: "R$",
+  MXN: "MX$",
+};
+
+export function formatPriceLine(params: {
   price: string;
   currency?: string | null;
+  /** CheapShark USD fallback — label as approximate USD. */
+  usdFallback?: boolean;
 }): string {
-  const { price, currency } = params;
+  const { price, currency, usdFallback = false } = params;
   const p = (price || "").trim();
   if (!p || p === "N/A") return "Price unavailable";
   if (/^free$/i.test(p)) return "Free";
   const cur = (currency || "").trim().toUpperCase() || "USD";
-  if (cur === "USD") {
-    return `Approx. $${p} USD`;
+
+  if (usdFallback) {
+    if (cur === "USD") return `Approx. $${p} USD`;
+    return `Approx. ${p} ${cur}`;
   }
-  return `Approx. ${p} ${cur}`;
+
+  const sym = SYMBOL_BY_CURRENCY[cur];
+  if (sym) return `${sym}${p}`;
+  return `${p} ${cur}`;
+}
+
+/** Approximate aggregator copy (alerts, CheapShark-only fallback). */
+export function formatAggregatorPriceLine(params: {
+  price: string;
+  currency?: string | null;
+}): string {
+  return formatPriceLine({ ...params, usdFallback: true });
 }
 
 export const AGGREGATOR_PRICE_DISCLAIMER =
   "May vary by region/store.";
+
+export function isCheapSharkUsdFallbackProvider(
+  provider: string | null | undefined
+): boolean {
+  return (provider || "").trim().toLowerCase() === "cheapshark";
+}
 
 /** Relative “last checked” line for cached deal lists on game detail. */
 export function formatDealsLastCheckedLabel(iso: string): string | null {

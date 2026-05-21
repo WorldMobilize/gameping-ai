@@ -1,5 +1,6 @@
 /**
  * Price alerts: uses `tracked_games` + `lookupBestPrice` (same gate as game details).
+ * Price alerts remain US-default until profiles.pricing_country exists.
  */
 import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";

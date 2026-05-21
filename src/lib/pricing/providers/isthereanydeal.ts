@@ -43,12 +43,19 @@ type ItadOverviewRow = {
 export type ItadBestPrice = {
   provider: "itad";
   price: string; // "12.34"
+  currency?: string | null;
   storeId?: string;
   storeName?: string;
   dealUrl?: string;
   matchedTitle?: string;
   reason?: string;
 };
+
+function readItadPriceCurrency(price: ItadPriceAmount | null | undefined): string | null {
+  if (!price || typeof price.currency !== "string") return null;
+  const c = price.currency.trim().toUpperCase();
+  return c || null;
+}
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -515,6 +522,7 @@ export async function itadLookupBestPrice(params: {
         const mapped: ItadBestPrice = {
           provider: "itad",
           price: formatAmount2(ovAmount),
+          currency: readItadPriceCurrency(currentPrice) ?? null,
           storeId: ovStoreId,
           storeName: ovStoreName,
           dealUrl: currentUrl || undefined,
@@ -550,6 +558,7 @@ export async function itadLookupBestPrice(params: {
   const mapped: ItadBestPrice = {
     provider: "itad",
     price: formatAmount2(amount),
+    currency: readItadPriceCurrency(price) ?? null,
     storeId,
     storeName,
     dealUrl: url,

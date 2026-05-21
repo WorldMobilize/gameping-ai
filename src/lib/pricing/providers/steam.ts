@@ -206,6 +206,7 @@ export function buildVerifiedDealRowFromSteamQuote(params: {
 
 export async function steamLookupVerifiedDealRow(params: {
   title: string;
+  countryCode?: string;
   cheapsharkSteamAppId?: string | null;
   rawgStores?: unknown;
   steamAppIdHint?: number | string | null;
@@ -232,7 +233,8 @@ export async function steamLookupVerifiedDealRow(params: {
     return null;
   }
 
-  const quote = await steamFetchAppDetails(resolved.appId);
+  const cc = (params.countryCode || "US").trim().toUpperCase() || "US";
+  const quote = await steamFetchAppDetails(resolved.appId, cc);
   if (!quote) {
     if (shouldLogPricingDetailDebug(params.debug)) {
       console.log("[pricing:steam]", params.debugLabel ?? requestedTitle, {

@@ -21,6 +21,11 @@ import {
   shouldLogPricingDetailDebug,
 } from "@/lib/pricing/match";
 import {
+  DEFAULT_PRICING_COUNTRY,
+  type PricingContext,
+} from "@/lib/pricing/pricing-context";
+import { pickCheapestTrustedVerifiedDeal } from "@/lib/pricing/pricing-selection";
+import {
   getCachedDealQuotes,
   getCachedPriceQuote,
   getStaleDealQuotes,
@@ -35,6 +40,13 @@ import {
   verifiedOfferRowKeepPriority,
   type VerifiedDealRow,
 } from "@/lib/pricing/verified-deal-row";
+
+export type { PricingContext } from "@/lib/pricing/pricing-context";
+export { pickCheapestTrustedVerifiedDeal } from "@/lib/pricing/pricing-selection";
+
+function pricingCountryCode(pricing?: PricingContext): string {
+  return pricing?.countryCode ?? DEFAULT_PRICING_COUNTRY;
+}
 
 function logPricingUnavailableSummary(params: {
   debug: boolean;
@@ -187,12 +199,54 @@ function isKnownFreeToPlayTitle(title: string) {
   return FREE_TO_PLAY_TITLES.has(key);
 }
 
+function bestPriceResultFromItad(itad: ItadBestPrice): BestPriceResult {
+  const currency =
+    typeof itad.currency === "string" && itad.currency.trim()
+      ? itad.currency.trim().toUpperCase()
+      : "USD";
+  return {
+    price: itad.price,
+    provider: "itad",
+    currency,
+    store: {
+      id: itad.storeId,
+      name: itad.storeName,
+    },
+    deal: {
+      id: itad.storeId ? `itad-${itad.storeId}` : undefined,
+      url: itad.dealUrl,
+    },
+    matchedTitle: itad.matchedTitle,
+  };
+}
+
+function bestPriceResultFromVerifiedDeal(deal: VerifiedDealRow): BestPriceResult {
+  const provider: BestPriceResult["provider"] =
+    deal.provider === "itad" ? "itad" : "cheapshark";
+  return {
+    price: deal.salePrice,
+    provider,
+    currency: deal.currency ?? "USD",
+    store: {
+      id: deal.store.id,
+      name: deal.store.name,
+    },
+    deal: {
+      id: deal.deal.id,
+      url: deal.deal.url,
+    },
+    matchedTitle: deal.matchedTitle,
+  };
+}
+
 export async function lookupBestPrice(params: {
   title: string;
+  pricing?: PricingContext;
   debug?: boolean;
   debugLabel?: string;
 }): Promise<BestPriceResult | null> {
   const debug = params.debug ?? false;
+  const countryCode = pricingCountryCode(params.pricing);
 
   // Free-to-play guardrail: do not accidentally attach prices from spinoffs/editions.
   // Also bypass cache to avoid serving stale/incorrect paid prices for known F2P titles.
@@ -217,31 +271,18 @@ export async function lookupBestPrice(params: {
     return out;
   }
 
-  const freshDealCache = await getCachedDealQuotes(params.title);
+  const freshDealCache = await getCachedDealQuotes(params.title, { countryCode });
   if (freshDealCache.fresh && freshDealCache.deals.length) {
     const revalidated = revalidateVerifiedDealsForDisplay(params.title, freshDealCache.deals, {
       debug,
     });
-    const cheapest = pickCheapestTrustedVerifiedDeal(revalidated);
+    const cheapest = pickCheapestTrustedVerifiedDeal(revalidated, { countryCode });
     if (cheapest) {
-      const mappedRaw: BestPriceResult = {
-        price: cheapest.salePrice,
-        provider: "cheapshark",
-        currency: cheapest.currency ?? "USD",
-        store: {
-          id: cheapest.store.id,
-          name: cheapest.store.name,
-        },
-        deal: {
-          id: cheapest.deal.id,
-          url: cheapest.deal.url,
-        },
-        matchedTitle: cheapest.matchedTitle,
-      };
+      const mappedRaw = bestPriceResultFromVerifiedDeal(cheapest);
       const gatedFromDeals = gatePricingByTitleMatch(
         params.title,
         mappedRaw,
-        "cheapshark",
+        cheapest.provider,
         debug
       );
       if (gatedFromDeals) {
@@ -256,7 +297,7 @@ export async function lookupBestPrice(params: {
     }
   }
 
-  const cache = await getCachedPriceQuote({ title: params.title });
+  const cache = await getCachedPriceQuote({ title: params.title, countryCode });
   if (debug) {
     console.log("[pricing:service]", params.debugLabel ?? params.title, {
       cache_hit: cache.hit,
@@ -303,8 +344,71 @@ export async function lookupBestPrice(params: {
     }
   }
 
+  const bestItad = await itadLookupBestPrice({
+    title: params.title,
+    country: countryCode,
+    debug,
+    debugLabel: params.debugLabel ? `${params.debugLabel}:itad` : undefined,
+  });
+
+  if (bestItad) {
+    if (debug) {
+      console.log("[pricing:service]", params.debugLabel ?? params.title, {
+        provider: "itad",
+        countryCode,
+        receivedFromItad: bestItad,
+      });
+    }
+
+    const mappedItad = bestPriceResultFromItad(bestItad);
+    const gatedItad = gatePricingByTitleMatch(params.title, mappedItad, "itad", debug);
+    if (gatedItad) {
+      const savedToCache = await setCachedPriceQuote({
+        title: params.title,
+        countryCode,
+        provider: "itad",
+        matchedTitle: bestItad.matchedTitle ?? null,
+        price: Number(bestItad.price),
+        currency: gatedItad.currency ?? "USD",
+        storeName: bestItad.storeName ?? null,
+        dealUrl: gatedItad.deal?.url ?? null,
+        rawPayload: debug ? bestItad : null,
+      });
+
+      if (debug) {
+        console.log("[pricing:service]", params.debugLabel ?? params.title, {
+          provider_used: "itad",
+          countryCode,
+          returningToPage: gatedItad,
+          saved_to_cache: savedToCache,
+        });
+      }
+
+      return gatedItad;
+    }
+
+    logPricingUnavailableSummary({
+      debug,
+      requestedTitle: params.title,
+      stage: "itad_gate_reject",
+      provider: "itad",
+      matchedTitle: bestItad.matchedTitle ?? null,
+      dealUrl: bestItad.dealUrl ?? null,
+    });
+  } else if (debug) {
+    logPricingUnavailableSummary({
+      debug,
+      requestedTitle: params.title,
+      stage: "itad_no_match_or_error",
+      provider: "itad",
+      matchedTitle: null,
+      extra: { countryCode },
+    });
+  }
+
   const bestCheap = (await cheapSharkLookupBestPrice({
     title: params.title,
+    countryCode,
     debug,
     debugLabel: params.debugLabel,
   })) as CheapSharkBestPrice | null;
@@ -318,29 +422,7 @@ export async function lookupBestPrice(params: {
   const cheapPriceNum = cheapPriceRaw ? Number(cheapPriceRaw) : NaN;
   const cheapHasValidPrice = Number.isFinite(cheapPriceNum) && cheapPriceNum > 0;
   const cheapHasValidMatch = Boolean(cheapMatchedTitle);
-
-  // If CheapShark returns an object but without a usable price/title, treat it as invalid
-  // so fallback providers (e.g. ITAD) can run.
   const cheapIsValid = Boolean(bestCheap) && cheapHasValidPrice && cheapHasValidMatch;
-
-  if (bestCheap && !cheapIsValid) {
-    if (debug) {
-      console.log("[pricing:service]", params.debugLabel ?? params.title, {
-        event: "cheapshark_result_invalid_fallback_itad",
-        reasons: [
-          ...(cheapHasValidPrice ? [] : ["missing_or_invalid_price"]),
-          ...(cheapHasValidMatch ? [] : ["missing_matchedTitle"]),
-        ],
-        cheapshark: {
-          price: bestCheap.price ?? null,
-          matchedTitle: bestCheap.matchedTitle ?? null,
-          dealId: bestCheap.dealId ?? null,
-          storeId: bestCheap.storeId ?? null,
-          hasDealUrl: Boolean(bestCheap.dealUrl),
-        },
-      });
-    }
-  }
 
   if (cheapIsValid && bestCheap) {
     let storeName: string | undefined;
@@ -350,20 +432,6 @@ export async function lookupBestPrice(params: {
         debugLabel: params.debugLabel ? `${params.debugLabel}:stores` : undefined,
       });
       storeName = stores.find((s) => s.storeID === bestCheap.storeId)?.storeName;
-    }
-
-    if (debug) {
-      console.log("[pricing:service]", params.debugLabel ?? params.title, {
-        provider_used: "cheapshark",
-        provider: "cheapshark",
-        selected: {
-          matchedTitle: bestCheap.matchedTitle,
-          dealId: bestCheap.dealId,
-          storeId: bestCheap.storeId,
-          storeName: storeName ?? null,
-          price: bestCheap.price,
-        },
-      });
     }
 
     const mappedRaw: BestPriceResult = {
@@ -385,6 +453,7 @@ export async function lookupBestPrice(params: {
     if (gatedCheap) {
       const savedToCache = await setCachedPriceQuote({
         title: params.title,
+        countryCode,
         provider: "cheapshark",
         matchedTitle: bestCheap.matchedTitle ?? null,
         price: Number(bestCheap.price),
@@ -396,12 +465,16 @@ export async function lookupBestPrice(params: {
 
       if (debug) {
         console.log("[pricing:service]", params.debugLabel ?? params.title, {
+          provider_used: "cheapshark_usd_fallback",
+          countryCode,
+          returningToPage: gatedCheap,
           saved_to_cache: savedToCache,
         });
       }
 
       return gatedCheap;
     }
+
     logPricingUnavailableSummary({
       debug,
       requestedTitle: params.title,
@@ -412,87 +485,7 @@ export async function lookupBestPrice(params: {
     });
   }
 
-  // Fallback: ITAD (only if CheapShark returned null / no match / rate limited / failed).
-  const bestItad = await itadLookupBestPrice({
-    title: params.title,
-    country: "US",
-    debug,
-    debugLabel: params.debugLabel ? `${params.debugLabel}:itad` : undefined,
-  });
-  if (!bestItad) {
-    logPricingUnavailableSummary({
-      debug,
-      requestedTitle: params.title,
-      stage: "itad_no_match_or_error",
-      provider: "itad",
-      matchedTitle: null,
-      extra: {
-        hadCheapsharkCandidate: Boolean(bestCheap),
-        cheapsharkMatchedTitle: cheapMatchedTitle || null,
-        cheapsharkWasValidPrice: cheapIsValid,
-      },
-    });
-    return null;
-  }
-
-  if (debug) {
-    console.log("[pricing:service]", params.debugLabel ?? params.title, {
-      provider: "itad",
-      receivedFromItad: bestItad,
-    });
-  }
-
-  const mappedRaw: BestPriceResult = {
-    price: bestItad.price,
-    provider: "itad",
-    currency: "USD",
-    store: {
-      id: bestItad.storeId,
-      name: bestItad.storeName,
-    },
-    deal: {
-      id: undefined,
-      url: bestItad.dealUrl,
-    },
-    matchedTitle: bestItad.matchedTitle,
-  };
-
-  const gatedItad = gatePricingByTitleMatch(params.title, mappedRaw, "itad", debug);
-  if (!gatedItad) {
-    logPricingUnavailableSummary({
-      debug,
-      requestedTitle: params.title,
-      stage: "itad_gate_reject",
-      provider: "itad",
-      matchedTitle: bestItad.matchedTitle ?? null,
-      dealUrl: bestItad.dealUrl ?? null,
-    });
-    return null;
-  }
-
-  const savedToCache = await setCachedPriceQuote({
-    title: params.title,
-    provider: "itad",
-    matchedTitle: bestItad.matchedTitle ?? null,
-    price: Number(bestItad.price),
-    currency: "USD",
-    storeName: bestItad.storeName ?? null,
-    dealUrl: gatedItad.deal?.url ?? null,
-    rawPayload: debug ? bestItad : null,
-  });
-
-  if (debug) {
-    console.log("[pricing:service]", params.debugLabel ?? params.title, {
-      provider_used: "itad",
-      provider: "itad",
-      returningToPage: gatedItad,
-    });
-    console.log("[pricing:service]", params.debugLabel ?? params.title, {
-      saved_to_cache: savedToCache,
-    });
-  }
-
-  return gatedItad;
+  return null;
 }
 
 export type { DealRow, VerifiedDealRow } from "@/lib/pricing/verified-deal-row";
@@ -596,23 +589,6 @@ export type UnifiedTrustedOffersResult = {
   untrustedDeals: VerifiedDealRow[];
 };
 
-function bestPriceResultFromItad(itad: ItadBestPrice): BestPriceResult {
-  return {
-    price: itad.price,
-    provider: "itad",
-    currency: "USD",
-    store: {
-      id: itad.storeId,
-      name: itad.storeName,
-    },
-    deal: {
-      id: itad.storeId ? `itad-${itad.storeId}` : undefined,
-      url: itad.dealUrl,
-    },
-    matchedTitle: itad.matchedTitle,
-  };
-}
-
 function pushTrustedCandidate(
   candidates: VerifiedDealRow[],
   row: VerifiedDealRow | null,
@@ -640,10 +616,12 @@ export async function buildUnifiedTrustedVerifiedOffers(params: {
   requestedTitle: string;
   displayDeals: VerifiedDealRow[];
   bestPrice: BestPriceResult | null;
+  pricing?: PricingContext;
   debug?: boolean;
   debugLabel?: string;
 }): Promise<UnifiedTrustedOffersResult> {
   const requestedTitle = params.requestedTitle.trim();
+  const countryCode = pricingCountryCode(params.pricing);
   const detailDebug = shouldLogPricingDetailDebug(params.debug);
   const untrustedDeals = params.displayDeals.filter(
     (d) => !d.deal.url || Number.isNaN(parseVerifiedDealSalePrice(d))
@@ -669,7 +647,7 @@ export async function buildUnifiedTrustedVerifiedOffers(params: {
   if (process.env.ITAD_API_KEY) {
     const itadBest = await itadLookupBestPrice({
       title: requestedTitle,
-      country: "US",
+      country: countryCode,
       debug: params.debug,
       debugLabel: params.debugLabel ? `${params.debugLabel}:unified-itad` : undefined,
     });
@@ -699,7 +677,7 @@ export async function buildUnifiedTrustedVerifiedOffers(params: {
     requestedTitle,
   });
 
-  const primaryDeal = pickCheapestTrustedVerifiedDeal(merged);
+  const primaryDeal = pickCheapestTrustedVerifiedDeal(merged, { countryCode });
   const otherTrustedDeals = primaryDeal
     ? merged.filter((row) => !isSameVerifiedOfferAsPrimary(row, primaryDeal))
     : merged;
@@ -798,15 +776,6 @@ export function prepareVerifiedDealsForDisplay(
   opts?: { debug?: boolean; requestedTitle?: string }
 ): VerifiedDealRow[] {
   return dedupeVerifiedDealsForDisplay(sortVerifiedDealsBySalePriceAsc(deals), opts);
-}
-
-/** Cheapest gate-accepted row that also has a trusted store URL (CheapShark redirect). */
-export function pickCheapestTrustedVerifiedDeal(deals: VerifiedDealRow[]): VerifiedDealRow | null {
-  const trusted = deals.filter((d) => Boolean(d.deal.url) && !Number.isNaN(parseVerifiedDealSalePrice(d)));
-  if (!trusted.length) return null;
-  return trusted.reduce((best, cur) =>
-    parseVerifiedDealSalePrice(cur) < parseVerifiedDealSalePrice(best) ? cur : best
-  );
 }
 
 /** Re-run pricing gates on cached rows (rules may change; never trust stale JSON blindly). */
@@ -980,6 +949,7 @@ async function appendSteamVerifiedDealFallback(params: {
   deals: VerifiedDealRow[];
   limit: number;
   rateLimited: boolean;
+  countryCode: string;
   debug?: boolean;
   debugLabel?: string;
   rawgStores?: unknown;
@@ -999,6 +969,7 @@ async function appendSteamVerifiedDealFallback(params: {
 
   const steamRow = await steamLookupVerifiedDealRow({
     title: params.requestedTitle,
+    countryCode: params.countryCode,
     cheapsharkSteamAppId: params.cheapsharkSteamAppId,
     rawgStores: params.rawgStores,
     steamAppIdHint: params.steamAppIdHint,
@@ -1012,6 +983,7 @@ async function appendSteamVerifiedDealFallback(params: {
 
 export async function lookupDeals(params: {
   title: string;
+  pricing?: PricingContext;
   limit?: number;
   debug?: boolean;
   debugLabel?: string;
@@ -1021,16 +993,18 @@ export async function lookupDeals(params: {
   steamAppIdHint?: number | string | null;
 }): Promise<LookupDealsResult> {
   const requestedTitle = params.title.trim();
+  const countryCode = pricingCountryCode(params.pricing);
   const detailDebug = shouldLogPricingDetailDebug(params.debug);
   const limit = params.limit ?? 8;
 
   const cheapsharkSteamAppIdPromise = cheapSharkLookupSteamAppId({
     title: params.title,
+    countryCode,
     debug: params.debug,
     debugLabel: params.debugLabel ? `${params.debugLabel}:steamAppId` : undefined,
   });
 
-  const freshCache = await getCachedDealQuotes(params.title);
+  const freshCache = await getCachedDealQuotes(params.title, { countryCode });
   if (freshCache.fresh && freshCache.deals.length) {
     const deals = revalidateVerifiedDealsForDisplay(requestedTitle, freshCache.deals, {
       debug: params.debug,
@@ -1056,6 +1030,7 @@ export async function lookupDeals(params: {
   const [cheapFetch, cheapsharkSteamAppId] = await Promise.all([
     cheapSharkLookupDealsByTitle({
       title: params.title,
+      countryCode,
       limit,
       debug: params.debug,
       debugLabel: params.debugLabel,
@@ -1066,7 +1041,7 @@ export async function lookupDeals(params: {
   const providerFailed = cheapFetch.rateLimited || !cheapFetch.deals.length;
 
   if (providerFailed) {
-    const stale = await getStaleDealQuotes(params.title);
+    const stale = await getStaleDealQuotes(params.title, { countryCode });
     if (stale.stale && stale.deals.length) {
       const revalidated = revalidateVerifiedDealsForDisplay(requestedTitle, stale.deals, {
         debug: params.debug,
@@ -1076,6 +1051,7 @@ export async function lookupDeals(params: {
         deals: revalidated,
         limit,
         rateLimited: cheapFetch.rateLimited,
+        countryCode,
         debug: params.debug,
         debugLabel: params.debugLabel,
         rawgStores: params.rawgStores,
@@ -1109,6 +1085,7 @@ export async function lookupDeals(params: {
       deals: [],
       limit,
       rateLimited: cheapFetch.rateLimited,
+      countryCode,
       debug: params.debug,
       debugLabel: params.debugLabel,
       rawgStores: params.rawgStores,
@@ -1124,6 +1101,7 @@ export async function lookupDeals(params: {
       const nowIso = new Date().toISOString();
       void setCachedDealQuotes({
         title: params.title,
+        countryCode,
         deals: steamFinal,
         provider: resolveDealQuotesCacheProvider(steamFinal),
         meta: {
@@ -1180,6 +1158,7 @@ export async function lookupDeals(params: {
     deals: out,
     limit,
     rateLimited: cheapFetch.rateLimited,
+    countryCode,
     debug: params.debug,
     debugLabel: params.debugLabel,
     rawgStores: params.rawgStores,
@@ -1196,6 +1175,7 @@ export async function lookupDeals(params: {
   if (finalDeals.length) {
     void setCachedDealQuotes({
       title: params.title,
+      countryCode,
       deals: finalDeals,
       provider: resolveDealQuotesCacheProvider(finalDeals),
       meta: {

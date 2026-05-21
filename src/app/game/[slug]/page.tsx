@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import Navbar from "@/components/Navbar";
 import GameScreenshotLightbox from "@/components/GameScreenshotLightbox";
 import TrackPriceButton from "@/components/TrackPriceButton";
@@ -7,9 +8,11 @@ import { resolveGameDetailFreeToPlay } from "@/lib/game-detail-free-to-play";
 import { getRawgGameMedia } from "@/lib/rawg-game-media-cache";
 import {
   AGGREGATOR_PRICE_DISCLAIMER,
-  formatAggregatorPriceLine,
   formatDealsLastCheckedLabel,
+  formatPriceLine,
+  isCheapSharkUsdFallbackProvider,
 } from "@/lib/pricing/display";
+import { resolvePricingContext } from "@/lib/pricing/pricing-context";
 import type { BestPriceResult, VerifiedDealRow } from "@/lib/pricing/price-service";
 import {
   buildUnifiedTrustedVerifiedOffers,
@@ -339,6 +342,18 @@ function DetailRow({
   );
 }
 
+function formatGameDetailPriceLine(params: {
+  price: string;
+  currency?: string | null;
+  provider?: string | null;
+}) {
+  return formatPriceLine({
+    price: params.price,
+    currency: params.currency,
+    usdFallback: isCheapSharkUsdFallbackProvider(params.provider),
+  });
+}
+
 function VerifiedStoreDealCard({
   deal,
   buyLabel,
@@ -353,17 +368,19 @@ function VerifiedStoreDealCard({
         <p className="text-xs text-white/35">Matched listing: {deal.matchedTitle}</p>
         <p className="text-sm text-white/45">
           Normal:{" "}
-          {formatAggregatorPriceLine({
+          {formatGameDetailPriceLine({
             price: deal.normalPrice,
             currency: deal.currency,
+            provider: deal.provider,
           })}
         </p>
       </div>
 
       <p className="text-2xl font-black text-cyan-300">
-        {formatAggregatorPriceLine({
+        {formatGameDetailPriceLine({
           price: deal.salePrice,
           currency: deal.currency,
+          provider: deal.provider,
         })}
       </p>
 
@@ -396,17 +413,26 @@ export default async function GameDetailPage({
   const pricingDebug = sp.debug === "1";
   const recommendFitContext = parseRecommendFitContext(sp);
 
+  const headerStore = await headers();
+  const pricing = resolvePricingContext({
+    headerCountry: headerStore.get("x-vercel-ip-country"),
+    queryCountry: searchParamString(sp, "country"),
+    nodeEnv: process.env.NODE_ENV,
+  });
+
   const rawg = await getRawgGame(title);
   const gameId = rawg?.id;
 
   const settled = await Promise.allSettled([
     lookupBestPrice({
       title,
+      pricing,
       debug: pricingDebug,
       debugLabel: `page:/game/${slug}:bestPrice`,
     }),
     lookupDeals({
       title,
+      pricing,
       limit: 5,
       debug: pricingDebug,
       debugLabel: `page:/game/${slug}:deals`,
@@ -438,9 +464,14 @@ export default async function GameDetailPage({
     requestedTitle: title,
     displayDeals: deals,
     bestPrice,
+    pricing,
     debug: pricingDebug,
     debugLabel: `page:/game/${slug}:unified`,
   });
+
+  const primaryUsdFallback = primaryDeal
+    ? isCheapSharkUsdFallbackProvider(primaryDeal.provider)
+    : isCheapSharkUsdFallbackProvider(bestPrice?.provider);
 
   const primaryTrustedBuyUrl =
     primaryDeal?.deal.url?.trim() ? primaryDeal.deal.url.trim() : undefined;
@@ -681,15 +712,18 @@ export default async function GameDetailPage({
                         ) : hasTrustedVerifiedBuy && primaryDeal ? (
                           <>
                             <p className="text-2xl font-black text-cyan-300">
-                              {formatAggregatorPriceLine({
+                              {formatGameDetailPriceLine({
                                 price: primaryDeal.salePrice,
                                 currency: primaryDeal.currency,
+                                provider: primaryDeal.provider,
                               })}
                             </p>
                             <p className="text-xs leading-relaxed text-white/45">
                               {primaryDeal.store.name || "Store"} · {primaryDeal.matchedTitle}
                             </p>
-                            <p className="text-xs text-white/35">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                            {primaryUsdFallback ? (
+                              <p className="text-xs text-white/35">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                            ) : null}
                           </>
                         ) : showEstimatedPriceNoStoreLinks && bestPrice ? (
                           <>
@@ -704,12 +738,15 @@ export default async function GameDetailPage({
                         ) : pricingMode === "verified_price" && bestPrice ? (
                           <>
                             <p className="text-2xl font-black text-cyan-300">
-                              {formatAggregatorPriceLine({
+                              {formatGameDetailPriceLine({
                                 price: bestPrice.price,
                                 currency: bestPrice.currency,
+                                provider: bestPrice.provider,
                               })}
                             </p>
-                            <p className="text-xs text-white/40">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                            {primaryUsdFallback ? (
+                              <p className="text-xs text-white/40">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                            ) : null}
                           </>
                         ) : pricingMode === "likely_console_or_unsupported" ? (
                           <PricingUnavailableState variant="console" />
@@ -873,14 +910,16 @@ export default async function GameDetailPage({
                       <div>
                         <p className="text-4xl font-black text-white">
                           {primaryDeal
-                            ? formatAggregatorPriceLine({
+                            ? formatGameDetailPriceLine({
                                 price: primaryDeal.salePrice,
                                 currency: primaryDeal.currency,
+                                provider: primaryDeal.provider,
                               })
                             : bestPrice
-                              ? formatAggregatorPriceLine({
+                              ? formatGameDetailPriceLine({
                                   price: bestPrice.price,
                                   currency: bestPrice.currency,
+                                  provider: bestPrice.provider,
                                 })
                               : ""}
                         </p>
@@ -891,6 +930,9 @@ export default async function GameDetailPage({
                               ? `${bestPrice.store?.name || "Store"} · ${bestPrice.matchedTitle ?? title}`
                               : ""}
                         </p>
+                        {primaryUsdFallback ? (
+                          <p className="mt-2 text-xs text-white/45">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+                        ) : null}
                       </div>
                       {primaryTrustedBuyUrl ? (
                         <a
@@ -1013,22 +1055,26 @@ export default async function GameDetailPage({
               {pricingMode === "free_to_play"
                 ? FREE_TO_PLAY_TITLE
                 : hasTrustedVerifiedBuy && primaryDeal
-                  ? formatAggregatorPriceLine({
+                  ? formatGameDetailPriceLine({
                       price: primaryDeal.salePrice,
                       currency: primaryDeal.currency,
+                      provider: primaryDeal.provider,
                     })
                   : showEstimatedPriceNoStoreLinks && bestPrice
                     ? "Estimated price found"
                     : pricingMode === "verified_price" &&
                         bestPrice?.price &&
                         bestPrice.price !== "N/A"
-                      ? formatAggregatorPriceLine({
+                      ? formatGameDetailPriceLine({
                           price: bestPrice.price,
                           currency: bestPrice.currency,
+                          provider: bestPrice.provider,
                         })
                       : NO_VERIFIED_DEAL_TITLE}
             </h2>
-            <p className="mt-2 text-xs text-white/45">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+            {primaryUsdFallback ? (
+              <p className="mt-2 text-xs text-white/45">{AGGREGATOR_PRICE_DISCLAIMER}</p>
+            ) : null}
             <p
               className={`mt-4 leading-relaxed ${
                 sidebarShowsPriceFigure ? "text-white/65" : "text-sm text-white/50"

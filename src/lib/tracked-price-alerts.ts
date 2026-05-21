@@ -203,7 +203,8 @@ export async function hasDuplicateAlertInCooldown(params: {
 }
 
 /**
- * Uses the same path as game details: cache → CheapShark → ITAD, all gated.
+ * Uses the same path as game details: cache → ITAD → CheapShark USD fallback, all gated.
+ * Intentionally omits PricingContext — defaults to US until profiles.pricing_country exists.
  */
 export async function lookupVerifiedBestPriceForAlert(requestedTitle: string) {
   const best = await lookupBestPrice({

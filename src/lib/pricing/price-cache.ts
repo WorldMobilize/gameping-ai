@@ -1,11 +1,16 @@
 import "server-only"
 
 import { createClient } from "@supabase/supabase-js"
+import {
+  DEFAULT_PRICING_COUNTRY,
+  pricingCacheCountrySegment,
+} from "@/lib/pricing/pricing-region"
 import type { VerifiedDealRow } from "@/lib/pricing/verified-deal-row"
 
 export type PriceQuoteRow = {
   id: string
   title: string
+  country_code?: string
   provider: string
   matched_title: string | null
   price: number | null
@@ -34,6 +39,7 @@ export type DealQuotesCacheMeta = {
 export type DealQuotesCacheRow = {
   id: string
   normalized_title: string
+  country_code?: string
   title: string
   deals: unknown
   provider: string
@@ -49,6 +55,11 @@ export type GetCachedDealQuotesResult = {
   row: DealQuotesCacheRow | null
   deals: VerifiedDealRow[]
   updatedAt: string | null
+}
+
+export type PricingCacheLookupOptions = {
+  now?: Date
+  countryCode?: string | null
 }
 
 function getCacheClient() {
@@ -77,11 +88,14 @@ export function normalizePricingCacheTitle(title: string) {
   return normalizePriceCacheKeyTitle(title)
 }
 
+export function resolvePricingCacheCountry(countryCode?: string | null): string {
+  return pricingCacheCountrySegment(countryCode ?? DEFAULT_PRICING_COUNTRY)
+}
+
 function isRecord(v: unknown): v is Record<string, unknown> {
   return Boolean(v) && typeof v === "object" && !Array.isArray(v)
 }
 
-/** VerifiedDealRow currently only supports CheapShark-shaped listings. */
 function isCheapSharkCompatibleDealShape(dealId: string, dealUrl?: string): boolean {
   const url = (dealUrl ?? "").trim().toLowerCase()
   if (url.includes("cheapshark.com/redirect") || url.includes("dealid=")) return true
@@ -97,29 +111,31 @@ function isSteamCompatibleDealShape(dealId: string, dealUrl?: string): boolean {
   )
 }
 
-/**
- * Resolve provider for cached rows. Never returns null — incompatible rows should be skipped by caller.
- */
+function isItadCompatibleDealShape(dealUrl?: string): boolean {
+  const url = (dealUrl ?? "").trim().toLowerCase()
+  if (!url) return false
+  return url.includes("itad.link") || url.includes("isthereanydeal.com")
+}
+
 function resolveCachedVerifiedDealProvider(
   item: Record<string, unknown>,
   dealId: string,
   dealUrl?: string
-): "cheapshark" | "steam" | null {
+): "cheapshark" | "steam" | "itad" | null {
   const raw = item.provider
-  if (raw === "itad" || raw === "mixed") return null
+  if (raw === "itad") {
+    return isItadCompatibleDealShape(dealUrl) ? "itad" : null
+  }
   if (raw === "steam") {
     return isSteamCompatibleDealShape(dealId, dealUrl) ? "steam" : null
   }
   if (raw === "cheapshark") return "cheapshark"
   if (isSteamCompatibleDealShape(dealId, dealUrl)) return "steam"
   if (isCheapSharkCompatibleDealShape(dealId, dealUrl)) return "cheapshark"
+  if (isItadCompatibleDealShape(dealUrl)) return "itad"
   return null
 }
 
-/**
- * Structural parse only — caller should re-run pricing gates before display when serving stale rows.
- * Never returns rows that were stored without acceptedPrice or with untrusted URLs.
- */
 export function parseVerifiedDealsFromCacheJson(raw: unknown): VerifiedDealRow[] {
   if (!Array.isArray(raw)) return []
 
@@ -190,16 +206,18 @@ export function parseVerifiedDealsFromCacheJson(raw: unknown): VerifiedDealRow[]
 }
 
 async function fetchDealQuotesRow(
-  normalizedTitle: string
+  normalizedTitle: string,
+  countryCode: string
 ): Promise<DealQuotesCacheRow | null> {
   try {
     const supabase = getCacheClient()
     const { data, error } = await supabase
       .from("deal_quotes_cache")
       .select(
-        "id,normalized_title,title,deals,provider,debug_meta,created_at,updated_at,expires_at"
+        "id,normalized_title,country_code,title,deals,provider,debug_meta,created_at,updated_at,expires_at"
       )
       .eq("normalized_title", normalizedTitle)
+      .eq("country_code", countryCode)
       .maybeSingle()
 
     if (error || !data) return null
@@ -226,9 +244,10 @@ function classifyDealQuotesRow(
 
 export async function getCachedDealQuotes(
   title: string,
-  options?: { now?: Date }
+  options?: PricingCacheLookupOptions
 ): Promise<GetCachedDealQuotesResult> {
   const key = normalizePricingCacheTitle(title)
+  const countryCode = resolvePricingCacheCountry(options?.countryCode)
   const empty: GetCachedDealQuotesResult = {
     fresh: false,
     stale: false,
@@ -238,7 +257,7 @@ export async function getCachedDealQuotes(
   }
   if (!key) return empty
 
-  const row = await fetchDealQuotesRow(key)
+  const row = await fetchDealQuotesRow(key, countryCode)
   if (!row) return empty
 
   const { fresh, stale } = classifyDealQuotesRow(row, options?.now ?? new Date())
@@ -254,10 +273,9 @@ export async function getCachedDealQuotes(
   }
 }
 
-/** Expired rows within stale window (provider fallback). */
 export async function getStaleDealQuotes(
   title: string,
-  options?: { now?: Date }
+  options?: PricingCacheLookupOptions
 ): Promise<GetCachedDealQuotesResult> {
   const cached = await getCachedDealQuotes(title, options)
   if (!cached.row || cached.fresh || !cached.stale) {
@@ -268,6 +286,7 @@ export async function getStaleDealQuotes(
 
 export async function setCachedDealQuotes(params: {
   title: string
+  countryCode?: string | null
   deals: VerifiedDealRow[]
   provider?: string
   meta?: DealQuotesCacheMeta | null
@@ -275,6 +294,7 @@ export async function setCachedDealQuotes(params: {
   now?: Date
 }): Promise<boolean> {
   const normalized = normalizePricingCacheTitle(params.title)
+  const countryCode = resolvePricingCacheCountry(params.countryCode)
   const displayTitle = (params.title || "").trim()
   if (!normalized || !displayTitle) return false
 
@@ -293,6 +313,7 @@ export async function setCachedDealQuotes(params: {
 
     const row = {
       normalized_title: normalized,
+      country_code: countryCode,
       title: displayTitle,
       deals: safeDeals,
       provider: params.provider ?? "cheapshark",
@@ -302,7 +323,7 @@ export async function setCachedDealQuotes(params: {
 
     const { error } = await supabase
       .from("deal_quotes_cache")
-      .upsert(row, { onConflict: "normalized_title" })
+      .upsert(row, { onConflict: "normalized_title,country_code" })
 
     return !error
   } catch {
@@ -312,22 +333,24 @@ export async function setCachedDealQuotes(params: {
 
 export async function getCachedPriceQuote(params: {
   title: string
+  countryCode?: string | null
   now?: Date
 }): Promise<{ hit: boolean; expired: boolean; row: PriceQuoteRow | null }> {
   const keyTitle = normalizePriceCacheKeyTitle(params.title)
+  const countryCode = resolvePricingCacheCountry(params.countryCode)
   if (!keyTitle) return { hit: false, expired: false, row: null }
 
   try {
     const supabase = getCacheClient()
     const nowIso = (params.now ?? new Date()).toISOString()
 
-    // We keep expired rows for debugging/inspection; we just don't serve them.
     const { data, error } = await supabase
       .from("price_quotes")
       .select(
-        "id,title,provider,matched_title,price,currency,store_name,deal_url,fetched_at,expires_at,raw_payload"
+        "id,title,country_code,provider,matched_title,price,currency,store_name,deal_url,fetched_at,expires_at,raw_payload"
       )
       .eq("title", keyTitle)
+      .eq("country_code", countryCode)
       .order("fetched_at", { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -338,13 +361,13 @@ export async function getCachedPriceQuote(params: {
     const expired = Boolean(expiresAt && expiresAt < nowIso)
     return { hit: !expired, expired, row: (data as PriceQuoteRow) ?? null }
   } catch {
-    // Best-effort: cache failures must not break details page.
     return { hit: false, expired: false, row: null }
   }
 }
 
 export async function setCachedPriceQuote(params: {
   title: string
+  countryCode?: string | null
   provider: string
   matchedTitle?: string | null
   price: number
@@ -356,6 +379,7 @@ export async function setCachedPriceQuote(params: {
   now?: Date
 }): Promise<boolean> {
   const keyTitle = normalizePriceCacheKeyTitle(params.title)
+  const countryCode = resolvePricingCacheCountry(params.countryCode)
   if (!keyTitle) return false
   if (!Number.isFinite(params.price) || params.price <= 0) return false
 
@@ -366,6 +390,7 @@ export async function setCachedPriceQuote(params: {
 
     const row = {
       title: keyTitle,
+      country_code: countryCode,
       provider: params.provider,
       matched_title: params.matchedTitle ?? null,
       price: params.price,
@@ -377,10 +402,11 @@ export async function setCachedPriceQuote(params: {
       raw_payload: params.rawPayload ?? null,
     }
 
-    const { error } = await supabase.from("price_quotes").upsert(row, { onConflict: "title" })
+    const { error } = await supabase.from("price_quotes").upsert(row, {
+      onConflict: "title,country_code",
+    })
     return !error
   } catch {
     return false
   }
 }
-

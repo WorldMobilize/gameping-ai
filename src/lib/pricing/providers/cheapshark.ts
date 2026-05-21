@@ -5,6 +5,7 @@ import {
   shouldLogPricingDetailDebug,
   titleMatchScore,
 } from "@/lib/pricing/match";
+import { normalizePricingCountry } from "@/lib/pricing/pricing-region";
 
 export type CheapSharkDeal = {
   dealID: string;
@@ -84,8 +85,10 @@ export type CheapSharkDealsFetchResult = {
   rateLimited: boolean;
 };
 
-function normalizeDealsMemoKey(title: string) {
-  return title.trim().toLowerCase();
+function normalizeDealsMemoKey(title: string, countryCode?: string) {
+  const cc = normalizePricingCountry(countryCode);
+  const t = title.trim().toLowerCase();
+  return `${cc}:${t}`;
 }
 
 /** Parse Retry-After (seconds) per CheapShark API docs. */
@@ -155,9 +158,13 @@ function logCheapSharkDebug(
   });
 }
 
-export function isCheapSharkDealsThrottled(title: string, now = Date.now()): boolean {
+export function isCheapSharkDealsThrottled(
+  title: string,
+  countryCode?: string,
+  now = Date.now()
+): boolean {
   if (isCheapSharkGloballyThrottled(now)) return true;
-  const key = normalizeDealsMemoKey(title);
+  const key = normalizeDealsMemoKey(title, countryCode);
   if (!key) return false;
   const until = cheapShark429UntilByTitle.get(key);
   if (!until) return false;
@@ -305,10 +312,11 @@ async function cheapSharkFetchDealsFromNetwork(params: {
 
 async function cheapSharkGetDealsShared(params: {
   title: string;
+  countryCode?: string;
   debug: boolean;
   debugLabel?: string;
 }): Promise<CheapSharkDealsFetchResult> {
-  const key = normalizeDealsMemoKey(params.title);
+  const key = normalizeDealsMemoKey(params.title, params.countryCode);
   if (!key) return { deals: [], rateLimited: false };
 
   const now = Date.now();
@@ -317,7 +325,7 @@ async function cheapSharkGetDealsShared(params: {
     return { deals: cached.deals, rateLimited: false };
   }
 
-  if (isCheapSharkDealsThrottled(params.title, now)) {
+  if (isCheapSharkDealsThrottled(params.title, params.countryCode, now)) {
     return { deals: [], rateLimited: true };
   }
 
@@ -345,13 +353,19 @@ async function cheapSharkGetDealsShared(params: {
 
 export async function cheapSharkLookupDealsByTitle(params: {
   title: string;
+  countryCode?: string;
   limit?: number;
   debug?: boolean;
   debugLabel?: string;
 }): Promise<CheapSharkDealsFetchResult> {
-  const { title, limit = 5, debug = false, debugLabel } = params;
+  const { title, limit = 5, debug = false, debugLabel, countryCode } = params;
   const lim = Math.max(3, Math.min(limit, 12));
-  const result = await cheapSharkGetDealsShared({ title, debug, debugLabel });
+  const result = await cheapSharkGetDealsShared({
+    title,
+    countryCode,
+    debug,
+    debugLabel,
+  });
   return {
     deals: result.deals.slice(0, lim),
     rateLimited: result.rateLimited,
@@ -368,6 +382,7 @@ const CHEAPSHARK_STEAM_APP_ID_MATCH_MIN = 0.68;
 /** Trusted Steam app id from CheapShark /games when the listing title matches the request. */
 export async function cheapSharkLookupSteamAppId(params: {
   title: string;
+  countryCode?: string;
   debug?: boolean;
   debugLabel?: string;
 }): Promise<string | null> {
@@ -493,12 +508,14 @@ export async function cheapSharkGetStores(params?: {
 
 export async function cheapSharkLookupBestPrice(params: {
   title: string;
+  countryCode?: string;
   debug?: boolean;
   debugLabel?: string;
 }): Promise<CheapSharkBestPrice | null> {
-  const { title, debug = false, debugLabel } = params;
+  const { title, debug = false, debugLabel, countryCode } = params;
   const { deals, rateLimited } = await cheapSharkLookupDealsByTitle({
     title,
+    countryCode,
     limit: DEALS_FETCH_PAGE_SIZE,
     debug,
     debugLabel,
