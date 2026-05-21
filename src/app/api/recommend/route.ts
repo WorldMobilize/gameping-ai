@@ -1614,48 +1614,8 @@ export async function POST(req: Request) {
     }
 
     const dailyLimitValue = getRecommendDailyLimit({ plan, userId });
+    /** Set after early-cache miss; cache hits must not increment daily usage. */
     let usageAfter = { allowed: true as boolean, used: 0, limit: dailyLimitValue };
-
-    if (!bypassLimits) {
-      usageAfter = await tryConsumeRecommendDailySlot({
-        req,
-        userId,
-        dailyLimit: dailyLimitValue,
-      });
-
-      if (process.env.NODE_ENV === "development") {
-        console.log("[recommend:usage-limit]", {
-          userId,
-          isAdmin: plan === "admin",
-          plan: plan ?? "anon",
-          used: usageAfter.used,
-          limit: usageAfter.limit,
-          allowed: usageAfter.allowed,
-        });
-      }
-
-      if (!usageAfter.allowed) {
-        return NextResponse.json(
-          buildLimitErrorPayload({
-            error: "daily_limit",
-            limitType: "daily_recommendations",
-            plan: userId ? plan : null,
-            limit: usageAfter.limit,
-            anonymous: !userId,
-          }),
-          { status: 429 }
-        );
-      }
-    } else if (process.env.NODE_ENV === "development") {
-      console.log("[recommend:usage-limit]", {
-        userId,
-        isAdmin: plan === "admin",
-        plan: plan ?? "anon",
-        used: 0,
-        limit: "bypass",
-        allowed: true,
-      });
-    }
 
     const resolvedSelectedTags = filtersEnabled
       ? resolveSelectedTagsList(body, normalizedInput)
@@ -1744,6 +1704,50 @@ export async function POST(req: Request) {
         });
       }
       return NextResponse.json(cachedEarly);
+    }
+
+    // Quota runs only after early-cache miss (see recommend-quota-cache-order.ts).
+    if (!bypassLimits) {
+      usageAfter = await tryConsumeRecommendDailySlot({
+        req,
+        userId,
+        dailyLimit: dailyLimitValue,
+      });
+
+      if (process.env.NODE_ENV === "development") {
+        console.log("[recommend:usage-limit]", {
+          userId,
+          isAdmin: plan === "admin",
+          plan: plan ?? "anon",
+          used: usageAfter.used,
+          limit: usageAfter.limit,
+          allowed: usageAfter.allowed,
+          afterEarlyCacheMiss: true,
+        });
+      }
+
+      if (!usageAfter.allowed) {
+        return NextResponse.json(
+          buildLimitErrorPayload({
+            error: "daily_limit",
+            limitType: "daily_recommendations",
+            plan: userId ? plan : null,
+            limit: usageAfter.limit,
+            anonymous: !userId,
+          }),
+          { status: 429 }
+        );
+      }
+    } else if (process.env.NODE_ENV === "development") {
+      console.log("[recommend:usage-limit]", {
+        userId,
+        isAdmin: plan === "admin",
+        plan: plan ?? "anon",
+        used: 0,
+        limit: "bypass",
+        allowed: true,
+        afterEarlyCacheMiss: true,
+      });
     }
 
     const regexRefsFromPrompt = extractReferenceTitlesFromPrompt(
