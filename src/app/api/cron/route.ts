@@ -1,20 +1,23 @@
 /**
- * Price alerts: uses `tracked_games` + `lookupBestPrice` (same gate as game details).
- * Price alerts remain US-default until profiles.pricing_country exists.
+ * Price alerts: uses `tracked_games.pricing_country` + regional `lookupBestPrice`.
+ * Never uses request geo headers — country comes from the row saved at track time.
  */
 import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
-import { formatAggregatorPriceLine } from "@/lib/pricing/display";
+import { createPricingContext } from "@/lib/pricing/pricing-context";
 import { buildPriceAlertUnsubscribeUrl } from "@/lib/price-alert-unsubscribe";
 import { resolveResendFrom } from "@/lib/resend-from";
+import { resolveTrackedPricingCountry } from "@/lib/tracked-games-pricing";
 import {
   buildAlertEmailHtml,
   buildAlertEmailText,
   buildOutboundAlertUrl,
   buildPriceAlertEmailSubject,
   fetchRawgGameMeta,
+  formatAlertPriceDisplay,
   hasDuplicateAlertInCooldown,
   lookupVerifiedBestPriceForAlert,
+  resolveAlertCurrencyDecision,
   shouldAlertOnPrice,
 } from "@/lib/tracked-price-alerts";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -113,12 +116,20 @@ function parseStoredPrice(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+type TrackedOfferMetadata = {
+  currency: string;
+  provider?: string | null;
+  storeName?: string | null;
+  dealUrl?: string | null;
+};
+
 /** Shift last_known → previous, then set last_known (+ optional alert fields). */
 function buildTrackedGamePriceStateUpdate(params: {
   tg: TrackedGamePriceRow;
   currentPrice: number;
   nowIso: string;
   alertSent?: boolean;
+  offer?: TrackedOfferMetadata;
 }): Record<string, unknown> {
   const update: Record<string, unknown> = {
     previous_price: parseStoredPrice(params.tg.last_known_price),
@@ -126,6 +137,13 @@ function buildTrackedGamePriceStateUpdate(params: {
     last_known_price: params.currentPrice,
     last_checked_at: params.nowIso,
   };
+
+  if (params.offer) {
+    update.last_known_currency = params.offer.currency;
+    if (params.offer.provider) update.last_known_provider = params.offer.provider;
+    if (params.offer.storeName) update.last_known_store = params.offer.storeName;
+    if (params.offer.dealUrl) update.last_known_url = params.offer.dealUrl;
+  }
 
   if (params.alertSent) {
     update.last_alert_price = params.currentPrice;
@@ -220,7 +238,7 @@ export async function GET(req: Request) {
     const { data: trackedRows, error: tgError } = await supabase
       .from("tracked_games")
       .select(
-        "id, user_id, rawg_id, title, target_price, last_known_price, last_checked_at, is_active"
+        "id, user_id, rawg_id, title, target_price, last_known_price, last_known_currency, last_known_provider, last_known_store, last_known_url, pricing_country, last_checked_at, is_active"
       )
       .eq("is_active", true);
 
@@ -291,9 +309,19 @@ export async function GET(req: Request) {
 
       let logTitle = titleStored;
 
+      const pricingCountry = resolveTrackedPricingCountry(
+        (tg as { pricing_country?: string | null }).pricing_country
+      );
+      const pricing = createPricingContext(pricingCountry);
+
       const applyPriceStateUpdate = async (
         currentPrice: number,
-        opts?: { alertSent?: boolean; reason?: string; title?: string }
+        opts?: {
+          alertSent?: boolean;
+          reason?: string;
+          title?: string;
+          offer?: TrackedOfferMetadata;
+        }
       ) => {
         const nowIso = new Date().toISOString();
         const update = buildTrackedGamePriceStateUpdate({
@@ -304,6 +332,7 @@ export async function GET(req: Request) {
           currentPrice,
           nowIso,
           alertSent: opts?.alertSent,
+          offer: opts?.offer,
         });
         await supabase.from("tracked_games").update(update).eq("id", gameId);
         logCronPriceState({
@@ -345,7 +374,7 @@ export async function GET(req: Request) {
       const pricingTitle = meta.title;
       logTitle = pricingTitle;
 
-      const verified = await lookupVerifiedBestPriceForAlert(pricingTitle);
+      const verified = await lookupVerifiedBestPriceForAlert(pricingTitle, pricing);
 
       if (!verified.ok) {
         skippedReason = verified.reason;
@@ -366,12 +395,62 @@ export async function GET(req: Request) {
         continue;
       }
 
-      const { best, priceNum } = verified;
+      const { best, priceNum, currency: quoteCurrency } = verified;
+      const offerMeta: TrackedOfferMetadata = {
+        currency: quoteCurrency,
+        provider: best.provider ?? null,
+        storeName: best.store?.name ?? null,
+        dealUrl: best.deal?.url?.trim() ?? null,
+      };
+
+      const currencyDecision = resolveAlertCurrencyDecision({
+        storedCurrency: (tg as { last_known_currency?: string | null })
+          .last_known_currency,
+        newCurrency: quoteCurrency,
+      });
+
+      if (currencyDecision.action === "initialize") {
+        skippedReason = "currency_baseline_init";
+        skipped += 1;
+        await applyPriceStateUpdate(priceNum, {
+          reason: skippedReason,
+          offer: offerMeta,
+        });
+        if (process.env.NODE_ENV === "development") {
+          console.log("[cron:tracked-game]", {
+            gameId,
+            title: pricingTitle,
+            pricingCountry,
+            currency: quoteCurrency,
+            skippedReason,
+          });
+        }
+        await sleep(120);
+        continue;
+      }
+
+      if (currencyDecision.action === "rebaseline") {
+        skippedReason = "currency_rebaseline";
+        skipped += 1;
+        console.log("[cron:currency-rebaseline]", {
+          gameId,
+          title: pricingTitle,
+          pricingCountry,
+          from: currencyDecision.from,
+          to: currencyDecision.currency,
+        });
+        await applyPriceStateUpdate(priceNum, {
+          reason: skippedReason,
+          offer: offerMeta,
+        });
+        await sleep(120);
+        continue;
+      }
 
       if (priceNum <= 0) {
         skippedReason = "free_or_zero_skip";
         skipped += 1;
-        await applyPriceStateUpdate(priceNum, { reason: skippedReason });
+        await applyPriceStateUpdate(priceNum, { reason: skippedReason, offer: offerMeta });
         if (process.env.NODE_ENV === "development") {
           console.log("[cron:tracked-game]", {
             gameId,
@@ -384,7 +463,7 @@ export async function GET(req: Request) {
         continue;
       }
 
-      const dealUrl = best.deal?.url?.trim();
+      const dealUrl = offerMeta.dealUrl;
       if (!dealUrl) {
         skippedReason = "no_trusted_url";
         skipped += 1;
@@ -413,7 +492,7 @@ export async function GET(req: Request) {
       if (!threshold.alert) {
         skippedReason = threshold.reason;
         skipped += 1;
-        await applyPriceStateUpdate(priceNum, { reason: skippedReason });
+        await applyPriceStateUpdate(priceNum, { reason: skippedReason, offer: offerMeta });
         if (process.env.NODE_ENV === "development") {
           console.log("[cron:tracked-game]", {
             gameId,
@@ -443,7 +522,7 @@ export async function GET(req: Request) {
             provider: best.provider,
           });
         }
-        await applyPriceStateUpdate(priceNum, { reason: skippedReason });
+        await applyPriceStateUpdate(priceNum, { reason: skippedReason, offer: offerMeta });
         if (process.env.NODE_ENV === "development") {
           console.log("[cron:tracked-game]", {
             gameId,
@@ -465,9 +544,11 @@ export async function GET(req: Request) {
         storeName: best.store?.name ?? null,
       });
 
-      const priceDisplay = formatAggregatorPriceLine({
+      const priceDisplay = formatAlertPriceDisplay({
         price: best.price,
-        currency: best.currency,
+        currency: quoteCurrency,
+        provider: best.provider,
+        pricingCountry,
       });
 
       const dashboardUrl = `${origin}/dashboard`;
@@ -488,7 +569,9 @@ export async function GET(req: Request) {
         alertReason: threshold.reason,
         wasPriceNum: lastKnownBefore,
         nowPriceNum: priceNum,
-        currency: best.currency,
+        currency: quoteCurrency,
+        provider: best.provider,
+        pricingCountry,
       };
 
       const html = buildAlertEmailHtml(emailContent);
@@ -496,7 +579,7 @@ export async function GET(req: Request) {
       const subject = buildPriceAlertEmailSubject({
         gameTitle: pricingTitle,
         price: best.price,
-        currency: best.currency,
+        currency: quoteCurrency,
       });
 
       emailsAttempted += 1;
@@ -537,12 +620,16 @@ export async function GET(req: Request) {
         old_price: lastKnownBefore,
         new_price: priceNum,
         provider: best.provider ?? "unknown",
+        currency: quoteCurrency,
+        pricing_country: pricingCountry,
+        store: best.store?.name ?? null,
         notified: true,
       });
 
       await applyPriceStateUpdate(priceNum, {
         alertSent: true,
         reason: skippedReason,
+        offer: offerMeta,
       });
 
       if (process.env.NODE_ENV === "development") {

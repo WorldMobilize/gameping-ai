@@ -9,16 +9,39 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useState } from "react";
 
+export type TrackPriceOfferSnapshot = {
+  currency?: string | null;
+  provider?: string | null;
+  storeName?: string | null;
+  url?: string | null;
+};
+
 type Props = {
   title: string;
   rawgId?: number | null;
   /** Verified sale price from game page, when available (sets tracking baseline). */
   baselinePrice?: number | null;
+  /** Region used for pricing on this page (validated server-side). */
+  pricingCountry: string;
+  offerSnapshot?: TrackPriceOfferSnapshot;
 };
 
-export default function TrackPriceButton({ title, rawgId, baselinePrice }: Props) {
+function regionLabel(countryCode: string): string {
+  const cc = countryCode.trim().toUpperCase();
+  return cc || "US";
+}
+
+export default function TrackPriceButton({
+  title,
+  rawgId,
+  baselinePrice,
+  pricingCountry,
+  offerSnapshot,
+}: Props) {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const region = regionLabel(pricingCountry);
+  const currencyHint = offerSnapshot?.currency?.trim().toUpperCase();
 
   async function handleClick() {
     setLoading(true);
@@ -33,12 +56,10 @@ export default function TrackPriceButton({ title, rawgId, baselinePrice }: Props
         return;
       }
 
-      const body: {
-        title: string;
-        rawgId?: number;
-        targetPrice?: number;
-        lastKnownPrice?: number;
-      } = { title };
+      const body: Record<string, unknown> = {
+        title,
+        pricingCountry: region,
+      };
       if (typeof rawgId === "number" && Number.isFinite(rawgId)) {
         body.rawgId = rawgId;
       }
@@ -48,6 +69,18 @@ export default function TrackPriceButton({ title, rawgId, baselinePrice }: Props
         baselinePrice > 0
       ) {
         body.lastKnownPrice = baselinePrice;
+      }
+      if (offerSnapshot?.currency?.trim()) {
+        body.currency = offerSnapshot.currency.trim();
+      }
+      if (offerSnapshot?.provider?.trim()) {
+        body.provider = offerSnapshot.provider.trim();
+      }
+      if (offerSnapshot?.storeName?.trim()) {
+        body.storeName = offerSnapshot.storeName.trim();
+      }
+      if (offerSnapshot?.url?.trim()) {
+        body.url = offerSnapshot.url.trim();
       }
 
       const res = await fetch("/api/track-game", {
@@ -115,8 +148,13 @@ export default function TrackPriceButton({ title, rawgId, baselinePrice }: Props
         {loading ? "Saving…" : "Track price"}
       </button>
       <p className="mt-3 text-xs leading-relaxed text-white/45">
-        We&apos;ll email you when we detect a verified price drop. Track one game here for alerts.
-        To save a whole recommendation run to your dashboard, use{" "}
+        Alerts will use your current region:{" "}
+        <span className="font-semibold text-white/60">
+          {region}
+          {currencyHint ? ` / ${currencyHint}` : ""}
+        </span>
+        . We&apos;ll email you when we detect a verified price drop. Track one game here for
+        alerts. To save a whole recommendation run to your dashboard, use{" "}
         <Link
           href="/recommend"
           className="font-semibold text-cyan-300/90 underline-offset-2 hover:underline"

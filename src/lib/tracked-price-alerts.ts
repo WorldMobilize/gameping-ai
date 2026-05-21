@@ -1,8 +1,19 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { formatAggregatorPriceLine } from "@/lib/pricing/display";
+import {
+  formatPriceLine,
+  isCheapSharkUsdFallbackProvider,
+} from "@/lib/pricing/display";
+import type { PricingContext } from "@/lib/pricing/pricing-context";
+import { normalizeOfferCurrency } from "@/lib/pricing/pricing-regional";
 import { lookupBestPrice } from "@/lib/pricing/price-service";
+import {
+  resolveAlertCurrencyDecision,
+  type AlertCurrencyDecision,
+} from "@/lib/tracked-games-pricing";
+
+export { resolveAlertCurrencyDecision, type AlertCurrencyDecision };
 
 function parsePriceToNumber(price: string): number | null {
   const p = (price || "").trim();
@@ -117,13 +128,21 @@ export function priceAlertContextLine(
   return null;
 }
 
-function formatAlertEmailNumericPrice(params: {
+export function formatAlertEmailNumericPrice(params: {
   amount: number;
   currency?: string | null;
+  provider?: string | null;
+  pricingCountry?: string | null;
 }): string | null {
   if (!Number.isFinite(params.amount) || params.amount <= 0) return null;
   const price = params.amount.toFixed(2);
-  return formatAggregatorPriceLine({ price, currency: params.currency });
+  const currency = normalizeOfferCurrency(params.currency);
+  const usdFallback =
+    isCheapSharkUsdFallbackProvider(params.provider) ||
+    (params.pricingCountry &&
+      params.pricingCountry !== "US" &&
+      currency === "USD");
+  return formatPriceLine({ price, currency, usdFallback: Boolean(usdFallback) });
 }
 
 /** Was/now line for alert emails; null when comparison is invalid or unsafe to show. */
@@ -131,6 +150,8 @@ export function buildPriceChangeContextLine(params: {
   wasPrice: number | null | undefined;
   nowPrice: number | null | undefined;
   currency?: string | null;
+  provider?: string | null;
+  pricingCountry?: string | null;
   alertReason?: PriceAlertDecisionReason | string;
 }): string | null {
   const was = params.wasPrice;
@@ -141,8 +162,18 @@ export function buildPriceChangeContextLine(params: {
   if (was <= 0 || now <= 0) return null;
   if (Math.abs(was - now) < 0.005) return null;
 
-  const wasDisplay = formatAlertEmailNumericPrice({ amount: was, currency: params.currency });
-  const nowDisplay = formatAlertEmailNumericPrice({ amount: now, currency: params.currency });
+  const wasDisplay = formatAlertEmailNumericPrice({
+    amount: was,
+    currency: params.currency,
+    provider: params.provider,
+    pricingCountry: params.pricingCountry,
+  });
+  const nowDisplay = formatAlertEmailNumericPrice({
+    amount: now,
+    currency: params.currency,
+    provider: params.provider,
+    pricingCountry: params.pricingCountry,
+  });
   if (!wasDisplay || !nowDisplay) return null;
 
   if (params.alertReason === "significant_drop") {
@@ -160,7 +191,12 @@ export function buildPriceChangeContextLine(params: {
 function resolvePriceAlertContextLine(
   params: Pick<
     PriceAlertEmailContentParams,
-    "wasPriceNum" | "nowPriceNum" | "currency" | "alertReason"
+    | "wasPriceNum"
+    | "nowPriceNum"
+    | "currency"
+    | "alertReason"
+    | "provider"
+    | "pricingCountry"
   >
 ): string | null {
   return (
@@ -168,6 +204,8 @@ function resolvePriceAlertContextLine(
       wasPrice: params.wasPriceNum,
       nowPrice: params.nowPriceNum,
       currency: params.currency,
+      provider: params.provider,
+      pricingCountry: params.pricingCountry,
       alertReason: params.alertReason,
     }) ?? priceAlertContextLine(params.alertReason)
   );
@@ -203,14 +241,18 @@ export async function hasDuplicateAlertInCooldown(params: {
 }
 
 /**
- * Uses the same path as game details: cache → ITAD → CheapShark USD fallback, all gated.
- * Intentionally omits PricingContext — defaults to US until profiles.pricing_country exists.
+ * Same path as game details: cache → ITAD → regional selection, gated.
+ * Uses stored tracked_games.pricing_country (never request geo headers in cron).
  */
-export async function lookupVerifiedBestPriceForAlert(requestedTitle: string) {
+export async function lookupVerifiedBestPriceForAlert(
+  requestedTitle: string,
+  pricing: PricingContext
+) {
   const best = await lookupBestPrice({
     title: requestedTitle.trim(),
+    pricing,
     debug: process.env.NODE_ENV === "development",
-    debugLabel: `cron:tracked:${requestedTitle.slice(0, 40)}`,
+    debugLabel: `cron:tracked:${pricing.countryCode}:${requestedTitle.slice(0, 32)}`,
   });
 
   if (!best) {
@@ -227,7 +269,26 @@ export async function lookupVerifiedBestPriceForAlert(requestedTitle: string) {
     return { ok: false as const, reason: "no_trusted_url" };
   }
 
-  return { ok: true as const, best, priceNum };
+  const currency = normalizeOfferCurrency(best.currency);
+
+  return { ok: true as const, best, priceNum, currency };
+}
+
+export function formatAlertPriceDisplay(params: {
+  price: string;
+  currency?: string | null;
+  provider?: string | null;
+  pricingCountry: string;
+}): string {
+  const currency = normalizeOfferCurrency(params.currency);
+  const usdFallback =
+    isCheapSharkUsdFallbackProvider(params.provider) ||
+    (params.pricingCountry !== "US" && currency === "USD");
+  return formatPriceLine({
+    price: params.price,
+    currency,
+    usdFallback,
+  });
 }
 
 export const PRICE_ALERT_SUPPORT_EMAIL = "support@gamepingai.com";
@@ -301,6 +362,8 @@ export type PriceAlertEmailContentParams = {
   /** Provider price at alert time. */
   nowPriceNum?: number | null;
   currency?: string | null;
+  provider?: string | null;
+  pricingCountry?: string | null;
 };
 
 export function buildAlertEmailText(params: PriceAlertEmailContentParams): string {

@@ -14,6 +14,10 @@ import {
   parseExplicitTargetPrice,
   parseTrackedBaselinePrice,
 } from "@/lib/tracked-price-alerts";
+import {
+  parseTrackedOfferSnapshot,
+  resolveTrackedPricingCountry,
+} from "@/lib/tracked-games-pricing";
 
 export const runtime = "nodejs";
 
@@ -55,6 +59,10 @@ export async function POST(req: Request) {
               ? Number(body.baselinePrice)
               : undefined;
     const baselinePrice = parseTrackedBaselinePrice(baselineRaw);
+    const pricingCountry = resolveTrackedPricingCountry(
+      body.pricingCountry ?? body.pricing_country
+    );
+    const offerSnapshot = parseTrackedOfferSnapshot(body);
 
     const title = titleRaw.trim();
     if (!title) {
@@ -147,6 +155,20 @@ export async function POST(req: Request) {
 
     if (baselinePrice != null) {
       row.last_known_price = baselinePrice;
+    }
+
+    row.pricing_country = pricingCountry;
+    if (offerSnapshot.currency) {
+      row.last_known_currency = offerSnapshot.currency;
+    }
+    if (offerSnapshot.provider) {
+      row.last_known_provider = offerSnapshot.provider;
+    }
+    if (offerSnapshot.storeName) {
+      row.last_known_store = offerSnapshot.storeName;
+    }
+    if (offerSnapshot.url) {
+      row.last_known_url = offerSnapshot.url;
     }
 
     const { data: tracked, error } = await supabase

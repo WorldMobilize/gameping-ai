@@ -1134,6 +1134,16 @@ export default async function GameDetailPage({
               title={rawg?.name || title}
               rawgId={rawg?.id ?? null}
               baselinePrice={trackBaselinePrice}
+              pricingCountry={pricing.countryCode}
+              offerSnapshot={{
+                currency: primaryDeal?.currency ?? bestPrice?.currency ?? null,
+                provider: primaryDeal?.provider ?? bestPrice?.provider ?? null,
+                storeName:
+                  primaryDeal?.store.name ??
+                  bestPrice?.store?.name ??
+                  null,
+                url: primaryTrustedBuyUrl ?? bestPrice?.deal?.url ?? null,
+              }}
             />
           </div>
         </aside>
