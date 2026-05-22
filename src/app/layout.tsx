@@ -3,6 +3,7 @@ import "./globals.css";
 import CookieBanner from "@/components/CookieBanner";
 import AppProviders from "@/components/AppProviders";
 import ConditionalFooter from "@/components/ConditionalFooter";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "GamePing AI",
@@ -20,6 +21,7 @@ export default function RootLayout({
         <AppProviders>{children}</AppProviders>
         <ConditionalFooter />
         <CookieBanner />
+        <Analytics />
       </body>
     </html>
   );
