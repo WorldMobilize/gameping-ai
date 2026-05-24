@@ -1,6 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import { LEGAL_LAST_UPDATED } from "@/lib/legal-last-updated";
+import { legalPageMetadata } from "@/lib/seo/legal";
+
+export const metadata: Metadata = legalPageMetadata(
+  "/refund-policy",
+  "Refund Policy",
+  "Refund and cancellation terms for GamePing AI paid subscriptions."
+);
 
 export default function RefundPolicyPage() {
   return (

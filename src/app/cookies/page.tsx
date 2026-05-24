@@ -1,6 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import { LEGAL_LAST_UPDATED } from "@/lib/legal-last-updated";
+import { legalPageMetadata } from "@/lib/seo/legal";
+
+export const metadata: Metadata = legalPageMetadata(
+  "/cookies",
+  "Cookie Policy",
+  "How GamePing AI uses essential and optional cookies and how you can control them."
+);
 
 export default function CookiesPage() {
   return (

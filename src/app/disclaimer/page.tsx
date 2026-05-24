@@ -1,6 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import { LEGAL_LAST_UPDATED } from "@/lib/legal-last-updated";
+import { legalPageMetadata } from "@/lib/seo/legal";
+
+export const metadata: Metadata = legalPageMetadata(
+  "/disclaimer",
+  "Disclaimer",
+  "Disclaimers for AI recommendations, pricing data, third-party sources, and external links."
+);
 
 export default function DisclaimerPage() {
   return (

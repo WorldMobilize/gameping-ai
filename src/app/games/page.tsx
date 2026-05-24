@@ -2,13 +2,15 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import { DIRECTORY_GAMES } from "@/lib/curated/home-picks";
+import { buildPublicPageMetadata } from "@/lib/seo/site";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "Browse Games A–Z | GamePing AI",
+export const metadata: Metadata = buildPublicPageMetadata({
+  title: "Games Directory | GamePing AI",
   description:
-    "Discover popular games from A to Z and jump into each title’s page. Use GamePing’s AI recommendations to find what to play next from your current search.",
-};
+    "Browse popular games A–Z, open each title for verified deals and price context, then use AI recommendations to find what to play next.",
+  path: "/games",
+});
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 

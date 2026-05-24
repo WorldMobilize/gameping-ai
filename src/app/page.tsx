@@ -1,8 +1,17 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import HomeGameCarousel from "@/components/HomeGameCarousel";
 import HomeLoggedInStrip from "@/components/HomeLoggedInStrip";
 import Navbar from "@/components/Navbar";
 import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
+import { buildPublicPageMetadata } from "@/lib/seo/site";
+
+export const metadata: Metadata = buildPublicPageMetadata({
+  title: "GamePing AI — AI game discovery with real prices",
+  description:
+    "Describe your taste and get AI-powered game picks with match scores, verified deals, and price tracking on GamePing AI.",
+  path: "/",
+});
 
 const previewGames = [
   {
@@ -112,6 +121,30 @@ export default function Home() {
             <p className="mt-6 text-sm text-white/40">
               No login required • Takes less than 60 seconds • Real prices included
             </p>
+
+            <nav
+              aria-label="Explore GamePing"
+              className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm font-bold text-white/70"
+            >
+              <Link
+                href="/recommend"
+                className="text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
+              >
+                AI recommendations
+              </Link>
+              <Link
+                href="/games"
+                className="text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
+              >
+                Games directory
+              </Link>
+              <Link
+                href="/curated"
+                className="text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
+              >
+                Curated lists
+              </Link>
+            </nav>
           </div>
 
           <div className="relative">

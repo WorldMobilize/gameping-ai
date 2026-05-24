@@ -7,6 +7,7 @@ import {
   getAllCollectionSlugs,
   getCollectionBySlug,
 } from "@/lib/curated/collections";
+import { buildPublicPageMetadata } from "@/lib/seo/site";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -22,14 +23,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!collection) {
     return { title: "Collection | GamePing AI" };
   }
-  return {
+  return buildPublicPageMetadata({
     title: collection.seoTitle,
     description: collection.metaDescription,
-    openGraph: {
-      title: collection.seoTitle,
-      description: collection.metaDescription,
-    },
-  };
+    path: `/curated/${collection.slug}`,
+  });
 }
 
 export default async function CuratedCollectionPage({ params }: Props) {

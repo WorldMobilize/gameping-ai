@@ -1,5 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
+import { legalPageMetadata } from "@/lib/seo/legal";
+
+export const metadata: Metadata = legalPageMetadata(
+  "/about",
+  "About",
+  "What GamePing AI is, how recommendations and pricing work, and how to get in touch."
+);
 
 export default function AboutPage() {
   return (

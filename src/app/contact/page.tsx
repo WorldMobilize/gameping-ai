@@ -1,5 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
+import { legalPageMetadata } from "@/lib/seo/legal";
+
+export const metadata: Metadata = legalPageMetadata(
+  "/contact",
+  "Contact",
+  "Contact GamePing AI for support, privacy requests, and general inquiries."
+);
 
 export default function ContactPage() {
   return (

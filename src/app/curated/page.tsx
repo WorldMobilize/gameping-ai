@@ -1,13 +1,15 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { CURATED_COLLECTIONS } from "@/lib/curated/collections";
+import { buildPublicPageMetadata } from "@/lib/seo/site";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = buildPublicPageMetadata({
   title: "Curated game collections | GamePing AI",
   description:
     "Editor-style lists for popular searches—games like Hades, cozy picks, emotional stories, and more. Jump in, then get personalized recommendations.",
-};
+  path: "/curated",
+});
 
 export default function CuratedIndexPage() {
   return (

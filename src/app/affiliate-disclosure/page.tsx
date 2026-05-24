@@ -1,6 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import { LEGAL_LAST_UPDATED } from "@/lib/legal-last-updated";
+import { legalPageMetadata } from "@/lib/seo/legal";
+
+export const metadata: Metadata = legalPageMetadata(
+  "/affiliate-disclosure",
+  "Affiliate Disclosure",
+  "How GamePing AI may earn from affiliate links when you purchase through deal listings."
+);
 
 export default function AffiliateDisclosurePage() {
   return (

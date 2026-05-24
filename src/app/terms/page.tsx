@@ -1,6 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import { LEGAL_LAST_UPDATED } from "@/lib/legal-last-updated";
+import { legalPageMetadata } from "@/lib/seo/legal";
+
+export const metadata: Metadata = legalPageMetadata(
+  "/terms",
+  "Terms of Service",
+  "Terms and conditions for using GamePing AI, including subscriptions and acceptable use."
+);
 
 export default function TermsPage() {
   return (

@@ -1,6 +1,15 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Navbar from "@/components/Navbar";
+import { getCollectionBySlug } from "@/lib/curated/collections";
+import { gameDetailPath } from "@/lib/curated/game-links";
+import {
+  buildGamePageMetadata,
+  findCuratedCollectionSlugForGame,
+  getRelatedDirectoryGames,
+  titleCaseFromSlug,
+} from "@/lib/seo/game-page";
 import GameScreenshotLightbox from "@/components/GameScreenshotLightbox";
 import TrackPriceButton, {
   type TrackPriceOfferSnapshot,
@@ -420,6 +429,18 @@ function VerifiedStoreDealCard({
   );
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const decoded = decodeURIComponent(slug);
+  const cached = await getCachedRawgGame<RawgGame>(decoded);
+  const displayName = cached?.name?.trim() || titleCaseFromSlug(decoded);
+  return buildGamePageMetadata(displayName, decoded);
+}
+
 export default async function GameDetailPage({
   params,
   searchParams,
@@ -588,6 +609,11 @@ export default async function GameDetailPage({
   const developers = rawg?.developers?.map((d) => d.name).join(", ");
   const publishers = rawg?.publishers?.map((p) => p.name).join(", ");
   const releaseDateDisplay = formatDisplayDate(rawg?.released) ?? "N/A";
+
+  const displayTitle = rawg?.name?.trim() || titleCaseFromSlug(title);
+  const relatedGames = getRelatedDirectoryGames(displayTitle);
+  const curatedSlug = findCuratedCollectionSlugForGame(displayTitle);
+  const curatedCollection = curatedSlug ? getCollectionBySlug(curatedSlug) : null;
 
   return (
     <main className="min-h-screen bg-[#05060f] text-white">
@@ -1185,6 +1211,38 @@ export default async function GameDetailPage({
             Jump back into discovery whenever you are ready—browse the directory, scan curated
             angles, or describe what you want next.
           </p>
+
+          {curatedCollection ? (
+            <p className="mt-5 text-sm text-white/55">
+              Featured in{" "}
+              <Link
+                href={`/curated/${curatedCollection.slug}`}
+                className="font-bold text-cyan-300 underline-offset-4 hover:underline"
+              >
+                {curatedCollection.h1}
+              </Link>
+              .
+            </p>
+          ) : null}
+
+          {relatedGames.length > 0 ? (
+            <div className="mt-8">
+              <h3 className="text-sm font-black text-white/80">More games to explore</h3>
+              <ul className="mt-3 flex flex-wrap gap-3">
+                {relatedGames.map((game) => (
+                  <li key={game.title}>
+                    <Link
+                      href={gameDetailPath(game.title)}
+                      className="inline-flex rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-bold text-white/80 transition hover:border-cyan-400/40 hover:text-cyan-200"
+                    >
+                      {game.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <ul className="mt-6 flex flex-col gap-3 text-sm font-bold sm:flex-row sm:flex-wrap sm:gap-x-10 sm:gap-y-2">
             <li>
               <Link

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
+import { buildNoIndexMetadata } from "@/lib/seo/site";
 
-export const metadata: Metadata = {
-  title: "Email verified — GamePing AI",
-  robots: { index: false, follow: false },
-};
+export const metadata: Metadata = buildNoIndexMetadata("Email verified | GamePing AI");
 
 export default function VerifySuccessLayout({
   children,

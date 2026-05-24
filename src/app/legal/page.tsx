@@ -1,5 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
+import { legalPageMetadata } from "@/lib/seo/legal";
+
+export const metadata: Metadata = legalPageMetadata(
+  "/legal",
+  "Legal",
+  "Index of GamePing AI legal policies, disclosures, and contact information."
+);
 
 const LINKS = [
   { href: "/privacy", title: "Privacy Policy", desc: "What we collect, lawful bases, retention, and your rights." },
