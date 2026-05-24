@@ -61,17 +61,16 @@ export default function SteamTasteComingSoon({
   const headingId = `${idPrefix}-heading`;
 
   return (
-    <section className={`relative isolate px-6 ${py}`} aria-labelledby={headingId}>
-      {/* Atmospheric backdrop — extends past section edges to avoid hard panel cutoffs */}
-      <div
-        className="pointer-events-none absolute -inset-x-16 -top-36 bottom-0 z-0"
-        aria-hidden
-      >
-        <div className="absolute inset-x-0 -top-20 h-56 bg-gradient-to-b from-[#05060f] via-[#05060f]/55 to-transparent" />
-        <div className="absolute -left-[22%] -top-[42%] h-[125%] w-[95%] max-w-[56rem] bg-[radial-gradient(ellipse_78%_68%_at_28%_22%,rgba(34,211,238,0.14)_0%,rgba(34,211,238,0.05)_38%,transparent_72%)] blur-2xl" />
-        <div className="absolute -bottom-[18%] -right-[14%] h-[80%] w-[72%] max-w-[44rem] bg-[radial-gradient(ellipse_72%_62%_at_72%_78%,rgba(147,51,234,0.13)_0%,rgba(147,51,234,0.04)_42%,transparent_70%)] blur-2xl" />
-        <div className="absolute -left-[8%] bottom-[8%] h-[55%] w-[50%] bg-[radial-gradient(ellipse_60%_55%_at_20%_60%,rgba(100,116,139,0.08)_0%,transparent_68%)] blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_55%_at_50%_0%,rgba(5,6,15,0.65)_0%,transparent_58%)]" />
+    <section
+      className={`relative isolate overflow-hidden px-6 ${py}`}
+      aria-labelledby={headingId}
+    >
+      {/* Atmospheric backdrop — clipped to this section only (no upward bleed) */}
+      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cyan-500/[0.06] via-transparent to-transparent" />
+        <div className="absolute left-0 top-0 h-[72%] w-[92%] max-w-[56rem] -translate-x-[10%] bg-[radial-gradient(ellipse_75%_65%_at_30%_18%,rgba(34,211,238,0.13)_0%,rgba(34,211,238,0.04)_42%,transparent_72%)] blur-2xl" />
+        <div className="absolute bottom-0 right-0 h-[75%] w-[70%] max-w-[44rem] translate-x-[8%] bg-[radial-gradient(ellipse_70%_60%_at_72%_82%,rgba(147,51,234,0.12)_0%,rgba(147,51,234,0.04)_45%,transparent_70%)] blur-2xl" />
+        <div className="absolute bottom-[10%] left-0 h-[50%] w-[48%] bg-[radial-gradient(ellipse_55%_50%_at_22%_58%,rgba(100,116,139,0.07)_0%,transparent_68%)] blur-3xl" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl">
