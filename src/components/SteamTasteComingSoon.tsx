@@ -61,10 +61,18 @@ export default function SteamTasteComingSoon({
   const headingId = `${idPrefix}-heading`;
 
   return (
-    <section className={`relative overflow-hidden px-6 ${py}`} aria-labelledby={headingId}>
-      <div className="pointer-events-none absolute left-1/4 top-0 h-80 w-80 -translate-x-1/2 rounded-full bg-cyan-500/15 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 translate-x-1/4 rounded-full bg-purple-600/18 blur-3xl" />
-      <div className="pointer-events-none absolute left-0 bottom-1/4 h-56 w-56 rounded-full bg-slate-500/10 blur-3xl" />
+    <section className={`relative isolate px-6 ${py}`} aria-labelledby={headingId}>
+      {/* Atmospheric backdrop — extends past section edges to avoid hard panel cutoffs */}
+      <div
+        className="pointer-events-none absolute -inset-x-16 -top-36 bottom-0 z-0"
+        aria-hidden
+      >
+        <div className="absolute inset-x-0 -top-20 h-56 bg-gradient-to-b from-[#05060f] via-[#05060f]/55 to-transparent" />
+        <div className="absolute -left-[22%] -top-[42%] h-[125%] w-[95%] max-w-[56rem] bg-[radial-gradient(ellipse_78%_68%_at_28%_22%,rgba(34,211,238,0.14)_0%,rgba(34,211,238,0.05)_38%,transparent_72%)] blur-2xl" />
+        <div className="absolute -bottom-[18%] -right-[14%] h-[80%] w-[72%] max-w-[44rem] bg-[radial-gradient(ellipse_72%_62%_at_72%_78%,rgba(147,51,234,0.13)_0%,rgba(147,51,234,0.04)_42%,transparent_70%)] blur-2xl" />
+        <div className="absolute -left-[8%] bottom-[8%] h-[55%] w-[50%] bg-[radial-gradient(ellipse_60%_55%_at_20%_60%,rgba(100,116,139,0.08)_0%,transparent_68%)] blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_55%_at_50%_0%,rgba(5,6,15,0.65)_0%,transparent_58%)]" />
+      </div>
 
       <div className="relative z-10 mx-auto max-w-6xl">
         <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-12">
