@@ -38,7 +38,7 @@ function getClientIp(req: Request) {
  */
 export async function rateLimit(params: {
   req: Request
-  action: "recommend" | "email"
+  action: "recommend" | "email" | "feedback"
   limit: number
   windowMs: number
   userId?: string | null

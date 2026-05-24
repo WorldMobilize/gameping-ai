@@ -1,4 +1,5 @@
 import Link from "next/link";
+import FeedbackButton from "@/components/FeedbackButton";
 import { EARLY_ACCESS_NOTICE } from "@/lib/product-copy";
 
 export default function Footer() {
@@ -73,6 +74,7 @@ export default function Footer() {
                 >
                   Contact
                 </Link>
+                <FeedbackButton />
               </div>
             </div>
 
