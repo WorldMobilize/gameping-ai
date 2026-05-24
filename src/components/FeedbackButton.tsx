@@ -1,6 +1,5 @@
 "use client";
 
-import { useToast } from "@/components/ToastProvider";
 import { FEEDBACK_MESSAGE_MAX, FEEDBACK_TYPES, type FeedbackType } from "@/lib/feedback";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
@@ -8,8 +7,9 @@ type FeedbackButtonProps = {
   className?: string;
 };
 
+type FormStatus = "idle" | "success" | "error";
+
 export default function FeedbackButton({ className = "" }: FeedbackButtonProps) {
-  const { showToast } = useToast();
   const titleId = useId();
   const descId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -19,17 +19,33 @@ export default function FeedbackButton({ className = "" }: FeedbackButtonProps) 
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState<FormStatus>("idle");
+  const [statusMessage, setStatusMessage] = useState("");
+
+  const resetForm = useCallback(() => {
+    setMessage("");
+    setEmail("");
+    setType(FEEDBACK_TYPES[0].value);
+    setStatus("idle");
+    setStatusMessage("");
+  }, []);
 
   const close = useCallback(() => {
     if (submitting) return;
     setOpen(false);
-  }, [submitting]);
+    resetForm();
+  }, [submitting, resetForm]);
+
+  const openModal = useCallback(() => {
+    resetForm();
+    setOpen(true);
+  }, [resetForm]);
 
   useEffect(() => {
     if (!open) return;
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
+      if (e.key === "Escape" && !submitting) close();
     };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -38,7 +54,7 @@ export default function FeedbackButton({ className = "" }: FeedbackButtonProps) 
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [open, close]);
+  }, [open, close, submitting]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +62,9 @@ export default function FeedbackButton({ className = "" }: FeedbackButtonProps) 
     if (!trimmed || submitting) return;
 
     setSubmitting(true);
+    setStatus("idle");
+    setStatusMessage("");
+
     try {
       const pageUrl =
         typeof window !== "undefined" ? window.location.href.slice(0, 2048) : null;
@@ -67,26 +86,19 @@ export default function FeedbackButton({ className = "" }: FeedbackButtonProps) 
       };
 
       if (!res.ok || !data.ok) {
-        showToast({
-          variant: "error",
-          message: data.error ?? "Could not send feedback. Please try again.",
-        });
+        setStatus("error");
+        setStatusMessage(data.error ?? "Could not send feedback. Please try again.");
         return;
       }
 
-      setOpen(false);
+      setStatus("success");
+      setStatusMessage("Thanks — this genuinely helps improve GamePing.");
       setMessage("");
       setEmail("");
       setType(FEEDBACK_TYPES[0].value);
-      showToast({
-        variant: "success",
-        message: "Thanks — this genuinely helps improve GamePing.",
-      });
     } catch {
-      showToast({
-        variant: "error",
-        message: "Could not send feedback. Please try again.",
-      });
+      setStatus("error");
+      setStatusMessage("Could not send feedback. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -96,7 +108,7 @@ export default function FeedbackButton({ className = "" }: FeedbackButtonProps) 
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openModal}
         className={
           className ||
           "text-left text-sm text-slate-400 transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
@@ -152,80 +164,109 @@ export default function FeedbackButton({ className = "" }: FeedbackButtonProps) 
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
-              <div>
-                <label htmlFor={`${titleId}-category`} className="text-xs font-bold text-white/50">
-                  Category
-                </label>
-                <select
-                  id={`${titleId}-category`}
-                  value={type}
-                  onChange={(e) => setType(e.target.value as FeedbackType)}
-                  disabled={submitting}
-                  className="mt-2 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm font-semibold text-white focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/25"
+            {status === "success" ? (
+              <div className="space-y-5 px-6 py-8">
+                <p
+                  className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold leading-relaxed text-cyan-100"
+                  role="status"
                 >
-                  {FEEDBACK_TYPES.map((opt) => (
-                    <option key={opt.value} value={opt.value} className="bg-[#0a0b14]">
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor={`${titleId}-message`} className="text-xs font-bold text-white/50">
-                  Your feedback
-                </label>
-                <textarea
-                  id={`${titleId}-message`}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  disabled={submitting}
-                  required
-                  rows={5}
-                  maxLength={FEEDBACK_MESSAGE_MAX}
-                  placeholder="What felt off, confusing, or worth improving?"
-                  className="mt-2 w-full resize-y rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm leading-relaxed text-white placeholder:text-white/30 focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/25"
-                />
-                <p className="mt-1 text-right text-[11px] text-white/35">
-                  {message.length} / {FEEDBACK_MESSAGE_MAX}
+                  {statusMessage}
                 </p>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={close}
+                    className="rounded-full bg-cyan-400 px-6 py-2.5 text-sm font-black text-black transition hover:bg-cyan-300"
+                  >
+                    Done
+                  </button>
+                </div>
               </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+                {status === "error" && statusMessage ? (
+                  <p
+                    className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm leading-relaxed text-red-100"
+                    role="alert"
+                  >
+                    {statusMessage}
+                  </p>
+                ) : null}
 
-              <div>
-                <label htmlFor={`${titleId}-email`} className="text-xs font-bold text-white/50">
-                  Email <span className="font-normal text-white/35">(optional)</span>
-                </label>
-                <input
-                  id={`${titleId}-email`}
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={submitting}
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  className="mt-2 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/25"
-                />
-              </div>
+                <div>
+                  <label htmlFor={`${titleId}-category`} className="text-xs font-bold text-white/50">
+                    Category
+                  </label>
+                  <select
+                    id={`${titleId}-category`}
+                    value={type}
+                    onChange={(e) => setType(e.target.value as FeedbackType)}
+                    disabled={submitting}
+                    className="mt-2 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm font-semibold text-white focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/25"
+                  >
+                    {FEEDBACK_TYPES.map((opt) => (
+                      <option key={opt.value} value={opt.value} className="bg-[#0a0b14]">
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={close}
-                  disabled={submitting}
-                  className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-bold text-white/70 transition hover:bg-white/5 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !message.trim()}
-                  className="rounded-full bg-cyan-400 px-6 py-2.5 text-sm font-black text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {submitting ? "Sending…" : "Help improve GamePing"}
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label htmlFor={`${titleId}-message`} className="text-xs font-bold text-white/50">
+                    Your feedback
+                  </label>
+                  <textarea
+                    id={`${titleId}-message`}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    disabled={submitting}
+                    required
+                    rows={5}
+                    maxLength={FEEDBACK_MESSAGE_MAX}
+                    placeholder="What felt off, confusing, or worth improving?"
+                    className="mt-2 w-full resize-y rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm leading-relaxed text-white placeholder:text-white/30 focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/25"
+                  />
+                  <p className="mt-1 text-right text-[11px] text-white/35">
+                    {message.length} / {FEEDBACK_MESSAGE_MAX}
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor={`${titleId}-email`} className="text-xs font-bold text-white/50">
+                    Email <span className="font-normal text-white/35">(optional)</span>
+                  </label>
+                  <input
+                    id={`${titleId}-email`}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={submitting}
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    className="mt-2 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/25"
+                  />
+                </div>
+
+                <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={close}
+                    disabled={submitting}
+                    className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-bold text-white/70 transition hover:bg-white/5 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting || !message.trim()}
+                    className="rounded-full bg-cyan-400 px-6 py-2.5 text-sm font-black text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {submitting ? "Sending…" : "Help improve GamePing"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       ) : null}
