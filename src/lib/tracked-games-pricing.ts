@@ -29,6 +29,20 @@ function trimOptionalString(
   return t;
 }
 
+export function trackedOfferSnapshotFromRow(row: {
+  last_known_currency?: string | null;
+  last_known_provider?: string | null;
+  last_known_store?: string | null;
+  last_known_url?: string | null;
+}): TrackedOfferSnapshot {
+  return parseTrackedOfferSnapshot({
+    last_known_currency: row.last_known_currency,
+    last_known_provider: row.last_known_provider,
+    last_known_store: row.last_known_store,
+    last_known_url: row.last_known_url,
+  });
+}
+
 export function parseTrackedOfferSnapshot(body: Record<string, unknown>): TrackedOfferSnapshot {
   const currencyRaw =
     body.lastKnownCurrency ?? body.currency ?? body.last_known_currency;

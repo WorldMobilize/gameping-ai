@@ -7,7 +7,10 @@ import { NextResponse } from "next/server";
 import { createPricingContext } from "@/lib/pricing/pricing-context";
 import { buildPriceAlertUnsubscribeUrl } from "@/lib/price-alert-unsubscribe";
 import { resolveResendFrom } from "@/lib/resend-from";
-import { resolveTrackedPricingCountry } from "@/lib/tracked-games-pricing";
+import {
+  resolveTrackedPricingCountry,
+  trackedOfferSnapshotFromRow,
+} from "@/lib/tracked-games-pricing";
 import {
   buildAlertEmailHtml,
   buildAlertEmailText,
@@ -374,7 +377,20 @@ export async function GET(req: Request) {
       const pricingTitle = meta.title;
       logTitle = pricingTitle;
 
-      const verified = await lookupVerifiedBestPriceForAlert(pricingTitle, pricing);
+      const trackedSnapshot = trackedOfferSnapshotFromRow({
+        last_known_currency: (tg as { last_known_currency?: string | null })
+          .last_known_currency,
+        last_known_provider: (tg as { last_known_provider?: string | null })
+          .last_known_provider,
+        last_known_store: (tg as { last_known_store?: string | null }).last_known_store,
+        last_known_url: (tg as { last_known_url?: string | null }).last_known_url,
+      });
+
+      const verified = await lookupVerifiedBestPriceForAlert(
+        pricingTitle,
+        pricing,
+        trackedSnapshot
+      );
 
       if (!verified.ok) {
         skippedReason = verified.reason;
@@ -402,6 +418,32 @@ export async function GET(req: Request) {
         storeName: best.store?.name ?? null,
         dealUrl: best.deal?.url?.trim() ?? null,
       };
+
+      console.log("[cron:tracked-offer]", {
+        title: pricingTitle,
+        pricing_country: pricingCountry,
+        old_price: lastKnownBefore,
+        old_currency: (tg as { last_known_currency?: string | null }).last_known_currency ?? null,
+        old_provider: (tg as { last_known_provider?: string | null }).last_known_provider ?? null,
+        old_store: (tg as { last_known_store?: string | null }).last_known_store ?? null,
+        new_price: priceNum,
+        new_currency: quoteCurrency,
+        new_provider: best.provider ?? null,
+        new_store: best.store?.name ?? null,
+        selection_reason: verified.selectionReason,
+        compare_allowed: verified.compareAllowed,
+      });
+
+      if (!verified.compareAllowed) {
+        skippedReason = verified.selectionReason;
+        skipped += 1;
+        await applyPriceStateUpdate(priceNum, {
+          reason: skippedReason,
+          offer: offerMeta,
+        });
+        await sleep(120);
+        continue;
+      }
 
       const currencyDecision = resolveAlertCurrencyDecision({
         storedCurrency: (tg as { last_known_currency?: string | null })

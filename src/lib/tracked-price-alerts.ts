@@ -7,7 +7,20 @@ import {
 } from "@/lib/pricing/display";
 import type { PricingContext } from "@/lib/pricing/pricing-context";
 import { normalizeOfferCurrency } from "@/lib/pricing/pricing-regional";
-import { lookupBestPrice } from "@/lib/pricing/price-service";
+import {
+  bestPriceResultFromVerifiedDeal,
+  buildUnifiedTrustedVerifiedOffers,
+  lookupBestPrice,
+  lookupDeals,
+  type BestPriceResult,
+} from "@/lib/pricing/price-service";
+import type { VerifiedDealRow } from "@/lib/pricing/verified-deal-row";
+import {
+  findMatchingTrackedOffer,
+  hasTrackedOfferIdentity,
+  type TrackedOfferSelectionReason,
+} from "@/lib/tracked-offer-selection";
+import type { TrackedOfferSnapshot } from "@/lib/tracked-games-pricing";
 import {
   resolveAlertCurrencyDecision,
   type AlertCurrencyDecision,
@@ -240,38 +253,129 @@ export async function hasDuplicateAlertInCooldown(params: {
   return Boolean(data && data.length > 0);
 }
 
+export type VerifiedBestPriceForAlertResult =
+  | {
+      ok: true;
+      best: BestPriceResult;
+      priceNum: number;
+      currency: string;
+      selectionReason: TrackedOfferSelectionReason;
+      /** When false, update baseline only — do not compare/send alert (provider/store drift). */
+      compareAllowed: boolean;
+      selectedDeal: VerifiedDealRow | null;
+    }
+  | { ok: false; reason: string };
+
+function verifiedDealToAlertResult(
+  deal: VerifiedDealRow,
+  selectionReason: TrackedOfferSelectionReason,
+  compareAllowed: boolean
+): VerifiedBestPriceForAlertResult | null {
+  const best = bestPriceResultFromVerifiedDeal(deal);
+  const priceNum = parsePriceToNumber(best.price);
+  if (priceNum == null) return null;
+  if (!best.deal?.url?.trim()) return null;
+  return {
+    ok: true,
+    best,
+    priceNum,
+    currency: normalizeOfferCurrency(best.currency),
+    selectionReason,
+    compareAllowed,
+    selectedDeal: deal,
+  };
+}
+
 /**
- * Same path as game details: cache → ITAD → regional selection, gated.
- * Uses stored tracked_games.pricing_country (never request geo headers in cron).
+ * Same offer pipeline as game details (lookupDeals + lookupBestPrice + unified primary).
+ * When tracked provider/store/url exist, prefer that listing for alert math.
  */
 export async function lookupVerifiedBestPriceForAlert(
   requestedTitle: string,
-  pricing: PricingContext
-) {
-  const best = await lookupBestPrice({
-    title: requestedTitle.trim(),
+  pricing: PricingContext,
+  tracked?: TrackedOfferSnapshot | null
+): Promise<VerifiedBestPriceForAlertResult> {
+  const title = requestedTitle.trim();
+  const debug = process.env.NODE_ENV === "development";
+  const labelBase = `cron:tracked:${pricing.countryCode}:${title.slice(0, 32)}`;
+
+  const [dealsLookup, bestPrice] = await Promise.all([
+    lookupDeals({
+      title,
+      pricing,
+      limit: 12,
+      debug,
+      debugLabel: `${labelBase}:deals`,
+    }),
+    lookupBestPrice({
+      title,
+      pricing,
+      debug,
+      debugLabel: `${labelBase}:best`,
+    }),
+  ]);
+
+  const unified = await buildUnifiedTrustedVerifiedOffers({
+    requestedTitle: title,
+    displayDeals: dealsLookup.deals,
+    bestPrice,
     pricing,
-    debug: process.env.NODE_ENV === "development",
-    debugLabel: `cron:tracked:${pricing.countryCode}:${requestedTitle.slice(0, 32)}`,
+    debug,
+    debugLabel: `${labelBase}:unified`,
   });
 
-  if (!best) {
-    return { ok: false as const, reason: "no_price_match" };
+  const trackedSnap = tracked ?? {
+    currency: null,
+    provider: null,
+    storeName: null,
+    url: null,
+  };
+
+  if (hasTrackedOfferIdentity(trackedSnap)) {
+    const match = findMatchingTrackedOffer(unified.trustedOffers, trackedSnap);
+    if (match) {
+      const out = verifiedDealToAlertResult(match.deal, match.reason, true);
+      if (out) return out;
+    }
+
+    if (unified.primaryDeal) {
+      const out = verifiedDealToAlertResult(
+        unified.primaryDeal,
+        "tracked_listing_unavailable_rebaseline",
+        false
+      );
+      if (out) return out;
+    }
+
+    return { ok: false, reason: "tracked_listing_unavailable" };
   }
 
-  const priceNum = parsePriceToNumber(best.price);
-  if (priceNum == null) {
-    return { ok: false as const, reason: "unparsed_price" };
+  if (unified.primaryDeal) {
+    const out = verifiedDealToAlertResult(
+      unified.primaryDeal,
+      "unified_primary_no_tracked_identity",
+      true
+    );
+    if (out) return out;
   }
 
-  const trustedUrl = Boolean(best.deal?.url?.trim());
-  if (!trustedUrl) {
-    return { ok: false as const, reason: "no_trusted_url" };
+  if (bestPrice) {
+    const priceNum = parsePriceToNumber(bestPrice.price);
+    const trustedUrl = Boolean(bestPrice.deal?.url?.trim());
+    if (priceNum != null && trustedUrl) {
+      return {
+        ok: true,
+        best: bestPrice,
+        priceNum,
+        currency: normalizeOfferCurrency(bestPrice.currency),
+        selectionReason: "unified_primary_no_tracked_identity",
+        compareAllowed: true,
+        selectedDeal: null,
+      };
+    }
   }
 
-  const currency = normalizeOfferCurrency(best.currency);
-
-  return { ok: true as const, best, priceNum, currency };
+  return { ok: false, reason: "no_price_match" };
 }
 
 export function formatAlertPriceDisplay(params: {

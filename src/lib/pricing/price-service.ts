@@ -224,7 +224,7 @@ function bestPriceResultFromItad(itad: ItadBestPrice): BestPriceResult {
   };
 }
 
-function bestPriceResultFromVerifiedDeal(deal: VerifiedDealRow): BestPriceResult {
+export function bestPriceResultFromVerifiedDeal(deal: VerifiedDealRow): BestPriceResult {
   const provider: BestPriceResult["provider"] =
     deal.provider === "itad" ? "itad" : "cheapshark";
   return {
