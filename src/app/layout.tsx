@@ -4,7 +4,7 @@ import CookieBanner from "@/components/CookieBanner";
 import AppProviders from "@/components/AppProviders";
 import ConditionalFooter from "@/components/ConditionalFooter";
 import { Analytics } from "@vercel/analytics/next";
-import { getMetadataBase, SITE_NAME } from "@/lib/seo/site";
+import { DEFAULT_SITE_DESCRIPTION, getMetadataBase, SITE_NAME } from "@/lib/seo/site";
 import { steamHeaderImage } from "@/lib/curated/game-links";
 
 const defaultOgImage = steamHeaderImage(1145360);
@@ -15,8 +15,7 @@ export const metadata: Metadata = {
     default: "GamePing AI — AI game discovery with real prices",
     template: "%s",
   },
-  description:
-    "Describe your taste and get AI-powered game picks with match scores, verified deals, and price tracking on GamePing AI.",
+  description: DEFAULT_SITE_DESCRIPTION,
   openGraph: {
     type: "website",
     siteName: SITE_NAME,

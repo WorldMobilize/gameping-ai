@@ -4,6 +4,10 @@ import { getSiteOrigin as resolveSiteOrigin } from "@/lib/site-url";
 
 export const SITE_NAME = "GamePing AI";
 
+/** Default homepage / root meta description (gaming-native positioning). */
+export const DEFAULT_SITE_DESCRIPTION =
+  "Describe what you feel like playing. GamePing finds games that actually match your vibe — with real store prices and price alerts.";
+
 /** Canonical origin for sitemap, robots, and metadata (see `NEXT_PUBLIC_SITE_URL`). */
 export function getSiteOrigin(): string {
   return resolveSiteOrigin();

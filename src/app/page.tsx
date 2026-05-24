@@ -4,12 +4,11 @@ import HomeGameCarousel from "@/components/HomeGameCarousel";
 import HomeLoggedInStrip from "@/components/HomeLoggedInStrip";
 import Navbar from "@/components/Navbar";
 import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
-import { buildPublicPageMetadata } from "@/lib/seo/site";
+import { buildPublicPageMetadata, DEFAULT_SITE_DESCRIPTION } from "@/lib/seo/site";
 
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "GamePing AI — AI game discovery with real prices",
-  description:
-    "Describe your taste and get AI-powered game picks with match scores, verified deals, and price tracking on GamePing AI.",
+  description: DEFAULT_SITE_DESCRIPTION,
   path: "/",
 });
 
@@ -89,8 +88,7 @@ export default function Home() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/65">
-              Stop endless scrolling through stores and random deals.
-              Tell GamePing what you feel like playing and get tailored picks with real prices.
+              {DEFAULT_SITE_DESCRIPTION}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
