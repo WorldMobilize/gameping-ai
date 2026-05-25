@@ -278,7 +278,11 @@ export default function Home() {
 
       <SteamTasteComingSoon idPrefix="home-steam" />
 
-      <section className="px-6 pb-28">
+      <section className="relative px-6 pb-28 pt-14 md:pt-20 lg:pt-24">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-6 mx-auto h-px max-w-6xl bg-gradient-to-r from-transparent via-white/12 to-transparent md:top-8 lg:top-10"
+          aria-hidden
+        />
         <div className="relative mx-auto max-w-5xl overflow-hidden rounded-[2rem] border border-cyan-400/20 bg-gradient-to-r from-cyan-400/10 to-purple-500/10 p-10 text-center">
           <div className="absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl" />
 

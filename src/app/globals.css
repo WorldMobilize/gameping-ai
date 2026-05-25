@@ -48,8 +48,14 @@ body {
 .home-carousel-track {
   display: flex;
   width: max-content;
-  gap: 1.25rem;
-  animation: home-carousel-marquee var(--home-carousel-duration, 88s) linear infinite;
+  gap: 1.35rem;
+  animation: home-carousel-marquee var(--home-carousel-duration, 180s) linear infinite;
+}
+
+@media (min-width: 768px) {
+  .home-carousel-track {
+    gap: 1.5rem;
+  }
 }
 
 .home-carousel-track:hover {

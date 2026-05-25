@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useSyncExternalStore, type CSSProperties } from "react";
+import { useSyncExternalStore, type CSSProperties } from "react";
 import { gameDetailPath } from "@/lib/curated/game-links";
-import { HOME_CAROUSEL_PICKS, type HomeGamePick } from "@/lib/curated/home-picks";
+import { HOME_CAROUSEL_POOL, type HomeGamePick } from "@/lib/curated/home-picks";
 
 const CAROUSEL_SEED_KEY = "gp-home-carousel-seed";
 
@@ -13,10 +13,7 @@ type CarouselSessionState = {
   trackStyle: CSSProperties;
 };
 
-const DEFAULT_CAROUSEL_STATE: CarouselSessionState = {
-  picks: HOME_CAROUSEL_PICKS,
-  trackStyle: {},
-};
+const DEFAULT_CAROUSEL_STATE: CarouselSessionState = buildCarouselSessionStateWithSeed(0);
 
 const carouselSessionStore = {
   state: null as CarouselSessionState | null,
@@ -54,19 +51,37 @@ function getOrCreateCarouselSeed(): number {
   return seed;
 }
 
-function buildCarouselSessionState(): CarouselSessionState {
-  const seed = getOrCreateCarouselSeed();
-  const shuffled = shufflePicks(HOME_CAROUSEL_PICKS, seed);
-  const offset = seed % shuffled.length;
-  const durationSec = 84 + (seed % 14);
-  const delaySec = (seed % 37) + (seed % 5) * 0.35;
+function rotatePicks(items: HomeGamePick[], offset: number): HomeGamePick[] {
+  if (items.length === 0) return items;
+  const start = offset % items.length;
+  return [...items.slice(start), ...items.slice(0, start)];
+}
+
+/** Two independent shuffles so the loop seam (A→B) differs from the mid-strip rhythm. */
+function buildEndlessCarouselTrack(pool: HomeGamePick[], seed: number): HomeGamePick[] {
+  const segmentA = rotatePicks(shufflePicks(pool, seed), seed % pool.length);
+  const segmentB = rotatePicks(
+    shufflePicks(pool, (seed ^ 0x9e3779b9) >>> 0),
+    (seed * 7 + 13) % pool.length
+  );
+  return [...segmentA, ...segmentB, ...segmentA, ...segmentB];
+}
+
+function buildCarouselSessionStateWithSeed(seed: number): CarouselSessionState {
+  const pool = HOME_CAROUSEL_POOL;
+  const durationSec = Math.round(52 + pool.length * 2.75) + (seed % 18);
+  const delaySec = (seed % 41) + (seed % 7) * 0.4;
   return {
-    picks: [...shuffled.slice(offset), ...shuffled.slice(0, offset)],
+    picks: buildEndlessCarouselTrack(pool, seed),
     trackStyle: {
       ["--home-carousel-duration" as string]: `${durationSec}s`,
       animationDelay: `-${delaySec}s`,
     },
   };
+}
+
+function buildCarouselSessionState(): CarouselSessionState {
+  return buildCarouselSessionStateWithSeed(getOrCreateCarouselSeed());
 }
 
 function subscribeCarouselSession(onStoreChange: () => void) {
@@ -104,7 +119,7 @@ export default function HomeGameCarousel() {
     getCarouselSessionServerSnapshot
   );
 
-  const loop = useMemo(() => [...carouselPicks, ...carouselPicks], [carouselPicks]);
+  const loop = carouselPicks;
 
   return (
     <section
@@ -146,7 +161,8 @@ export default function HomeGameCarousel() {
                   fill
                   sizes="(max-width: 768px) 78vw, 280px"
                   className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                  priority={index < 4}
+                  priority={index < 6}
+                  loading={index < 8 ? undefined : "lazy"}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#05060f] via-[#05060f]/20 to-transparent" />
               </div>
