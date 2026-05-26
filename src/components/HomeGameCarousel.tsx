@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import CuratedGameArt from "@/components/CuratedGameArt";
 import { useSyncExternalStore, type CSSProperties } from "react";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import { HOME_CAROUSEL_POOL, type HomeGamePick } from "@/lib/curated/home-picks";
@@ -154,18 +154,14 @@ export default function HomeGameCarousel() {
               key={`${game.title}-${index}`}
               className="group relative w-[min(280px,78vw)] shrink-0 overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.04] shadow-[0_12px_40px_rgba(0,0,0,0.35)] transition hover:border-cyan-400/35 hover:bg-cyan-400/[0.06]"
             >
-              <div className="relative aspect-[460/215] w-full overflow-hidden bg-black/40">
-                <Image
-                  src={game.image}
-                  alt={`${game.title} header art`}
-                  fill
-                  sizes="(max-width: 768px) 78vw, 280px"
-                  className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                  priority={index < 6}
-                  loading={index < 8 ? undefined : "lazy"}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#05060f] via-[#05060f]/20 to-transparent" />
-              </div>
+              <CuratedGameArt
+                src={game.image}
+                alt={`${game.title} header art`}
+                sizes="(max-width: 768px) 78vw, 280px"
+                variant="carousel"
+                priority={index < 6}
+                loading={index < 8 ? undefined : "lazy"}
+              />
 
               <div className="space-y-3 p-5 pt-4">
                 <div>

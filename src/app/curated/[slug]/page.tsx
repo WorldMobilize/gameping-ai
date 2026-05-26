@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import CuratedGameArt from "@/components/CuratedGameArt";
 import Navbar from "@/components/Navbar";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import {
@@ -93,16 +93,12 @@ export default async function CuratedCollectionPage({ params }: Props) {
                 key={game.title}
                 className="flex flex-col overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.04] md:flex-row"
               >
-                <div className="relative aspect-[460/215] w-full shrink-0 overflow-hidden bg-black/30 md:w-[min(240px,40%)] md:aspect-auto md:min-h-[200px]">
-                  <Image
-                    src={game.image}
-                    alt={`${game.title} header art`}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 240px"
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#05060f]/80 to-transparent md:bg-gradient-to-r" />
-                </div>
+                <CuratedGameArt
+                  src={game.image}
+                  alt={`${game.title} header art`}
+                  sizes="(max-width: 768px) 100vw, 280px"
+                  variant="collection"
+                />
 
                 <div className="flex flex-1 flex-col justify-center p-6">
                   <h3 className="text-lg font-black">{game.title}</h3>
