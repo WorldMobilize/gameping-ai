@@ -3,6 +3,17 @@ import Image from "next/image";
 /** Native Steam library header ratio (460×215). */
 export const STEAM_HEADER_ASPECT = "aspect-[460/215]" as const;
 
+/** Blurred fill — bleeds art into the frame so letterboxing feels intentional. */
+const BACKDROP_IMAGE_CLASS =
+  "scale-[1.35] object-cover object-[42%_50%] opacity-[0.52] blur-lg saturate-150 brightness-[0.88]";
+
+/**
+ * Hybrid foreground: contain + slight overscale clips only edges, not logos.
+ * Steam headers anchor left-of-center where titles/logos usually sit.
+ */
+const FOREGROUND_IMAGE_CLASS =
+  "z-[1] scale-[1.1] object-contain object-[42%_50%] transition duration-500 group-hover:scale-[1.13]";
+
 type CuratedGameArtProps = {
   src: string;
   alt: string;
@@ -14,8 +25,8 @@ type CuratedGameArtProps = {
 };
 
 /**
- * Steam header art for curated cards — full artwork visible, no aggressive crop.
- * Collection cards use a soft blurred fill behind `object-contain` for a cinematic frame.
+ * Steam header art for curated cards — readable logos with cinematic fill.
+ * Blurred backdrop + slightly scaled contain avoids both aggressive crop and floating thumbnails.
  */
 export default function CuratedGameArt({
   src,
@@ -31,25 +42,19 @@ export default function CuratedGameArt({
     <div
       className={
         isCollection
-          ? `relative w-full shrink-0 overflow-hidden bg-[#0a0c16] ${STEAM_HEADER_ASPECT} md:w-[min(280px,42%)] md:max-w-[300px] md:self-start`
-          : `relative w-full overflow-hidden bg-[#0a0c16] ${STEAM_HEADER_ASPECT}`
+          ? `relative w-full shrink-0 overflow-hidden bg-[#080a14] ${STEAM_HEADER_ASPECT} md:w-[min(280px,42%)] md:max-w-[300px] md:self-start`
+          : `relative w-full overflow-hidden bg-[#080a14] ${STEAM_HEADER_ASPECT}`
       }
     >
-      {isCollection ? (
-        <Image
-          src={src}
-          alt=""
-          aria-hidden
-          fill
-          sizes={sizes}
-          className="scale-110 object-cover object-center opacity-35 blur-md saturate-125"
-        />
-      ) : (
-        <div
-          className="absolute inset-0 bg-gradient-to-br from-cyan-950/25 via-[#0a0c16] to-purple-950/20"
-          aria-hidden
-        />
-      )}
+      <Image
+        src={src}
+        alt=""
+        aria-hidden
+        fill
+        sizes={sizes}
+        loading="lazy"
+        className={BACKDROP_IMAGE_CLASS}
+      />
       <Image
         src={src}
         alt={alt}
@@ -57,12 +62,19 @@ export default function CuratedGameArt({
         sizes={sizes}
         priority={priority}
         loading={loading}
-        className="relative z-[1] object-contain object-center transition duration-500 group-hover:scale-[1.02]"
+        className={FOREGROUND_IMAGE_CLASS}
       />
       <div
-        className={`pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-[#05060f]/85 via-[#05060f]/15 to-transparent ${
-          isCollection ? "md:bg-gradient-to-r md:from-[#05060f]/90 md:via-[#05060f]/25 md:to-transparent" : ""
+        className="pointer-events-none absolute inset-0 z-[2] shadow-[inset_0_0_56px_rgba(5,6,15,0.4)]"
+        aria-hidden
+      />
+      <div
+        className={`pointer-events-none absolute inset-0 z-[3] bg-gradient-to-t from-[#05060f]/80 via-[#05060f]/10 to-[#05060f]/25 ${
+          isCollection
+            ? "md:bg-gradient-to-br md:from-[#05060f]/85 md:via-[#05060f]/20 md:to-transparent"
+            : ""
         }`}
+        aria-hidden
       />
     </div>
   );
