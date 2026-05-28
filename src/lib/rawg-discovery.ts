@@ -17,6 +17,13 @@ export type RawgCandidate = {
   tags?: { name: string }[]
 }
 
+const RAWG_FETCH_TIMEOUT_MS = 8_500
+
+async function fetchRawgJson(url: string) {
+  const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(RAWG_FETCH_TIMEOUT_MS) })
+  return res
+}
+
 type IntentBundle = {
   normalizedIntent: string
   coreKeywords: string[]
@@ -191,7 +198,7 @@ export async function fetchRawgCandidates(params: {
       const url = `https://api.rawg.io/api/games?key=${params.rawgApiKey}&search=${encodeURIComponent(
         q
       )}&page_size=${pageSize}`
-      const res = await fetch(url, { cache: "no-store" })
+      const res = await fetchRawgJson(url)
       if (!res.ok) return
       const data = (await res.json()) as { results?: unknown }
       const arr = Array.isArray(data?.results) ? (data.results as unknown[]) : []
@@ -249,7 +256,7 @@ export async function searchRawgByTitle(params: {
     const url = `https://api.rawg.io/api/games?key=${params.rawgApiKey}&search=${encodeURIComponent(
       q
     )}&page_size=${pageSize}`
-    const res = await fetch(url, { cache: "no-store" })
+    const res = await fetchRawgJson(url)
     if (!res.ok) return []
     const data = (await res.json()) as { results?: unknown }
     const arr = Array.isArray(data?.results) ? (data.results as unknown[]) : []
@@ -300,7 +307,7 @@ export async function fetchRawgGameDetails(params: {
 }): Promise<Pick<RawgCandidate, "id" | "description_raw" | "platforms" | "stores"> | null> {
   try {
     const url = `https://api.rawg.io/api/games/${params.rawgId}?key=${params.rawgApiKey}`
-    const res = await fetch(url, { cache: "no-store" })
+    const res = await fetchRawgJson(url)
     if (!res.ok) return null
     const rec = (await res.json()) as Record<string, unknown>
 
@@ -341,7 +348,7 @@ export async function fetchRawgFirstScreenshotUrl(params: {
     const url = `https://api.rawg.io/api/games/${params.rawgId}/screenshots?key=${encodeURIComponent(
       params.rawgApiKey
     )}`
-    const res = await fetch(url, { cache: "no-store" })
+    const res = await fetchRawgJson(url)
     if (!res.ok) return null
     const data = (await res.json()) as { results?: unknown }
     const arr = Array.isArray(data?.results) ? (data.results as unknown[]) : []

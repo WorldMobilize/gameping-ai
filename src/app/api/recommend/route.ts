@@ -140,6 +140,28 @@ function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
+function nowMs() {
+  return performance.now();
+}
+
+async function timed<T>(label: string, fn: () => Promise<T>) {
+  const start = nowMs();
+  try {
+    const value = await fn();
+    return { value, ms: nowMs() - start };
+  } catch (error) {
+    const ms = nowMs() - start;
+    const err = error as unknown as { name?: unknown; message?: unknown };
+    console.warn("[recommend:timing:error]", {
+      label,
+      ms: Math.round(ms),
+      name: typeof err?.name === "string" ? err.name : undefined,
+      message: typeof err?.message === "string" ? err.message.slice(0, 160) : undefined,
+    });
+    throw error;
+  }
+}
+
 type CheapSharkRow = {
   cheapest?: unknown;
   cheapestDealID?: unknown;
@@ -845,8 +867,8 @@ async function aiSemanticRelevanceFilter(params: {
   const allResults: AiRelevanceResult[] = [];
   let totalUsage: unknown = null;
 
-  let batchIndex = 0;
-  for (const batch of batches) {
+  const SEMANTIC_FILTER_TIMEOUT_MS = 12_000;
+  const runBatch = async (batch: VerifiedCandidate[], batchIndex: number) => {
     const batchStarted = performance.now();
     const retries = 0;
 
@@ -909,14 +931,15 @@ ${JSON.stringify(
 
     const promptCharLength = messages.reduce((acc, m) => acc + (m.content as string).length, 0);
 
-    const resp = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      temperature: 0,
-      messages,
-    });
-
-    totalUsage = totalUsage ? totalUsage : resp.usage;
+    const resp = await openai.chat.completions.create(
+      {
+        model: "gpt-4o-mini",
+        response_format: { type: "json_object" },
+        temperature: 0,
+        messages,
+      },
+      { signal: AbortSignal.timeout(SEMANTIC_FILTER_TIMEOUT_MS) }
+    );
 
     const text = resp.choices[0].message.content || '{"results":[]}';
     const executionMs = performance.now() - batchStarted;
@@ -931,12 +954,59 @@ ${JSON.stringify(
         retries,
         batchIndex,
       });
+    } else if (executionMs > 8000) {
+      console.warn("[recommend:timing:slow]", {
+        label: "semanticFilterBatch",
+        ms: Math.round(executionMs),
+        model: resp.model ?? "gpt-4o-mini",
+        candidateCount: batch.length,
+        batchIndex,
+      });
     }
 
     const parsed = safeParseJson<{ results?: unknown }>(text) || { results: [] };
     const normalized = normalizeRelevanceResults(parsed.results);
-    allResults.push(...normalized);
-    batchIndex += 1;
+    return {
+      normalized,
+      usage: resp.usage,
+      model: resp.model ?? "gpt-4o-mini",
+      promptCharLength,
+      responseCharLength: text.length,
+      executionMs,
+      batchIndex,
+      retries,
+    };
+  };
+
+  // Run up to 2 semantic-filter batches concurrently to reduce tail latency.
+  let anyFailed = false;
+  const results = await mapPool(batches, 2, async (batch, i) => {
+    try {
+      return await runBatch(batch, i);
+    } catch (err) {
+      anyFailed = true;
+      const e = err as unknown as { name?: unknown; message?: unknown };
+      console.warn("[recommend:semanticFilter:fallback]", {
+        reason: "batch_failed_or_timed_out",
+        batchIndex: i,
+        name: typeof e?.name === "string" ? e.name : undefined,
+        message: typeof e?.message === "string" ? e.message.slice(0, 140) : undefined,
+        timeoutMs: SEMANTIC_FILTER_TIMEOUT_MS,
+      });
+      return null;
+    }
+  });
+
+  for (const r of results) {
+    if (!r) continue;
+    totalUsage = totalUsage ? totalUsage : r.usage;
+    allResults.push(...r.normalized);
+  }
+
+  // Safety fallback: if any batch failed, skip filtering (keep candidates) rather than
+  // accidentally dropping good games due to missing judgments.
+  if (anyFailed) {
+    return { kept: toJudge, usage: totalUsage };
   }
 
   const keepById = new Map<number, AiRelevanceResult>();
@@ -1161,7 +1231,8 @@ async function verifySuggestedTitles(params: {
   excludeNormalized: Set<string>;
 }) {
   const { rawgKey, suggestedTitles, excludeNormalized } = params;
-  const slice = suggestedTitles.slice(0, 15);
+  // Trim RAWG fan-out: top titles only (keeps quality while reducing worst-case latency).
+  const slice = suggestedTitles.slice(0, 12);
   const RAWG_VERIFY_CONCURRENCY = 4;
 
   const resolved = await mapPool(slice, RAWG_VERIFY_CONCURRENCY, async (s) => {
@@ -1555,6 +1626,9 @@ export async function POST(req: Request) {
   } catch {}
 
   let stage: "discovery" | "relevance" | "rerank" | "unknown" = "unknown";
+  const requestId = `${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
+  const routeStarted = nowMs();
+  const stageMs: Record<string, number> = {};
 
   try {
 
@@ -1562,25 +1636,36 @@ export async function POST(req: Request) {
     let plan: string | null = null;
     try {
       const supabase = await createCookieClient();
+      const authRes = await timed("auth.getUser", () => supabase.auth.getUser());
+      stageMs["auth.getUser"] = authRes.ms;
       const {
         data: { user },
-      } = await supabase.auth.getUser();
+      } = authRes.value;
       if (user) {
-        const blocked = await blockUnverifiedLoggedInUser(supabase, user);
-        if (blocked) return blocked;
+        const blockedRes = await timed("auth.blockUnverified", () =>
+          blockUnverifiedLoggedInUser(supabase, user)
+        );
+        stageMs["auth.blockUnverified"] = blockedRes.ms;
+        if (blockedRes.value) return blockedRes.value;
         userId = user.id;
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("plan")
-          .eq("user_id", userId)
-          .maybeSingle();
+        const profileRes = await timed("auth.profilePlan", async () => {
+          return await supabase
+            .from("profiles")
+            .select("plan")
+            .eq("user_id", userId)
+            .maybeSingle();
+        });
+        stageMs["auth.profilePlan"] = profileRes.ms;
+        const { data: profile } = profileRes.value;
         plan = profile?.plan ?? "free";
       }
     } catch {}
 
     let body: unknown;
     try {
-      body = await req.json();
+      const bodyRes = await timed("request.json", () => req.json());
+      stageMs["request.json"] = bodyRes.ms;
+      body = bodyRes.value;
     } catch {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
@@ -1655,34 +1740,47 @@ export async function POST(req: Request) {
     };
     const earlyHash = hashNormalizedInput(earlyCacheKeyInput);
 
-    const perfRouteStart = performance.now();
+    const perfRouteStart = nowMs();
     const timing = {
       aiDiscoveryMs: 0,
       rawgVerificationMs: 0,
       rawgFallbackMs: 0,
+      rawgDetailsMs: 0,
+      semanticJudgeMs: 0,
       semanticFilterMs: 0,
       rerankMs: 0,
       recoveryMs: 0,
+      screenshotFallbackMs: 0,
       cacheMs: 0,
       earlyCacheMs: 0,
       fullCacheMs: 0,
     };
 
     let cacheHitSource: "early" | "full" | null = null;
+    let quotaConsumed = false;
 
-    const tEarlyCache = performance.now();
-    const cachedEarly =
-      !debugEnabled && !noCache
-        ? await getCachedAiRecommendation<{
-            games: unknown[];
-            usage?: unknown;
-          }>(earlyHash)
-        : null;
-    timing.earlyCacheMs = performance.now() - tEarlyCache;
+    const earlyCacheRes = await timed("cache.earlyRead", async () => {
+      if (debugEnabled || noCache) return null;
+      return await getCachedAiRecommendation<{
+        games: unknown[];
+        usage?: unknown;
+      }>(earlyHash);
+    });
+    stageMs["cache.earlyRead"] = earlyCacheRes.ms;
+    const cachedEarly = earlyCacheRes.value;
+    timing.earlyCacheMs = earlyCacheRes.ms;
 
     if (cachedEarly && !debugEnabled && !noCache) {
       cacheHitSource = "early";
       timing.cacheMs = timing.earlyCacheMs;
+      if (process.env.NODE_ENV !== "development") {
+        console.log("[recommend:cache]", {
+          requestId,
+          cacheHit: "early",
+          ms: Math.round(timing.earlyCacheMs),
+          quotaConsumed: false,
+        });
+      }
       if (process.env.NODE_ENV === "development") {
         const games = Array.isArray((cachedEarly as { games?: unknown }).games)
           ? (cachedEarly as { games: unknown[] }).games
@@ -1708,11 +1806,16 @@ export async function POST(req: Request) {
 
     // Quota runs only after early-cache miss (see recommend-quota-cache-order.ts).
     if (!bypassLimits) {
-      usageAfter = await tryConsumeRecommendDailySlot({
-        req,
-        userId,
-        dailyLimit: dailyLimitValue,
-      });
+      const quotaRes = await timed("quota.consumeDailySlot", () =>
+        tryConsumeRecommendDailySlot({
+          req,
+          userId,
+          dailyLimit: dailyLimitValue,
+        })
+      );
+      stageMs["quota.consumeDailySlot"] = quotaRes.ms;
+      usageAfter = quotaRes.value;
+      quotaConsumed = true;
 
       if (process.env.NODE_ENV === "development") {
         console.log("[recommend:usage-limit]", {
@@ -1786,6 +1889,7 @@ export async function POST(req: Request) {
       }
     }
     timing.aiDiscoveryMs = performance.now() - tDiscovery;
+    stageMs["ai.discovery"] = timing.aiDiscoveryMs;
     const intent = aiDiscovery.intent;
 
     intent.fallbackDiscoveryQueries = augmentIslandSurvivalFallbackQueries({
@@ -1835,19 +1939,28 @@ export async function POST(req: Request) {
     };
 
     const inputHash = hashNormalizedInput(cacheKeyInput);
-    const tFullCache = performance.now();
-    const cachedFull =
-      !debugEnabled && !noCache
-        ? await getCachedAiRecommendation<{
-            games: unknown[];
-            usage?: unknown;
-          }>(inputHash)
-        : null;
-    timing.fullCacheMs = performance.now() - tFullCache;
+    const fullCacheRes = await timed("cache.fullRead", async () => {
+      if (debugEnabled || noCache) return null;
+      return await getCachedAiRecommendation<{
+        games: unknown[];
+        usage?: unknown;
+      }>(inputHash);
+    });
+    stageMs["cache.fullRead"] = fullCacheRes.ms;
+    const cachedFull = fullCacheRes.value;
+    timing.fullCacheMs = fullCacheRes.ms;
     timing.cacheMs = timing.fullCacheMs;
 
     if (cachedFull && !debugEnabled && !noCache) {
       cacheHitSource = "full";
+      if (process.env.NODE_ENV !== "development") {
+        console.log("[recommend:cache]", {
+          requestId,
+          cacheHit: "full",
+          ms: Math.round(timing.fullCacheMs),
+          quotaConsumed,
+        });
+      }
       if (process.env.NODE_ENV === "development") {
         const games = Array.isArray((cachedFull as { games?: unknown }).games)
           ? (cachedFull as { games: unknown[] }).games
@@ -1884,6 +1997,7 @@ export async function POST(req: Request) {
       });
     }
     timing.rawgVerificationMs = performance.now() - tVerify;
+    stageMs["rawg.verifySuggestedTitles"] = timing.rawgVerificationMs;
 
     verified = filterCandidatesByExclude(verified, excludeNormalized);
 
@@ -1902,6 +2016,7 @@ export async function POST(req: Request) {
         pageSize: 20,
       });
       timing.rawgFallbackMs = performance.now() - tFallback;
+      stageMs["rawg.fetchCandidatesFallback"] = timing.rawgFallbackMs;
 
       // Reuse existing RAWG scoring as a best-effort signal.
       const scored = scoreCandidates(
@@ -1962,13 +2077,17 @@ export async function POST(req: Request) {
     let filteredPool = rerankPool as VerifiedCandidate[];
     const tSemantic = performance.now();
     if (rawgKey && filteredPool.length > 0) {
+      const tRawgDetails = performance.now();
       filteredPool = await enrichWithRawgDetails({
         rawgKey,
         candidates: filteredPool,
-        maxToFetch: Math.min(18, PRERANK_POOL_MAX),
+        maxToFetch: Math.min(16, PRERANK_POOL_MAX),
       });
+      timing.rawgDetailsMs = performance.now() - tRawgDetails;
+      stageMs["rawg.detailsPrefetch"] = timing.rawgDetailsMs;
 
       stage = "relevance";
+      const tSemanticJudge = performance.now();
       const rel = await aiSemanticRelevanceFilter({
         openai,
         userQuery: normalizedInput.userPrompt,
@@ -1982,10 +2101,13 @@ export async function POST(req: Request) {
         mechanicsLine: normalizedInput.mechanics || "",
         vibesLine: normalizedInput.vibes || "",
       });
+      timing.semanticJudgeMs = performance.now() - tSemanticJudge;
+      stageMs["ai.semanticJudge"] = timing.semanticJudgeMs;
 
       filteredPool = rel.kept;
     }
     timing.semanticFilterMs = performance.now() - tSemantic;
+    stageMs["semanticFilter.total"] = timing.semanticFilterMs;
 
     // 5) Final rerank: AI picks ONLY from verified pool by id.
     const hasCandidatePool = filteredPool.length > 0;
@@ -2079,6 +2201,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
       messages: rerankMessages,
     });
     timing.rerankMs = performance.now() - tRerank;
+    stageMs["ai.rerank"] = timing.rerankMs;
 
     const text = response.choices[0].message.content || '{"games":[]}';
 
@@ -2186,6 +2309,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
     }
     picksForEnrichment = balanceFinalPicksDiversity(picksForEnrichment);
     timing.recoveryMs = performance.now() - tRecovery;
+    stageMs["recovery"] = timing.recoveryMs;
 
     if (process.env.NODE_ENV === "development") {
       const totalMs = performance.now() - perfRouteStart;
@@ -2220,10 +2344,13 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
 
     let picksWithImages = picksForEnrichment;
     if (rawgKey && picksForEnrichment.some((p) => !p.image)) {
+      const tScreens = performance.now();
       picksWithImages = await enrichFinalPicksWithScreenshotFallback({
         rawgKey,
         picks: picksForEnrichment,
       });
+      timing.screenshotFallbackMs = performance.now() - tScreens;
+      stageMs["rawg.screenshotFallback"] = timing.screenshotFallbackMs;
     }
 
     // Cards: discovery only — no live pricing (verified on /game/[slug]).
@@ -2309,17 +2436,42 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
     // Best-effort cache: do not block response on failures.
     if (!noCache) {
       try {
-        await setCachedAiRecommendation({
-          inputHash,
-          inputNormalized: cacheKeyInput,
-          responseJson: payload,
+        const cacheWriteRes = await timed("cache.write", async () => {
+          await setCachedAiRecommendation({
+            inputHash,
+            inputNormalized: cacheKeyInput,
+            responseJson: payload,
+          });
+          await setCachedAiRecommendation({
+            inputHash: earlyHash,
+            inputNormalized: earlyCacheKeyInput,
+            responseJson: payload,
+          });
         });
-        await setCachedAiRecommendation({
-          inputHash: earlyHash,
-          inputNormalized: earlyCacheKeyInput,
-          responseJson: payload,
-        });
+        stageMs["cache.write"] = cacheWriteRes.ms;
       } catch {}
+    }
+
+    const totalMs = nowMs() - routeStarted;
+    if (!debugEnabled && totalMs > 12_000) {
+      console.warn("[recommend:timing:slow]", {
+        requestId,
+        totalMs: Math.round(totalMs),
+        aiDiscoveryMs: Math.round(timing.aiDiscoveryMs),
+        rawgVerificationMs: Math.round(timing.rawgVerificationMs),
+        rawgFallbackMs: Math.round(timing.rawgFallbackMs),
+        rawgDetailsMs: Math.round(timing.rawgDetailsMs),
+        semanticJudgeMs: Math.round(timing.semanticJudgeMs),
+        semanticFilterMs: Math.round(timing.semanticFilterMs),
+        rerankMs: Math.round(timing.rerankMs),
+        recoveryMs: Math.round(timing.recoveryMs),
+        screenshotFallbackMs: Math.round(timing.screenshotFallbackMs),
+        earlyCacheMs: Math.round(timing.earlyCacheMs),
+        fullCacheMs: Math.round(timing.fullCacheMs),
+        cacheHitSource,
+        quotaConsumed,
+        stageMs,
+      });
     }
 
     return NextResponse.json(payload);

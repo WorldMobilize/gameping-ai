@@ -264,6 +264,14 @@ User request: ${normalizedInput.userPrompt || "not specified"}
       retries: 0,
     })
   }
+  const aiDiscoveryMs = performance.now() - discoveryStarted
+  if (process.env.NODE_ENV !== "development" && aiDiscoveryMs > 8000) {
+    console.warn("[recommend:timing:slow]", {
+      label: "aiDiscovery",
+      ms: Math.round(aiDiscoveryMs),
+      model: resp.model ?? "gpt-4o-mini",
+    })
+  }
 
   const normalizedIntent =
     typeof parsed.normalizedIntent === "string" && parsed.normalizedIntent.trim()
