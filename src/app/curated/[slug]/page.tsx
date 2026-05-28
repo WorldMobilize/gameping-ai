@@ -91,13 +91,13 @@ export default async function CuratedCollectionPage({ params }: Props) {
             {collection.games.map((game) => (
               <li
                 key={game.title}
-                className="flex flex-col overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.04] md:flex-row"
+                className="group flex flex-col overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04] shadow-[0_12px_40px_rgba(0,0,0,0.25)] transition hover:-translate-y-0.5 hover:border-cyan-400/35 hover:bg-cyan-400/[0.06]"
               >
                 <CuratedGameArt
                   src={game.image}
                   alt={`${game.title} header art`}
-                  sizes="(max-width: 768px) 100vw, 280px"
-                  variant="collection"
+                  sizes="(max-width: 768px) 100vw, 520px"
+                  variant="carousel"
                 />
 
                 <div className="flex flex-1 flex-col justify-center p-6">
