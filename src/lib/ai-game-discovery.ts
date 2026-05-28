@@ -21,6 +21,13 @@ export type AiDiscoveryIntent = {
   excludeTitles: string[]
 }
 
+export type AiSingleCallFastPick = AiSuggestedTitle & {
+  /** 0..100 */
+  match: number
+  matchTier: "best_match" | "good_alternative" | "partial_match"
+  matchNote: string
+}
+
 function safeParseJson<T>(text: string): T | null {
   try {
     return JSON.parse(text) as T
@@ -87,7 +94,58 @@ function normalizeSuggestedTitles(v: unknown) {
   return out
 }
 
+function normalizeSingleCallFastPicks(v: unknown) {
+  if (!Array.isArray(v)) return []
+  const out: AiSingleCallFastPick[] = []
+  for (const x of v) {
+    if (!x || typeof x !== "object") continue
+    const rec = x as Record<string, unknown>
+    const title = typeof rec.title === "string" ? rec.title.trim() : ""
+    if (!title) continue
+    const reason = typeof rec.reason === "string" ? rec.reason.trim() : ""
+    const expectedMatch =
+      typeof rec.expectedMatch === "string" ? rec.expectedMatch.trim() : ""
+    const confidenceRaw =
+      typeof rec.confidence === "number"
+        ? rec.confidence
+        : typeof rec.confidence === "string"
+          ? Number(rec.confidence)
+          : 0
+    const matchRaw =
+      typeof rec.match === "number"
+        ? rec.match
+        : typeof rec.match === "string"
+          ? Number(rec.match)
+          : NaN
+    const match = clamp(Number.isFinite(matchRaw) ? matchRaw : confidenceRaw, 0, 100)
+    const tier =
+      rec.matchTier === "best_match" ||
+      rec.matchTier === "good_alternative" ||
+      rec.matchTier === "partial_match"
+        ? (rec.matchTier as AiSingleCallFastPick["matchTier"])
+        : match >= 82
+          ? "best_match"
+          : match >= 68
+            ? "good_alternative"
+            : "partial_match"
+    const matchNote = typeof rec.matchNote === "string" ? rec.matchNote.trim() : ""
+
+    out.push({
+      title,
+      reason,
+      expectedMatch,
+      confidence: clamp(Number.isFinite(confidenceRaw) ? confidenceRaw : 0, 0, 100),
+      match,
+      matchTier: tier,
+      matchNote,
+    })
+    if (out.length >= 15) break
+  }
+  return out
+}
+
 const AI_DISCOVERY_TIMEOUT_MS = 28_000
+const AI_SINGLE_CALL_TIMEOUT_MS = 22_000
 
 export function isAbortLikeError(e: unknown): boolean {
   if (!(e instanceof Error)) return false
@@ -116,10 +174,8 @@ export function minimalDiscoveryFallback(params: {
   usage: OpenAI.Chat.Completions.ChatCompletion["usage"]
 } {
   const q = params.normalizedInput.userPrompt.trim()
-  const baseIntent =
-    q || "video game recommendation"
-  const queries =
-    q.length > 2 ? [q.slice(0, 120)] : ["video games"]
+  const baseIntent = q || "video game recommendation"
+  const queries = q.length > 2 ? [q.slice(0, 120)] : ["video games"]
 
   return {
     intent: {
@@ -173,13 +229,13 @@ Additional rules (AI-first discovery — structured filters OFF):
   try {
     resp = await openai.chat.completions.create(
       {
-    model: "gpt-4o-mini",
-    response_format: { type: "json_object" },
-    temperature: 0,
-    messages: [
-      {
-        role: "system",
-        content: `
+        model: "gpt-4o-mini",
+        response_format: { type: "json_object" },
+        temperature: 0,
+        messages: [
+          {
+            role: "system",
+            content: `
 Return ONLY valid JSON in this exact format:
 {
   "normalizedIntent": "string",
@@ -215,11 +271,11 @@ Rules:
 ${discoveryOnlyRules}
 - Keep everything concise. No markdown. No extra keys.
 `,
-      },
-      {
-        role: "user",
-        content: filtersEnabled
-          ? `
+          },
+          {
+            role: "user",
+            content: filtersEnabled
+              ? `
 User request: ${normalizedInput.userPrompt || "not specified"}
 Selected tags (high priority): ${normalizedInput.selectedTags || "not specified"}
 Genres/tags: ${normalizedInput.genres || "not specified"}
@@ -229,14 +285,14 @@ Mechanics: ${normalizedInput.mechanics || "not specified"}
 Platform: ${normalizedInput.platform || "not specified"}
 Maximum budget (numeric, same currency as UI): ${normalizedInput.budget || "not specified"}
 `
-          : `
+              : `
 Mode: AI-first discovery (Advanced filters OFF).
 Use ONLY the user request below for intent, titles, and queries. Ignore empty structured fields.
 
 User request: ${normalizedInput.userPrompt || "not specified"}
 `,
-      },
-    ],
+          },
+        ],
       },
       { signal: AbortSignal.timeout(AI_DISCOVERY_TIMEOUT_MS) }
     )
@@ -264,6 +320,7 @@ User request: ${normalizedInput.userPrompt || "not specified"}
       retries: 0,
     })
   }
+
   const aiDiscoveryMs = performance.now() - discoveryStarted
   if (process.env.NODE_ENV !== "development" && aiDiscoveryMs > 8000) {
     console.warn("[recommend:timing:slow]", {
@@ -295,13 +352,141 @@ User request: ${normalizedInput.userPrompt || "not specified"}
       avoid,
       suggestedTitles,
       fallbackDiscoveryQueries:
-        fallbackDiscoveryQueries.length > 0
-          ? fallbackDiscoveryQueries
-          : [normalizedIntent].slice(0, 4),
+        fallbackDiscoveryQueries.length > 0 ? fallbackDiscoveryQueries : [normalizedIntent].slice(0, 4),
       referenceTitles,
       excludeTitles,
     } satisfies AiDiscoveryIntent,
     usage: resp.usage,
+  }
+}
+
+export async function aiSingleCallFastDiscovery(params: {
+  openai: OpenAI
+  normalizedInput: {
+    userPrompt: string
+    genres: string
+    playStyles: string
+    vibes: string
+    mechanics: string
+    platform: string
+    budget: string
+    selectedTags: string
+  }
+  filtersEnabled?: boolean
+}) {
+  const { openai, normalizedInput } = params
+  const filtersEnabled = params.filtersEnabled !== false
+  const started = performance.now()
+
+  const discoveryOnlyRules = !filtersEnabled
+    ? [
+        "Additional rules (single-call fast mode — structured filters OFF):",
+        "- Prioritize ONLY the user request text. Ignore empty genre/platform/budget lines.",
+        "- Do not infer price or platform constraints unless the user explicitly mentions them in the request.",
+        "",
+      ].join("\n")
+    : ""
+
+  const systemContent = [
+    "Return ONLY valid JSON in this exact format:",
+    "{",
+    '  "normalizedIntent": "string",',
+    '  "coreNeeds": ["string"],',
+    '  "avoid": ["string"],',
+    '  "suggestedTitles": [',
+    "    {",
+    '      "title": "string",',
+    '      "match": 0,',
+    '      "matchTier": "best_match",',
+    '      "reason": "1–2 short sentences in gamer voice (no Wikipedia intro).",',
+    '      "matchNote": "One short tradeoff/fit hook (or empty string).",',
+    '      "confidence": 0,',
+    '      "expectedMatch": "short phrase"',
+    "    }",
+    "  ],",
+    '  "fallbackDiscoveryQueries": ["string"],',
+    '  "referenceTitles": ["string"],',
+    '  "excludeTitles": ["string"]',
+    "}",
+    "",
+    "Rules:",
+    "- Support Italian and English user input. Write normalizedIntent, reasons, expectedMatch, and matchNote in the SAME language as the user request.",
+    "- suggestedTitles MUST be ranked best-to-worst and contain 8 to 15 REAL, recognizable games (no fake games).",
+    "- match is 0..100 (semantic fit). confidence is 0..100 (how sure you are the title exists + fits).",
+    "- Use matchTier honestly: best_match / good_alternative / partial_match.",
+    "- If user asked for games like/similar to X, put X in referenceTitles and excludeTitles, and do NOT recommend X.",
+    "- Keep everything concise. No markdown. No extra keys.",
+    discoveryOnlyRules,
+  ].join("\n")
+
+  const userContent = filtersEnabled
+    ? [
+        "User request: " + (normalizedInput.userPrompt || "not specified"),
+        "Selected tags (high priority): " + (normalizedInput.selectedTags || "not specified"),
+        "Genres/tags: " + (normalizedInput.genres || "not specified"),
+        "Play styles: " + (normalizedInput.playStyles || "not specified"),
+        "Vibes: " + (normalizedInput.vibes || "not specified"),
+        "Mechanics: " + (normalizedInput.mechanics || "not specified"),
+        "Platform: " + (normalizedInput.platform || "not specified"),
+        "Maximum budget (numeric, same currency as UI): " + (normalizedInput.budget || "not specified"),
+      ].join("\n")
+    : [
+        "Mode: single-call fast discovery (Advanced filters OFF).",
+        "Use ONLY the user request below for intent, titles, and queries. Ignore empty structured fields.",
+        "",
+        "User request: " + (normalizedInput.userPrompt || "not specified"),
+      ].join("\n")
+
+  const resp = await openai.chat.completions.create(
+    {
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      temperature: 0,
+      messages: [
+        { role: "system", content: systemContent },
+        { role: "user", content: userContent },
+      ],
+    },
+    { signal: AbortSignal.timeout(AI_SINGLE_CALL_TIMEOUT_MS) }
+  )
+
+  const text =
+    resp.choices[0].message.content ||
+    '{"normalizedIntent":"","coreNeeds":[],"avoid":[],"suggestedTitles":[],"fallbackDiscoveryQueries":[]}'
+  const parsed = safeParseJson<Partial<AiDiscoveryIntent> & { suggestedTitles?: unknown }>(text) ?? {}
+
+  const fastPicks = normalizeSingleCallFastPicks(parsed.suggestedTitles)
+  const normalizedIntent =
+    typeof parsed.normalizedIntent === "string" && parsed.normalizedIntent.trim()
+      ? parsed.normalizedIntent.trim()
+      : normalizedInput.userPrompt.trim() || "video game recommendation"
+
+  const coreNeeds = normalizeStringArray(parsed.coreNeeds, 10)
+  const avoid = normalizeStringArray(parsed.avoid, 10)
+  const fallbackDiscoveryQueries = normalizeStringArray(parsed.fallbackDiscoveryQueries, 8)
+  const referenceTitles = normalizeTitleList(parsed.referenceTitles, 12)
+  let excludeTitles = normalizeTitleList(parsed.excludeTitles, 12)
+  if (referenceTitles.length > 0 && excludeTitles.length === 0) {
+    excludeTitles = [...referenceTitles]
+  }
+
+  const ms = performance.now() - started
+
+  return {
+    intent: {
+      normalizedIntent,
+      coreNeeds,
+      avoid,
+      // Keep intent shape compatible with existing pipeline caching.
+      suggestedTitles: fastPicks.map(({ match, matchTier, matchNote, ...rest }) => rest),
+      fallbackDiscoveryQueries:
+        fallbackDiscoveryQueries.length > 0 ? fallbackDiscoveryQueries : [normalizedIntent].slice(0, 4),
+      referenceTitles,
+      excludeTitles,
+    } satisfies AiDiscoveryIntent,
+    fastPicks,
+    usage: resp.usage,
+    aiMs: ms,
   }
 }
 

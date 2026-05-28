@@ -39,6 +39,7 @@ import {
 import {
   aiFirstDiscovery,
   isAbortLikeError,
+  aiSingleCallFastDiscovery,
   minimalDiscoveryFallback,
   type AiSuggestedTitle,
 } from "@/lib/ai-game-discovery";
@@ -1804,6 +1805,12 @@ export async function POST(req: Request) {
       return NextResponse.json(cachedEarly);
     }
 
+    if (process.env.RECOMMEND_SINGLE_CALL_FAST === "1" && !debugEnabled && !noCache) {
+      console.log("[recommend:single-call-fast]", { enabled: true });
+    } else if (!debugEnabled) {
+      console.log("[recommend:single-call-fast]", { enabled: false });
+    }
+
     // Quota runs only after early-cache miss (see recommend-quota-cache-order.ts).
     if (!bypassLimits) {
       const quotaRes = await timed("quota.consumeDailySlot", () =>
@@ -1857,20 +1864,50 @@ export async function POST(req: Request) {
       normalizedInput.userPrompt
     );
 
+    const singleCallFastEnabled =
+      process.env.RECOMMEND_SINGLE_CALL_FAST === "1" && !debugEnabled && !noCache;
+    const fastStarted = nowMs();
+
     // 1) AI-first discovery (titles + intent).
     stage = "discovery";
 
     const tDiscovery = performance.now();
     let aiDiscovery: Awaited<ReturnType<typeof aiFirstDiscovery>>;
+    let fastPicks: Array<{
+      title: string;
+      match: number;
+      matchTier: "best_match" | "good_alternative" | "partial_match";
+      reason: string;
+      matchNote: string;
+      confidence: number;
+      expectedMatch: string;
+    }> | null = null;
     try {
-      aiDiscovery = await aiFirstDiscovery({
-        openai,
-        filtersEnabled,
-        normalizedInput: {
-          ...normalizedInput,
-          selectedTags: resolvedSelectedTags.join(", "),
-        },
-      });
+      if (singleCallFastEnabled) {
+        const fast = await aiSingleCallFastDiscovery({
+          openai,
+          filtersEnabled,
+          normalizedInput: {
+            ...normalizedInput,
+            selectedTags: resolvedSelectedTags.join(", "),
+          },
+        });
+        // Reuse the same intent shape for cache keys + downstream RAWG logic.
+        aiDiscovery = { intent: fast.intent, usage: fast.usage } as Awaited<
+          ReturnType<typeof aiFirstDiscovery>
+        >;
+        fastPicks = fast.fastPicks;
+        stageMs["ai.singleCallFastDiscovery"] = fast.aiMs;
+      } else {
+        aiDiscovery = await aiFirstDiscovery({
+          openai,
+          filtersEnabled,
+          normalizedInput: {
+            ...normalizedInput,
+            selectedTags: resolvedSelectedTags.join(", "),
+          },
+        });
+      }
     } catch (err) {
       if (isAbortLikeError(err)) {
         console.warn(
@@ -1885,7 +1922,22 @@ export async function POST(req: Request) {
           referenceTitlesFromPrompt: regexRefsFromPrompt,
         });
       } else {
-        throw err;
+        // Safety: if single-call fast mode fails, fall back to the existing pipeline.
+        if (singleCallFastEnabled) {
+          console.warn("[recommend:single-call-fast] failed — falling back to normal pipeline", {
+            requestId,
+          });
+          aiDiscovery = await aiFirstDiscovery({
+            openai,
+            filtersEnabled,
+            normalizedInput: {
+              ...normalizedInput,
+              selectedTags: resolvedSelectedTags.join(", "),
+            },
+          });
+        } else {
+          throw err;
+        }
       }
     }
     timing.aiDiscoveryMs = performance.now() - tDiscovery;
@@ -2000,6 +2052,144 @@ export async function POST(req: Request) {
     stageMs["rawg.verifySuggestedTitles"] = timing.rawgVerificationMs;
 
     verified = filterCandidatesByExclude(verified, excludeNormalized);
+
+    // Experimental: single-call fast mode returns directly after RAWG verification (no semantic filter + no rerank).
+    if (singleCallFastEnabled && fastPicks) {
+      const rawgMs = timing.rawgVerificationMs;
+      const verifiedByNorm = new Map(
+        verified.map((c) => [normalizeTitleForMatch(c.name), c] as const)
+      );
+
+      const picked: PreEnrichPick[] = [];
+      for (const fp of fastPicks) {
+        const key = normalizeTitleForMatch(fp.title);
+        const c = verifiedByNorm.get(key);
+        if (!c) continue;
+        if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
+        picked.push({
+          id: c.id,
+          title: c.name,
+          slug: c.slug ?? null,
+          image: c.background_image ?? null,
+          match: clamp(fp.match, 0, 100),
+          reason: fp.reason || fp.expectedMatch || "",
+          matchTier: fp.matchTier,
+          matchNote: fp.matchNote || fp.expectedMatch || "",
+        });
+        if (picked.length >= 6) break;
+      }
+
+      // If too few verified, lightly use RAWG fallback queries (no extra OpenAI calls).
+      let picksForEnrichment = picked;
+      if (rawgKey && picksForEnrichment.length < 3) {
+        const fallbackQueries =
+          intent.fallbackDiscoveryQueries?.length
+            ? intent.fallbackDiscoveryQueries
+            : [intent.normalizedIntent].filter(Boolean);
+
+        const tFallback = performance.now();
+        const fetched = await fetchRawgCandidates({
+          rawgApiKey: rawgKey,
+          discoveryQueries: fallbackQueries,
+          pageSize: 18,
+        });
+        timing.rawgFallbackMs = performance.now() - tFallback;
+        stageMs["rawg.fetchCandidatesFallback"] = timing.rawgFallbackMs;
+
+        const scored = scoreCandidates(
+          {
+            normalizedIntent: intent.normalizedIntent,
+            coreKeywords: intent.coreNeeds ?? [],
+            discoveryQueries: fallbackQueries,
+            negativeKeywords: intent.avoid ?? [],
+            preferredGenresOrTags: tagTokens,
+          },
+          dedupeCandidates(fetched)
+        );
+
+        const diverse = selectDiverseTop([...scored], 20).map((s) => s.candidate);
+        const used = new Set(picksForEnrichment.map((p) => p.id));
+        for (const c of diverse) {
+          if (used.has(c.id)) continue;
+          if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
+          if (!isProbablyBaseGame(c)) continue;
+          picksForEnrichment.push({
+            id: c.id,
+            title: c.name,
+            slug: c.slug ?? null,
+            image: c.background_image ?? null,
+            match: 62,
+            reason: "",
+            matchTier: "good_alternative",
+            matchNote: "",
+          });
+          used.add(c.id);
+          if (picksForEnrichment.length >= 4) break;
+        }
+      }
+
+      // Ensure images if missing.
+      let picksWithImages = picksForEnrichment;
+      if (rawgKey && picksForEnrichment.some((p) => !p.image)) {
+        const tScreens = performance.now();
+        picksWithImages = await enrichFinalPicksWithScreenshotFallback({
+          rawgKey,
+          picks: picksForEnrichment,
+        });
+        timing.screenshotFallbackMs = performance.now() - tScreens;
+        stageMs["rawg.screenshotFallback"] = timing.screenshotFallbackMs;
+      }
+
+      const enrichedGames = picksWithImages.map((game) => ({
+        ...game,
+        price: null as string | null,
+        currency: null as string | null,
+        buyLink: null as string | null,
+        budgetStatus: null,
+        budgetNote: null,
+      }));
+
+      const payload: {
+        games: unknown[];
+        usage: { intent: unknown; rerank: unknown };
+      } = {
+        games: enrichedGames.slice(0, 6),
+        usage: {
+          intent: aiDiscovery.usage,
+          rerank: null,
+        },
+      };
+
+      const totalMs = nowMs() - fastStarted;
+      console.log("[recommend:single-call-fast]", {
+        enabled: true,
+        aiMs: Math.round(stageMs["ai.singleCallFastDiscovery"] ?? timing.aiDiscoveryMs),
+        rawgMs: Math.round(rawgMs + (timing.rawgFallbackMs || 0) + (timing.screenshotFallbackMs || 0)),
+        verifiedCount: verified.length,
+        totalMs: Math.round(totalMs),
+      });
+
+      // Best-effort cache: do not block response on failures.
+      if (!noCache) {
+        try {
+          const cacheWriteRes = await timed("cache.write", async () => {
+            await setCachedAiRecommendation({
+              inputHash,
+              inputNormalized: cacheKeyInput,
+              responseJson: payload,
+            });
+            await setCachedAiRecommendation({
+              inputHash: earlyHash,
+              inputNormalized: earlyCacheKeyInput,
+              responseJson: payload,
+            });
+          });
+          stageMs["cache.write"] = cacheWriteRes.ms;
+        } catch {}
+      }
+
+      return NextResponse.json(payload);
+    }
 
     // 3) Fallback retrieval if verification is weak.
     let candidatePool: VerifiedCandidate[] = verified;
