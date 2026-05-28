@@ -1230,10 +1230,13 @@ async function verifySuggestedTitles(params: {
   rawgKey: string;
   suggestedTitles: AiSuggestedTitle[];
   excludeNormalized: Set<string>;
+  /** Cap parallel RAWG title lookups (default 12; fast mode uses 8). */
+  maxTitles?: number;
 }) {
   const { rawgKey, suggestedTitles, excludeNormalized } = params;
+  const maxTitles = params.maxTitles ?? 12;
   // Trim RAWG fan-out: top titles only (keeps quality while reducing worst-case latency).
-  const slice = suggestedTitles.slice(0, 12);
+  const slice = suggestedTitles.slice(0, maxTitles);
   const RAWG_VERIFY_CONCURRENCY = 4;
 
   const resolved = await mapPool(slice, RAWG_VERIFY_CONCURRENCY, async (s) => {
@@ -1873,15 +1876,10 @@ export async function POST(req: Request) {
 
     const tDiscovery = performance.now();
     let aiDiscovery: Awaited<ReturnType<typeof aiFirstDiscovery>>;
-    let fastPicks: Array<{
-      title: string;
-      match: number;
-      matchTier: "best_match" | "good_alternative" | "partial_match";
-      reason: string;
-      matchNote: string;
-      confidence: number;
-      expectedMatch: string;
-    }> | null = null;
+    let fastPicks: Awaited<
+      ReturnType<typeof aiSingleCallFastDiscovery>
+    >["fastPicks"] | null = null;
+    let fastGeneratedPickCount = 0;
     try {
       if (singleCallFastEnabled) {
         const fast = await aiSingleCallFastDiscovery({
@@ -1897,6 +1895,7 @@ export async function POST(req: Request) {
           ReturnType<typeof aiFirstDiscovery>
         >;
         fastPicks = fast.fastPicks;
+        fastGeneratedPickCount = fast.generatedPickCount;
         stageMs["ai.singleCallFastDiscovery"] = fast.aiMs;
       } else {
         aiDiscovery = await aiFirstDiscovery({
@@ -2046,6 +2045,7 @@ export async function POST(req: Request) {
         rawgKey,
         suggestedTitles: intent.suggestedTitles,
         excludeNormalized,
+        maxTitles: singleCallFastEnabled ? 8 : undefined,
       });
     }
     timing.rawgVerificationMs = performance.now() - tVerify;
@@ -2072,9 +2072,9 @@ export async function POST(req: Request) {
           slug: c.slug ?? null,
           image: c.background_image ?? null,
           match: clamp(fp.match, 0, 100),
-          reason: fp.reason || fp.expectedMatch || "",
+          reason: fp.reason,
           matchTier: fp.matchTier,
-          matchNote: fp.matchNote || fp.expectedMatch || "",
+          matchNote: fp.matchNote,
         });
         if (picked.length >= 6) break;
       }
@@ -2163,10 +2163,12 @@ export async function POST(req: Request) {
       const totalMs = nowMs() - fastStarted;
       console.log("[recommend:single-call-fast]", {
         enabled: true,
+        generatedPickCount: fastGeneratedPickCount,
+        verifiedCount: verified.length,
         aiMs: Math.round(stageMs["ai.singleCallFastDiscovery"] ?? timing.aiDiscoveryMs),
         rawgMs: Math.round(rawgMs + (timing.rawgFallbackMs || 0) + (timing.screenshotFallbackMs || 0)),
-        verifiedCount: verified.length,
         totalMs: Math.round(totalMs),
+        rerankSkipped: true,
       });
 
       // Best-effort cache: do not block response on failures.
