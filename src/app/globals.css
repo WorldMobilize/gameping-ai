@@ -1,15 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #05060f;
+  --foreground: #f8fafc;
 }
 
 body {
@@ -120,6 +113,53 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .gp-recommend-skeleton-bar::after {
+    animation: none;
+  }
+}
+
+/* Game page — content enter + skeleton shimmer */
+@keyframes gp-game-page-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.gp-game-page-enter {
+  animation: gp-game-page-in 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-game-page-enter {
+    animation: none;
+  }
+}
+
+.gp-game-skeleton-bar {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gp-game-skeleton-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(34, 211, 238, 0.06),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: gp-recommend-shimmer 1.85s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-game-skeleton-bar::after {
     animation: none;
   }
 }

@@ -34,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-full flex flex-col bg-[#05060f] font-sans text-white">
         <AppProviders>{children}</AppProviders>
         <ConditionalFooter />
         <CookieBanner />

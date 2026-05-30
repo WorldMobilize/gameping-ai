@@ -646,7 +646,7 @@ export default async function GameDetailPage({
   })();
 
   return (
-    <main className="min-h-screen bg-[#05060f] text-white">
+    <main className="gp-game-page-enter min-h-screen bg-[#05060f] text-white">
       <GameStructuredData
         data={{
           name: displayTitle,
