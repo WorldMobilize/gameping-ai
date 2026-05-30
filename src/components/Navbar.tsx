@@ -205,7 +205,7 @@ export default function Navbar({
           <button
             type="button"
             role="menuitem"
-            className="flex w-full items-center px-4 py-3 text-left text-sm font-bold text-red-300/95 transition hover:bg-red-500/10 focus-visible:bg-red-500/10 focus-visible:outline-none"
+            className="flex w-full items-center px-4 py-3 text-left text-sm font-bold text-purple-200/95 transition hover:bg-purple-500/10 focus-visible:bg-purple-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/35"
             onClick={() => void handleLogout()}
           >
             Logout

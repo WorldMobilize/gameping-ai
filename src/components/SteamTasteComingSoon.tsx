@@ -62,17 +62,24 @@ export default function SteamTasteComingSoon({
 
   return (
     <section
-      className={`relative isolate overflow-hidden rounded-b-[2rem] px-6 sm:rounded-b-[2.5rem] ${py}`}
+      className={`relative isolate px-6 ${py}`}
       aria-labelledby={headingId}
     >
-      {/* Atmospheric backdrop — clipped to this section only (no upward bleed) */}
-      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-cyan-500/[0.06] via-transparent to-transparent" />
-        <div className="absolute left-0 top-0 h-[72%] w-[92%] max-w-[56rem] -translate-x-[10%] bg-[radial-gradient(ellipse_75%_65%_at_30%_18%,rgba(34,211,238,0.13)_0%,rgba(34,211,238,0.04)_42%,transparent_72%)] blur-2xl" />
-        <div className="absolute bottom-0 right-0 h-[75%] w-[70%] max-w-[44rem] translate-x-[8%] bg-[radial-gradient(ellipse_70%_60%_at_72%_82%,rgba(147,51,234,0.12)_0%,rgba(147,51,234,0.04)_45%,transparent_70%)] blur-2xl" />
-        <div className="absolute bottom-[10%] left-0 h-[50%] w-[48%] bg-[radial-gradient(ellipse_55%_50%_at_22%_58%,rgba(100,116,139,0.07)_0%,transparent_68%)] blur-3xl" />
-        <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#05060f] via-[#05060f]/85 to-transparent sm:h-40" />
-        <div className="absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/15 to-transparent" />
+      {/* Atmospheric band — radial vignette fades left/right/top/bottom into page bg */}
+      <div
+        className="pointer-events-none absolute -inset-x-10 inset-y-0 z-0 sm:-inset-x-20 md:-inset-x-28"
+        aria-hidden
+        style={{
+          WebkitMaskImage:
+            "radial-gradient(ellipse 88% 78% at 50% 48%, black 22%, transparent 72%)",
+          maskImage:
+            "radial-gradient(ellipse 88% 78% at 50% 48%, black 22%, transparent 72%)",
+        }}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_60%_at_50%_40%,rgba(34,211,238,0.06)_0%,transparent_62%)]" />
+        <div className="absolute left-[8%] top-[6%] h-[68%] w-[58%] max-w-[52rem] bg-[radial-gradient(ellipse_70%_58%_at_32%_22%,rgba(34,211,238,0.1)_0%,rgba(34,211,238,0.02)_48%,transparent_72%)] blur-3xl" />
+        <div className="absolute bottom-[4%] right-[6%] h-[72%] w-[62%] max-w-[46rem] bg-[radial-gradient(ellipse_68%_58%_at_70%_78%,rgba(147,51,234,0.09)_0%,rgba(147,51,234,0.02)_46%,transparent_70%)] blur-3xl" />
+        <div className="absolute bottom-[18%] left-[4%] h-[48%] w-[42%] bg-[radial-gradient(ellipse_55%_48%_at_24%_56%,rgba(59,130,246,0.05)_0%,transparent_68%)] blur-3xl" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-6xl">

@@ -228,8 +228,8 @@ export default function AccountSettingsPage() {
               </p>
             </section>
 
-            <section className="rounded-3xl border border-red-400/25 bg-red-500/[0.06] p-8">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-red-200/90">
+            <section className="rounded-3xl border border-purple-400/25 bg-purple-500/[0.06] p-8">
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-purple-200/90">
                 Danger zone
               </p>
               <h2 className="mt-3 text-2xl font-black text-white">Delete account</h2>
@@ -251,7 +251,7 @@ export default function AccountSettingsPage() {
                   setPassword("");
                   setConfirmEmail("");
                 }}
-                className="mt-6 rounded-full border border-red-400/50 bg-red-500/20 px-8 py-3.5 text-sm font-black text-red-100 transition hover:bg-red-500/30"
+                className="mt-6 rounded-full border border-purple-400/45 bg-purple-500/12 px-8 py-3.5 text-sm font-black text-purple-100 transition hover:border-purple-400/60 hover:bg-purple-500/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/40"
               >
                 Delete my account…
               </button>
@@ -283,7 +283,7 @@ export default function AccountSettingsPage() {
             </h2>
             <p className="mt-3 text-sm leading-6 text-white/65">
               This permanently removes your account and associated GamePing data. Type{" "}
-              <span className="font-mono font-bold text-red-200">DELETE</span> in the box below to
+              <span className="font-mono font-bold text-purple-200">DELETE</span> in the box below to
               confirm you understand this is irreversible.
             </p>
 
@@ -291,7 +291,7 @@ export default function AccountSettingsPage() {
               Type DELETE
             </label>
             <input
-              className="mt-2 w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 font-mono text-sm outline-none focus:border-red-400/50"
+              className="mt-2 w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 font-mono text-sm outline-none focus:border-purple-400/50 focus:ring-2 focus:ring-purple-400/25"
               value={confirmPhrase}
               onChange={(e) => setConfirmPhrase(e.target.value)}
               autoComplete="off"
@@ -305,7 +305,7 @@ export default function AccountSettingsPage() {
                 </label>
                 <input
                   type="password"
-                  className="mt-2 w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-sm outline-none focus:border-red-400/50"
+                  className="mt-2 w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-sm outline-none focus:border-purple-400/50 focus:ring-2 focus:ring-purple-400/25"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
@@ -323,7 +323,7 @@ export default function AccountSettingsPage() {
                 </label>
                 <input
                   type="email"
-                  className="mt-2 w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-sm outline-none focus:border-red-400/50"
+                  className="mt-2 w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-sm outline-none focus:border-purple-400/50 focus:ring-2 focus:ring-purple-400/25"
                   value={confirmEmail}
                   onChange={(e) => setConfirmEmail(e.target.value)}
                   autoComplete="email"
@@ -345,7 +345,7 @@ export default function AccountSettingsPage() {
                 type="button"
                 disabled={submitting}
                 onClick={() => void handleDeleteAccount()}
-                className="rounded-full bg-red-500 px-6 py-3 text-sm font-black text-white transition hover:bg-red-400 disabled:opacity-50"
+                className="rounded-full border border-purple-400/50 bg-purple-500/20 px-6 py-3 text-sm font-black text-purple-100 transition hover:border-purple-400/65 hover:bg-purple-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/40 disabled:opacity-50"
               >
                 {submitting ? "Deleting…" : "Delete account permanently"}
               </button>
