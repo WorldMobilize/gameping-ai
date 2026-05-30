@@ -1,3 +1,7 @@
+import {
+  extractRecommendResultTitles,
+  logRecommendRun,
+} from "@/lib/recommend-runs";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import {
@@ -143,6 +147,27 @@ function sleep(ms: number) {
 
 function nowMs() {
   return performance.now();
+}
+
+function scheduleRecommendRunLog(params: {
+  promptText: string;
+  routeStarted: number;
+  games?: unknown[];
+  success: boolean;
+  errorCode?: string | null;
+}) {
+  const titles =
+    params.success && params.games
+      ? extractRecommendResultTitles(params.games)
+      : [];
+  void logRecommendRun({
+    promptText: params.promptText,
+    latencyMs: Math.round(nowMs() - params.routeStarted),
+    resultsCount: params.success ? titles.length : 0,
+    resultTitles: params.success ? titles : [],
+    success: params.success,
+    errorCode: params.errorCode ?? null,
+  });
 }
 
 async function timed<T>(label: string, fn: () => Promise<T>) {
@@ -1633,6 +1658,7 @@ export async function POST(req: Request) {
   const requestId = `${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
   const routeStarted = nowMs();
   const stageMs: Record<string, number> = {};
+  let recommendLogPrompt = "";
 
   try {
 
@@ -1685,6 +1711,8 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
+
+    recommendLogPrompt = normalizedInput.userPrompt.trim();
 
     const bypassLimits = shouldBypassRecommendLimits(plan);
     const promptMax = getPromptMaxChars(plan, bypassLimits);
@@ -1805,6 +1833,14 @@ export async function POST(req: Request) {
           finalCount: games.length,
         });
       }
+      scheduleRecommendRunLog({
+        promptText: recommendLogPrompt,
+        routeStarted,
+        games: Array.isArray((cachedEarly as { games?: unknown }).games)
+          ? (cachedEarly as { games: unknown[] }).games
+          : [],
+        success: true,
+      });
       return NextResponse.json(cachedEarly);
     }
 
@@ -1840,6 +1876,12 @@ export async function POST(req: Request) {
       }
 
       if (!usageAfter.allowed) {
+        scheduleRecommendRunLog({
+          promptText: recommendLogPrompt,
+          routeStarted,
+          success: false,
+          errorCode: "daily_limit",
+        });
         return NextResponse.json(
           buildLimitErrorPayload({
             error: "daily_limit",
@@ -2032,6 +2074,14 @@ export async function POST(req: Request) {
           finalCount: games.length,
         });
       }
+      scheduleRecommendRunLog({
+        promptText: recommendLogPrompt,
+        routeStarted,
+        games: Array.isArray((cachedFull as { games?: unknown }).games)
+          ? (cachedFull as { games: unknown[] }).games
+          : [],
+        success: true,
+      });
       return NextResponse.json(cachedFull);
     }
 
@@ -2190,6 +2240,12 @@ export async function POST(req: Request) {
         } catch {}
       }
 
+      scheduleRecommendRunLog({
+        promptText: recommendLogPrompt,
+        routeStarted,
+        games: payload.games,
+        success: true,
+      });
       return NextResponse.json(payload);
     }
 
@@ -2666,9 +2722,21 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
       });
     }
 
+    scheduleRecommendRunLog({
+      promptText: recommendLogPrompt,
+      routeStarted,
+      games: payload.games,
+      success: true,
+    });
     return NextResponse.json(payload);
   } catch (error) {
     console.error("OpenAI error:", error);
+    scheduleRecommendRunLog({
+      promptText: recommendLogPrompt,
+      routeStarted,
+      success: false,
+      errorCode: stage !== "unknown" ? stage : "recommend_failed",
+    });
     if (debugEnabled) {
       const err = error as unknown as {
         message?: unknown;
