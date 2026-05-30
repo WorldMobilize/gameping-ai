@@ -6,6 +6,7 @@ import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import PlanLimitReached from "@/components/PlanLimitReached";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
+import { trackProductEvent } from "@/lib/product-analytics/client";
 import {
   LIMIT_TOAST_DURATION_MS,
   limitReachedToastMessage,
@@ -522,6 +523,9 @@ export default function RecommendPage() {
     setEmailSaved(false);
     setApiDebug(null);
 
+    const recommendStartedAt = performance.now();
+    trackProductEvent("recommend_started");
+
     try {
       const debugEnabled =
         typeof window !== "undefined" &&
@@ -546,7 +550,17 @@ export default function RecommendPage() {
         debug?: RecommendDebug;
       };
 
+      const latencyMs = Math.round(performance.now() - recommendStartedAt);
+
       if (!res.ok) {
+        trackProductEvent("recommend_failed", {
+          metadata: {
+            latencyMs,
+            statusCode: res.status,
+            errorType:
+              typeof data?.error === "string" ? data.error : "http_error",
+          },
+        });
         if (res.status === 400 && data?.error === "prompt_too_long") {
           showToast({
             variant: "error",
@@ -592,6 +606,13 @@ export default function RecommendPage() {
       }
 
       const nextGames = data.games ?? [];
+      trackProductEvent("recommend_completed", {
+        metadata: {
+          latencyMs,
+          resultCount: nextGames.length,
+          cacheHit: latencyMs < 1200,
+        },
+      });
       setGames(nextGames);
       setNoStrongMatchesAfterSuccess(nextGames.length === 0);
       const reveal = nextGames.length > 0;
@@ -616,6 +637,13 @@ export default function RecommendPage() {
       }, 140);
     } catch (err) {
       console.error(err);
+      trackProductEvent("recommend_failed", {
+        metadata: {
+          latencyMs: Math.round(performance.now() - recommendStartedAt),
+          statusCode: 0,
+          errorType: "network_error",
+        },
+      });
       showToast({
         variant: "error",
         message: "Something went wrong. Check your connection and try again.",

@@ -4,6 +4,14 @@ import {
   parseAllowedOutboundRedirectUrl,
   readOutboundRedirectTargetParam,
 } from "@/lib/outbound-redirect"
+import {
+  inferDeviceType,
+  sanitizeSessionId,
+} from "@/lib/product-analytics/sanitize"
+import {
+  inferCountryFromHeaders,
+  insertProductEvent,
+} from "@/lib/product-analytics/server"
 import { createClient } from "@/lib/supabase/server"
 
 export async function GET(req: NextRequest) {
@@ -53,6 +61,23 @@ export async function GET(req: NextRequest) {
     if (error) {
       console.error("Supabase insert error:", error)
     }
+
+    const sessionFromQuery = sanitizeSessionId(searchParams.get("sid"))
+    const userAgent = req.headers.get("user-agent")
+    await insertProductEvent({
+      event_name: "store_clicked",
+      session_id: sessionFromQuery ?? "server_outbound",
+      user_id: user?.id ?? null,
+      page_path: null,
+      user_agent: userAgent?.slice(0, 512) ?? null,
+      device_type: inferDeviceType(userAgent),
+      country: inferCountryFromHeaders(req),
+      metadata: {
+        title: (gameTitle ?? "").slice(0, 120),
+        store: (storeName ?? storeID ?? "unknown").slice(0, 80),
+        provider: source.slice(0, 80),
+      },
+    })
   } catch (error) {
     console.error("Outbound tracking failed:", error)
   }

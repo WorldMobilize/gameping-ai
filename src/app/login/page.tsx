@@ -11,6 +11,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
 import { validateSignupPassword } from "@/lib/auth-email-verification";
+import { trackProductEvent } from "@/lib/product-analytics/client";
 
 const DEFAULT_POST_AUTH_REDIRECT = "/";
 
@@ -130,6 +131,7 @@ function LoginForm() {
           email: user.email,
         }),
       });
+      trackProductEvent("signup_completed");
     }
 
     if (user && !data.session) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { FEEDBACK_MESSAGE_MAX, FEEDBACK_TYPES, type FeedbackType } from "@/lib/feedback";
+import { trackProductEvent } from "@/lib/product-analytics/client";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 type FeedbackButtonProps = {
@@ -92,6 +93,9 @@ export default function FeedbackButton({ className = "" }: FeedbackButtonProps) 
       }
 
       setStatus("success");
+      trackProductEvent("feedback_submitted", {
+        metadata: { type },
+      });
       setStatusMessage("Thanks — this genuinely helps improve GamePing.");
       setMessage("");
       setEmail("");

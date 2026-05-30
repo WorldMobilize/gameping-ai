@@ -10,6 +10,7 @@ import {
   getRelatedDirectoryGames,
   titleCaseFromSlug,
 } from "@/lib/seo/game-page";
+import GamePageAnalytics from "@/components/GamePageAnalytics";
 import GameScreenshotLightbox from "@/components/GameScreenshotLightbox";
 import TrackPriceButton, {
   type TrackPriceOfferSnapshot,
@@ -617,6 +618,9 @@ export default async function GameDetailPage({
 
   return (
     <main className="min-h-screen bg-[#05060f] text-white">
+      {gameId ? (
+        <GamePageAnalytics title={displayTitle} rawgId={gameId} />
+      ) : null}
       <Navbar />
 
       <section className="relative overflow-hidden pb-10">
