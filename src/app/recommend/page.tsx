@@ -24,6 +24,7 @@ import { hasMeaningfulRecommendInput } from "@/lib/recommend-input";
 import {
   clearRecommendSessionState,
   loadRecommendSessionState,
+  RECOMMEND_SESSION_STORAGE_VERSION,
   saveRecommendSessionState,
   type RecommendSessionSnapshot,
 } from "@/lib/recommend-session-state";
@@ -301,13 +302,11 @@ export default function RecommendPage() {
     overrides: Partial<RecommendSessionSnapshot> = {}
   ): RecommendSessionSnapshot {
     return {
-      version: 1,
+      version: RECOMMEND_SESSION_STORAGE_VERSION,
       form: { ...form },
       filtersEnabled,
       games,
       noStrongMatchesAfterSuccess,
-      dailyLimitReached,
-      dailyLimitContext,
       resultsReveal,
       ...overrides,
     };
@@ -326,8 +325,8 @@ export default function RecommendPage() {
     setFiltersEnabled(stored.filtersEnabled);
     setGames(stored.games);
     setNoStrongMatchesAfterSuccess(stored.noStrongMatchesAfterSuccess);
-    setDailyLimitReached(stored.dailyLimitReached);
-    setDailyLimitContext(stored.dailyLimitContext);
+    setDailyLimitReached(false);
+    setDailyLimitContext(null);
     setResultsReveal(stored.resultsReveal || stored.games.length > 0);
     setLoading(false);
     setLoadingStepIndex(0);
@@ -383,8 +382,6 @@ export default function RecommendPage() {
     filtersEnabled,
     games,
     noStrongMatchesAfterSuccess,
-    dailyLimitReached,
-    dailyLimitContext,
     resultsReveal,
     loading,
   ]);
@@ -579,10 +576,6 @@ export default function RecommendPage() {
           const anonymous = !loggedUserId;
           setDailyLimitContext({ plan: limitPlan, anonymous });
           setDailyLimitReached(true);
-          persistRecommendSession({
-            dailyLimitReached: true,
-            dailyLimitContext: { plan: limitPlan, anonymous },
-          });
           const toast = limitReachedToastMessage({
             limitType: "daily_recommendations",
             plan: limitPlan,

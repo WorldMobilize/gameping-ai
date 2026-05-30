@@ -1,7 +1,7 @@
 import type { RecommendInputFields } from "@/lib/recommend-input";
 
 /** Bump when persisted shape changes so old session blobs are ignored. */
-export const RECOMMEND_SESSION_STORAGE_VERSION = 1 as const;
+export const RECOMMEND_SESSION_STORAGE_VERSION = 2 as const;
 
 const STORAGE_KEY = `gameping:recommend-session:v${RECOMMEND_SESSION_STORAGE_VERSION}`;
 
@@ -19,14 +19,13 @@ export type RecommendSessionGame = {
   budgetNote?: string;
 };
 
+/** Persisted session state for Back navigation — quota/limit UI is never stored. */
 export type RecommendSessionSnapshot = {
   version: typeof RECOMMEND_SESSION_STORAGE_VERSION;
   form: RecommendInputFields;
   filtersEnabled: boolean;
   games: RecommendSessionGame[];
   noStrongMatchesAfterSuccess: boolean;
-  dailyLimitReached: boolean;
-  dailyLimitContext: { plan: string | null; anonymous: boolean } | null;
   resultsReveal: boolean;
 };
 
@@ -68,16 +67,6 @@ export function loadRecommendSessionState(): RecommendSessionSnapshot | null {
       return null;
     }
     if (typeof parsed.noStrongMatchesAfterSuccess !== "boolean") return null;
-    if (typeof parsed.dailyLimitReached !== "boolean") return null;
-    if (
-      parsed.dailyLimitContext !== null &&
-      (!isRecord(parsed.dailyLimitContext) ||
-        (parsed.dailyLimitContext.plan !== null &&
-          typeof parsed.dailyLimitContext.plan !== "string") ||
-        typeof parsed.dailyLimitContext.anonymous !== "boolean")
-    ) {
-      return null;
-    }
     if (typeof parsed.resultsReveal !== "boolean") return null;
 
     return parsed as RecommendSessionSnapshot;
