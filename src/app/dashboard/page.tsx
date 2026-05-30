@@ -89,7 +89,7 @@ function DeleteConfirmCard({
           type="button"
           onClick={onConfirm}
           disabled={busy}
-          className="rounded-full border border-red-400/50 bg-red-500/15 px-4 py-2 text-sm font-bold text-red-200 transition hover:bg-red-500/25 disabled:opacity-50"
+          className="rounded-full border border-purple-400/45 bg-purple-500/12 px-4 py-2 text-sm font-bold text-purple-100 transition hover:border-purple-400/60 hover:bg-purple-500/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/40 disabled:opacity-50"
         >
           {confirmLabel}
         </button>
@@ -495,14 +495,14 @@ export default function Dashboard() {
             </div>
 
           {!loading && !loadError && searches.length === 0 && (
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+            <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
               <p className="text-lg font-black">No saved recommendation runs yet</p>
               <p className="mt-3 text-white/60">
                 Run a recommendation, then save it from the results page.
               </p>
               <Link
                 href="/recommend"
-                className="mt-6 inline-block rounded-full bg-cyan-400 px-8 py-4 font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
+                className="mt-6 flex w-full items-center justify-center rounded-full bg-cyan-400 px-6 py-3.5 text-center text-sm font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300 sm:mx-auto sm:inline-flex sm:w-auto sm:px-8 sm:py-4 sm:text-base"
               >
                 Create your first search
               </Link>
@@ -602,7 +602,7 @@ export default function Dashboard() {
                             onClick={() =>
                               setPendingDelete({ kind: "search", id: search.id })
                             }
-                            className="rounded-full border border-red-400/30 px-4 py-2 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-50"
+                            className="rounded-full border border-purple-400/35 px-4 py-2 text-sm font-bold text-purple-200 transition hover:border-purple-400/50 hover:bg-purple-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/35 disabled:opacity-50"
                           >
                             Delete
                           </button>
@@ -812,7 +812,7 @@ export default function Dashboard() {
                               onClick={() =>
                                 setPendingDelete({ kind: "tracked", id: row.id })
                               }
-                              className="rounded-full border border-red-400/30 px-4 py-2 text-sm font-bold text-red-300 transition hover:bg-red-400/10 disabled:opacity-50"
+                              className="rounded-full border border-purple-400/35 px-4 py-2 text-sm font-bold text-purple-200 transition hover:border-purple-400/50 hover:bg-purple-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/35 disabled:opacity-50"
                             >
                               Delete tracking
                             </button>
