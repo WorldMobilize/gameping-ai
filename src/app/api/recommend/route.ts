@@ -54,6 +54,7 @@ import {
   enrichPromptForDiscovery,
   mergeIntentAugmentation,
   reorderFastPicksByRelevance,
+  promptForRetrievalKeywords,
   sanitizeCoreKeywordsForSignals,
   sanitizeDiscoveryQueries,
   sanitizeIntentKeywordSet,
@@ -1223,7 +1224,8 @@ function buildRawgScoreBundle(params: {
   ].join(" ");
   const queries = sanitizeDiscoveryQueries(
     params.fallbackQueries,
-    params.intentSignals
+    params.intentSignals,
+    params.userPrompt
   );
   return {
     normalizedIntent: params.intent.normalizedIntent,
@@ -1234,7 +1236,10 @@ function buildRawgScoreBundle(params: {
     discoveryQueries: queries,
     negativeKeywords: params.intent.avoid ?? [],
     preferredGenresOrTags: params.tagTokens,
-    subjectContext: buildSubjectContextForIntent(intentBlob),
+    subjectContext: buildSubjectContextForIntent(
+      intentBlob,
+      params.intentSignals
+    ),
   };
 }
 
@@ -1519,7 +1524,16 @@ function buildIntentKeywordSet(params: {
       if (t.length >= 3 && !INTENT_STOPWORDS.has(t)) set.add(t);
     }
   };
-  addPhrase(params.userPrompt);
+  addPhrase(
+    promptForRetrievalKeywords(
+      params.userPrompt,
+      params.intentSignals ?? {
+        steamDeck: false,
+        rpgCompanionParty: false,
+        psychologicalHorror: false,
+      }
+    )
+  );
   addPhrase(params.normalizedIntent);
   params.coreNeeds.forEach((x) => addPhrase(x));
   params.tagTokens.forEach((x) => addPhrase(x));
@@ -2129,7 +2143,8 @@ export async function POST(req: Request) {
     });
     intent.fallbackDiscoveryQueries = sanitizeDiscoveryQueries(
       intent.fallbackDiscoveryQueries ?? [],
-      intentSignals
+      intentSignals,
+      normalizedInput.userPrompt
     );
 
     const excludeListRaw = [
@@ -2283,7 +2298,8 @@ export async function POST(req: Request) {
           intent.fallbackDiscoveryQueries?.length
             ? intent.fallbackDiscoveryQueries
             : [intent.normalizedIntent].filter(Boolean),
-          intentSignals
+          intentSignals,
+          normalizedInput.userPrompt
         );
 
         const tFallback = performance.now();
@@ -2416,7 +2432,8 @@ export async function POST(req: Request) {
         intent.fallbackDiscoveryQueries?.length
           ? intent.fallbackDiscoveryQueries
           : [intent.normalizedIntent].filter(Boolean),
-        intentSignals
+        intentSignals,
+        normalizedInput.userPrompt
       );
 
       const tFallback = performance.now();

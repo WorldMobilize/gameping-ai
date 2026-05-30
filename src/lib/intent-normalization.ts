@@ -6,16 +6,19 @@ export type IntentSignals = {
   psychologicalHorror: boolean
 }
 
-/** Protected platform token — never used as a RAWG title keyword. */
-export const STEAM_DECK_PLATFORM_INTENT =
-  "Steam Deck-compatible handheld PC games (portable, controller-friendly)"
+/** Platform constraint label — metadata, not a RAWG title keyword. */
+export const STEAM_DECK_PLATFORM_CONSTRAINT =
+  "Steam Deck platform (handheld PC, controller-friendly, portable play)"
 
-export const STEAM_DECK_SAFE_FALLBACK_QUERIES = [
-  "best handheld-friendly PC games",
-  "steam deck verified games",
-  "controller-friendly indie games",
-  "great games for short portable sessions",
-] as const
+/** @deprecated Use STEAM_DECK_PLATFORM_CONSTRAINT */
+export const STEAM_DECK_PLATFORM_INTENT = STEAM_DECK_PLATFORM_CONSTRAINT
+
+export type SteamDeckIntentSplit = {
+  /** Genre/mood/pacing from the user prompt after removing Steam Deck phrasing. */
+  contentPrompt: string
+  /** True when the user only asked for Steam Deck with no other taste signal. */
+  isPlatformOnly: boolean
+}
 
 export type IntentAugmentFields = {
   normalizedIntent: string
@@ -32,15 +35,72 @@ function normalizeIntentText(text: string) {
     .trim()
 }
 
-/** Collapse Steam Deck phrasing into a single platform intent (not title keywords). */
+/** Collapse Steam Deck phrasing into platform constraint token (not title keywords). */
 export function collapseSteamDeckPhrase(text: string): string {
   return text
-    .replace(/\bsteam\s*deck\b/gi, STEAM_DECK_PLATFORM_INTENT)
-    .replace(/\bsteamdeck\b/gi, STEAM_DECK_PLATFORM_INTENT)
-    .replace(/\bvalve\s+handheld\b/gi, STEAM_DECK_PLATFORM_INTENT)
-    .replace(/\bbest\s+steam\s*deck\s+games?\b/gi, STEAM_DECK_PLATFORM_INTENT)
-    .replace(/\bgames?\s+for\s+steam\s*deck\b/gi, STEAM_DECK_PLATFORM_INTENT)
+    .replace(/\bgames?\s+for\s+steam\s*deck\b/gi, STEAM_DECK_PLATFORM_CONSTRAINT)
+    .replace(/\bbest\s+steam\s*deck\s+games?\b/gi, STEAM_DECK_PLATFORM_CONSTRAINT)
+    .replace(/\bsteamdeck\s+recommendations?\b/gi, STEAM_DECK_PLATFORM_CONSTRAINT)
+    .replace(/\bsteam\s*deck\b/gi, STEAM_DECK_PLATFORM_CONSTRAINT)
+    .replace(/\bsteamdeck\b/gi, STEAM_DECK_PLATFORM_CONSTRAINT)
+    .replace(/\bvalve\s+handheld\b/gi, STEAM_DECK_PLATFORM_CONSTRAINT)
 }
+
+/** Remove Steam Deck platform phrasing so retrieval keywords reflect taste/genre only. */
+export function stripSteamDeckPhrases(text: string): string {
+  return text
+    .replace(/\bgames?\s+for\s+steam\s*deck\b/gi, " ")
+    .replace(/\bbest\s+steam\s*deck\s+games?\b/gi, " ")
+    .replace(/\bsteamdeck\s+recommendations?\b/gi, " ")
+    .replace(/\bsteam\s*deck\b/gi, " ")
+    .replace(/\bsteamdeck\b/gi, " ")
+    .replace(/\bvalve\s+handheld\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+export function splitSteamDeckIntent(userPrompt: string): SteamDeckIntentSplit | null {
+  if (!detectIntentSignals(userPrompt).steamDeck) return null
+
+  let contentPrompt = stripSteamDeckPhrases(userPrompt)
+  contentPrompt = contentPrompt
+    .replace(/^(best|good|great|top|any|some)\s+/i, "")
+    .replace(/\b(recommendations?|recommend|games?|game)\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  const isPlatformOnly =
+    contentPrompt.length < 3 ||
+    /^(games?|recommendations?|recommend)?$/i.test(contentPrompt)
+
+  return { contentPrompt, isPlatformOnly }
+}
+
+/** Text used for RAWG keyword retrieval — excludes Steam Deck tokens when platform intent. */
+export function promptForRetrievalKeywords(
+  userPrompt: string,
+  signals: IntentSignals
+): string {
+  if (!signals.steamDeck) return userPrompt
+  const split = splitSteamDeckIntent(userPrompt)
+  return split?.contentPrompt ?? ""
+}
+
+/** Broad category RAWG searches for platform-only prompts (pools, not game lists). */
+const PLATFORM_ONLY_DISCOVERY_POOLS = [
+  "popular controller friendly indie",
+  "handheld pc adventure games",
+  "well rated portable indie",
+  "action roguelike indie",
+  "cozy relaxing indie game",
+] as const
+
+export const STEAM_DECK_PLATFORM_CORE_NEEDS = [
+  "controller-friendly",
+  "handheld-friendly",
+  "good portable play sessions",
+  "performs well on Steam Deck hardware",
+] as const
 
 /** Detect common misinterpretation patterns from free-text prompts. */
 export function detectIntentSignals(text: string): IntentSignals {
@@ -51,7 +111,8 @@ export function detectIntentSignals(text: string): IntentSignals {
     /\bsteamdeck\b/.test(n) ||
     /\bvalve\s+handheld\b/.test(n) ||
     /\bgames?\s+for\s+steam\s*deck\b/.test(n) ||
-    /\bbest\s+steam\s*deck\b/.test(n)
+    /\bbest\s+steam\s*deck\b/.test(n) ||
+    /\bsteamdeck\s+recommendations?\b/.test(n)
 
   const hasRpg =
     /\b(rpg|crpg|jrpg|role[\s-]?playing|gdr|giochi?\s+di\s+ruolo)\b/.test(n)
@@ -121,19 +182,38 @@ export function isUnsafeSteamDeckDiscoveryQuery(query: string): boolean {
   return false
 }
 
-/** Strip/replace RAWG discovery queries that would retrieve title-keyword spam. */
+/** Strip unsafe RAWG queries; augment only when the pool is thin. */
 export function sanitizeDiscoveryQueries(
   queries: string[],
-  signals: IntentSignals
+  signals: IntentSignals,
+  userPrompt = ""
 ): string[] {
   if (!signals.steamDeck) return queries.filter(Boolean)
 
-  const safe = queries
+  const filtered = queries
     .map((q) => q.trim())
     .filter(Boolean)
     .filter((q) => !isUnsafeSteamDeckDiscoveryQuery(q))
 
-  return mergeUniqueStrings([...STEAM_DECK_SAFE_FALLBACK_QUERIES, ...safe], 8)
+  if (filtered.length >= 2) {
+    return mergeUniqueStrings(filtered, 8)
+  }
+
+  const split = splitSteamDeckIntent(userPrompt)
+
+  if (split && !split.isPlatformOnly && split.contentPrompt.length >= 3) {
+    return mergeUniqueStrings(
+      [
+        ...filtered,
+        split.contentPrompt,
+        `${split.contentPrompt} indie game`,
+        `${split.contentPrompt} pc game`,
+      ],
+      8
+    )
+  }
+
+  return mergeUniqueStrings([...filtered, ...PLATFORM_ONLY_DISCOVERY_POOLS], 8)
 }
 
 export function sanitizeCoreKeywordsForSignals(
@@ -185,9 +265,21 @@ export function enrichPromptForDiscovery(
 
   const hints: string[] = []
   if (signals.steamDeck) {
-    hints.push(
-      `Platform constraint: ${STEAM_DECK_PLATFORM_INTENT}. Do NOT recommend games because \"steam\" or \"deck\" appears in the title. Recommend well-known portable PC games (indie/action/RPG) that run well on Steam Deck.`
-    )
+    const split = splitSteamDeckIntent(base)
+    if (split?.isPlatformOnly) {
+      hints.push(
+        `Platform filter: ${STEAM_DECK_PLATFORM_CONSTRAINT}. User wants broadly appealing Deck-friendly games — vary genres and styles. Do NOT match games because \"steam\" or \"deck\" appears in the title.`
+      )
+    } else if (split?.contentPrompt) {
+      hints.push(
+        `Primary taste intent: \"${split.contentPrompt}\" (genre/mood/pacing — this must dominate picks and fallbackDiscoveryQueries).`,
+        `Platform filter (secondary): ${STEAM_DECK_PLATFORM_CONSTRAINT}. Filter for compatibility only — do NOT match title keywords steam/deck.`
+      )
+    } else {
+      hints.push(
+        `Platform filter: ${STEAM_DECK_PLATFORM_CONSTRAINT}. Do NOT match title keywords steam/deck.`
+      )
+    }
   }
   if (signals.rpgCompanionParty) {
     hints.push(
@@ -208,10 +300,13 @@ export function buildDisambiguationRules(signals: IntentSignals): string[] {
   const rules: string[] = []
   if (signals.steamDeck) {
     rules.push(
-      `Steam Deck = ${STEAM_DECK_PLATFORM_INTENT}. NEVER pick games because the title contains \"Steam\" or \"Deck\". Pick recognizable handheld-friendly PC games.`
+      "Steam Deck is a PLATFORM FILTER (handheld PC, controller-friendly, portable) — NOT a title keyword search. NEVER pick games because the title contains \"Steam\" or \"Deck\"."
     )
     rules.push(
-      "fallbackDiscoveryQueries must NOT be single words \"steam\" or \"deck\", and must NOT search for games with deck/steam in the title."
+      "When the user also names a genre/mood (cozy, roguelike, horror, etc.), that taste MUST dominate suggestedTitles and fallbackDiscoveryQueries; Steam Deck only constrains compatibility in reasons."
+    )
+    rules.push(
+      "fallbackDiscoveryQueries must never be bare \"steam\" or \"deck\", or searches for games with steam/deck in the title."
     )
   }
   if (signals.rpgCompanionParty) {
@@ -248,9 +343,22 @@ export function normalizeIntentForSignals(
   signals: IntentSignals
 ): string {
   if (signals.steamDeck) {
-    const collapsed = collapseSteamDeckPhrase(normalizedIntent || userPrompt)
-    if (collapsed.includes(STEAM_DECK_PLATFORM_INTENT)) return collapsed
-    return `${STEAM_DECK_PLATFORM_INTENT}. ${collapsed}`.trim()
+    const split = splitSteamDeckIntent(userPrompt)
+    const aiIntent = (normalizedIntent || userPrompt).trim()
+
+    if (split?.isPlatformOnly) {
+      return `Recommend broadly appealing games that play well on Steam Deck (${STEAM_DECK_PLATFORM_CONSTRAINT}).`
+    }
+    if (split?.contentPrompt) {
+      const content = split.contentPrompt
+      const cleanedAi = stripSteamDeckPhrases(aiIntent)
+      const taste =
+        cleanedAi.length >= 3 && !/steam deck/i.test(cleanedAi)
+          ? cleanedAi
+          : content
+      return `Recommend ${taste} that play well on Steam Deck (${STEAM_DECK_PLATFORM_CONSTRAINT}).`
+    }
+    return collapseSteamDeckPhrase(aiIntent)
   }
   if (signals.psychologicalHorror) {
     const base = (normalizedIntent || userPrompt).trim()
@@ -278,11 +386,7 @@ export function mergeIntentAugmentation(
   )
 
   if (signals.steamDeck) {
-    coreNeeds.push(
-      "handheld-friendly PC games",
-      "controller-friendly portable play",
-      "well-suited for Steam Deck sessions"
-    )
+    coreNeeds.push(...STEAM_DECK_PLATFORM_CORE_NEEDS)
     avoid.push(
       "games with steam in the title",
       "games with deck in the title",
@@ -293,10 +397,30 @@ export function mergeIntentAugmentation(
       "TCG",
       "title keyword matching"
     )
-    fallbackDiscoveryQueries = sanitizeDiscoveryQueries(
-      fallbackDiscoveryQueries,
-      signals
-    )
+
+    const split = splitSteamDeckIntent(userPrompt)
+    const sanitizedAi = fallbackDiscoveryQueries
+      .map((q) => q.trim())
+      .filter(Boolean)
+      .filter((q) => !isUnsafeSteamDeckDiscoveryQuery(q))
+
+    if (split && !split.isPlatformOnly && split.contentPrompt.length >= 3) {
+      fallbackDiscoveryQueries = mergeUniqueStrings(
+        [
+          ...sanitizedAi,
+          split.contentPrompt,
+          `${split.contentPrompt} indie`,
+          `${split.contentPrompt} game`,
+        ],
+        8
+      )
+    } else {
+      fallbackDiscoveryQueries = sanitizeDiscoveryQueries(
+        sanitizedAi,
+        signals,
+        userPrompt
+      )
+    }
   }
 
   if (signals.rpgCompanionParty) {
@@ -367,9 +491,17 @@ export function sanitizeIntentKeywordSet(
   return out
 }
 
-export function buildSubjectContextForIntent(intentBlob: string): Record<string, string[]> {
+export function buildSubjectContextForIntent(
+  intentBlob: string,
+  signals?: IntentSignals
+): Record<string, string[]> {
   const ctx: Record<string, string[]> = {}
-  if (/\bsteam\s*deck\b|\bsteamdeck\b|\bvalve\s+handheld\b/i.test(intentBlob)) {
+  const steamDeck =
+    signals?.steamDeck ||
+    /\bsteam\s*deck\b|\bsteamdeck\b|\bvalve\s+handheld\b|Steam Deck platform/i.test(
+      intentBlob
+    )
+  if (steamDeck) {
     const platformCtx = [
       "handheld",
       "portable",
