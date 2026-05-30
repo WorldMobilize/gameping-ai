@@ -54,8 +54,13 @@ import {
   enrichPromptForDiscovery,
   mergeIntentAugmentation,
   reorderFastPicksByRelevance,
+  sanitizeCoreKeywordsForSignals,
+  sanitizeDiscoveryQueries,
   sanitizeIntentKeywordSet,
   scoreCandidateRelevanceBoost,
+  shouldRejectCandidateForSignals,
+  isHorrorKeywordShovelwareTitle,
+  isSteamDeckTitleKeywordSpam,
   type IntentSignals,
 } from "@/lib/intent-normalization";
 
@@ -1209,16 +1214,24 @@ function buildRawgScoreBundle(params: {
   fallbackQueries: string[];
   tagTokens: string[];
   userPrompt: string;
+  intentSignals: IntentSignals;
 }) {
   const intentBlob = [
     params.userPrompt,
     params.intent.normalizedIntent,
     ...(params.intent.coreNeeds ?? []),
   ].join(" ");
+  const queries = sanitizeDiscoveryQueries(
+    params.fallbackQueries,
+    params.intentSignals
+  );
   return {
     normalizedIntent: params.intent.normalizedIntent,
-    coreKeywords: params.intent.coreNeeds ?? [],
-    discoveryQueries: params.fallbackQueries,
+    coreKeywords: sanitizeCoreKeywordsForSignals(
+      params.intent.coreNeeds ?? [],
+      params.intentSignals
+    ),
+    discoveryQueries: queries,
     negativeKeywords: params.intent.avoid ?? [],
     preferredGenresOrTags: params.tagTokens,
     subjectContext: buildSubjectContextForIntent(intentBlob),
@@ -1293,8 +1306,24 @@ async function verifySuggestedTitles(params: {
   excludeNormalized: Set<string>;
   /** Cap parallel RAWG title lookups (default 12; fast mode uses 8). */
   maxTitles?: number;
+  intentSignals?: IntentSignals;
+  normalizedIntent?: string;
+  coreNeeds?: string[];
+  userPrompt?: string;
 }) {
-  const { rawgKey, suggestedTitles, excludeNormalized } = params;
+  const {
+    rawgKey,
+    suggestedTitles,
+    excludeNormalized,
+    intentSignals = {
+      steamDeck: false,
+      rpgCompanionParty: false,
+      psychologicalHorror: false,
+    },
+    normalizedIntent = "",
+    coreNeeds = [],
+    userPrompt = "",
+  } = params;
   const maxTitles = params.maxTitles ?? 12;
   // Trim RAWG fan-out: top titles only (keeps quality while reducing worst-case latency).
   const slice = suggestedTitles.slice(0, maxTitles);
@@ -1304,6 +1333,13 @@ async function verifySuggestedTitles(params: {
     const title = s.title.trim();
     if (!title) return null;
     if (excludeNormalized.has(normalizeTitleForMatch(title))) return null;
+    if (intentSignals.steamDeck && isSteamDeckTitleKeywordSpam(title)) return null;
+    if (
+      intentSignals.psychologicalHorror &&
+      isHorrorKeywordShovelwareTitle(title)
+    ) {
+      return null;
+    }
 
     const results = await searchRawgByTitle({
       rawgApiKey: rawgKey,
@@ -1321,8 +1357,21 @@ async function verifySuggestedTitles(params: {
       const tm = titleMatchQuality(title, c.name);
       if (tm < 0.74) continue;
       if (!isProbablyBaseGame(c)) continue;
+      if (shouldRejectCandidateForSignals(c, intentSignals)) continue;
 
-      const score = tm * 100 + metadataQualityScore(c) + popularityScore(c) * 0.35;
+      const relevanceBoost = scoreCandidateRelevanceBoost({
+        signals: intentSignals,
+        userPrompt,
+        normalizedIntent,
+        coreNeeds,
+        candidate: c,
+      });
+
+      const score =
+        tm * 100 +
+        metadataQualityScore(c) +
+        popularityScore(c) * 0.35 +
+        relevanceBoost;
       if (score > bestScore) {
         bestScore = score;
         best = c;
@@ -2063,7 +2112,8 @@ export async function POST(req: Request) {
         avoid: intent.avoid ?? [],
         fallbackDiscoveryQueries: intent.fallbackDiscoveryQueries ?? [],
       },
-      intentSignals
+      intentSignals,
+      normalizedInput.userPrompt
     );
     intent.normalizedIntent = intentMerged.normalizedIntent;
     intent.coreNeeds = intentMerged.coreNeeds;
@@ -2077,6 +2127,10 @@ export async function POST(req: Request) {
       coreNeeds: intent.coreNeeds ?? [],
       resolvedTags: resolvedSelectedTags,
     });
+    intent.fallbackDiscoveryQueries = sanitizeDiscoveryQueries(
+      intent.fallbackDiscoveryQueries ?? [],
+      intentSignals
+    );
 
     const excludeListRaw = [
       ...regexRefsFromPrompt,
@@ -2181,12 +2235,19 @@ export async function POST(req: Request) {
         suggestedTitles: intent.suggestedTitles,
         excludeNormalized,
         maxTitles: singleCallFastEnabled ? 8 : undefined,
+        intentSignals,
+        normalizedIntent: intent.normalizedIntent,
+        coreNeeds: intent.coreNeeds ?? [],
+        userPrompt: normalizedInput.userPrompt,
       });
     }
     timing.rawgVerificationMs = performance.now() - tVerify;
     stageMs["rawg.verifySuggestedTitles"] = timing.rawgVerificationMs;
 
     verified = filterCandidatesByExclude(verified, excludeNormalized);
+    verified = verified.filter(
+      (c) => !shouldRejectCandidateForSignals(c, intentSignals)
+    );
 
     // Experimental: single-call fast mode returns directly after RAWG verification (no semantic filter + no rerank).
     if (singleCallFastEnabled && fastPicks) {
@@ -2201,6 +2262,7 @@ export async function POST(req: Request) {
         const c = verifiedByNorm.get(key);
         if (!c) continue;
         if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
+        if (shouldRejectCandidateForSignals(c, intentSignals)) continue;
         picked.push({
           id: c.id,
           title: c.name,
@@ -2217,10 +2279,12 @@ export async function POST(req: Request) {
       // If too few verified, lightly use RAWG fallback queries (no extra OpenAI calls).
       let picksForEnrichment = picked;
       if (rawgKey && picksForEnrichment.length < 3) {
-        const fallbackQueries =
+        const fallbackQueries = sanitizeDiscoveryQueries(
           intent.fallbackDiscoveryQueries?.length
             ? intent.fallbackDiscoveryQueries
-            : [intent.normalizedIntent].filter(Boolean);
+            : [intent.normalizedIntent].filter(Boolean),
+          intentSignals
+        );
 
         const tFallback = performance.now();
         const fetched = await fetchRawgCandidates({
@@ -2237,6 +2301,7 @@ export async function POST(req: Request) {
             fallbackQueries,
             tagTokens,
             userPrompt: normalizedInput.userPrompt,
+            intentSignals,
           }),
           dedupeCandidates(fetched)
         );
@@ -2247,6 +2312,7 @@ export async function POST(req: Request) {
           if (used.has(c.id)) continue;
           if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
           if (!isProbablyBaseGame(c)) continue;
+          if (shouldRejectCandidateForSignals(c, intentSignals)) continue;
           picksForEnrichment.push({
             id: c.id,
             title: c.name,
@@ -2346,10 +2412,12 @@ export async function POST(req: Request) {
     // 3) Fallback retrieval if verification is weak.
     let candidatePool: VerifiedCandidate[] = verified;
     if (rawgKey && candidatePool.length < 6) {
-      const fallbackQueries =
+      const fallbackQueries = sanitizeDiscoveryQueries(
         intent.fallbackDiscoveryQueries?.length
           ? intent.fallbackDiscoveryQueries
-          : [intent.normalizedIntent].filter(Boolean);
+          : [intent.normalizedIntent].filter(Boolean),
+        intentSignals
+      );
 
       const tFallback = performance.now();
       const fetched = await fetchRawgCandidates({
@@ -2367,11 +2435,14 @@ export async function POST(req: Request) {
           fallbackQueries,
           tagTokens,
           userPrompt: normalizedInput.userPrompt,
+          intentSignals,
         }),
         dedupeCandidates(fetched)
       );
 
-      const diverse = selectDiverseTop([...scored], 50).map((s) => s.candidate);
+      const diverse = selectDiverseTop([...scored], 50)
+        .map((s) => s.candidate)
+        .filter((c) => !shouldRejectCandidateForSignals(c, intentSignals));
       candidatePool = dedupeCandidates([...candidatePool, ...diverse]);
     }
 

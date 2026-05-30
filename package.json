@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:pricing": "node --import tsx --test src/lib/pricing/pricing-mvp.test.ts"
+    "test:pricing": "node --import tsx --test src/lib/pricing/pricing-mvp.test.ts",
+    "test:intent": "node --import tsx --test src/lib/intent-normalization.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
