@@ -284,10 +284,17 @@ export async function aiFirstDiscovery(params: {
   }
   /** When false, structured filters were disabled — prioritize free-text prompt only. */
   filtersEnabled?: boolean
+  /** Prompt-specific disambiguation (e.g. Steam Deck vs deckbuilder). */
+  disambiguationRules?: string[]
 }) {
   const { openai, normalizedInput } = params
   const filtersEnabled = params.filtersEnabled !== false
   const discoveryStarted = performance.now()
+
+  const disambiguationBlock =
+    params.disambiguationRules && params.disambiguationRules.length > 0
+      ? `\nIntent disambiguation (must follow):\n${params.disambiguationRules.map((r) => `- ${r}`).join("\n")}\n`
+      : ""
 
   const discoveryOnlyRules = !filtersEnabled
     ? `
@@ -342,7 +349,7 @@ Rules:
 - If the user clearly wants to FIND / PRICE / DISCOUNT a specific game by name (e.g. "trova Hades", "prezzo di Elden Ring"), leave "excludeTitles" empty and you may include that game in "suggestedTitles".
 - Respect the user's maximum budget when suggesting titles when practical (prefer titles likely affordable under that cap).
 - Weight the user's selected tags heavily when choosing suggestions.
-${discoveryOnlyRules}
+${disambiguationBlock}${discoveryOnlyRules}
 - Keep everything concise. No markdown. No extra keys.
 `,
           },
@@ -447,10 +454,21 @@ export async function aiSingleCallFastDiscovery(params: {
     selectedTags: string
   }
   filtersEnabled?: boolean
+  /** Prompt-specific disambiguation (e.g. Steam Deck vs deckbuilder). */
+  disambiguationRules?: string[]
 }) {
   const { openai, normalizedInput } = params
   const filtersEnabled = params.filtersEnabled !== false
   const started = performance.now()
+
+  const disambiguationBlock =
+    params.disambiguationRules && params.disambiguationRules.length > 0
+      ? [
+          "Intent disambiguation (must follow):",
+          ...params.disambiguationRules.map((r) => `- ${r}`),
+          "",
+        ].join("\n")
+      : ""
 
   const discoveryOnlyRules = !filtersEnabled
     ? [
@@ -492,8 +510,11 @@ export async function aiSingleCallFastDiscovery(params: {
     "- fallbackDiscoveryQueries: 2–3 short English RAWG search strings when useful; else [].",
     "- Games like/similar to X: X in referenceTitles and excludeTitles; do not recommend X.",
     "- No markdown. No extra keys.",
+    disambiguationBlock,
     discoveryOnlyRules,
-  ].join("\n")
+  ]
+    .filter(Boolean)
+    .join("\n")
 
   const userContent = buildSingleCallFastUserContent({ filtersEnabled, normalizedInput })
 

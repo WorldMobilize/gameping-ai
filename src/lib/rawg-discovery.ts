@@ -30,6 +30,8 @@ type IntentBundle = {
   discoveryQueries: string[]
   negativeKeywords: string[]
   preferredGenresOrTags: string[]
+  /** Extra subject→context guards (e.g. deck → steam deck when handheld intent). */
+  subjectContext?: Record<string, string[]>
 }
 
 function normalizeToken(s: string) {
@@ -448,14 +450,15 @@ export function scoreCandidates(intent: IntentBundle, candidates: RawgCandidate[
     // Subject-only penalty: subject matched but no context words matched.
     // Helps avoid false positives like "Gold Edition" for "simulatore oro".
     const normalizedIntentBlob = `${intent.normalizedIntent} | ${intent.discoveryQueries.join(" | ")}`
-    for (const subject of Object.keys(SUBJECT_CONTEXT)) {
+    const subjectContext = { ...SUBJECT_CONTEXT, ...(intent.subjectContext ?? {}) }
+    for (const subject of Object.keys(subjectContext)) {
       const subjectIsInIntent = core.includes(subject) || safeIncludes(normalizedIntentBlob, subject)
       if (!subjectIsInIntent) continue
 
       const subjectMatchedCandidate = safeIncludes(blob, subject)
       if (!subjectMatchedCandidate) continue
 
-      const contextMatchedCandidate = anyIncludes(blob, SUBJECT_CONTEXT[subject])
+      const contextMatchedCandidate = anyIncludes(blob, subjectContext[subject])
       if (!contextMatchedCandidate) {
         score -= 18
       }

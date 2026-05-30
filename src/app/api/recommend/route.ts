@@ -47,6 +47,17 @@ import {
   minimalDiscoveryFallback,
   type AiSuggestedTitle,
 } from "@/lib/ai-game-discovery";
+import {
+  buildDisambiguationRules,
+  buildSubjectContextForIntent,
+  detectIntentSignals,
+  enrichPromptForDiscovery,
+  mergeIntentAugmentation,
+  reorderFastPicksByRelevance,
+  sanitizeIntentKeywordSet,
+  scoreCandidateRelevanceBoost,
+  type IntentSignals,
+} from "@/lib/intent-normalization";
 
 type VerifiedCandidate = RawgCandidate & {
   _suggested?: {
@@ -1189,6 +1200,31 @@ function inputBlob(input: {
     .join(" | ");
 }
 
+function buildRawgScoreBundle(params: {
+  intent: {
+    normalizedIntent: string;
+    coreNeeds?: string[];
+    avoid?: string[];
+  };
+  fallbackQueries: string[];
+  tagTokens: string[];
+  userPrompt: string;
+}) {
+  const intentBlob = [
+    params.userPrompt,
+    params.intent.normalizedIntent,
+    ...(params.intent.coreNeeds ?? []),
+  ].join(" ");
+  return {
+    normalizedIntent: params.intent.normalizedIntent,
+    coreKeywords: params.intent.coreNeeds ?? [],
+    discoveryQueries: params.fallbackQueries,
+    negativeKeywords: params.intent.avoid ?? [],
+    preferredGenresOrTags: params.tagTokens,
+    subjectContext: buildSubjectContextForIntent(intentBlob),
+  };
+}
+
 function isProbablyBaseGame(c: RawgCandidate) {
   return !isLowQualityTitle(c.name);
 }
@@ -1320,8 +1356,19 @@ function scoreVerifiedCandidates(params: {
   userBlob: string;
   tagTokens: string[];
   candidates: VerifiedCandidate[];
+  intentSignals: IntentSignals;
+  userPrompt: string;
 }) {
-  const { normalizedIntent, coreNeeds, avoid, userBlob, tagTokens, candidates } = params;
+  const {
+    normalizedIntent,
+    coreNeeds,
+    avoid,
+    userBlob,
+    tagTokens,
+    candidates,
+    intentSignals,
+    userPrompt,
+  } = params;
 
   const scored = candidates.map((c) => {
     const heuristic = semanticHeuristicScore({
@@ -1333,6 +1380,14 @@ function scoreVerifiedCandidates(params: {
       candidate: c,
     });
 
+    const relevanceBoost = scoreCandidateRelevanceBoost({
+      signals: intentSignals,
+      userPrompt,
+      normalizedIntent,
+      coreNeeds,
+      candidate: c,
+    });
+
     const titleMatch = c._suggested?.titleMatch ?? 0;
     const conf = c._suggested?.confidence ?? 0;
     const titleBoost = titleMatch > 0 ? titleMatch * 18 : 0;
@@ -1340,7 +1395,10 @@ function scoreVerifiedCandidates(params: {
     const meta = metadataQualityScore(c);
     const pop = popularityScore(c);
 
-    return { candidate: c, score: heuristic + titleBoost + confBoost + meta + pop };
+    return {
+      candidate: c,
+      score: heuristic + relevanceBoost + titleBoost + confBoost + meta + pop,
+    };
   });
 
   scored.sort((a, b) => b.score - a.score);
@@ -1400,6 +1458,7 @@ function buildIntentKeywordSet(params: {
   coreNeeds: string[];
   tagTokens: string[];
   fallbackQueries: string[];
+  intentSignals?: IntentSignals;
 }) {
   const set = new Set<string>();
   const addPhrase = (phrase: string) => {
@@ -1416,7 +1475,11 @@ function buildIntentKeywordSet(params: {
   params.coreNeeds.forEach((x) => addPhrase(x));
   params.tagTokens.forEach((x) => addPhrase(x));
   params.fallbackQueries.forEach((x) => addPhrase(x));
-  return set;
+  return sanitizeIntentKeywordSet(set, params.intentSignals ?? {
+    steamDeck: false,
+    rpgCompanionParty: false,
+    psychologicalHorror: false,
+  });
 }
 
 function listOverlappingKeywords(c: RawgCandidate, keywords: Set<string>) {
@@ -1524,6 +1587,7 @@ function augmentPicksWithRecovery(params: {
   excludeNormalized: Set<string>;
   filtersEnabled: boolean;
   locale: "it" | "en";
+  intentSignals: IntentSignals;
 }): PreEnrichPick[] {
   const {
     primaryPicks,
@@ -1535,6 +1599,7 @@ function augmentPicksWithRecovery(params: {
     excludeNormalized,
     filtersEnabled,
     locale,
+    intentSignals,
   } = params;
 
   const merged: PreEnrichPick[] = [...primaryPicks];
@@ -1547,6 +1612,7 @@ function augmentPicksWithRecovery(params: {
     coreNeeds: intent.coreNeeds ?? [],
     tagTokens,
     fallbackQueries: intent.fallbackDiscoveryQueries ?? [],
+    intentSignals,
   });
 
   const phraseChunks = buildIntentPhraseChunks({
@@ -1909,6 +1975,17 @@ export async function POST(req: Request) {
       normalizedInput.userPrompt
     );
 
+    const intentSignals = detectIntentSignals(normalizedInput.userPrompt);
+    const disambiguationRules = buildDisambiguationRules(intentSignals);
+    const discoveryNormalizedInput = {
+      ...normalizedInput,
+      userPrompt: enrichPromptForDiscovery(
+        normalizedInput.userPrompt,
+        intentSignals
+      ),
+      selectedTags: resolvedSelectedTags.join(", "),
+    };
+
     const singleCallFastEnabled =
       process.env.RECOMMEND_SINGLE_CALL_FAST === "1" && !debugEnabled && !noCache;
     const fastStarted = nowMs();
@@ -1927,10 +2004,8 @@ export async function POST(req: Request) {
         const fast = await aiSingleCallFastDiscovery({
           openai,
           filtersEnabled,
-          normalizedInput: {
-            ...normalizedInput,
-            selectedTags: resolvedSelectedTags.join(", "),
-          },
+          normalizedInput: discoveryNormalizedInput,
+          disambiguationRules,
         });
         // Reuse the same intent shape for cache keys + downstream RAWG logic.
         aiDiscovery = { intent: fast.intent, usage: fast.usage } as Awaited<
@@ -1943,10 +2018,8 @@ export async function POST(req: Request) {
         aiDiscovery = await aiFirstDiscovery({
           openai,
           filtersEnabled,
-          normalizedInput: {
-            ...normalizedInput,
-            selectedTags: resolvedSelectedTags.join(", "),
-          },
+          normalizedInput: discoveryNormalizedInput,
+          disambiguationRules,
         });
       }
     } catch (err) {
@@ -1971,10 +2044,8 @@ export async function POST(req: Request) {
           aiDiscovery = await aiFirstDiscovery({
             openai,
             filtersEnabled,
-            normalizedInput: {
-              ...normalizedInput,
-              selectedTags: resolvedSelectedTags.join(", "),
-            },
+            normalizedInput: discoveryNormalizedInput,
+            disambiguationRules,
           });
         } else {
           throw err;
@@ -1984,6 +2055,20 @@ export async function POST(req: Request) {
     timing.aiDiscoveryMs = performance.now() - tDiscovery;
     stageMs["ai.discovery"] = timing.aiDiscoveryMs;
     const intent = aiDiscovery.intent;
+
+    const intentMerged = mergeIntentAugmentation(
+      {
+        normalizedIntent: intent.normalizedIntent,
+        coreNeeds: intent.coreNeeds ?? [],
+        avoid: intent.avoid ?? [],
+        fallbackDiscoveryQueries: intent.fallbackDiscoveryQueries ?? [],
+      },
+      intentSignals
+    );
+    intent.normalizedIntent = intentMerged.normalizedIntent;
+    intent.coreNeeds = intentMerged.coreNeeds;
+    intent.avoid = intentMerged.avoid;
+    intent.fallbackDiscoveryQueries = intentMerged.fallbackDiscoveryQueries;
 
     intent.fallbackDiscoveryQueries = augmentIslandSurvivalFallbackQueries({
       queries: intent.fallbackDiscoveryQueries ?? [],
@@ -2147,13 +2232,12 @@ export async function POST(req: Request) {
         stageMs["rawg.fetchCandidatesFallback"] = timing.rawgFallbackMs;
 
         const scored = scoreCandidates(
-          {
-            normalizedIntent: intent.normalizedIntent,
-            coreKeywords: intent.coreNeeds ?? [],
-            discoveryQueries: fallbackQueries,
-            negativeKeywords: intent.avoid ?? [],
-            preferredGenresOrTags: tagTokens,
-          },
+          buildRawgScoreBundle({
+            intent,
+            fallbackQueries,
+            tagTokens,
+            userPrompt: normalizedInput.userPrompt,
+          }),
           dedupeCandidates(fetched)
         );
 
@@ -2177,6 +2261,16 @@ export async function POST(req: Request) {
           if (picksForEnrichment.length >= 4) break;
         }
       }
+
+      const verifiedById = new Map(verified.map((c) => [c.id, c] as const));
+      picksForEnrichment = reorderFastPicksByRelevance({
+        picks: picksForEnrichment,
+        getCandidate: (id) => verifiedById.get(id),
+        signals: intentSignals,
+        userPrompt: normalizedInput.userPrompt,
+        normalizedIntent: intent.normalizedIntent,
+        coreNeeds: intent.coreNeeds ?? [],
+      });
 
       // Ensure images if missing.
       let picksWithImages = picksForEnrichment;
@@ -2268,13 +2362,12 @@ export async function POST(req: Request) {
 
       // Reuse existing RAWG scoring as a best-effort signal.
       const scored = scoreCandidates(
-        {
-          normalizedIntent: intent.normalizedIntent,
-          coreKeywords: intent.coreNeeds ?? [],
-          discoveryQueries: fallbackQueries,
-          negativeKeywords: intent.avoid ?? [],
-          preferredGenresOrTags: tagTokens,
-        },
+        buildRawgScoreBundle({
+          intent,
+          fallbackQueries,
+          tagTokens,
+          userPrompt: normalizedInput.userPrompt,
+        }),
         dedupeCandidates(fetched)
       );
 
@@ -2292,6 +2385,8 @@ export async function POST(req: Request) {
       userBlob,
       tagTokens,
       candidates: candidatePool,
+      intentSignals,
+      userPrompt: normalizedInput.userPrompt,
     });
     // Conservative diversity: soften canonical anchors, nudge discovery gems when already relevant.
     scoredFinal = applyDiversityScoreAdjustments(scoredFinal);
@@ -2553,6 +2648,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
         excludeNormalized,
         filtersEnabled,
         locale: copyLocale,
+        intentSignals,
       });
     }
     picksForEnrichment = balanceFinalPicksDiversity(picksForEnrichment);
