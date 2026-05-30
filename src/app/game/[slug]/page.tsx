@@ -2,14 +2,17 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Navbar from "@/components/Navbar";
-import { getCollectionBySlug } from "@/lib/curated/collections";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import {
+  buildGameBreadcrumbs,
   buildGamePageMetadata,
-  findCuratedCollectionSlugForGame,
-  getRelatedDirectoryGames,
+  findCuratedCollectionsForGame,
+  findDirectoryGameImage,
+  getSemanticRelatedGames,
   titleCaseFromSlug,
 } from "@/lib/seo/game-page";
+import GameBreadcrumbs from "@/components/GameBreadcrumbs";
+import GameStructuredData from "@/components/GameStructuredData";
 import GamePageAnalytics from "@/components/GamePageAnalytics";
 import GameScreenshotLightbox from "@/components/GameScreenshotLightbox";
 import TrackPriceButton, {
@@ -439,7 +442,11 @@ export async function generateMetadata({
   const decoded = decodeURIComponent(slug);
   const cached = await getCachedRawgGame<RawgGame>(decoded);
   const displayName = cached?.name?.trim() || titleCaseFromSlug(decoded);
-  return buildGamePageMetadata(displayName, decoded);
+  const ogImage =
+    cached?.background_image?.trim() ||
+    findDirectoryGameImage(displayName) ||
+    null;
+  return buildGamePageMetadata(displayName, decoded, { ogImage });
 }
 
 export default async function GameDetailPage({
@@ -612,12 +619,50 @@ export default async function GameDetailPage({
   const releaseDateDisplay = formatDisplayDate(rawg?.released) ?? "N/A";
 
   const displayTitle = rawg?.name?.trim() || titleCaseFromSlug(title);
-  const relatedGames = getRelatedDirectoryGames(displayTitle);
-  const curatedSlug = findCuratedCollectionSlugForGame(displayTitle);
-  const curatedCollection = curatedSlug ? getCollectionBySlug(curatedSlug) : null;
+  const curatedCollections = findCuratedCollectionsForGame(displayTitle);
+  const curatedCollection = curatedCollections[0] ?? null;
+  const breadcrumbs = buildGameBreadcrumbs(displayTitle, curatedCollections);
+  const relatedGames = getSemanticRelatedGames({
+    currentTitle: displayTitle,
+    genreNames: rawg?.genres?.map((g) => g.name),
+    limit: 4,
+  });
+
+  const schemaOffer = (() => {
+    if (primaryDeal) {
+      const price = parseVerifiedDealSalePrice(primaryDeal);
+      const currency = primaryDeal.currency?.trim();
+      if (Number.isFinite(price) && price >= 0 && currency) {
+        return { price, priceCurrency: currency };
+      }
+    }
+    if (hasTrustedVerifiedBuy && bestPrice?.price && bestPrice.currency?.trim()) {
+      const price = parsePriceAmount(bestPrice.price);
+      if (price !== null && price >= 0) {
+        return { price, priceCurrency: bestPrice.currency.trim() };
+      }
+    }
+    return null;
+  })();
 
   return (
     <main className="min-h-screen bg-[#05060f] text-white">
+      <GameStructuredData
+        data={{
+          name: displayTitle,
+          description,
+          image: heroImage ?? findDirectoryGameImage(displayTitle),
+          genres: rawg?.genres?.map((g) => g.name),
+          developers: rawg?.developers?.map((d) => d.name),
+          publishers: rawg?.publishers?.map((p) => p.name),
+          released: rawg?.released ?? null,
+          rating: rawg?.rating ?? null,
+          platforms: rawg?.platforms?.map((p) => p.platform.name),
+          path: gameDetailPath(title),
+          breadcrumbs,
+          offer: schemaOffer,
+        }}
+      />
       {gameId ? (
         <GamePageAnalytics title={displayTitle} rawgId={gameId} />
       ) : null}
@@ -637,44 +682,7 @@ export default async function GameDetailPage({
         <div className="absolute bottom-20 right-10 h-96 w-96 rounded-full bg-purple-600/20 blur-3xl" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-8">
-          <nav
-            className="flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-white/65"
-            aria-label="Explore GamePing"
-          >
-            <Link
-              href="/"
-              className="rounded-lg px-2 py-1 transition hover:bg-white/10 hover:text-cyan-200"
-            >
-              Home
-            </Link>
-            <span className="text-white/25" aria-hidden="true">
-              ·
-            </span>
-            <Link
-              href="/games"
-              className="rounded-lg px-2 py-1 transition hover:bg-white/10 hover:text-cyan-200"
-            >
-              Games directory
-            </Link>
-            <span className="text-white/25" aria-hidden="true">
-              ·
-            </span>
-            <Link
-              href="/curated"
-              className="rounded-lg px-2 py-1 transition hover:bg-white/10 hover:text-cyan-200"
-            >
-              Curated lists
-            </Link>
-            <span className="text-white/25" aria-hidden="true">
-              ·
-            </span>
-            <Link
-              href="/recommend"
-              className="rounded-lg px-2 py-1 transition hover:bg-white/10 hover:text-cyan-200"
-            >
-              AI recommendations
-            </Link>
-          </nav>
+          <GameBreadcrumbs items={breadcrumbs} />
 
           <div className="grid gap-10 pt-10 pb-8 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
@@ -1231,7 +1239,7 @@ export default async function GameDetailPage({
 
           {relatedGames.length > 0 ? (
             <div className="mt-8">
-              <h3 className="text-sm font-black text-white/80">More games to explore</h3>
+              <h3 className="text-sm font-black text-white/80">Similar games to explore</h3>
               <ul className="mt-3 flex flex-wrap gap-3">
                 {relatedGames.map((game) => (
                   <li key={game.title}>
