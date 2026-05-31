@@ -1,9 +1,31 @@
 import type { RawgCandidate } from "@/lib/rawg-discovery"
 
+export type DiscoverySubkind =
+  | "anti_aaa"
+  | "lonely_beautiful"
+  | "underrated"
+  | "cozy_short"
+  | "weekend_finish"
+  | "generic"
+
 export type IntentSignals = {
   steamDeck: boolean
   rpgCompanionParty: boolean
   psychologicalHorror: boolean
+  /** Open-ended emotional / surprise-me / hidden-gem discovery prompts. */
+  memorableDiscovery: boolean
+  /** Cozy + short-session evening play (distinct ranking/query pool). */
+  cozyShortSession: boolean
+  discoverySubkind: DiscoverySubkind | null
+}
+
+export const EMPTY_INTENT_SIGNALS: IntentSignals = {
+  steamDeck: false,
+  rpgCompanionParty: false,
+  psychologicalHorror: false,
+  memorableDiscovery: false,
+  cozyShortSession: false,
+  discoverySubkind: null,
 }
 
 /** Platform constraint label — metadata, not a RAWG title keyword. */
@@ -76,15 +98,72 @@ export function splitSteamDeckIntent(userPrompt: string): SteamDeckIntentSplit |
   return { contentPrompt, isPlatformOnly }
 }
 
-/** Text used for RAWG keyword retrieval — excludes Steam Deck tokens when platform intent. */
+/** Text used for RAWG keyword retrieval — excludes platform/discovery fluff when intent detected. */
 export function promptForRetrievalKeywords(
   userPrompt: string,
   signals: IntentSignals
 ): string {
-  if (!signals.steamDeck) return userPrompt
-  const split = splitSteamDeckIntent(userPrompt)
-  return split?.contentPrompt ?? ""
+  let text = userPrompt
+  if (signals.steamDeck) {
+    const split = splitSteamDeckIntent(userPrompt)
+    text = split?.contentPrompt ?? ""
+  }
+  if (signals.memorableDiscovery || signals.cozyShortSession) {
+    text = stripDiscoveryFluffPhrases(text)
+  }
+  return text
 }
+
+/** High-signal RAWG category searches for memorable-discovery prompts (pools, not game lists). */
+const MEMORABLE_DISCOVERY_BASE_POOLS = [
+  "cult classic indie games",
+  "memorable narrative indie games",
+  "acclaimed story rich indie",
+  "emotional atmospheric adventure",
+  "critically acclaimed indie adventure",
+] as const
+
+const DISCOVERY_ANTI_AAA_POOLS = [
+  "cult classic indie games",
+  "memorable narrative indie games",
+  "critically acclaimed indie adventure",
+  "unique indie games acclaimed",
+  "emotional atmospheric indie",
+] as const
+
+const DISCOVERY_LONELY_POOLS = [
+  "beautiful lonely exploration games",
+  "melancholic atmospheric indie",
+  "emotional walking simulator indie",
+  "contemplative adventure indie",
+] as const
+
+const DISCOVERY_UNDERRATED_POOLS = [
+  "underrated story rich indie",
+  "hidden gem adventure games",
+  "overlooked acclaimed indie",
+  "cult classic indie games",
+] as const
+
+const DISCOVERY_WEEKEND_POOLS = [
+  "short unforgettable indie games",
+  "memorable narrative indie under 15 hours",
+  "acclaimed short story games",
+] as const
+
+const COZY_SHORT_SESSION_POOLS = [
+  "cozy relaxing indie short sessions",
+  "wholesome cozy adventure game",
+  "relaxing farming sim indie",
+  "comforting life sim indie",
+] as const
+
+/** Bare or low-signal tokens that must not drive RAWG search alone. */
+const UNSAFE_DISCOVERY_QUERY_RE =
+  /^(surprise|experience|indie|weird|unforgettable|memorable|hidden gem|underrated|special|emotional|lonely|loneliness|surprise me|vr experience|indie battle|indie game battle|stupiscimi|gemme nascoste)$/i
+
+const DISCOVERY_TITLE_KEYWORD_RE =
+  /\b(surprise|unforgettable|memorable|loneliness|lonely|weird|experience|hidden gem|underrated|emotional|indie battle|stupiscimi)\b/i
 
 /** Broad category RAWG searches for platform-only prompts (pools, not game lists). */
 const PLATFORM_ONLY_DISCOVERY_POOLS = [
@@ -126,7 +205,195 @@ export function detectIntentSignals(text: string): IntentSignals {
     /\b(psychological\s+horror|psych\s+horror|horror\s+psicolog\w*)\b/.test(n) ||
     (/\bhorror\b/.test(n) && /\bpsicolog\w*\b/.test(n))
 
-  return { steamDeck, rpgCompanionParty, psychologicalHorror }
+  const memorableDiscovery =
+    /\b(surprise\s+me|stupiscimi|something\s+unforgettable|unforgettable|hidden\s+gem|overlooked\s+gem|cult\s+classic|sottovalutat\w*|underrated|tired\s+of\s+aaa|weird\s+but|memorable|think(?:ing)?\s+about\s+(?:it|them|this)\s+(?:later|after|week)|still\s+be\s+thinking|gemme\s+nascoste|qualcosa\s+di\s+special\w*|qualcosa\s+che\s+non\s+dimenticher\w*)\b/.test(
+      n
+    ) ||
+    (/\b(special|meaningful|emotional(?:ly)?\s+memorable|genuinely\s+lonely|lonely\s+but\s+beautiful|beautiful\s+way)\b/.test(
+      n
+    ) &&
+      /\b(feel|game|gioch\w*|experience|atmosphere|emotional|lonely|beautiful)\b/.test(
+        n
+      ))
+
+  const cozyShortSession =
+    /\b(cozy|cosy|rilassante|relaxing|chill|wholesome|comfort)\b/.test(n) &&
+    /\b(short|evening|sera|quick|brief|breve|session|sessions|before\s+bed|wind\s+down)\b/.test(
+      n
+    )
+
+  let discoverySubkind: DiscoverySubkind | null = null
+  if (memorableDiscovery || cozyShortSession) {
+    discoverySubkind = detectDiscoverySubkind(n)
+  }
+
+  return {
+    steamDeck,
+    rpgCompanionParty,
+    psychologicalHorror,
+    memorableDiscovery,
+    cozyShortSession,
+    discoverySubkind,
+  }
+}
+
+/** Refine discovery intent for query pools and ranking weights. */
+export function detectDiscoverySubkind(normalizedText: string): DiscoverySubkind {
+  const n = normalizedText
+  if (/\b(tired\s+of\s+aaa|surprise\s+me|stupiscimi|unforgettable|think(?:ing)?\s+about)\b/.test(n)) {
+    return "anti_aaa"
+  }
+  if (/\b(lonely|loneliness|solitud\w*|genuinely\s+lonely|beautiful\s+way)\b/.test(n)) {
+    return "lonely_beautiful"
+  }
+  if (/\b(underrated|sottovalutat\w*|hidden\s+gem|overlooked|under\s+\$\d+|under\s+\d+\s*(?:usd|eur|\$|€)?)\b/.test(n)) {
+    return "underrated"
+  }
+  if (/\b(one\s+weekend|finish\s+in\s+a\s+weekend|short\s+unforgettable|lasting\s+impression|finire\s+in\s+un\s+weekend)\b/.test(n)) {
+    return "weekend_finish"
+  }
+  if (/\b(cozy|cosy|rilassante|relaxing|evening\s+session|short\s+session)\b/.test(n)) {
+    return "cozy_short"
+  }
+  return "generic"
+}
+
+export function isUnsafeDiscoveryQuery(query: string): boolean {
+  const n = query.trim().toLowerCase()
+  if (!n) return true
+  if (UNSAFE_DISCOVERY_QUERY_RE.test(n)) return true
+  if (/^(surprise|experience|indie|weird|unforgettable|memorable|emotional|lonely|loneliness)\s+(me|games?|game)?$/i.test(n)) {
+    return true
+  }
+  if (/\b(vr\s+experience|indie\s+game\s+battle|game\s+battle|tech\s+demo)\b/i.test(n)) {
+    return true
+  }
+  // Single fluff word + optional "game"
+  const tokens = n.split(/\s+/).filter(Boolean)
+  if (tokens.length <= 2 && UNSAFE_DISCOVERY_QUERY_RE.test(tokens[0] ?? "")) {
+    return true
+  }
+  return false
+}
+
+/** Strip discovery-fluff so retrieval keywords reflect taste, not vague adjectives. */
+export function stripDiscoveryFluffPhrases(text: string): string {
+  return text
+    .replace(
+      /\b(surprise\s+me|stupiscimi|something\s+unforgettable|tired\s+of\s+aaa\s+games?|hidden\s+gems?|overlooked\s+gems?|cult\s+classic|underrated\s+but\s+special|still\s+be\s+thinking\s+about\s+it\s+(?:a\s+week\s+later)?)\b/gi,
+      " "
+    )
+    .replace(/\b(give\s+me\s+a\s+game|find\s+me|i\s+want\s+a\s+game|i\s+only\s+have)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+/**
+ * Low-quality titles common in discovery RAWG fallback (keyword spam, VR demos, literal mood words).
+ */
+export function isDiscoveryShovelwareTitle(title: string): boolean {
+  const n = title.toLowerCase().trim()
+  if (!n) return true
+  if (/\b(indie\s+game\s+battle|game\s+battle)\b/i.test(n)) return true
+  if (/\b(vr|virtual\s+reality)\s+experience\b/i.test(n)) return true
+  if (/\b(plank|tech)\s+experience\b/i.test(n)) return true
+  if (/^loneliness\.?$/i.test(n)) return true
+  if (/^(surprise|unforgettable|memorable|emotional|weird|experience|indie)\.?$/i.test(n)) {
+    return true
+  }
+  if (/:\s*.*\b(experience|simulator)\b/i.test(n) && n.length <= 48) {
+    if (!/\b(story|adventure|horror|rpg|puzzle)\b/i.test(n)) return true
+  }
+  // Acronym-only or very short opaque titles with "experience" pattern
+  if (/^[A-Z][.\sA-Z]{1,8}$/.test(title.trim()) && n.length <= 12) return true
+  return false
+}
+
+/** Title matches discovery fluff keywords without genre/tag support. */
+export function isDiscoveryTitleKeywordSpam(
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags" | "ratings_count">
+): boolean {
+  if (isDiscoveryShovelwareTitle(candidate.name)) return true
+
+  const titleHit = DISCOVERY_TITLE_KEYWORD_RE.test(candidate.name)
+  if (!titleHit) return false
+
+  const genres = genreBlob(candidate)
+  const hasGenreSignal =
+    /\b(adventure|indie|narrative|story|atmospheric|exploration|puzzle|horror|rpg|simulation|casual)\b/i.test(
+      genres
+    )
+  const ratings =
+    typeof candidate.ratings_count === "number" ? candidate.ratings_count : 0
+
+  if (!hasGenreSignal && ratings < 3500) return true
+  return false
+}
+
+function discoveryPoolForSubkind(subkind: DiscoverySubkind | null): readonly string[] {
+  switch (subkind) {
+    case "anti_aaa":
+      return DISCOVERY_ANTI_AAA_POOLS
+    case "lonely_beautiful":
+      return DISCOVERY_LONELY_POOLS
+    case "underrated":
+      return DISCOVERY_UNDERRATED_POOLS
+    case "weekend_finish":
+      return DISCOVERY_WEEKEND_POOLS
+    case "cozy_short":
+      return COZY_SHORT_SESSION_POOLS
+    default:
+      return MEMORABLE_DISCOVERY_BASE_POOLS
+  }
+}
+
+function augmentMemorableDiscoveryQueries(
+  queries: string[],
+  userPrompt: string,
+  signals: IntentSignals
+): string[] {
+  const sanitized = queries
+    .map((q) => q.trim())
+    .filter(Boolean)
+    .filter((q) => !isUnsafeDiscoveryQuery(q))
+
+  const content = stripDiscoveryFluffPhrases(userPrompt)
+  const pool = discoveryPoolForSubkind(signals.discoverySubkind)
+
+  const extras: string[] = [...pool]
+  if (content.length >= 4) {
+    extras.unshift(content, `${content} indie game`, `${content} acclaimed indie`)
+  }
+
+  if (signals.discoverySubkind === "anti_aaa") {
+    extras.unshift("critically acclaimed indie adventure", "unique cult indie games")
+  }
+  if (signals.discoverySubkind === "lonely_beautiful") {
+    extras.unshift("melancholic exploration indie", "atmospheric emotional indie")
+  }
+  if (signals.discoverySubkind === "underrated") {
+    extras.unshift("hidden gem adventure games", "underrated story rich games")
+  }
+
+  if (sanitized.length >= 2) {
+    return mergeUniqueStrings([...sanitized, ...extras], 10)
+  }
+  return mergeUniqueStrings([...sanitized, ...extras], 10)
+}
+
+function augmentCozyShortSessionQueries(queries: string[], userPrompt: string): string[] {
+  const sanitized = queries
+    .map((q) => q.trim())
+    .filter(Boolean)
+    .filter((q) => !isUnsafeDiscoveryQuery(q))
+
+  const content = stripDiscoveryFluffPhrases(userPrompt)
+  const extras: string[] = [...COZY_SHORT_SESSION_POOLS]
+  if (content.length >= 3) {
+    extras.unshift(content, `${content} cozy indie`)
+  }
+
+  return mergeUniqueStrings([...sanitized, ...extras], 8)
 }
 
 /**
@@ -182,55 +449,95 @@ export function isUnsafeSteamDeckDiscoveryQuery(query: string): boolean {
   return false
 }
 
-/** Strip unsafe RAWG queries; augment only when the pool is thin. */
+/** Strip unsafe RAWG queries; augment when the pool is thin. */
 export function sanitizeDiscoveryQueries(
   queries: string[],
   signals: IntentSignals,
   userPrompt = ""
 ): string[] {
-  if (!signals.steamDeck) return queries.filter(Boolean)
-
-  const filtered = queries
+  let filtered = queries
     .map((q) => q.trim())
     .filter(Boolean)
-    .filter((q) => !isUnsafeSteamDeckDiscoveryQuery(q))
 
-  if (filtered.length >= 2) {
-    return mergeUniqueStrings(filtered, 8)
+  if (signals.memorableDiscovery || signals.cozyShortSession) {
+    filtered = filtered.filter((q) => !isUnsafeDiscoveryQuery(q))
   }
 
-  const split = splitSteamDeckIntent(userPrompt)
+  if (signals.steamDeck) {
+    filtered = filtered.filter((q) => !isUnsafeSteamDeckDiscoveryQuery(q))
 
-  if (split && !split.isPlatformOnly && split.contentPrompt.length >= 3) {
-    return mergeUniqueStrings(
-      [
-        ...filtered,
-        split.contentPrompt,
-        `${split.contentPrompt} indie game`,
-        `${split.contentPrompt} pc game`,
-      ],
-      8
-    )
+    if (filtered.length < 2) {
+      const split = splitSteamDeckIntent(userPrompt)
+      if (split && !split.isPlatformOnly && split.contentPrompt.length >= 3) {
+        filtered = mergeUniqueStrings(
+          [
+            ...filtered,
+            split.contentPrompt,
+            `${split.contentPrompt} indie game`,
+            `${split.contentPrompt} pc game`,
+          ],
+          8
+        )
+      } else if (!signals.memorableDiscovery && !signals.cozyShortSession) {
+        filtered = mergeUniqueStrings([...filtered, ...PLATFORM_ONLY_DISCOVERY_POOLS], 8)
+      }
+    } else if (!signals.memorableDiscovery && !signals.cozyShortSession) {
+      return mergeUniqueStrings(filtered, 8)
+    }
   }
 
-  return mergeUniqueStrings([...filtered, ...PLATFORM_ONLY_DISCOVERY_POOLS], 8)
+  if (signals.memorableDiscovery) {
+    return augmentMemorableDiscoveryQueries(filtered, userPrompt, signals)
+  }
+
+  if (signals.cozyShortSession) {
+    return augmentCozyShortSessionQueries(filtered, userPrompt)
+  }
+
+  return mergeUniqueStrings(filtered, 8)
 }
 
 export function sanitizeCoreKeywordsForSignals(
   keywords: string[],
   signals: IntentSignals
 ): string[] {
-  if (!signals.steamDeck) return keywords
-  return keywords.filter((k) => {
-    const n = k.toLowerCase().trim()
-    if (n === "steam" || n === "deck") return false
-    if (n === "steam deck") return false
-    return true
-  })
+  let out = keywords
+  if (signals.steamDeck) {
+    out = out.filter((k) => {
+      const n = k.toLowerCase().trim()
+      if (n === "steam" || n === "deck") return false
+      if (n === "steam deck") return false
+      return true
+    })
+  }
+  if (signals.memorableDiscovery || signals.cozyShortSession) {
+    const fluff = new Set([
+      "surprise",
+      "unforgettable",
+      "memorable",
+      "experience",
+      "indie",
+      "weird",
+      "hidden",
+      "gem",
+      "underrated",
+      "emotional",
+      "lonely",
+      "loneliness",
+      "aaa",
+      "special",
+      "stupiscimi",
+    ])
+    out = out.filter((k) => !fluff.has(k.toLowerCase().trim()))
+  }
+  return out
 }
 
 export function shouldRejectCandidateForSignals(
-  candidate: Pick<RawgCandidate, "name" | "genres" | "tags" | "ratings_count">,
+  candidate: Pick<
+    RawgCandidate,
+    "name" | "genres" | "tags" | "ratings_count" | "rating"
+  >,
   signals: IntentSignals
 ): boolean {
   if (signals.steamDeck && isSteamDeckTitleKeywordSpam(candidate.name)) {
@@ -251,6 +558,14 @@ export function shouldRejectCandidateForSignals(
     const ratings =
       typeof candidate.ratings_count === "number" ? candidate.ratings_count : 0
     if (titleHorror && !genreHorror && ratings < 2500) return true
+  }
+  if (signals.memorableDiscovery || signals.cozyShortSession) {
+    if (isDiscoveryShovelwareTitle(candidate.name)) return true
+    if (isDiscoveryTitleKeywordSpam(candidate)) return true
+    const ratings =
+      typeof candidate.ratings_count === "number" ? candidate.ratings_count : 0
+    const rating = typeof candidate.rating === "number" ? candidate.rating : 0
+    if (ratings < 80 && rating <= 0) return true
   }
   return false
 }
@@ -291,6 +606,31 @@ export function enrichPromptForDiscovery(
       "Intent note: psychological horror — established, recognizable horror-genre games only; never obscure titles whose names are keyword lists like \"Psychological Horror Game\"."
     )
   }
+  if (signals.memorableDiscovery) {
+    hints.push(
+      "Intent note: open-ended discovery — recommend critically respected indie/cult classics with strong emotional or narrative reputation (memorable, not generic). Avoid shovelware, VR demos, and games selected only because the title contains words like surprise, experience, unforgettable, or loneliness."
+    )
+    if (signals.discoverySubkind === "anti_aaa") {
+      hints.push(
+        "User is tired of mainstream AAA — prefer distinctive cult/indie picks with lasting impact; downrank obvious blockbuster franchises unless uniquely fitting."
+      )
+    }
+    if (signals.discoverySubkind === "lonely_beautiful") {
+      hints.push(
+        "Prefer melancholic atmospheric exploration, contemplative narrative adventures, and emotional art games — not literal title matches on lonely/loneliness."
+      )
+    }
+    if (signals.discoverySubkind === "underrated") {
+      hints.push(
+        "Balance underrated/hidden-gem discovery with proven quality — acclaimed but not obvious safe picks."
+      )
+    }
+  }
+  if (signals.cozyShortSession) {
+    hints.push(
+      "Intent note: cozy short evening sessions — prefer relaxing, low-pressure games with gentle loops (farming sim, wholesome adventure, life sim); avoid grind-heavy or stressful picks."
+    )
+  }
 
   if (hints.length === 0) return base
   return `${base}\n${hints.join("\n")}`
@@ -317,6 +657,19 @@ export function buildDisambiguationRules(signals: IntentSignals): string[] {
   if (signals.psychologicalHorror) {
     rules.push(
       "Psychological horror: only established horror-genre games — reject keyword-stuffed titles like \"Psychological Horror Puzzle Game\" or \"Prelude: Psychological Horror Game\"."
+    )
+  }
+  if (signals.memorableDiscovery) {
+    rules.push(
+      "Memorable discovery: suggest critically respected indie/cult classics with strong player reputation — NOT obscure shovelware, VR demos, or titles that only match keywords (surprise, experience, unforgettable, loneliness)."
+    )
+    rules.push(
+      "fallbackDiscoveryQueries must use high-signal phrases (e.g. cult classic indie, memorable narrative indie, emotional atmospheric adventure) — NEVER bare surprise, experience, indie, weird, or unforgettable alone."
+    )
+  }
+  if (signals.cozyShortSession) {
+    rules.push(
+      "Cozy short sessions: prefer wholesome relaxing indies with gentle loops — farming sim, life sim, cozy adventure — not stressful grind games."
     )
   }
   return rules
@@ -364,6 +717,26 @@ export function normalizeIntentForSignals(
     const base = (normalizedIntent || userPrompt).trim()
     if (/\bpsicolog|psychological/i.test(base)) return base
     return `Psychological horror games with atmospheric dread. ${base}`.trim()
+  }
+  if (signals.memorableDiscovery) {
+    const base = stripDiscoveryFluffPhrases((normalizedIntent || userPrompt).trim())
+    if (signals.discoverySubkind === "anti_aaa") {
+      return `Distinctive memorable indie/cult games with lasting impact (not mainstream AAA). ${base}`.trim()
+    }
+    if (signals.discoverySubkind === "lonely_beautiful") {
+      return `Melancholic atmospheric games that feel lonely in a beautiful way. ${base}`.trim()
+    }
+    if (signals.discoverySubkind === "underrated") {
+      return `Underrated acclaimed games that feel special. ${base}`.trim()
+    }
+    if (signals.discoverySubkind === "weekend_finish") {
+      return `Short memorable games finishable in a weekend with lasting impact. ${base}`.trim()
+    }
+    return `Memorable discovery picks with strong emotional or narrative reputation. ${base}`.trim()
+  }
+  if (signals.cozyShortSession) {
+    const base = (normalizedIntent || userPrompt).trim()
+    return `Relaxing cozy games suited to short evening sessions. ${base}`.trim()
   }
   return normalizedIntent
 }
@@ -467,6 +840,48 @@ export function mergeIntentAugmentation(
     )
   }
 
+  if (signals.memorableDiscovery) {
+    coreNeeds.push(
+      "critically respected",
+      "memorable narrative or emotional impact",
+      "strong player reputation",
+      "distinctive indie or cult appeal"
+    )
+    avoid.push(
+      "shovelware",
+      "VR tech demos",
+      "keyword-stuffed titles",
+      "literal title keyword matches",
+      "random experience games",
+      "indie game battle"
+    )
+    if (signals.discoverySubkind === "anti_aaa") {
+      avoid.push("mainstream AAA blockbusters", "obvious franchise safe picks")
+      coreNeeds.push("non-obvious cult or indie picks")
+    }
+    if (signals.discoverySubkind === "lonely_beautiful") {
+      coreNeeds.push("melancholic atmosphere", "contemplative exploration", "emotional art direction")
+    }
+    fallbackDiscoveryQueries = augmentMemorableDiscoveryQueries(
+      fallbackDiscoveryQueries,
+      userPrompt,
+      signals
+    )
+  }
+
+  if (signals.cozyShortSession) {
+    coreNeeds.push(
+      "cozy relaxing tone",
+      "low-pressure gentle loops",
+      "good for short sessions"
+    )
+    avoid.push("stressful grind", "hardcore survival pressure", "long mandatory sessions")
+    fallbackDiscoveryQueries = augmentCozyShortSessionQueries(
+      fallbackDiscoveryQueries,
+      userPrompt
+    )
+  }
+
   return {
     normalizedIntent,
     coreNeeds: mergeUniqueStrings(coreNeeds, 12),
@@ -480,14 +895,38 @@ export function sanitizeIntentKeywordSet(
   keywords: Set<string>,
   signals: IntentSignals
 ): Set<string> {
-  if (!signals.steamDeck) return keywords
   const out = new Set(keywords)
-  out.delete("deck")
-  out.delete("steam")
-  out.delete("steamdeck")
-  out.add("handheld")
-  out.add("portable")
-  out.add("controller-friendly")
+  if (signals.steamDeck) {
+    out.delete("deck")
+    out.delete("steam")
+    out.delete("steamdeck")
+    out.add("handheld")
+    out.add("portable")
+    out.add("controller-friendly")
+  }
+  if (signals.memorableDiscovery || signals.cozyShortSession) {
+    const fluff = [
+      "surprise",
+      "unforgettable",
+      "memorable",
+      "experience",
+      "weird",
+      "hidden",
+      "gem",
+      "underrated",
+      "emotional",
+      "lonely",
+      "loneliness",
+      "aaa",
+      "special",
+      "indie",
+      "stupiscimi",
+    ]
+    for (const f of fluff) out.delete(f)
+    out.add("narrative")
+    out.add("atmospheric")
+    out.add("acclaimed")
+  }
   return out
 }
 
@@ -601,6 +1040,47 @@ export function scoreCandidateRelevanceBoost(params: {
     if (genreHasHorror && ratings > 8000) delta += 10
   }
 
+  if (signals.memorableDiscovery || signals.cozyShortSession) {
+    if (isDiscoveryShovelwareTitle(candidate.name)) delta -= 120
+    if (isDiscoveryTitleKeywordSpam(candidate)) delta -= 70
+
+    const ratings =
+      typeof candidate.ratings_count === "number" ? candidate.ratings_count : 0
+    const added = typeof candidate.added === "number" ? candidate.added : 0
+    const rating = typeof candidate.rating === "number" ? candidate.rating : 0
+
+    const genreNarrative = /\b(story|narrative|adventure|atmospheric|indie|exploration|emotional|walking simulator)\b/i.test(
+      genres
+    )
+    const genreCozy = /\b(cozy|relaxing|farming|life sim|wholesome|casual|simulation)\b/i.test(
+      genres
+    )
+
+    if (genreNarrative && ratings > 1500) delta += 14
+    if (rating >= 3.8 && ratings > 800) delta += 10
+    if (ratings > 5000 && rating >= 3.5) delta += 8
+    if (!genreNarrative && DISCOVERY_TITLE_KEYWORD_RE.test(candidate.name)) delta -= 45
+    if (ratings < 150 && rating <= 0) delta -= 40
+
+    if (signals.discoverySubkind === "anti_aaa" && added > 75000 && ratings > 40000) {
+      delta -= 28
+    }
+    if (signals.discoverySubkind === "lonely_beautiful") {
+      if (/\b(exploration|atmospheric|adventure|indie|narrative|walking)\b/i.test(genres)) {
+        delta += 12
+      }
+      if (/\b(multiplayer|battle royale|fps|shooter|sports)\b/i.test(genres) && !genreNarrative) {
+        delta -= 18
+      }
+    }
+    if (signals.cozyShortSession || signals.discoverySubkind === "cozy_short") {
+      if (genreCozy) delta += 16
+      if (/\b(soulslike|hardcore|survival|horror|stressful|competitive)\b/i.test(genres) && !genreCozy) {
+        delta -= 14
+      }
+    }
+  }
+
   const intentBlob = `${params.userPrompt} ${normalizedIntent}`.toLowerCase()
   if (
     signals.steamDeck &&
@@ -641,7 +1121,87 @@ export function shouldDropWeakFastPick(params: {
     return match < 76
   }
 
+  if (signals.memorableDiscovery || signals.cozyShortSession) {
+    if (candidate && isDiscoveryShovelwareTitle(candidate.name)) return true
+    if (candidate && isDiscoveryTitleKeywordSpam(candidate)) return true
+    if (relevanceBoost <= -45) return true
+    if (matchTier === "partial_match" && relevanceBoost < -20 && match < 78) return true
+  }
+
   return false
+}
+
+export type ResultCountPolicy = "broad" | "balanced" | "quality_first"
+
+/** Broad social/multiplayer prompts should still aim for fuller result sets. */
+export function detectResultCountPolicy(
+  userPrompt: string,
+  signals: IntentSignals
+): ResultCountPolicy {
+  const n = normalizeIntentText(userPrompt)
+
+  if (
+    /\b(friends?|with friends|multiplayer|multi[\s-]?player|co[\s-]?op|online with|party games?|together|local coop|split screen|giocare con|in compagnia|multigiocatore)\b/.test(
+      n
+    )
+  ) {
+    return "broad"
+  }
+
+  if (
+    signals.memorableDiscovery ||
+    signals.psychologicalHorror ||
+    isHighlySpecificPrompt(n)
+  ) {
+    return "quality_first"
+  }
+
+  return "balanced"
+}
+
+function isHighlySpecificPrompt(normalizedText: string): boolean {
+  const n = normalizedText
+  const words = n.split(/\s+/).filter(Boolean)
+  if (words.length >= 20) return true
+
+  const constraintHints =
+    (n.match(
+      /\b(and|with|or|plus|including|featuring|multiple|management|building|faction|races?|elves?|orcs?|dwarves?|village|strategy|simulation|crafting|survival|horror|narrative)\b/g
+    ) ?? []).length
+
+  if (words.length >= 14 && constraintHints >= 4) return true
+  if (words.length >= 12 && constraintHints >= 5) return true
+
+  return false
+}
+
+/** RAWG fallback filler (empty reason, low match) is never a strong pick. */
+export function isRawgFallbackFillerPick(pick: {
+  match: number
+  reason: string
+}): boolean {
+  return !pick.reason.trim() && pick.match <= 65
+}
+
+/** Confidence gate for quality-first Fast Mode trimming. */
+export function isStrongFastPick(params: {
+  pick: {
+    match: number
+    matchTier: string
+    reason: string
+  }
+  relevanceBoost: number
+}): boolean {
+  const { pick, relevanceBoost } = params
+  if (isRawgFallbackFillerPick(pick)) return false
+
+  if (pick.matchTier === "partial_match") {
+    return pick.match >= 80 && relevanceBoost >= -12
+  }
+  if (pick.matchTier === "good_alternative") {
+    return pick.match >= 66 && relevanceBoost >= -22
+  }
+  return pick.match >= 70 && relevanceBoost >= -32
 }
 
 export function reorderFastPicksByRelevance<
@@ -657,9 +1217,18 @@ export function reorderFastPicksByRelevance<
   userPrompt: string
   normalizedIntent: string
   coreNeeds: string[]
+  /** When quality_first, never restore dropped weak picks to hit a count target. */
+  resultCountPolicy?: ResultCountPolicy
 }): T[] {
-  const { picks, getCandidate, signals, userPrompt, normalizedIntent, coreNeeds } =
-    params
+  const {
+    picks,
+    getCandidate,
+    signals,
+    userPrompt,
+    normalizedIntent,
+    coreNeeds,
+    resultCountPolicy = "balanced",
+  } = params
 
   const scored = picks.map((pick) => {
     const candidate = getCandidate(pick.id)
@@ -701,5 +1270,53 @@ export function reorderFastPicksByRelevance<
     kept.push(row.pick)
   }
 
-  return kept.length >= 3 ? kept : scored.map((s) => s.pick)
+  if (resultCountPolicy === "quality_first") {
+    return kept
+  }
+
+  if (resultCountPolicy === "broad" && kept.length < 3) {
+    return scored.map((s) => s.pick)
+  }
+
+  return kept
+}
+
+/** Keep only confidence-strong picks for quality-first prompts; preserve order. */
+export function trimFastPicksToConfidence<
+  T extends {
+    id: number
+    match: number
+    matchTier: "best_match" | "good_alternative" | "partial_match"
+    reason: string
+  },
+>(params: {
+  picks: T[]
+  getCandidate: (id: number) => RawgCandidate | undefined
+  signals: IntentSignals
+  userPrompt: string
+  normalizedIntent: string
+  coreNeeds: string[]
+}): T[] {
+  const { picks, getCandidate, signals, userPrompt, normalizedIntent, coreNeeds } =
+    params
+
+  const strong: T[] = []
+  for (const pick of picks) {
+    const candidate = getCandidate(pick.id)
+    const relevanceBoost = candidate
+      ? scoreCandidateRelevanceBoost({
+          signals,
+          userPrompt,
+          normalizedIntent,
+          coreNeeds,
+          candidate,
+          matchTier: pick.matchTier,
+        })
+      : -999
+    if (isStrongFastPick({ pick, relevanceBoost })) {
+      strong.push(pick)
+    }
+  }
+
+  return strong.length > 0 ? strong : picks.filter((p) => !isRawgFallbackFillerPick(p))
 }

@@ -73,6 +73,9 @@ export const QUALITY_BAD_PATTERNS: Array<{ re: RegExp; penalty: number }> = [
   { re: /\b(demo|prologue)\b/i, penalty: 30 },
   { re: /\b(asset pack|texture pack|skin pack|pack)\b/i, penalty: 25 },
   { re: /\b(bundle)\b/i, penalty: 20 },
+  { re: /\b(vr|virtual reality)\s+experience\b/i, penalty: 38 },
+  { re: /\b(indie\s+game\s+battle|game\s+battle)\b/i, penalty: 42 },
+  { re: /\b(tech demo|prototype)\b/i, penalty: 35 },
 ]
 
 // Edition/version markers: used for dedupe & penalties.

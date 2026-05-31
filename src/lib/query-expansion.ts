@@ -31,6 +31,29 @@ const RULES: ExpansionRule[] = [
     keywords: ["cozy", "relaxing", "farming", "life sim"],
   },
   {
+    triggers: [
+      "evening session",
+      "short session",
+      "short evening",
+      "sera",
+      "before bed",
+      "wind down",
+    ],
+    keywords: ["cozy", "relaxing", "short sessions", "wholesome"],
+  },
+  {
+    triggers: [
+      "surprise me",
+      "hidden gem",
+      "underrated",
+      "unforgettable",
+      "cult classic",
+      "tired of aaa",
+      "stupiscimi",
+    ],
+    keywords: ["cult classic indie", "memorable narrative", "acclaimed indie"],
+  },
+  {
     triggers: ["horror", "paura", "spaventoso", "spooky", "creepy"],
     keywords: ["horror", "psychological horror", "survival horror", "dark atmosphere"],
   },

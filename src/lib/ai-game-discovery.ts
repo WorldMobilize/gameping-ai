@@ -508,6 +508,8 @@ export async function aiSingleCallFastDiscovery(params: {
     "- matchNote: \"\" for best_match; for alternatives at most ~10 words (tradeoff or fit hook).",
     "- coreNeeds: up to 4 short phrases; avoid: up to 3.",
     "- fallbackDiscoveryQueries: 2–3 short English RAWG search strings when useful; else [].",
+    "- Open-ended discovery (surprise me, hidden gems, unforgettable, tired of AAA, lonely but beautiful): pick critically respected indie/cult classics with strong reputation — NOT shovelware, VR demos, or titles that only match keywords like surprise/experience/loneliness.",
+    "- For discovery prompts, fallbackDiscoveryQueries must use high-signal phrases (cult classic indie, memorable narrative indie, emotional atmospheric adventure) — never bare surprise, experience, indie, weird, or unforgettable alone.",
     "- Games like/similar to X: X in referenceTitles and excludeTitles; do not recommend X.",
     "- No markdown. No extra keys.",
     disambiguationBlock,

@@ -51,9 +51,11 @@ import {
   buildDisambiguationRules,
   buildSubjectContextForIntent,
   detectIntentSignals,
+  detectResultCountPolicy,
   enrichPromptForDiscovery,
   mergeIntentAugmentation,
   reorderFastPicksByRelevance,
+  trimFastPicksToConfidence,
   promptForRetrievalKeywords,
   sanitizeCoreKeywordsForSignals,
   sanitizeDiscoveryQueries,
@@ -62,6 +64,8 @@ import {
   shouldRejectCandidateForSignals,
   isHorrorKeywordShovelwareTitle,
   isSteamDeckTitleKeywordSpam,
+  isDiscoveryShovelwareTitle,
+  EMPTY_INTENT_SIGNALS,
   type IntentSignals,
 } from "@/lib/intent-normalization";
 
@@ -1320,11 +1324,7 @@ async function verifySuggestedTitles(params: {
     rawgKey,
     suggestedTitles,
     excludeNormalized,
-    intentSignals = {
-      steamDeck: false,
-      rpgCompanionParty: false,
-      psychologicalHorror: false,
-    },
+    intentSignals = EMPTY_INTENT_SIGNALS,
     normalizedIntent = "",
     coreNeeds = [],
     userPrompt = "",
@@ -1342,6 +1342,12 @@ async function verifySuggestedTitles(params: {
     if (
       intentSignals.psychologicalHorror &&
       isHorrorKeywordShovelwareTitle(title)
+    ) {
+      return null;
+    }
+    if (
+      (intentSignals.memorableDiscovery || intentSignals.cozyShortSession) &&
+      isDiscoveryShovelwareTitle(title)
     ) {
       return null;
     }
@@ -1527,22 +1533,14 @@ function buildIntentKeywordSet(params: {
   addPhrase(
     promptForRetrievalKeywords(
       params.userPrompt,
-      params.intentSignals ?? {
-        steamDeck: false,
-        rpgCompanionParty: false,
-        psychologicalHorror: false,
-      }
+      params.intentSignals ?? EMPTY_INTENT_SIGNALS
     )
   );
   addPhrase(params.normalizedIntent);
   params.coreNeeds.forEach((x) => addPhrase(x));
   params.tagTokens.forEach((x) => addPhrase(x));
   params.fallbackQueries.forEach((x) => addPhrase(x));
-  return sanitizeIntentKeywordSet(set, params.intentSignals ?? {
-    steamDeck: false,
-    rpgCompanionParty: false,
-    psychologicalHorror: false,
-  });
+  return sanitizeIntentKeywordSet(set, params.intentSignals ?? EMPTY_INTENT_SIGNALS);
 }
 
 function listOverlappingKeywords(c: RawgCandidate, keywords: Set<string>) {
@@ -2267,6 +2265,10 @@ export async function POST(req: Request) {
     // Experimental: single-call fast mode returns directly after RAWG verification (no semantic filter + no rerank).
     if (singleCallFastEnabled && fastPicks) {
       const rawgMs = timing.rawgVerificationMs;
+      const resultCountPolicy = detectResultCountPolicy(
+        normalizedInput.userPrompt,
+        intentSignals
+      );
       const verifiedByNorm = new Map(
         verified.map((c) => [normalizeTitleForMatch(c.name), c] as const)
       );
@@ -2291,9 +2293,13 @@ export async function POST(req: Request) {
         if (picked.length >= 6) break;
       }
 
-      // If too few verified, lightly use RAWG fallback queries (no extra OpenAI calls).
+      // RAWG fallback only when verified picks are thin — skip for quality-first if we already have enough signal.
       let picksForEnrichment = picked;
-      if (rawgKey && picksForEnrichment.length < 3) {
+      const skipFallbackForQuality =
+        resultCountPolicy === "quality_first" && picked.length >= 2;
+      const fallbackMinPicks = resultCountPolicy === "quality_first" ? 2 : 3;
+
+      if (rawgKey && !skipFallbackForQuality && picksForEnrichment.length < fallbackMinPicks) {
         const fallbackQueries = sanitizeDiscoveryQueries(
           intent.fallbackDiscoveryQueries?.length
             ? intent.fallbackDiscoveryQueries
@@ -2324,11 +2330,32 @@ export async function POST(req: Request) {
 
         const diverse = selectDiverseTop([...scored], 20).map((s) => s.candidate);
         const used = new Set(picksForEnrichment.map((p) => p.id));
+        const fallbackRelevanceFloor =
+          resultCountPolicy === "quality_first" ? -15 : -35;
+        const fallbackMaxTotal =
+          resultCountPolicy === "quality_first" ? 3 : 4;
+
         for (const c of diverse) {
           if (used.has(c.id)) continue;
           if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
           if (!isProbablyBaseGame(c)) continue;
           if (shouldRejectCandidateForSignals(c, intentSignals)) continue;
+          const relevanceBoost = scoreCandidateRelevanceBoost({
+            signals: intentSignals,
+            userPrompt: normalizedInput.userPrompt,
+            normalizedIntent: intent.normalizedIntent,
+            coreNeeds: intent.coreNeeds ?? [],
+            candidate: c,
+            matchTier: "good_alternative",
+          });
+          if (
+            (intentSignals.memorableDiscovery ||
+              intentSignals.cozyShortSession ||
+              resultCountPolicy === "quality_first") &&
+            relevanceBoost <= fallbackRelevanceFloor
+          ) {
+            continue;
+          }
           picksForEnrichment.push({
             id: c.id,
             title: c.name,
@@ -2340,7 +2367,7 @@ export async function POST(req: Request) {
             matchNote: "",
           });
           used.add(c.id);
-          if (picksForEnrichment.length >= 4) break;
+          if (picksForEnrichment.length >= fallbackMaxTotal) break;
         }
       }
 
@@ -2352,7 +2379,19 @@ export async function POST(req: Request) {
         userPrompt: normalizedInput.userPrompt,
         normalizedIntent: intent.normalizedIntent,
         coreNeeds: intent.coreNeeds ?? [],
+        resultCountPolicy,
       });
+
+      if (resultCountPolicy === "quality_first") {
+        picksForEnrichment = trimFastPicksToConfidence({
+          picks: picksForEnrichment,
+          getCandidate: (id) => verifiedById.get(id),
+          signals: intentSignals,
+          userPrompt: normalizedInput.userPrompt,
+          normalizedIntent: intent.normalizedIntent,
+          coreNeeds: intent.coreNeeds ?? [],
+        });
+      }
 
       // Ensure images if missing.
       let picksWithImages = picksForEnrichment;
