@@ -1185,6 +1185,15 @@ export function shouldDropWeakFastPick(params: {
   if (mustHave.active && candidate && violatesMustHaveConstraints(candidate, mustHave)) {
     return true
   }
+  if (
+    mustHave.active &&
+    requiresFantasyRaces(mustHave) &&
+    candidate &&
+    matchTier === "partial_match" &&
+    !hasFantasyRaceEvidence(candidate)
+  ) {
+    return true
+  }
   if (mustHave.active && relevanceBoost <= -50) return true
   if (
     mustHave.active &&
@@ -1260,6 +1269,105 @@ const FANTASY_SETTING_RE =
   /\b(fantasy|medieval|high fantasy|dark fantasy|mythic|mythical|magic|middle-earth|warhammer|dungeons)\b/i
 const SCI_FI_SETTING_RE =
   /\b(sci-fi|science fiction|sci fi|futuristic|space|space opera|cyberpunk|planetfall|galactic|alien|robots?|mechs?|post-apocalyptic sci)\b/i
+
+/** Evidence the game is actually fantasy / has fantasy races (metadata or title). */
+const FANTASY_RACE_EVIDENCE_RE =
+  /\b(fantasy|elves?|elven|orcs?|dwarves?|dwarf|undead|dragon|dragons|warhammer|warcraft|spellforce|lord of the rings|middle-earth|mythical|mythology|magic|wizards?|necromancer|beastmen|skaven|fairy|faerie|goblins?|trolls?|lich|songs of conquest|battle for middle-earth|warlords battlecry|age of wonders|against the storm|northgard|dungeons)\b/i
+
+const HISTORICAL_CIVILIZATION_RE =
+  /\b(historical|history|real[\s-]?world|civilization|civilisation|world history|world war|ancient rome|ancient greece|ancient egypt|cold war|modern warfare|realistic warfare|grand strategy|nation building|empire building|colonial era|napoleonic|real-time history|historical strategy)\b/i
+
+/** Strategy franchises that are historical/modern civ — not fantasy-race games. */
+const HISTORICAL_STRATEGY_NAME_RE =
+  /\b(rise of nations|civilization|age of empires|empire earth|company of heroes|europa universalis|crusader kings|hearts of iron|anno \d|command and conquer|red alert)\b/i
+
+export function requiresFantasyRaces(constraints: MustHaveConstraints): boolean {
+  return (
+    constraints.active &&
+    constraints.settings.includes("fantasy") &&
+    constraints.races.length > 0
+  )
+}
+
+export function hasFantasyRaceEvidence(
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
+): boolean {
+  const blob = candidateBlob(candidate)
+  const name = candidate.name.toLowerCase()
+  if (/\bage of wonders\b/i.test(name) && /\bplanetfall\b/i.test(name)) return false
+  return FANTASY_RACE_EVIDENCE_RE.test(`${blob} ${name}`)
+}
+
+export function hasHistoricalCivilizationEvidence(
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
+): boolean {
+  const blob = candidateBlob(candidate)
+  const name = candidate.name.toLowerCase()
+
+  if (HISTORICAL_STRATEGY_NAME_RE.test(name)) {
+    if (/\bwarhammer\b/i.test(name)) return false
+    return true
+  }
+  if (/\btotal war\b/i.test(name) && !/\bwarhammer\b/i.test(name)) return true
+  if (/\brise of nations\b/i.test(name)) return true
+  if (HISTORICAL_CIVILIZATION_RE.test(`${blob} ${name}`)) {
+    if (FANTASY_RACE_EVIDENCE_RE.test(`${blob} ${name}`)) return false
+    return true
+  }
+  return false
+}
+
+/** AI reason/matchNote explicitly admits failing a must-have (e.g. "not strictly fantasy"). */
+export function pickTextAdmitsMustHaveFailure(
+  text: string,
+  constraints: MustHaveConstraints
+): boolean {
+  if (!requiresFantasyRaces(constraints)) return false
+  const t = text.toLowerCase().trim()
+  if (!t) return false
+
+  if (
+    /\b(not strictly fantasy|not purely fantasy|isn't strictly fantasy|is not strictly fantasy|not a fantasy game|not fantasy-focused|without fantasy races|lacks fantasy|no fantasy races|not enough fantasy|more historical than fantasy|leans historical|primarily historical|historical rather than fantasy|real-world civ|real world civ)\b/.test(
+      t
+    )
+  ) {
+    return true
+  }
+  if (/\bhistorical and fantasy\b/.test(t) && /\bnot strictly\b/.test(t)) {
+    return true
+  }
+  return false
+}
+
+export function shouldRejectFastPickForMustHave(params: {
+  pick: {
+    match: number
+    matchTier: string
+    reason: string
+    matchNote: string
+  }
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
+  constraints: MustHaveConstraints
+}): boolean {
+  const { pick, candidate, constraints } = params
+  if (!constraints.active) return false
+
+  const combinedText = `${pick.reason} ${pick.matchNote}`.trim()
+  if (pickTextAdmitsMustHaveFailure(combinedText, constraints)) return true
+
+  if (violatesMustHaveConstraints(candidate, constraints)) return true
+
+  if (requiresFantasyRaces(constraints)) {
+    if (pick.matchTier === "partial_match" && !hasFantasyRaceEvidence(candidate)) {
+      return true
+    }
+    if (!hasFantasyRaceEvidence(candidate) && pick.match < 88) {
+      return true
+    }
+  }
+
+  return false
+}
 
 /** Extract hard must-have constraints for highly specific prompts (not broad social). */
 export function extractMustHaveConstraints(
@@ -1383,7 +1491,7 @@ export function scoreMustHaveConstraintBoost(
   let delta = 0
 
   if (constraints.settings.includes("fantasy")) {
-    const fantasyHit = FANTASY_SETTING_RE.test(blob) || FANTASY_SETTING_RE.test(name)
+    const fantasyHit = hasFantasyRaceEvidence(candidate)
     const scifiHit =
       SCI_FI_SETTING_RE.test(blob) ||
       SCI_FI_SETTING_RE.test(name) ||
@@ -1391,6 +1499,7 @@ export function scoreMustHaveConstraintBoost(
 
     if (scifiHit && !fantasyHit) delta -= 62
     else if (fantasyHit) delta += 22
+    else if (requiresFantasyRaces(constraints)) delta -= 35
   }
 
   if (constraints.settings.includes("sci-fi")) {
@@ -1416,10 +1525,20 @@ export function scoreMustHaveConstraintBoost(
   if (constraints.races.length > 0) {
     if (raceHits >= 2) delta += 24
     else if (raceHits === 1) delta += 12
-    else if (constraints.settings.includes("fantasy")) delta -= 28
+    else if (constraints.settings.includes("fantasy")) delta -= 40
+  }
+
+  const fantasyRaceRequired = requiresFantasyRaces(constraints)
+  const fantasyRaceHit = hasFantasyRaceEvidence(candidate)
+
+  if (fantasyRaceRequired && hasHistoricalCivilizationEvidence(candidate) && !fantasyRaceHit) {
+    delta -= 70
   }
 
   for (const mech of constraints.mechanics) {
+    if (fantasyRaceRequired && !fantasyRaceHit && (mech === "strategy" || mech === "faction-management")) {
+      continue
+    }
     switch (mech) {
       case "strategy":
         if (/\b(strategy|rts|real-time strategy|turn-based strategy|4x|tactical)\b/i.test(blob)) {
@@ -1466,23 +1585,32 @@ export function violatesMustHaveConstraints(
 
   const blob = candidateBlob(candidate)
   const name = candidate.name.toLowerCase()
+  const fantasyRaceHit = hasFantasyRaceEvidence(candidate)
 
-  if (constraints.settings.includes("fantasy") && constraints.races.length > 0) {
-    const fantasyHit = FANTASY_SETTING_RE.test(blob) || FANTASY_SETTING_RE.test(name)
+  if (requiresFantasyRaces(constraints)) {
     const scifiHit =
       SCI_FI_SETTING_RE.test(blob) ||
       SCI_FI_SETTING_RE.test(name) ||
       /\bplanetfall\b/i.test(name)
-    if (scifiHit && !fantasyHit) return true
+    if (scifiHit && !fantasyRaceHit) return true
+
+    if (hasHistoricalCivilizationEvidence(candidate) && !fantasyRaceHit) return true
+
+    if (
+      constraints.mechanics.includes("strategy") &&
+      !fantasyRaceHit &&
+      /\b(strategy|rts|4x|grand strategy|real-time strategy)\b/i.test(blob)
+    ) {
+      return true
+    }
   }
 
-  if (
-    constraints.settings.includes("fantasy") &&
-    constraints.races.length >= 2 &&
-    !FANTASY_SETTING_RE.test(blob) &&
-    SCI_FI_SETTING_RE.test(blob)
-  ) {
-    return true
+  if (constraints.settings.includes("fantasy") && constraints.races.length > 0) {
+    const scifiHit =
+      SCI_FI_SETTING_RE.test(blob) ||
+      SCI_FI_SETTING_RE.test(name) ||
+      /\bplanetfall\b/i.test(name)
+    if (scifiHit && !fantasyRaceHit) return true
   }
 
   return false

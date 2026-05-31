@@ -11,8 +11,13 @@ import {
   isDiscoveryShovelwareTitle,
   isRawgFallbackFillerPick,
   isStrongFastPick,
+  pickTextAdmitsMustHaveFailure,
+  requiresFantasyRaces,
   scoreMustHaveConstraintBoost,
+  shouldRejectFastPickForMustHave,
   violatesMustHaveConstraints,
+  hasHistoricalCivilizationEvidence,
+  hasFantasyRaceEvidence,
   isHorrorKeywordShovelwareTitle,
   isSteamDeckTitleKeywordSpam,
   isUnsafeDiscoveryQuery,
@@ -218,6 +223,84 @@ describe("scoreMustHaveConstraintBoost", () => {
         },
         constraints
       ),
+      false
+    );
+    assert.equal(
+      violatesMustHaveConstraints(
+        {
+          name: "Rise of Nations",
+          genres: [{ name: "Strategy" }],
+          tags: [{ name: "Historical" }],
+        },
+        constraints
+      ),
+      true
+    );
+    assert.equal(
+      violatesMustHaveConstraints(
+        {
+          name: "Age of Wonders 4",
+          genres: [{ name: "Strategy" }],
+          tags: [{ name: "Turn-Based Strategy" }],
+        },
+        constraints
+      ),
+      false
+    );
+  });
+
+  it("rejects picks whose reason admits not strictly fantasy", () => {
+    const constraints = extractMustHaveConstraints(
+      FANTASY_STRATEGY_PROMPT,
+      EMPTY_INTENT_SIGNALS
+    );
+    assert.equal(
+      shouldRejectFastPickForMustHave({
+        pick: {
+          match: 78,
+          matchTier: "good_alternative",
+          reason:
+            "Offers historical and fantasy elements with various civilizations, but not strictly fantasy.",
+          matchNote: "",
+        },
+        candidate: {
+          name: "Rise of Nations",
+          genres: [{ name: "Strategy" }],
+          tags: [{ name: "Historical" }],
+        },
+        constraints,
+      }),
+      true
+    );
+    assert.equal(
+      pickTextAdmitsMustHaveFailure(
+        "historical and fantasy elements, but not strictly fantasy",
+        constraints
+      ),
+      true
+    );
+  });
+
+  it("detects historical civilization strategy without fantasy evidence", () => {
+    const constraints = extractMustHaveConstraints(
+      FANTASY_STRATEGY_PROMPT,
+      EMPTY_INTENT_SIGNALS
+    );
+    assert.equal(requiresFantasyRaces(constraints), true);
+    assert.equal(
+      hasHistoricalCivilizationEvidence({
+        name: "Rise of Nations",
+        genres: [{ name: "Strategy" }],
+        tags: [],
+      }),
+      true
+    );
+    assert.equal(
+      hasFantasyRaceEvidence({
+        name: "Rise of Nations",
+        genres: [{ name: "Strategy" }],
+        tags: [],
+      }),
       false
     );
   });
@@ -470,6 +553,18 @@ describe("shouldRejectCandidateForSignals", () => {
           name: "Age of Wonders: Planetfall",
           genres: [{ name: "Strategy" }, { name: "Sci-fi" }],
           tags: [],
+        },
+        EMPTY_INTENT_SIGNALS,
+        FANTASY_STRATEGY_PROMPT
+      ),
+      true
+    );
+    assert.equal(
+      shouldRejectCandidateForSignals(
+        {
+          name: "Rise of Nations",
+          genres: [{ name: "Strategy" }],
+          tags: [{ name: "Historical" }],
         },
         EMPTY_INTENT_SIGNALS,
         FANTASY_STRATEGY_PROMPT

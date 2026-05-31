@@ -49,6 +49,7 @@ import {
 } from "@/lib/ai-game-discovery";
 import {
   extractMustHaveConstraints,
+  shouldRejectFastPickForMustHave,
   buildDisambiguationRules,
   buildSubjectContextForIntent,
   detectIntentSignals,
@@ -2289,6 +2290,10 @@ export async function POST(req: Request) {
         normalizedInput.userPrompt,
         intentSignals
       );
+      const mustHaveConstraints = extractMustHaveConstraints(
+        normalizedInput.userPrompt,
+        intentSignals
+      );
       const verifiedByNorm = new Map(
         verified.map((c) => [normalizeTitleForMatch(c.name), c] as const)
       );
@@ -2300,6 +2305,15 @@ export async function POST(req: Request) {
         if (!c) continue;
         if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
         if (shouldRejectCandidateForSignals(c, intentSignals, normalizedInput.userPrompt)) continue;
+        if (
+          shouldRejectFastPickForMustHave({
+            pick: fp,
+            candidate: c,
+            constraints: mustHaveConstraints,
+          })
+        ) {
+          continue;
+        }
         picked.push({
           id: c.id,
           title: c.name,
@@ -2410,6 +2424,18 @@ export async function POST(req: Request) {
           userPrompt: normalizedInput.userPrompt,
           normalizedIntent: intent.normalizedIntent,
           coreNeeds: intent.coreNeeds ?? [],
+        });
+      }
+
+      if (mustHaveConstraints.active) {
+        picksForEnrichment = picksForEnrichment.filter((p) => {
+          const c = verifiedById.get(p.id);
+          if (!c) return false;
+          return !shouldRejectFastPickForMustHave({
+            pick: p,
+            candidate: c,
+            constraints: mustHaveConstraints,
+          });
         });
       }
 
