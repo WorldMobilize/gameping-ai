@@ -48,6 +48,7 @@ import {
   type AiSuggestedTitle,
 } from "@/lib/ai-game-discovery";
 import {
+  extractMustHaveConstraints,
   buildDisambiguationRules,
   buildSubjectContextForIntent,
   detectIntentSignals,
@@ -1231,14 +1232,30 @@ function buildRawgScoreBundle(params: {
     params.intentSignals,
     params.userPrompt
   );
+  const mustHave = extractMustHaveConstraints(
+    params.userPrompt,
+    params.intentSignals
+  );
+  const mustHaveKeywords = mustHave.active
+    ? [
+        ...mustHave.settings,
+        ...mustHave.races.filter((r) => r !== "fantasy-races"),
+        ...(mustHave.races.includes("fantasy-races") ? ["fantasy races"] : []),
+        ...mustHave.mechanics.map((m) => m.replace(/-/g, " ")),
+      ]
+    : [];
+  const mustHaveAvoid = mustHave.active && mustHave.settings.includes("fantasy")
+    ? ["sci-fi only", "planetfall", "space strategy without fantasy"]
+    : [];
+
   return {
     normalizedIntent: params.intent.normalizedIntent,
     coreKeywords: sanitizeCoreKeywordsForSignals(
-      params.intent.coreNeeds ?? [],
+      [...(params.intent.coreNeeds ?? []), ...mustHaveKeywords],
       params.intentSignals
     ),
     discoveryQueries: queries,
-    negativeKeywords: params.intent.avoid ?? [],
+    negativeKeywords: [...(params.intent.avoid ?? []), ...mustHaveAvoid],
     preferredGenresOrTags: params.tagTokens,
     subjectContext: buildSubjectContextForIntent(
       intentBlob,
@@ -1368,7 +1385,7 @@ async function verifySuggestedTitles(params: {
       const tm = titleMatchQuality(title, c.name);
       if (tm < 0.74) continue;
       if (!isProbablyBaseGame(c)) continue;
-      if (shouldRejectCandidateForSignals(c, intentSignals)) continue;
+      if (shouldRejectCandidateForSignals(c, intentSignals, userPrompt)) continue;
 
       const relevanceBoost = scoreCandidateRelevanceBoost({
         signals: intentSignals,
@@ -2037,7 +2054,10 @@ export async function POST(req: Request) {
     );
 
     const intentSignals = detectIntentSignals(normalizedInput.userPrompt);
-    const disambiguationRules = buildDisambiguationRules(intentSignals);
+    const disambiguationRules = buildDisambiguationRules(
+      intentSignals,
+      normalizedInput.userPrompt
+    );
     const discoveryNormalizedInput = {
       ...normalizedInput,
       userPrompt: enrichPromptForDiscovery(
@@ -2259,7 +2279,7 @@ export async function POST(req: Request) {
 
     verified = filterCandidatesByExclude(verified, excludeNormalized);
     verified = verified.filter(
-      (c) => !shouldRejectCandidateForSignals(c, intentSignals)
+      (c) => !shouldRejectCandidateForSignals(c, intentSignals, normalizedInput.userPrompt)
     );
 
     // Experimental: single-call fast mode returns directly after RAWG verification (no semantic filter + no rerank).
@@ -2279,7 +2299,7 @@ export async function POST(req: Request) {
         const c = verifiedByNorm.get(key);
         if (!c) continue;
         if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
-        if (shouldRejectCandidateForSignals(c, intentSignals)) continue;
+        if (shouldRejectCandidateForSignals(c, intentSignals, normalizedInput.userPrompt)) continue;
         picked.push({
           id: c.id,
           title: c.name,
@@ -2339,7 +2359,7 @@ export async function POST(req: Request) {
           if (used.has(c.id)) continue;
           if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
           if (!isProbablyBaseGame(c)) continue;
-          if (shouldRejectCandidateForSignals(c, intentSignals)) continue;
+          if (shouldRejectCandidateForSignals(c, intentSignals, normalizedInput.userPrompt)) continue;
           const relevanceBoost = scoreCandidateRelevanceBoost({
             signals: intentSignals,
             userPrompt: normalizedInput.userPrompt,
@@ -2498,7 +2518,10 @@ export async function POST(req: Request) {
 
       const diverse = selectDiverseTop([...scored], 50)
         .map((s) => s.candidate)
-        .filter((c) => !shouldRejectCandidateForSignals(c, intentSignals));
+        .filter(
+          (c) =>
+            !shouldRejectCandidateForSignals(c, intentSignals, normalizedInput.userPrompt)
+        );
       candidatePool = dedupeCandidates([...candidatePool, ...diverse]);
     }
 

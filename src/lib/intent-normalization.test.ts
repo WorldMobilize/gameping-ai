@@ -6,10 +6,13 @@ import {
   collapseSteamDeckPhrase,
   detectIntentSignals,
   detectResultCountPolicy,
+  extractMustHaveConstraints,
   EMPTY_INTENT_SIGNALS,
   isDiscoveryShovelwareTitle,
   isRawgFallbackFillerPick,
   isStrongFastPick,
+  scoreMustHaveConstraintBoost,
+  violatesMustHaveConstraints,
   isHorrorKeywordShovelwareTitle,
   isSteamDeckTitleKeywordSpam,
   isUnsafeDiscoveryQuery,
@@ -113,6 +116,109 @@ describe("detectResultCountPolicy", () => {
         signals
       ),
       "balanced"
+    );
+  });
+});
+
+const FANTASY_STRATEGY_PROMPT =
+  "Fantasy strategy game with elves, orcs, multiple races, village building and faction management.";
+
+describe("extractMustHaveConstraints", () => {
+  it("extracts fantasy race strategy must-haves", () => {
+    const c = extractMustHaveConstraints(FANTASY_STRATEGY_PROMPT, EMPTY_INTENT_SIGNALS);
+    assert.equal(c.active, true);
+    assert.ok(c.settings.includes("fantasy"));
+    assert.ok(c.races.includes("elves"));
+    assert.ok(c.races.includes("orcs"));
+    assert.ok(c.mechanics.includes("strategy"));
+    assert.ok(c.mechanics.includes("base-building"));
+    assert.ok(c.mechanics.includes("faction-management"));
+  });
+
+  it("stays inactive for broad friends prompts", () => {
+    assert.equal(
+      extractMustHaveConstraints("Games to play with friends", EMPTY_INTENT_SIGNALS).active,
+      false
+    );
+  });
+
+  it("stays inactive for platform-only Steam Deck prompts", () => {
+    const signals = detectIntentSignals("games for steam deck");
+    assert.equal(
+      extractMustHaveConstraints("games for steam deck", signals).active,
+      false
+    );
+  });
+
+  it("augments queries via merge for fantasy strategy", () => {
+    const merged = mergeIntentAugmentation(
+      {
+        normalizedIntent: FANTASY_STRATEGY_PROMPT,
+        coreNeeds: [],
+        avoid: [],
+        fallbackDiscoveryQueries: ["strategy factions", "city building"],
+      },
+      EMPTY_INTENT_SIGNALS,
+      FANTASY_STRATEGY_PROMPT
+    );
+    assert.ok(merged.fallbackDiscoveryQueries.some((q) => /fantasy RTS/i.test(q)));
+    assert.ok(merged.fallbackDiscoveryQueries.some((q) => /orcs elves/i.test(q)));
+    assert.ok(merged.avoid.some((a) => /sci-fi/i.test(a)));
+  });
+});
+
+describe("scoreMustHaveConstraintBoost", () => {
+  it("heavily penalizes sci-fi strategy when fantasy races are required", () => {
+    const constraints = extractMustHaveConstraints(
+      FANTASY_STRATEGY_PROMPT,
+      EMPTY_INTENT_SIGNALS
+    );
+    const planetfall = scoreMustHaveConstraintBoost(
+      {
+        name: "Age of Wonders: Planetfall",
+        genres: [{ name: "Strategy" }, { name: "Sci-fi" }],
+        tags: [{ name: "Turn-Based Strategy" }],
+      },
+      constraints
+    );
+    const spellforce = scoreMustHaveConstraintBoost(
+      {
+        name: "SpellForce 3",
+        genres: [{ name: "Strategy" }, { name: "RPG" }],
+        tags: [{ name: "Fantasy" }],
+      },
+      constraints
+    );
+    assert.ok(planetfall < -40);
+    assert.ok(spellforce > planetfall);
+  });
+
+  it("rejects clear setting contradictions", () => {
+    const constraints = extractMustHaveConstraints(
+      FANTASY_STRATEGY_PROMPT,
+      EMPTY_INTENT_SIGNALS
+    );
+    assert.equal(
+      violatesMustHaveConstraints(
+        {
+          name: "Age of Wonders: Planetfall",
+          genres: [{ name: "Strategy" }, { name: "Sci-fi" }],
+          tags: [],
+        },
+        constraints
+      ),
+      true
+    );
+    assert.equal(
+      violatesMustHaveConstraints(
+        {
+          name: "SpellForce 3",
+          genres: [{ name: "Strategy" }],
+          tags: [{ name: "Fantasy" }],
+        },
+        constraints
+      ),
+      false
     );
   });
 });
@@ -352,6 +458,21 @@ describe("shouldRejectCandidateForSignals", () => {
       shouldRejectCandidateForSignals(
         { name: "Indie Game Battle", genres: [{ name: "Action" }] },
         sig({ memorableDiscovery: true, discoverySubkind: "anti_aaa" })
+      ),
+      true
+    );
+  });
+
+  it("rejects fantasy-contradicting candidates when must-haves active", () => {
+    assert.equal(
+      shouldRejectCandidateForSignals(
+        {
+          name: "Age of Wonders: Planetfall",
+          genres: [{ name: "Strategy" }, { name: "Sci-fi" }],
+          tags: [],
+        },
+        EMPTY_INTENT_SIGNALS,
+        FANTASY_STRATEGY_PROMPT
       ),
       true
     );

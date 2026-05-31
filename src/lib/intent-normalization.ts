@@ -538,7 +538,8 @@ export function shouldRejectCandidateForSignals(
     RawgCandidate,
     "name" | "genres" | "tags" | "ratings_count" | "rating"
   >,
-  signals: IntentSignals
+  signals: IntentSignals,
+  userPrompt = ""
 ): boolean {
   if (signals.steamDeck && isSteamDeckTitleKeywordSpam(candidate.name)) {
     return true
@@ -567,6 +568,10 @@ export function shouldRejectCandidateForSignals(
     const rating = typeof candidate.rating === "number" ? candidate.rating : 0
     if (ratings < 80 && rating <= 0) return true
   }
+
+  const mustHave = extractMustHaveConstraints(userPrompt, signals)
+  if (violatesMustHaveConstraints(candidate, mustHave)) return true
+
   return false
 }
 
@@ -632,11 +637,21 @@ export function enrichPromptForDiscovery(
     )
   }
 
+  const mustHave = extractMustHaveConstraints(base, signals)
+  if (mustHave.active) {
+    hints.push(
+      `Must-have constraints (hard requirements — do not suggest contradicting games): settings=[${mustHave.settings.join(", ") || "none"}], races=[${mustHave.races.join(", ") || "none"}], mechanics=[${mustHave.mechanics.join(", ") || "none"}]. Example: fantasy+elves/orcs required → reject sci-fi-only strategy like space/planetfall settings.`
+    )
+  }
+
   if (hints.length === 0) return base
   return `${base}\n${hints.join("\n")}`
 }
 
-export function buildDisambiguationRules(signals: IntentSignals): string[] {
+export function buildDisambiguationRules(
+  signals: IntentSignals,
+  userPrompt = ""
+): string[] {
   const rules: string[] = []
   if (signals.steamDeck) {
     rules.push(
@@ -670,6 +685,15 @@ export function buildDisambiguationRules(signals: IntentSignals): string[] {
   if (signals.cozyShortSession) {
     rules.push(
       "Cozy short sessions: prefer wholesome relaxing indies with gentle loops — farming sim, life sim, cozy adventure — not stressful grind games."
+    )
+  }
+  const mustHave = extractMustHaveConstraints(userPrompt, signals)
+  if (mustHave.active) {
+    rules.push(
+      "Highly specific prompt: treat setting, races, and mechanics as MUST-HAVE constraints — not soft preferences. Do not recommend games that contradict the required setting (e.g. sci-fi/space when fantasy+elves/orcs are required)."
+    )
+    rules.push(
+      "For fantasy race strategy prompts, fallbackDiscoveryQueries must include high-signal phrases like \"fantasy RTS orcs elves\", \"fantasy faction strategy\" — not generic \"strategy factions\" or \"city building\" alone."
     )
   }
   return rules
@@ -882,6 +906,30 @@ export function mergeIntentAugmentation(
     )
   }
 
+  const mustHave = extractMustHaveConstraints(userPrompt, signals)
+  if (mustHave.active) {
+    for (const s of mustHave.settings) {
+      coreNeeds.push(`${s} setting`)
+    }
+    for (const r of mustHave.races) {
+      coreNeeds.push(r === "fantasy-races" ? "multiple fantasy races" : r)
+    }
+    for (const m of mustHave.mechanics) {
+      coreNeeds.push(m.replace(/-/g, " "))
+    }
+    if (mustHave.settings.includes("fantasy")) {
+      avoid.push(
+        "sci-fi only",
+        "space setting without fantasy",
+        "science fiction strategy without fantasy races"
+      )
+    }
+    fallbackDiscoveryQueries = augmentMustHaveDiscoveryQueries(
+      fallbackDiscoveryQueries,
+      mustHave
+    )
+  }
+
   return {
     normalizedIntent,
     coreNeeds: mergeUniqueStrings(coreNeeds, 12),
@@ -1090,19 +1138,24 @@ export function scoreCandidateRelevanceBoost(params: {
     delta -= 10
   }
 
+  const mustHave = extractMustHaveConstraints(params.userPrompt, signals)
+  delta += scoreMustHaveConstraintBoost(candidate, mustHave)
+
   return delta
 }
 
 export function shouldDropWeakFastPick(params: {
   signals: IntentSignals
+  userPrompt?: string
   match: number
   matchTier: string
   relevanceBoost: number
   candidate?: Pick<RawgCandidate, "name" | "genres" | "tags" | "ratings_count">
 }): boolean {
-  const { signals, match, matchTier, relevanceBoost, candidate } = params
+  const { signals, match, matchTier, relevanceBoost, candidate, userPrompt = "" } =
+    params
 
-  if (candidate && shouldRejectCandidateForSignals(candidate, signals)) {
+  if (candidate && shouldRejectCandidateForSignals(candidate, signals, userPrompt)) {
     return true
   }
 
@@ -1126,6 +1179,20 @@ export function shouldDropWeakFastPick(params: {
     if (candidate && isDiscoveryTitleKeywordSpam(candidate)) return true
     if (relevanceBoost <= -45) return true
     if (matchTier === "partial_match" && relevanceBoost < -20 && match < 78) return true
+  }
+
+  const mustHave = extractMustHaveConstraints(userPrompt, signals)
+  if (mustHave.active && candidate && violatesMustHaveConstraints(candidate, mustHave)) {
+    return true
+  }
+  if (mustHave.active && relevanceBoost <= -50) return true
+  if (
+    mustHave.active &&
+    matchTier === "partial_match" &&
+    relevanceBoost < -25 &&
+    match < 85
+  ) {
+    return true
   }
 
   return false
@@ -1171,6 +1238,252 @@ function isHighlySpecificPrompt(normalizedText: string): boolean {
 
   if (words.length >= 14 && constraintHints >= 4) return true
   if (words.length >= 12 && constraintHints >= 5) return true
+
+  return false
+}
+
+export type MustHaveConstraints = {
+  active: boolean
+  settings: string[]
+  races: string[]
+  mechanics: string[]
+  exclusions: string[]
+}
+
+function isBroadSocialPrompt(normalizedText: string): boolean {
+  return /\b(friends?|with friends|multiplayer|multi[\s-]?player|co[\s-]?op|online with|party games?|together|local coop|split screen|giocare con|in compagnia|multigiocatore)\b/.test(
+    normalizedText
+  )
+}
+
+const FANTASY_SETTING_RE =
+  /\b(fantasy|medieval|high fantasy|dark fantasy|mythic|mythical|magic|middle-earth|warhammer|dungeons)\b/i
+const SCI_FI_SETTING_RE =
+  /\b(sci-fi|science fiction|sci fi|futuristic|space|space opera|cyberpunk|planetfall|galactic|alien|robots?|mechs?|post-apocalyptic sci)\b/i
+
+/** Extract hard must-have constraints for highly specific prompts (not broad social). */
+export function extractMustHaveConstraints(
+  userPrompt: string,
+  signals: IntentSignals
+): MustHaveConstraints {
+  const inactive: MustHaveConstraints = {
+    active: false,
+    settings: [],
+    races: [],
+    mechanics: [],
+    exclusions: [],
+  }
+
+  const n = normalizeIntentText(userPrompt)
+  if (isBroadSocialPrompt(n)) return inactive
+
+  if (signals.steamDeck) {
+    const split = splitSteamDeckIntent(userPrompt)
+    if (split?.isPlatformOnly) return inactive
+  }
+
+  const settings: string[] = []
+  const races: string[] = []
+  const mechanics: string[] = []
+  const exclusions: string[] = []
+
+  if (/\b(fantasy|medieval|high fantasy|dark fantasy)\b/.test(n)) settings.push("fantasy")
+  if (/\b(sci-fi|science fiction|futuristic|space opera)\b/.test(n)) settings.push("sci-fi")
+  if (/\b(cyberpunk)\b/.test(n)) settings.push("cyberpunk")
+  if (/\b(western|wild west)\b/.test(n)) settings.push("western")
+
+  if (/\b(elves?|elven|elfi)\b/.test(n)) races.push("elves")
+  if (/\b(orcs?|orchi)\b/.test(n)) races.push("orcs")
+  if (/\b(dwarves?|dwarfs?|nani)\b/.test(n)) races.push("dwarves")
+  if (/\b(undead|zombies?)\b/.test(n)) races.push("undead")
+  if (
+    /\b(multiple races?|several races?|many races?|diverse races?|different races?)\b/.test(
+      n
+    )
+  ) {
+    races.push("fantasy-races")
+  }
+
+  if (
+    /\b(village building|town building|settlement building|base building|city building|colony building|village manag)\b/.test(
+      n
+    )
+  ) {
+    mechanics.push("base-building")
+  }
+  if (/\b(faction management|faction manag|manage factions?|factions? manag)\b/.test(n)) {
+    mechanics.push("faction-management")
+  }
+  if (/\b(turn[\s-]?based)\b/.test(n)) mechanics.push("turn-based")
+  if (/\b(real[\s-]?time strategy|\brts\b)\b/.test(n)) mechanics.push("rts")
+  if (/\b(strateg(y|ico|ia)|4x)\b/.test(n)) mechanics.push("strategy")
+  if (/\b(party companions?|companion party|persistent party)\b/.test(n)) {
+    mechanics.push("party-companions")
+  }
+
+  if (/\b(not multiplayer|no multiplayer|single[\s-]?player only|senza multiplayer)\b/.test(n)) {
+    exclusions.push("multiplayer")
+  }
+  if (/\b(not horror|no horror|senza horror)\b/.test(n)) exclusions.push("horror")
+  if (/\b(not farming|no farming|no farm)\b/.test(n)) exclusions.push("farming")
+
+  const active =
+    isHighlySpecificPrompt(n) ||
+    (settings.length >= 1 && races.length >= 1) ||
+    (settings.includes("fantasy") && mechanics.length >= 2) ||
+    races.length >= 2 ||
+    mechanics.length >= 4
+
+  if (!active) return inactive
+
+  return { active: true, settings, races, mechanics, exclusions }
+}
+
+function augmentMustHaveDiscoveryQueries(
+  queries: string[],
+  constraints: MustHaveConstraints
+): string[] {
+  if (!constraints.active) return queries
+
+  const extras: string[] = []
+
+  if (constraints.settings.includes("fantasy") && constraints.mechanics.includes("strategy")) {
+    extras.push(
+      "fantasy RTS orcs elves",
+      "fantasy strategy game races",
+      "orcs elves strategy game",
+      "fantasy faction strategy",
+      "base building fantasy strategy"
+    )
+  }
+  if (
+    constraints.races.some((r) => r === "elves" || r === "orcs" || r === "fantasy-races")
+  ) {
+    extras.push("fantasy races strategy game", "elves orcs fantasy game")
+  }
+  if (constraints.mechanics.includes("faction-management")) {
+    extras.push("fantasy faction management strategy")
+  }
+  if (constraints.mechanics.includes("base-building") && constraints.settings.includes("fantasy")) {
+    extras.push("fantasy village building strategy")
+  }
+
+  return mergeUniqueStrings([...queries, ...extras], 12)
+}
+
+/** Strong boost/penalty for must-have semantic fit (specific prompts only). */
+export function scoreMustHaveConstraintBoost(
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags">,
+  constraints: MustHaveConstraints
+): number {
+  if (!constraints.active) return 0
+
+  const blob = candidateBlob(candidate)
+  const name = candidate.name.toLowerCase()
+  let delta = 0
+
+  if (constraints.settings.includes("fantasy")) {
+    const fantasyHit = FANTASY_SETTING_RE.test(blob) || FANTASY_SETTING_RE.test(name)
+    const scifiHit =
+      SCI_FI_SETTING_RE.test(blob) ||
+      SCI_FI_SETTING_RE.test(name) ||
+      /\bplanetfall\b/i.test(name)
+
+    if (scifiHit && !fantasyHit) delta -= 62
+    else if (fantasyHit) delta += 22
+  }
+
+  if (constraints.settings.includes("sci-fi")) {
+    const scifiHit = SCI_FI_SETTING_RE.test(blob)
+    const fantasyHit = FANTASY_SETTING_RE.test(blob)
+    if (fantasyHit && !scifiHit) delta -= 28
+    else if (scifiHit) delta += 14
+  }
+
+  let raceHits = 0
+  if (constraints.races.includes("elves") && /\b(elves?|elven|elf)\b/i.test(blob)) raceHits += 1
+  if (constraints.races.includes("orcs") && /\borcs?\b/i.test(blob)) raceHits += 1
+  if (constraints.races.includes("dwarves") && /\b(dwarves?|dwarfs?|dwarf)\b/i.test(blob)) {
+    raceHits += 1
+  }
+  if (constraints.races.includes("undead") && /\b(undead|zombie|necromancer)\b/i.test(blob)) {
+    raceHits += 1
+  }
+  if (constraints.races.includes("fantasy-races") && FANTASY_SETTING_RE.test(blob)) {
+    raceHits += 1
+  }
+
+  if (constraints.races.length > 0) {
+    if (raceHits >= 2) delta += 24
+    else if (raceHits === 1) delta += 12
+    else if (constraints.settings.includes("fantasy")) delta -= 28
+  }
+
+  for (const mech of constraints.mechanics) {
+    switch (mech) {
+      case "strategy":
+        if (/\b(strategy|rts|real-time strategy|turn-based strategy|4x|tactical)\b/i.test(blob)) {
+          delta += 9
+        }
+        break
+      case "base-building":
+        if (/\b(building|builder|base|settlement|village|city builder|colony)\b/i.test(blob)) {
+          delta += 11
+        }
+        break
+      case "faction-management":
+        if (/\b(faction|factions|diplomacy|empire|clans?|politics)\b/i.test(blob)) {
+          delta += 11
+        }
+        break
+      case "turn-based":
+        if (/\b(turn-based|turn based)\b/i.test(blob)) delta += 8
+        break
+      case "rts":
+        if (/\b(rts|real-time strategy)\b/i.test(blob)) delta += 8
+        break
+      case "party-companions":
+        if (/\b(companion|companions|party|character)\b/i.test(blob)) delta += 10
+        break
+    }
+  }
+
+  for (const ex of constraints.exclusions) {
+    if (ex === "multiplayer" && /\b(multiplayer|co-op|online)\b/i.test(blob)) delta -= 32
+    if (ex === "horror" && /\bhorror\b/i.test(blob)) delta -= 28
+    if (ex === "farming" && /\b(farming|farm sim|agriculture)\b/i.test(blob)) delta -= 24
+  }
+
+  return delta
+}
+
+/** Hard reject when a candidate clearly contradicts required setting/race constraints. */
+export function violatesMustHaveConstraints(
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags">,
+  constraints: MustHaveConstraints
+): boolean {
+  if (!constraints.active) return false
+
+  const blob = candidateBlob(candidate)
+  const name = candidate.name.toLowerCase()
+
+  if (constraints.settings.includes("fantasy") && constraints.races.length > 0) {
+    const fantasyHit = FANTASY_SETTING_RE.test(blob) || FANTASY_SETTING_RE.test(name)
+    const scifiHit =
+      SCI_FI_SETTING_RE.test(blob) ||
+      SCI_FI_SETTING_RE.test(name) ||
+      /\bplanetfall\b/i.test(name)
+    if (scifiHit && !fantasyHit) return true
+  }
+
+  if (
+    constraints.settings.includes("fantasy") &&
+    constraints.races.length >= 2 &&
+    !FANTASY_SETTING_RE.test(blob) &&
+    SCI_FI_SETTING_RE.test(blob)
+  ) {
+    return true
+  }
 
   return false
 }
@@ -1259,6 +1572,7 @@ export function reorderFastPicksByRelevance<
     if (
       shouldDropWeakFastPick({
         signals,
+        userPrompt,
         match: row.pick.match,
         matchTier: row.pick.matchTier,
         relevanceBoost: row.relevanceBoost,
