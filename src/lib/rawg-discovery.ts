@@ -149,20 +149,7 @@ export function isLowQualityTitle(name: string) {
   return false
 }
 
-export function titleMatchQuality(suggestedTitle: string, rawgName: string) {
-  const a = normalizeTitleForMatch(suggestedTitle)
-  const b = normalizeTitleForMatch(rawgName)
-  if (!a || !b) return 0
-  if (a === b) return 1
-  // Near exact: contains relationship (helps with punctuation differences).
-  if (a.length >= 4 && (a.includes(b) || b.includes(a))) return 0.93
-  const ja = jaccard(titleTokens(a), titleTokens(b))
-  // Very close token sets.
-  if (ja >= 0.9) return 0.9
-  if (ja >= 0.82) return 0.82
-  if (ja >= 0.74) return 0.74
-  return ja
-}
+export { titleMatchQuality } from "@/lib/title-match"
 
 async function runPool<T, R>(
   items: readonly T[],

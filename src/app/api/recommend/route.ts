@@ -29,6 +29,10 @@ import {
 import { blockUnverifiedLoggedInUser } from "@/lib/require-verified-email";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 import {
+  buildVerifiedBySuggestedTitle,
+  lookupVerifiedForFastPickTitle,
+} from "@/lib/fast-pick-verified-lookup";
+import {
   dedupeCandidates,
   fetchRawgFirstScreenshotUrl,
   fetchRawgGameDetails,
@@ -2294,14 +2298,15 @@ export async function POST(req: Request) {
         normalizedInput.userPrompt,
         intentSignals
       );
-      const verifiedByNorm = new Map(
-        verified.map((c) => [normalizeTitleForMatch(c.name), c] as const)
-      );
+      const verifiedBySuggested = buildVerifiedBySuggestedTitle(verified);
 
       const picked: PreEnrichPick[] = [];
       for (const fp of fastPicks) {
-        const key = normalizeTitleForMatch(fp.title);
-        const c = verifiedByNorm.get(key);
+        const c = lookupVerifiedForFastPickTitle(
+          fp.title,
+          verified,
+          verifiedBySuggested
+        );
         if (!c) continue;
         if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
         if (shouldRejectCandidateForSignals(c, intentSignals, normalizedInput.userPrompt)) continue;
