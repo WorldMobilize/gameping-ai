@@ -10,7 +10,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
-import { HIGHLIGHT_SLIDES, renderSlideHtml } from "./slides.tsx"
+import { HIGHLIGHT_SLIDES, renderSlideHtml } from "./slides"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, "../..")
