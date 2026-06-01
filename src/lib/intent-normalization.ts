@@ -1,3 +1,8 @@
+import {
+  isWeakFantasyStrategyFillerTitle,
+  scoreCanonicalTitlePreference,
+  shouldRejectNonCanonicalSideEdition,
+} from "@/lib/canonical-title-preference"
 import type { RawgCandidate } from "@/lib/rawg-discovery"
 
 export type DiscoverySubkind =
@@ -571,6 +576,10 @@ export function shouldRejectCandidateForSignals(
 
   const mustHave = extractMustHaveConstraints(userPrompt, signals)
   if (violatesMustHaveConstraints(candidate, mustHave)) return true
+  if (shouldRejectNonCanonicalSideEdition(candidate.name, userPrompt)) return true
+  if (isFantasyRaceStrategyMustHave(mustHave) && isWeakFantasyStrategyFillerTitle(candidate.name)) {
+    return true
+  }
 
   return false
 }
@@ -1143,6 +1152,11 @@ export function scoreCandidateRelevanceBoost(params: {
 
   const mustHave = extractMustHaveConstraints(params.userPrompt, signals)
   delta += scoreMustHaveConstraintBoost(candidate, mustHave)
+  delta += scoreCanonicalTitlePreference({
+    candidateName: candidate.name,
+    userPrompt: params.userPrompt,
+    preferFranchiseMainline: isFantasyRaceStrategyMustHave(mustHave),
+  })
 
   return delta
 }
@@ -1152,10 +1166,11 @@ export function shouldDropWeakFastPick(params: {
   userPrompt?: string
   match: number
   matchTier: string
+  reason?: string
   relevanceBoost: number
   candidate?: Pick<RawgCandidate, "name" | "genres" | "tags" | "ratings_count">
 }): boolean {
-  const { signals, match, matchTier, relevanceBoost, candidate, userPrompt = "" } =
+  const { signals, match, matchTier, relevanceBoost, candidate, userPrompt = "", reason = "" } =
     params
 
   if (candidate && shouldRejectCandidateForSignals(candidate, signals, userPrompt)) {
@@ -1203,6 +1218,19 @@ export function shouldDropWeakFastPick(params: {
     matchTier === "partial_match" &&
     relevanceBoost < -25 &&
     match < 85
+  ) {
+    return true
+  }
+  if (
+    mustHave.active &&
+    isRawgFallbackFillerPick({ match, reason }) &&
+    !isStrongFastPick({
+      pick: { match, matchTier, reason },
+      relevanceBoost,
+      candidate,
+      mustHaveConstraints: mustHave,
+      userPrompt,
+    })
   ) {
     return true
   }
@@ -1668,6 +1696,9 @@ export function isRawgFallbackFillerPick(pick: {
 /** Minimum relevance for RAWG fallback rows to count as strong when full candidate metadata is present. */
 export const RAWG_FALLBACK_STRONG_RELEVANCE_MIN = -15
 
+/** Stricter floor for RAWG fallback on highly specific must-have prompts. */
+export const MUST_HAVE_RAWG_FALLBACK_RELEVANCE_MIN = 10
+
 /** Confidence gate for quality-first Fast Mode trimming. */
 export function isStrongFastPick(params: {
   pick: {
@@ -1678,19 +1709,26 @@ export function isStrongFastPick(params: {
   relevanceBoost: number
   candidate?: Pick<RawgCandidate, "name" | "genres" | "tags">
   mustHaveConstraints?: MustHaveConstraints
+  userPrompt?: string
 }): boolean {
-  const { pick, relevanceBoost, candidate, mustHaveConstraints } = params
+  const { pick, relevanceBoost, candidate, mustHaveConstraints, userPrompt = "" } = params
 
   if (isRawgFallbackFillerPick(pick)) {
     if (!candidate) return false
     if (mustHaveConstraints?.active) {
       if (violatesMustHaveConstraints(candidate, mustHaveConstraints)) return false
+      if (shouldRejectNonCanonicalSideEdition(candidate.name, userPrompt)) return false
+      if (isWeakFantasyStrategyFillerTitle(candidate.name)) return false
       if (
         requiresFantasyRaces(mustHaveConstraints) &&
         !hasFantasyRaceEvidence(candidate)
       ) {
         return false
       }
+      if (isFantasyRaceStrategyMustHave(mustHaveConstraints)) {
+        return relevanceBoost >= MUST_HAVE_RAWG_FALLBACK_RELEVANCE_MIN
+      }
+      return relevanceBoost >= 0
     }
     return relevanceBoost >= RAWG_FALLBACK_STRONG_RELEVANCE_MIN
   }
@@ -1708,6 +1746,7 @@ export function reorderFastPicksByRelevance<
   T extends {
     id: number
     match: number
+    reason?: string
     matchTier: "best_match" | "good_alternative" | "partial_match"
   },
 >(params: {
@@ -1762,6 +1801,7 @@ export function reorderFastPicksByRelevance<
         userPrompt,
         match: row.pick.match,
         matchTier: row.pick.matchTier,
+        reason: row.pick.reason ?? "",
         relevanceBoost: row.relevanceBoost,
         candidate,
       })
@@ -1828,11 +1868,35 @@ export function trimFastPicksToConfidence<
         relevanceBoost,
         candidate,
         mustHaveConstraints,
+        userPrompt,
       })
     ) {
       strong.push(pick)
     }
   }
 
+  if (mustHaveConstraints?.active) {
+    return strong
+  }
+
   return strong.length > 0 ? strong : picks.filter((p) => !isRawgFallbackFillerPick(p))
+}
+
+/** Gate RAWG fallback rows before they are added to Fast Mode picks. */
+export function shouldAdmitRawgFallbackCandidate(params: {
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
+  relevanceBoost: number
+  constraints: MustHaveConstraints
+  userPrompt: string
+}): boolean {
+  const { candidate, relevanceBoost, constraints, userPrompt } = params
+  if (!constraints.active) return true
+  if (violatesMustHaveConstraints(candidate, constraints)) return false
+  if (shouldRejectNonCanonicalSideEdition(candidate.name, userPrompt)) return false
+  if (isWeakFantasyStrategyFillerTitle(candidate.name)) return false
+  if (requiresFantasyRaces(constraints) && !hasFantasyRaceEvidence(candidate)) return false
+  if (isFantasyRaceStrategyMustHave(constraints)) {
+    return relevanceBoost >= MUST_HAVE_RAWG_FALLBACK_RELEVANCE_MIN
+  }
+  return relevanceBoost >= 0
 }

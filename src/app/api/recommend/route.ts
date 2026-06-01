@@ -54,6 +54,7 @@ import {
 } from "@/lib/ai-game-discovery";
 import {
   extractMustHaveConstraints,
+  isFantasyRaceStrategyMustHave,
   shouldRejectFastPickForMustHave,
   buildDisambiguationRules,
   buildSubjectContextForIntent,
@@ -68,6 +69,7 @@ import {
   sanitizeDiscoveryQueries,
   sanitizeIntentKeywordSet,
   scoreCandidateRelevanceBoost,
+  shouldAdmitRawgFallbackCandidate,
   shouldRejectCandidateForSignals,
   isHorrorKeywordShovelwareTitle,
   isSteamDeckTitleKeywordSpam,
@@ -75,6 +77,7 @@ import {
   EMPTY_INTENT_SIGNALS,
   type IntentSignals,
 } from "@/lib/intent-normalization";
+import { scoreCanonicalTitlePreference } from "@/lib/canonical-title-preference";
 
 type VerifiedCandidate = RawgCandidate & {
   _suggested?: {
@@ -1386,6 +1389,8 @@ async function verifySuggestedTitles(params: {
     let best: RawgCandidate | null = null;
     let bestScore = -Infinity;
     let bestMatch = 0;
+    const mustHaveForVerify = extractMustHaveConstraints(userPrompt, intentSignals);
+    const preferFranchiseMainline = isFantasyRaceStrategyMustHave(mustHaveForVerify);
 
     for (const c of results) {
       const tm = titleMatchQuality(title, c.name);
@@ -1401,11 +1406,19 @@ async function verifySuggestedTitles(params: {
         candidate: c,
       });
 
+      const canonicalBoost = scoreCanonicalTitlePreference({
+        suggestedTitle: title,
+        candidateName: c.name,
+        userPrompt,
+        preferFranchiseMainline,
+      });
+
       const score =
         tm * 100 +
         metadataQualityScore(c) +
         popularityScore(c) * 0.35 +
-        relevanceBoost;
+        relevanceBoost +
+        canonicalBoost;
       if (score > bestScore) {
         bestScore = score;
         best = c;
@@ -2394,6 +2407,16 @@ export async function POST(req: Request) {
               intentSignals.cozyShortSession ||
               resultCountPolicy === "quality_first") &&
             relevanceBoost <= fallbackRelevanceFloor
+          ) {
+            continue;
+          }
+          if (
+            !shouldAdmitRawgFallbackCandidate({
+              candidate: c,
+              relevanceBoost,
+              constraints: mustHaveConstraints,
+              userPrompt: normalizedInput.userPrompt,
+            })
           ) {
             continue;
           }

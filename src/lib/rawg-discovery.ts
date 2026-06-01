@@ -1,5 +1,7 @@
 import "server-only"
 
+import { nonCanonicalSideEditionDedupePenalty } from "@/lib/canonical-title-preference"
+
 export type RawgCandidate = {
   id: number
   name: string
@@ -124,6 +126,7 @@ function dedupePreferenceScore(title: string) {
   for (const p of QUALITY_BAD_PATTERNS) {
     if (p.re.test(title)) penalty += p.penalty
   }
+  penalty += nonCanonicalSideEditionDedupePenalty(title)
   return penalty
 }
 

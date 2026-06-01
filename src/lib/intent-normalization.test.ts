@@ -29,7 +29,9 @@ import {
   sanitizeDiscoveryQueries,
   sanitizeIntentKeywordSet,
   reorderFastPicksByRelevance,
+  shouldAdmitRawgFallbackCandidate,
   shouldRejectCandidateForSignals,
+  MUST_HAVE_RAWG_FALLBACK_RELEVANCE_MIN,
   splitSteamDeckIntent,
 } from "./intent-normalization.ts";
 
@@ -452,6 +454,7 @@ describe("isStrongFastPick", () => {
           tags: [{ name: "Fantasy" }],
         },
         mustHaveConstraints: constraints,
+        userPrompt: FANTASY_STRATEGY_PROMPT,
       }),
       true
     );
@@ -465,8 +468,105 @@ describe("isStrongFastPick", () => {
           tags: [{ name: "Historical" }],
         },
         mustHaveConstraints: constraints,
+        userPrompt: FANTASY_STRATEGY_PROMPT,
       }),
       false
+    );
+    assert.equal(
+      isStrongFastPick({
+        pick: { match: 62, matchTier: "good_alternative", reason: "" },
+        relevanceBoost: 5,
+        candidate: {
+          name: "SpellForce 3",
+          genres: [{ name: "Strategy" }],
+          tags: [{ name: "Fantasy" }],
+        },
+        mustHaveConstraints: constraints,
+        userPrompt: FANTASY_STRATEGY_PROMPT,
+      }),
+      false
+    );
+    assert.equal(
+      isStrongFastPick({
+        pick: { match: 62, matchTier: "good_alternative", reason: "" },
+        relevanceBoost: 18,
+        candidate: {
+          name: "Tactical Monsters - Strategy Edition",
+          genres: [{ name: "Strategy" }],
+          tags: [],
+        },
+        mustHaveConstraints: constraints,
+        userPrompt: FANTASY_STRATEGY_PROMPT,
+      }),
+      false
+    );
+    assert.equal(
+      isStrongFastPick({
+        pick: { match: 62, matchTier: "good_alternative", reason: "" },
+        relevanceBoost: 18,
+        candidate: {
+          name: "SpellForce 3: Versus Edition",
+          genres: [{ name: "Strategy" }],
+          tags: [{ name: "Fantasy" }],
+        },
+        mustHaveConstraints: constraints,
+        userPrompt: FANTASY_STRATEGY_PROMPT,
+      }),
+      false
+    );
+  });
+});
+
+describe("shouldAdmitRawgFallbackCandidate", () => {
+  it("blocks weak must-have fallback rows below the relevance floor", () => {
+    const constraints = extractMustHaveConstraints(
+      FANTASY_STRATEGY_PROMPT,
+      EMPTY_INTENT_SIGNALS
+    );
+    assert.equal(MUST_HAVE_RAWG_FALLBACK_RELEVANCE_MIN, 10);
+    assert.equal(
+      shouldAdmitRawgFallbackCandidate({
+        candidate: {
+          name: "Tactical Monsters - Strategy Edition",
+          genres: [{ name: "Strategy" }],
+          tags: [],
+        },
+        relevanceBoost: 20,
+        constraints,
+        userPrompt: FANTASY_STRATEGY_PROMPT,
+      }),
+      false
+    );
+    assert.equal(
+      shouldAdmitRawgFallbackCandidate({
+        candidate: {
+          name: "Age of Wonders 4",
+          genres: [{ name: "Strategy" }],
+          tags: [{ name: "Fantasy" }, { name: "Turn-Based Strategy" }],
+        },
+        relevanceBoost: 8,
+        constraints,
+        userPrompt: FANTASY_STRATEGY_PROMPT,
+      }),
+      false
+    );
+  });
+});
+
+describe("shouldRejectCandidateForSignals — fantasy RTS", () => {
+  it("rejects tactical monsters for fantasy race strategy prompts", () => {
+    const signals = detectIntentSignals(FANTASY_STRATEGY_PROMPT);
+    assert.equal(
+      shouldRejectCandidateForSignals(
+        {
+          name: "Tactical Monsters - Strategy Edition",
+          genres: [{ name: "Strategy" }],
+          tags: [],
+        },
+        signals,
+        FANTASY_STRATEGY_PROMPT
+      ),
+      true
     );
   });
 });
