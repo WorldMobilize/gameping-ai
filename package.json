@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test:pricing": "node --import tsx --test src/lib/pricing/pricing-mvp.test.ts",
     "test:intent": "node --import tsx --test src/lib/intent-normalization.test.ts src/lib/canonical-title-preference.test.ts",
+    "test:refine": "node --import tsx --test src/lib/recommend-refine.test.ts",
     "test:fast-pick": "node --import tsx --test src/lib/fast-pick-verified-lookup.test.ts",
     "test:social-export": "node --import tsx --test src/lib/social-export.test.ts src/lib/social-export-access.test.ts"
   },

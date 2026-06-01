@@ -1,7 +1,7 @@
 import type { RecommendInputFields } from "@/lib/recommend-input";
 
 /** Bump when persisted shape changes so old session blobs are ignored. */
-export const RECOMMEND_SESSION_STORAGE_VERSION = 2 as const;
+export const RECOMMEND_SESSION_STORAGE_VERSION = 3 as const;
 
 const STORAGE_KEY = `gameping:recommend-session:v${RECOMMEND_SESSION_STORAGE_VERSION}`;
 
@@ -27,6 +27,8 @@ export type RecommendSessionSnapshot = {
   games: RecommendSessionGame[];
   noStrongMatchesAfterSuccess: boolean;
   resultsReveal: boolean;
+  /** True after the one allowed refinement for this search session. */
+  refineUsed: boolean;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -68,6 +70,7 @@ export function loadRecommendSessionState(): RecommendSessionSnapshot | null {
     }
     if (typeof parsed.noStrongMatchesAfterSuccess !== "boolean") return null;
     if (typeof parsed.resultsReveal !== "boolean") return null;
+    if (typeof parsed.refineUsed !== "boolean") return null;
 
     return parsed as RecommendSessionSnapshot;
   } catch {

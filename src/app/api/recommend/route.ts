@@ -2,6 +2,16 @@ import {
   extractRecommendResultTitles,
   logRecommendRun,
 } from "@/lib/recommend-runs";
+import {
+  applyRefineExcludeAndReferenceToIntent,
+  applyRefineIntentAdjustments,
+  buildRefineDiscoveryUserPrompt,
+  formatRecommendRunPromptWithRefine,
+  bodyHasRefineContext,
+  parseRefineContextRequest,
+  REFINE_MESSAGE_MAX,
+  refineRequestsStricterBudget,
+} from "@/lib/recommend-refine";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import {
@@ -1875,7 +1885,37 @@ export async function POST(req: Request) {
       );
     }
 
-    recommendLogPrompt = normalizedInput.userPrompt.trim();
+    const refineParsed = bodyHasRefineContext(body)
+      ? parseRefineContextRequest(body)
+      : null;
+    if (refineParsed && !refineParsed.ok) {
+      if (refineParsed.error === "refine_message_too_long") {
+        return NextResponse.json(
+          {
+            error: "refine_message_too_long",
+            message: `Refinement is too long. Please keep it under ${REFINE_MESSAGE_MAX} characters.`,
+          },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        {
+          error: "refine_context_invalid",
+          message:
+            "Refinement request is incomplete. Run a search first, then refine from those results.",
+        },
+        { status: 400 }
+      );
+    }
+    const refineContext = refineParsed?.ok ? refineParsed.context : null;
+    const isRefineRequest = refineContext != null;
+
+    recommendLogPrompt = isRefineRequest
+      ? formatRecommendRunPromptWithRefine(
+          refineContext.originalPrompt,
+          refineContext.refineMessage
+        )
+      : normalizedInput.userPrompt.trim();
 
     const bypassLimits = shouldBypassRecommendLimits(plan);
     const promptMax = getPromptMaxChars(plan, bypassLimits);
@@ -1965,7 +2005,7 @@ export async function POST(req: Request) {
     const cachedEarly = earlyCacheRes.value;
     timing.earlyCacheMs = earlyCacheRes.ms;
 
-    if (cachedEarly && !debugEnabled && !noCache) {
+    if (cachedEarly && !debugEnabled && !noCache && !isRefineRequest) {
       cacheHitSource = "early";
       timing.cacheMs = timing.earlyCacheMs;
       if (process.env.NODE_ENV !== "development") {
@@ -2014,7 +2054,8 @@ export async function POST(req: Request) {
     }
 
     // Quota runs only after early-cache miss (see recommend-quota-cache-order.ts).
-    if (!bypassLimits) {
+    // Refinements reuse the same search session and do not consume another daily slot.
+    if (!bypassLimits && !isRefineRequest) {
       const quotaRes = await timed("quota.consumeDailySlot", () =>
         tryConsumeRecommendDailySlot({
           req,
@@ -2035,6 +2076,7 @@ export async function POST(req: Request) {
           limit: usageAfter.limit,
           allowed: usageAfter.allowed,
           afterEarlyCacheMiss: true,
+          refineRequest: false,
         });
       }
 
@@ -2062,9 +2104,10 @@ export async function POST(req: Request) {
         isAdmin: plan === "admin",
         plan: plan ?? "anon",
         used: 0,
-        limit: "bypass",
+        limit: isRefineRequest ? "refine-free" : "bypass",
         allowed: true,
         afterEarlyCacheMiss: true,
+        refineRequest: isRefineRequest,
       });
     }
 
@@ -2072,17 +2115,34 @@ export async function POST(req: Request) {
       normalizedInput.userPrompt
     );
 
-    const intentSignals = detectIntentSignals(normalizedInput.userPrompt);
+    const intentSignals = detectIntentSignals(
+      isRefineRequest
+        ? `${refineContext!.originalPrompt} ${refineContext!.refineMessage}`
+        : normalizedInput.userPrompt
+    );
     const disambiguationRules = buildDisambiguationRules(
       intentSignals,
-      normalizedInput.userPrompt
+      isRefineRequest ? refineContext!.originalPrompt : normalizedInput.userPrompt
     );
+
+    let budgetForRun = normalizedInput.budget;
+    if (
+      isRefineRequest &&
+      refineRequestsStricterBudget(refineContext!.refineMessage) &&
+      budgetForRun.trim()
+    ) {
+      const budgetNum = Number.parseFloat(budgetForRun);
+      if (Number.isFinite(budgetNum) && budgetNum > 5) {
+        budgetForRun = String(Math.max(5, Math.floor(budgetNum * 0.85)));
+      }
+    }
+
     const discoveryNormalizedInput = {
       ...normalizedInput,
-      userPrompt: enrichPromptForDiscovery(
-        normalizedInput.userPrompt,
-        intentSignals
-      ),
+      budget: budgetForRun,
+      userPrompt: isRefineRequest
+        ? buildRefineDiscoveryUserPrompt(refineContext!)
+        : enrichPromptForDiscovery(normalizedInput.userPrompt, intentSignals),
       selectedTags: resolvedSelectedTags.join(", "),
     };
 
@@ -2181,14 +2241,28 @@ export async function POST(req: Request) {
     intent.fallbackDiscoveryQueries = sanitizeDiscoveryQueries(
       intent.fallbackDiscoveryQueries ?? [],
       intentSignals,
-      normalizedInput.userPrompt
+      isRefineRequest ? refineContext!.originalPrompt : normalizedInput.userPrompt
     );
+
+    if (isRefineRequest) {
+      const refinedIntent = applyRefineIntentAdjustments(refineContext!.refineMessage, {
+        normalizedIntent: intent.normalizedIntent,
+        coreNeeds: intent.coreNeeds ?? [],
+        avoid: intent.avoid ?? [],
+      });
+      intent.normalizedIntent = refinedIntent.normalizedIntent;
+      intent.coreNeeds = refinedIntent.coreNeeds;
+      intent.avoid = refinedIntent.avoid;
+    }
 
     const excludeListRaw = [
       ...regexRefsFromPrompt,
       ...(intent.excludeTitles ?? []),
       ...(intent.referenceTitles ?? []),
     ];
+    if (isRefineRequest) {
+      applyRefineExcludeAndReferenceToIntent(intent, refineContext!, excludeListRaw);
+    }
     let excludeNormalized = new Set(
       excludeListRaw.map((t) => normalizeTitleForMatch(t)).filter(Boolean)
     );
@@ -2298,18 +2372,26 @@ export async function POST(req: Request) {
 
     verified = filterCandidatesByExclude(verified, excludeNormalized);
     verified = verified.filter(
-      (c) => !shouldRejectCandidateForSignals(c, intentSignals, normalizedInput.userPrompt)
+      (c) =>
+        !shouldRejectCandidateForSignals(
+          c,
+          intentSignals,
+          isRefineRequest ? refineContext!.originalPrompt : normalizedInput.userPrompt
+        )
     );
 
     // Experimental: single-call fast mode returns directly after RAWG verification (no semantic filter + no rerank).
     if (singleCallFastEnabled && fastPicks) {
       const rawgMs = timing.rawgVerificationMs;
+      const constraintPrompt = isRefineRequest
+        ? `${refineContext!.originalPrompt} ${refineContext!.refineMessage}`
+        : normalizedInput.userPrompt;
       const resultCountPolicy = detectResultCountPolicy(
-        normalizedInput.userPrompt,
+        constraintPrompt,
         intentSignals
       );
       const mustHaveConstraints = extractMustHaveConstraints(
-        normalizedInput.userPrompt,
+        constraintPrompt,
         intentSignals
       );
       const verifiedBySuggested = buildVerifiedBySuggestedTitle(verified);
@@ -2515,7 +2597,7 @@ export async function POST(req: Request) {
       });
 
       // Best-effort cache: do not block response on failures.
-      if (!noCache) {
+      if (!noCache && !isRefineRequest) {
         try {
           const cacheWriteRes = await timed("cache.write", async () => {
             await setCachedAiRecommendation({
@@ -2986,7 +3068,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
     }
 
     // Best-effort cache: do not block response on failures.
-    if (!noCache) {
+    if (!noCache && !isRefineRequest) {
       try {
         const cacheWriteRes = await timed("cache.write", async () => {
           await setCachedAiRecommendation({

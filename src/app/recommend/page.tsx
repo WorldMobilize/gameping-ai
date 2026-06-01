@@ -35,6 +35,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import ExportSocialCardsButton from "@/components/social/ExportSocialCardsButton";
 import { canShowSocialExport } from "@/lib/social-export-access";
+import { REFINE_MESSAGE_MAX } from "@/lib/recommend-refine";
 import {
   prefersItalianRecommendCopy,
   resolveRecommendResultBudgetLine,
@@ -295,6 +296,8 @@ export default function RecommendPage() {
   const [emailVerifiedForFeatures, setEmailVerifiedForFeatures] = useState(true);
   const [userPlan, setUserPlan] = useState<string | null>(null);
   const [promptMaxForUi, setPromptMaxForUi] = useState(PROMPT_MAX_DEFAULT);
+  const [refineInput, setRefineInput] = useState("");
+  const [refineUsed, setRefineUsed] = useState(false);
   const loadingRef = useRef(false);
 
   function buildRecommendSessionSnapshot(
@@ -307,6 +310,7 @@ export default function RecommendPage() {
       games,
       noStrongMatchesAfterSuccess,
       resultsReveal,
+      refineUsed,
       ...overrides,
     };
   }
@@ -327,6 +331,7 @@ export default function RecommendPage() {
     setDailyLimitReached(false);
     setDailyLimitContext(null);
     setResultsReveal(stored.resultsReveal || stored.games.length > 0);
+    setRefineUsed(stored.refineUsed);
     setLoading(false);
     setLoadingStepIndex(0);
   }, []);
@@ -382,6 +387,7 @@ export default function RecommendPage() {
     games,
     noStrongMatchesAfterSuccess,
     resultsReveal,
+    refineUsed,
     loading,
   ]);
 
@@ -511,6 +517,8 @@ export default function RecommendPage() {
     }
 
     clearRecommendSessionState();
+    setRefineUsed(false);
+    setRefineInput("");
     submitBusyRef.current = true;
     setLoading(true);
     setLoadingStepIndex(0);
@@ -636,6 +644,154 @@ export default function RecommendPage() {
           errorType: "network_error",
         },
       });
+      showToast({
+        variant: "error",
+        message: "Something went wrong. Check your connection and try again.",
+      });
+    } finally {
+      submitBusyRef.current = false;
+      setLoading(false);
+    }
+  }
+
+  async function handleRefineSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (submitBusyRef.current || loading || refineUsed || games.length === 0) return;
+    if (dailyLimitReached) return;
+    if (loggedUserId && !emailVerifiedForFeatures) {
+      showToast({ variant: "error", message: EMAIL_NOT_VERIFIED_MESSAGE });
+      return;
+    }
+
+    const refineMessage = refineInput.trim();
+    if (!refineMessage) {
+      showToast({
+        variant: "info",
+        message: "Add a short note about what to adjust — e.g. less famous or more story.",
+      });
+      return;
+    }
+    if (refineMessage.length > REFINE_MESSAGE_MAX) {
+      showToast({
+        variant: "error",
+        message: `Keep your refinement under ${REFINE_MESSAGE_MAX} characters.`,
+      });
+      return;
+    }
+
+    submitBusyRef.current = true;
+    setLoading(true);
+    setLoadingStepIndex(0);
+    setResultsReveal(false);
+    setApiDebug(null);
+
+    const recommendStartedAt = performance.now();
+    trackProductEvent("recommend_started", {
+      metadata: { refine: true },
+    });
+
+    try {
+      const debugEnabled =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("debug") === "1";
+      const endpoint = debugEnabled ? "/api/recommend?debug=1" : "/api/recommend";
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          filtersEnabled,
+          refineContext: {
+            originalPrompt: form.userPrompt,
+            previousResultTitles: games.map((g) => g.title),
+            refineMessage,
+          },
+        }),
+      });
+
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+        plan?: string;
+        games?: Game[];
+        debug?: RecommendDebug;
+      };
+
+      const latencyMs = Math.round(performance.now() - recommendStartedAt);
+
+      if (!res.ok) {
+        trackProductEvent("recommend_failed", {
+          metadata: {
+            latencyMs,
+            statusCode: res.status,
+            errorType:
+              typeof data?.error === "string" ? data.error : "http_error",
+            refine: true,
+          },
+        });
+        if (res.status === 400 && data?.error === "refine_message_too_long") {
+          showToast({
+            variant: "error",
+            message:
+              data.message ||
+              `Refinement is too long. Please keep it under ${REFINE_MESSAGE_MAX} characters.`,
+          });
+        } else if (res.status === 429 && data?.error === "daily_limit") {
+          const limitPlan =
+            typeof data.plan === "string" ? data.plan : userPlan;
+          setDailyLimitContext({ plan: limitPlan, anonymous: !loggedUserId });
+          setDailyLimitReached(true);
+          const toast = limitReachedToastMessage({
+            limitType: "daily_recommendations",
+            plan: limitPlan,
+            anonymous: !loggedUserId,
+          });
+          showToast({
+            variant: "info",
+            title: toast.title,
+            message: data.message || toast.message,
+            durationMs: LIMIT_TOAST_DURATION_MS,
+          });
+        } else {
+          showToast({
+            variant: "error",
+            message:
+              data.message ||
+              "We couldn’t refine these picks. Try again in a moment.",
+          });
+        }
+        return;
+      }
+
+      const nextGames = data.games ?? [];
+      trackProductEvent("recommend_completed", {
+        metadata: {
+          latencyMs,
+          resultCount: nextGames.length,
+          refine: true,
+        },
+      });
+      setGames(nextGames);
+      setRefineUsed(true);
+      setNoStrongMatchesAfterSuccess(nextGames.length === 0);
+      const reveal = nextGames.length > 0;
+      if (reveal) setResultsReveal(true);
+      persistRecommendSession({
+        games: nextGames,
+        noStrongMatchesAfterSuccess: nextGames.length === 0,
+        resultsReveal: reveal,
+        refineUsed: true,
+      });
+      if (debugEnabled && data?.debug) {
+        setApiDebug(data.debug as RecommendDebug);
+      }
+
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 140);
+    } catch (err) {
+      console.error(err);
       showToast({
         variant: "error",
         message: "Something went wrong. Check your connection and try again.",
@@ -1304,6 +1460,60 @@ export default function RecommendPage() {
                   </div>
                 ))}
               </section>
+
+              {refineUsed ? (
+                <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center">
+                  <p className="text-sm text-white/55">
+                    You used your one refinement for this search.
+                  </p>
+                  <a
+                    href="#recommend-prompt"
+                    className="mt-4 inline-flex rounded-full border border-cyan-400/40 bg-cyan-400/10 px-6 py-2.5 text-sm font-bold text-cyan-200 transition hover:border-cyan-300/60 hover:bg-cyan-400/20"
+                  >
+                    Start a new search
+                  </a>
+                </div>
+              ) : (
+                <form
+                  onSubmit={handleRefineSubmit}
+                  className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:p-6"
+                >
+                  <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-300/90">
+                    Not quite right?
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-white/50">
+                    Tell GamePing what to adjust. You get one refinement for this search.
+                  </p>
+                  <label className="mt-4 block">
+                    <span className="sr-only">Refine your picks</span>
+                    <input
+                      type="text"
+                      value={refineInput}
+                      onChange={(e) => setRefineInput(e.target.value)}
+                      maxLength={REFINE_MESSAGE_MAX}
+                      disabled={loading}
+                      placeholder="e.g. less famous, more story, not multiplayer…"
+                      className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-cyan-400/50 focus:outline-none focus:ring-1 focus:ring-cyan-400/30 disabled:opacity-50"
+                    />
+                  </label>
+                  <p
+                    className={`mt-2 text-xs tabular-nums ${
+                      refineInput.length > REFINE_MESSAGE_MAX
+                        ? "text-rose-400"
+                        : "text-white/40"
+                    }`}
+                  >
+                    {refineInput.length} / {REFINE_MESSAGE_MAX}
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={loading || !refineInput.trim()}
+                    className="mt-4 w-full rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  >
+                    Refine picks
+                  </button>
+                </form>
+              )}
 
               <form
                 onSubmit={handleEmailSubmit}
