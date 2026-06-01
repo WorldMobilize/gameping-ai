@@ -33,6 +33,12 @@ import {
   sanitizeRecommendFitCopy,
 } from "@/lib/recommend-fit-display";
 import { supabase } from "@/lib/supabase";
+import ExportSocialCardsButton from "@/components/social/ExportSocialCardsButton";
+import { canShowSocialExport } from "@/lib/social-export-access";
+import {
+  prefersItalianRecommendCopy,
+  resolveRecommendResultBudgetLine,
+} from "@/lib/recommend-result-card-budget";
 type Game = {
   title: string;
   match: number;
@@ -61,13 +67,6 @@ function gameDetailHrefFromRecommend(game: Game): string {
   if (Number.isFinite(game.match)) params.set("match", String(game.match));
   if (game.matchTier) params.set("fitTier", game.matchTier);
   return `/game/${encodeURIComponent(game.title)}?${params.toString()}`;
-}
-
-function prefersItalianRecommendCopy(prompt: string): boolean {
-  const t = prompt.trim();
-  if (!t) return false;
-  if (/[àèéìòù]/i.test(t)) return true;
-  return /\b(vorrei|giochi|simile|simili|tipo|però|sera|amici|cozy|quando|più|meno)\b/i.test(t);
 }
 
 const platforms = [
@@ -1166,13 +1165,22 @@ export default function RecommendPage() {
                   </h2>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={copyResults}
-                  className="text-xs font-semibold text-white/35 underline-offset-2 transition hover:text-white/55 hover:underline"
-                >
-                  Copy results
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={copyResults}
+                    className="text-xs font-semibold text-white/35 underline-offset-2 transition hover:text-white/55 hover:underline"
+                  >
+                    Copy results
+                  </button>
+                  {canShowSocialExport(userPlan) ? (
+                    <ExportSocialCardsButton
+                      prompt={form.userPrompt}
+                      games={games}
+                      hasBudgetFilter={Boolean(form.budget.trim())}
+                    />
+                  ) : null}
+                </div>
               </div>
 
               {apiDebug && (
@@ -1259,14 +1267,16 @@ export default function RecommendPage() {
                         </span>
                       </div>
 
-                      {form.budget.trim() || game.budgetNote ? (
-                        <p className="mt-3 text-xs text-white/45">
-                          {game.budgetNote ??
-                            (prefersItalianRecommendCopy(form.userPrompt)
-                              ? "Prezzi verificati nella scheda gioco, quando disponibili."
-                              : "Verified prices on the game page when available.")}
-                        </p>
-                      ) : null}
+                      {(() => {
+                        const budgetLine = resolveRecommendResultBudgetLine({
+                          budgetNote: game.budgetNote,
+                          hasBudgetFilter: Boolean(form.budget.trim()),
+                          preferItalian: prefersItalianRecommendCopy(form.userPrompt),
+                        });
+                        return budgetLine ? (
+                          <p className="mt-3 text-xs text-white/45">{budgetLine}</p>
+                        ) : null;
+                      })()}
 
                       <div className="mt-4 flex flex-1 flex-col">
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">

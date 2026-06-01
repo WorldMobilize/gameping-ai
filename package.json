@@ -9,12 +9,14 @@
     "lint": "eslint",
     "test:pricing": "node --import tsx --test src/lib/pricing/pricing-mvp.test.ts",
     "test:intent": "node --import tsx --test src/lib/intent-normalization.test.ts",
-    "test:fast-pick": "node --import tsx --test src/lib/fast-pick-verified-lookup.test.ts"
+    "test:fast-pick": "node --import tsx --test src/lib/fast-pick-verified-lookup.test.ts",
+    "test:social-export": "node --import tsx --test src/lib/social-export.test.ts src/lib/social-export-access.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
     "@vercel/analytics": "^2.0.1",
+    "html-to-image": "^1.11.13",
     "next": "16.2.4",
     "openai": "^6.35.0",
     "react": "19.2.4",
