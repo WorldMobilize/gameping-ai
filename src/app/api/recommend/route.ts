@@ -12,6 +12,13 @@ import {
   REFINE_MESSAGE_MAX,
   refineRequestsStricterBudget,
 } from "@/lib/recommend-refine";
+import {
+  countHighConfidenceFastPicks,
+  fastModeFallbackQueryLimit,
+  FAST_MODE_SCREENSHOT_MAX_FETCHES,
+  FAST_MODE_SCREENSHOT_TIMEOUT_MS,
+  shouldSkipFastModeRawgFallback,
+} from "@/lib/fast-mode-latency";
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import {
@@ -1784,13 +1791,20 @@ const FINAL_PICK_SCREENSHOT_CONCURRENCY = 3;
 async function enrichFinalPicksWithScreenshotFallback(params: {
   rawgKey: string;
   picks: PreEnrichPick[];
+  /** Cap screenshot fetches (Fast Mode uses a low limit for latency). */
+  maxFetches?: number;
+  screenshotTimeoutMs?: number;
 }): Promise<PreEnrichPick[]> {
-  const { rawgKey, picks } = params;
-  const missing = picks
+  const { rawgKey, picks, maxFetches, screenshotTimeoutMs } = params;
+  let missing = picks
     .map((p, index) => ({ p, index }))
     .filter(({ p }) => !p.image && Number.isFinite(p.id));
 
   if (missing.length === 0) return picks;
+
+  if (typeof maxFetches === "number" && maxFetches >= 0) {
+    missing = missing.slice(0, maxFetches);
+  }
 
   const fetched = await mapPool(
     missing,
@@ -1799,6 +1813,7 @@ async function enrichFinalPicksWithScreenshotFallback(params: {
       const url = await fetchRawgFirstScreenshotUrl({
         rawgApiKey: rawgKey,
         rawgId: entry.p.id,
+        timeoutMs: screenshotTimeoutMs,
       });
       return { index: entry.index, url };
     }
@@ -2429,10 +2444,15 @@ export async function POST(req: Request) {
         if (picked.length >= 6) break;
       }
 
-      // RAWG fallback only when verified picks are thin — skip for quality-first if we already have enough signal.
+      // RAWG fallback only when verified picks are thin — skip when quality/refine already has strong signal.
       let picksForEnrichment = picked;
-      const skipFallbackForQuality =
-        resultCountPolicy === "quality_first" && picked.length >= 2;
+      const highConfidenceCount = countHighConfidenceFastPicks(picked);
+      const skipFallbackForQuality = shouldSkipFastModeRawgFallback({
+        resultCountPolicy,
+        isRefineRequest,
+        pickedCount: picked.length,
+        highConfidenceCount,
+      });
       const fallbackMinPicks = resultCountPolicy === "quality_first" ? 2 : 3;
 
       if (rawgKey && !skipFallbackForQuality && picksForEnrichment.length < fallbackMinPicks) {
@@ -2443,12 +2463,18 @@ export async function POST(req: Request) {
           intentSignals,
           normalizedInput.userPrompt
         );
+        const fallbackQueryLimit = fastModeFallbackQueryLimit({
+          resultCountPolicy,
+          highConfidenceCount,
+          pickedCount: picked.length,
+        });
 
         const tFallback = performance.now();
         const fetched = await fetchRawgCandidates({
           rawgApiKey: rawgKey,
           discoveryQueries: fallbackQueries,
           pageSize: 18,
+          maxQueries: fallbackQueryLimit,
         });
         timing.rawgFallbackMs = performance.now() - tFallback;
         stageMs["rawg.fetchCandidatesFallback"] = timing.rawgFallbackMs;
@@ -2560,6 +2586,8 @@ export async function POST(req: Request) {
         picksWithImages = await enrichFinalPicksWithScreenshotFallback({
           rawgKey,
           picks: picksForEnrichment,
+          maxFetches: FAST_MODE_SCREENSHOT_MAX_FETCHES,
+          screenshotTimeoutMs: FAST_MODE_SCREENSHOT_TIMEOUT_MS,
         });
         timing.screenshotFallbackMs = performance.now() - tScreens;
         stageMs["rawg.screenshotFallback"] = timing.screenshotFallbackMs;

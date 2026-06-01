@@ -21,8 +21,11 @@ export type RawgCandidate = {
 
 const RAWG_FETCH_TIMEOUT_MS = 8_500
 
-async function fetchRawgJson(url: string) {
-  const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(RAWG_FETCH_TIMEOUT_MS) })
+async function fetchRawgJson(url: string, timeoutMs = RAWG_FETCH_TIMEOUT_MS) {
+  const res = await fetch(url, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(timeoutMs),
+  })
   return res
 }
 
@@ -178,12 +181,15 @@ export async function fetchRawgCandidates(params: {
   rawgApiKey: string
   discoveryQueries: string[]
   pageSize?: number
+  /** Cap parallel RAWG search queries (default 6). */
+  maxQueries?: number
 }) {
   const pageSize = Math.max(5, Math.min(params.pageSize ?? 20, 40))
+  const maxQueries = Math.max(1, Math.min(params.maxQueries ?? 6, 6))
   const queries = params.discoveryQueries
     .map((q) => q.trim())
     .filter(Boolean)
-    .slice(0, 6)
+    .slice(0, maxQueries)
 
   const results: RawgCandidate[] = []
   const RAWG_QUERY_CONCURRENCY = 4
@@ -338,12 +344,13 @@ export async function fetchRawgGameDetails(params: {
 export async function fetchRawgFirstScreenshotUrl(params: {
   rawgApiKey: string
   rawgId: number
+  timeoutMs?: number
 }): Promise<string | null> {
   try {
     const url = `https://api.rawg.io/api/games/${params.rawgId}/screenshots?key=${encodeURIComponent(
       params.rawgApiKey
     )}`
-    const res = await fetchRawgJson(url)
+    const res = await fetchRawgJson(url, params.timeoutMs)
     if (!res.ok) return null
     const data = (await res.json()) as { results?: unknown }
     const arr = Array.isArray(data?.results) ? (data.results as unknown[]) : []

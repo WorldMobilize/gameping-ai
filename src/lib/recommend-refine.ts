@@ -79,19 +79,15 @@ export function formatRecommendRunPromptWithRefine(
   return `${base} | refine: ${refine}`
 }
 
-/** User prompt sent to discovery AI — original + refinement + prior picks. */
+/** User prompt sent to discovery AI — original + refinement + prior picks (compact for latency). */
 export function buildRefineDiscoveryUserPrompt(ctx: RecommendRefineContext): string {
-  const numbered = ctx.previousResultTitles
-    .map((title, i) => `${i + 1}. ${title}`)
-    .join("\n")
+  const prior = ctx.previousResultTitles
+    .map((title, i) => `${i + 1}) ${title}`)
+    .join("; ")
 
   return `${ctx.originalPrompt.trim()}
-
-Refinement (overrides earlier assumptions — follow this closely):
-${ctx.refineMessage.trim()}
-
-Previous recommendations to improve on (avoid repeating these unless the refinement explicitly asks for more like one of them):
-${numbered}`
+Refine (override prior assumptions): ${ctx.refineMessage.trim()}
+Prior picks — do not repeat unless refinement asks for more like one: ${prior}`
 }
 
 export function refineWantsMoreLikePrevious(refineMessage: string): boolean {

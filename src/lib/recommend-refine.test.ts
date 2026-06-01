@@ -87,14 +87,15 @@ describe("recommend-refine", () => {
     assert.ok(out.coreNeeds.some((n) => /story/i.test(n)))
   })
 
-  it("builds discovery prompt with numbered previous picks", () => {
+  it("builds compact discovery prompt with prior picks and refine", () => {
     const text = buildRefineDiscoveryUserPrompt({
       originalPrompt: "weird underrated games",
       refineMessage: "I already know these",
       previousResultTitles: ["Hades", "Celeste"],
     })
-    assert.match(text, /Refinement/)
-    assert.match(text, /1\. Hades/)
-    assert.match(text, /2\. Celeste/)
+    assert.match(text, /Refine \(override prior assumptions\): I already know these/)
+    assert.match(text, /1\) Hades/)
+    assert.match(text, /2\) Celeste/)
+    assert.match(text, /Prior picks/)
   })
 })
