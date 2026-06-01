@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 import {
+  buildFastPickCandidateById,
   buildVerifiedBySuggestedTitle,
   lookupVerifiedForFastPickTitle,
 } from "@/lib/fast-pick-verified-lookup"
@@ -52,6 +53,19 @@ describe("fast-pick verified lookup", () => {
       lookupVerifiedForFastPickTitle("StarCraft II", verified, bySuggested),
       undefined
     )
+  })
+
+  it("buildFastPickCandidateById includes verified and fallback candidates", () => {
+    const verified = [{ id: 1, name: "Age of Wonders 4" }]
+    const fallback = [
+      { id: 2, name: "SpellForce 3" },
+      { id: 3, name: "Total War: WARHAMMER" },
+    ]
+    const map = buildFastPickCandidateById(verified, fallback)
+    assert.equal(map.get(1)?.name, "Age of Wonders 4")
+    assert.equal(map.get(2)?.name, "SpellForce 3")
+    assert.equal(map.get(3)?.name, "Total War: WARHAMMER")
+    assert.equal(map.size, 3)
   })
 
   it("falls back to fuzzy title match when _suggested metadata is missing", () => {

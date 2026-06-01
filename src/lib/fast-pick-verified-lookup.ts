@@ -52,3 +52,16 @@ export function lookupVerifiedForFastPickTitle<T extends VerifiedPickLookupCandi
   }
   return best
 }
+
+/** Unified id lookup for AI-verified and RAWG fallback candidates in Fast Mode. */
+export function buildFastPickCandidateById<T extends { id: number }>(
+  verified: T[],
+  fallback: T[] = []
+): Map<number, T> {
+  const map = new Map<number, T>()
+  for (const c of verified) map.set(c.id, c)
+  for (const c of fallback) {
+    if (!map.has(c.id)) map.set(c.id, c)
+  }
+  return map
+}

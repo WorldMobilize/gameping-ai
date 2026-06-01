@@ -934,7 +934,10 @@ export function mergeIntentAugmentation(
     normalizedIntent,
     coreNeeds: mergeUniqueStrings(coreNeeds, 12),
     avoid: mergeUniqueStrings(avoid, 12),
-    fallbackDiscoveryQueries: mergeUniqueStrings(fallbackDiscoveryQueries, 14),
+    fallbackDiscoveryQueries: mergeUniqueStrings(
+      fallbackDiscoveryQueries,
+      mustHave.active && isFantasyRaceStrategyMustHave(mustHave) ? 16 : 14
+    ),
   }
 }
 
@@ -1447,11 +1450,49 @@ export function extractMustHaveConstraints(
   return { active: true, settings, races, mechanics, exclusions }
 }
 
+/** Franchise-informed RAWG search seeds for fantasy race strategy (retrieval only). */
+export const FANTASY_RACE_STRATEGY_FRANCHISE_QUERIES = [
+  "warcraft III strategy",
+  "total war warhammer fantasy",
+  "spellforce fantasy rts",
+  "age of wonders 4 fantasy",
+  "songs of conquest fantasy strategy",
+  "battle for middle earth strategy",
+  "warlords battlecry fantasy rts",
+  "fantasy RTS base building",
+  "fantasy faction strategy game",
+] as const
+
+/** True when fallback should use flagship fantasy RTS franchise queries (not broad/generic strategy). */
+export function isFantasyRaceStrategyMustHave(constraints: MustHaveConstraints): boolean {
+  if (!constraints.active) return false
+  if (!constraints.settings.includes("fantasy")) return false
+
+  const hasFantasyRaces =
+    constraints.races.includes("elves") ||
+    constraints.races.includes("orcs") ||
+    constraints.races.includes("dwarves") ||
+    constraints.races.includes("undead") ||
+    constraints.races.includes("fantasy-races")
+  if (!hasFantasyRaces) return false
+
+  return (
+    constraints.mechanics.includes("strategy") ||
+    constraints.mechanics.includes("rts") ||
+    constraints.mechanics.includes("faction-management") ||
+    constraints.mechanics.includes("base-building")
+  )
+}
+
 function augmentMustHaveDiscoveryQueries(
   queries: string[],
   constraints: MustHaveConstraints
 ): string[] {
   if (!constraints.active) return queries
+
+  const franchiseFirst: string[] = isFantasyRaceStrategyMustHave(constraints)
+    ? [...FANTASY_RACE_STRATEGY_FRANCHISE_QUERIES]
+    : []
 
   const extras: string[] = []
 
@@ -1476,7 +1517,7 @@ function augmentMustHaveDiscoveryQueries(
     extras.push("fantasy village building strategy")
   }
 
-  return mergeUniqueStrings([...queries, ...extras], 12)
+  return mergeUniqueStrings([...franchiseFirst, ...extras, ...queries], 16)
 }
 
 /** Strong boost/penalty for must-have semantic fit (specific prompts only). */
@@ -1624,6 +1665,9 @@ export function isRawgFallbackFillerPick(pick: {
   return !pick.reason.trim() && pick.match <= 65
 }
 
+/** Minimum relevance for RAWG fallback rows to count as strong when full candidate metadata is present. */
+export const RAWG_FALLBACK_STRONG_RELEVANCE_MIN = -15
+
 /** Confidence gate for quality-first Fast Mode trimming. */
 export function isStrongFastPick(params: {
   pick: {
@@ -1632,9 +1676,24 @@ export function isStrongFastPick(params: {
     reason: string
   }
   relevanceBoost: number
+  candidate?: Pick<RawgCandidate, "name" | "genres" | "tags">
+  mustHaveConstraints?: MustHaveConstraints
 }): boolean {
-  const { pick, relevanceBoost } = params
-  if (isRawgFallbackFillerPick(pick)) return false
+  const { pick, relevanceBoost, candidate, mustHaveConstraints } = params
+
+  if (isRawgFallbackFillerPick(pick)) {
+    if (!candidate) return false
+    if (mustHaveConstraints?.active) {
+      if (violatesMustHaveConstraints(candidate, mustHaveConstraints)) return false
+      if (
+        requiresFantasyRaces(mustHaveConstraints) &&
+        !hasFantasyRaceEvidence(candidate)
+      ) {
+        return false
+      }
+    }
+    return relevanceBoost >= RAWG_FALLBACK_STRONG_RELEVANCE_MIN
+  }
 
   if (pick.matchTier === "partial_match") {
     return pick.match >= 80 && relevanceBoost >= -12
@@ -1738,9 +1797,17 @@ export function trimFastPicksToConfidence<
   userPrompt: string
   normalizedIntent: string
   coreNeeds: string[]
+  mustHaveConstraints?: MustHaveConstraints
 }): T[] {
-  const { picks, getCandidate, signals, userPrompt, normalizedIntent, coreNeeds } =
-    params
+  const {
+    picks,
+    getCandidate,
+    signals,
+    userPrompt,
+    normalizedIntent,
+    coreNeeds,
+    mustHaveConstraints,
+  } = params
 
   const strong: T[] = []
   for (const pick of picks) {
@@ -1755,7 +1822,14 @@ export function trimFastPicksToConfidence<
           matchTier: pick.matchTier,
         })
       : -999
-    if (isStrongFastPick({ pick, relevanceBoost })) {
+    if (
+      isStrongFastPick({
+        pick,
+        relevanceBoost,
+        candidate,
+        mustHaveConstraints,
+      })
+    ) {
       strong.push(pick)
     }
   }

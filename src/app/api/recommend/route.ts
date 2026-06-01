@@ -29,6 +29,7 @@ import {
 import { blockUnverifiedLoggedInUser } from "@/lib/require-verified-email";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 import {
+  buildFastPickCandidateById,
   buildVerifiedBySuggestedTitle,
   lookupVerifiedForFastPickTitle,
 } from "@/lib/fast-pick-verified-lookup";
@@ -2299,6 +2300,7 @@ export async function POST(req: Request) {
         intentSignals
       );
       const verifiedBySuggested = buildVerifiedBySuggestedTitle(verified);
+      let candidatesById = buildFastPickCandidateById(verified);
 
       const picked: PreEnrichPick[] = [];
       for (const fp of fastPicks) {
@@ -2395,6 +2397,7 @@ export async function POST(req: Request) {
           ) {
             continue;
           }
+          candidatesById.set(c.id, c);
           picksForEnrichment.push({
             id: c.id,
             title: c.name,
@@ -2410,10 +2413,10 @@ export async function POST(req: Request) {
         }
       }
 
-      const verifiedById = new Map(verified.map((c) => [c.id, c] as const));
+      const getFastPickCandidate = (id: number) => candidatesById.get(id);
       picksForEnrichment = reorderFastPicksByRelevance({
         picks: picksForEnrichment,
-        getCandidate: (id) => verifiedById.get(id),
+        getCandidate: getFastPickCandidate,
         signals: intentSignals,
         userPrompt: normalizedInput.userPrompt,
         normalizedIntent: intent.normalizedIntent,
@@ -2424,17 +2427,18 @@ export async function POST(req: Request) {
       if (resultCountPolicy === "quality_first") {
         picksForEnrichment = trimFastPicksToConfidence({
           picks: picksForEnrichment,
-          getCandidate: (id) => verifiedById.get(id),
+          getCandidate: getFastPickCandidate,
           signals: intentSignals,
           userPrompt: normalizedInput.userPrompt,
           normalizedIntent: intent.normalizedIntent,
           coreNeeds: intent.coreNeeds ?? [],
+          mustHaveConstraints,
         });
       }
 
       if (mustHaveConstraints.active) {
         picksForEnrichment = picksForEnrichment.filter((p) => {
-          const c = verifiedById.get(p.id);
+          const c = getFastPickCandidate(p.id);
           if (!c) return false;
           return !shouldRejectFastPickForMustHave({
             pick: p,

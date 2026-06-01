@@ -7,6 +7,8 @@ import {
   detectIntentSignals,
   detectResultCountPolicy,
   extractMustHaveConstraints,
+  isFantasyRaceStrategyMustHave,
+  FANTASY_RACE_STRATEGY_FRANCHISE_QUERIES,
   EMPTY_INTENT_SIGNALS,
   isDiscoveryShovelwareTitle,
   isRawgFallbackFillerPick,
@@ -170,6 +172,113 @@ describe("extractMustHaveConstraints", () => {
     assert.ok(merged.fallbackDiscoveryQueries.some((q) => /orcs elves/i.test(q)));
     assert.ok(merged.avoid.some((a) => /sci-fi/i.test(a)));
   });
+
+  it("activates fantasy race strategy must-have for the fantasy RTS prompt", () => {
+    const c = extractMustHaveConstraints(FANTASY_STRATEGY_PROMPT, EMPTY_INTENT_SIGNALS);
+    assert.equal(isFantasyRaceStrategyMustHave(c), true);
+  });
+
+  it("does not activate fantasy race strategy franchise queries for broad social prompts", () => {
+    const merged = mergeIntentAugmentation(
+      {
+        normalizedIntent: "Games to play with friends",
+        coreNeeds: [],
+        avoid: [],
+        fallbackDiscoveryQueries: ["multiplayer party games"],
+      },
+      EMPTY_INTENT_SIGNALS,
+      "Games to play with friends"
+    );
+    assert.ok(
+      !merged.fallbackDiscoveryQueries.some((q) => /warcraft III/i.test(q))
+    );
+  });
+
+  it("does not activate fantasy race strategy franchise queries for Steam Deck", () => {
+    const signals = detectIntentSignals("games for steam deck");
+    const merged = mergeIntentAugmentation(
+      {
+        normalizedIntent: "games for steam deck",
+        coreNeeds: [],
+        avoid: [],
+        fallbackDiscoveryQueries: ["steam deck games"],
+      },
+      signals,
+      "games for steam deck"
+    );
+    assert.ok(
+      !merged.fallbackDiscoveryQueries.some((q) => /warcraft III/i.test(q))
+    );
+  });
+
+  it("does not activate franchise queries for generic strategy without fantasy races", () => {
+    const prompt =
+      "Grand strategy game with diplomacy, empire management, and historical campaigns.";
+    const c = extractMustHaveConstraints(prompt, EMPTY_INTENT_SIGNALS);
+    assert.equal(isFantasyRaceStrategyMustHave(c), false);
+    const merged = mergeIntentAugmentation(
+      {
+        normalizedIntent: prompt,
+        coreNeeds: [],
+        avoid: [],
+        fallbackDiscoveryQueries: ["grand strategy diplomacy"],
+      },
+      EMPTY_INTENT_SIGNALS,
+      prompt
+    );
+    assert.ok(
+      !merged.fallbackDiscoveryQueries.some((q) => /warcraft III/i.test(q))
+    );
+  });
+});
+
+describe("fantasy race strategy fallback queries", () => {
+  it("prepends franchise-informed RAWG queries for fantasy RTS prompt", () => {
+    const merged = mergeIntentAugmentation(
+      {
+        normalizedIntent: FANTASY_STRATEGY_PROMPT,
+        coreNeeds: [],
+        avoid: [],
+        fallbackDiscoveryQueries: ["strategy factions", "city building"],
+      },
+      EMPTY_INTENT_SIGNALS,
+      FANTASY_STRATEGY_PROMPT
+    );
+    const queries = merged.fallbackDiscoveryQueries;
+    assert.ok(queries[0]?.toLowerCase().includes("warcraft"));
+    assert.ok(queries.some((q) => /spellforce/i.test(q)));
+    assert.ok(queries.some((q) => /warhammer/i.test(q)));
+    assert.ok(queries.some((q) => /songs of conquest/i.test(q)));
+    assert.ok(queries.some((q) => /middle earth/i.test(q)));
+    assert.equal(
+      FANTASY_RACE_STRATEGY_FRANCHISE_QUERIES.length,
+      9
+    );
+    for (const seed of FANTASY_RACE_STRATEGY_FRANCHISE_QUERIES) {
+      assert.ok(
+        queries.some((q) => q.toLowerCase() === seed.toLowerCase()),
+        `missing franchise query: ${seed}`
+      );
+    }
+  });
+
+  it("does not prepend franchise queries for fantasy strategy without races", () => {
+    const prompt =
+      "Fantasy strategy game with magic, tactical combat, and kingdom management.";
+    const merged = mergeIntentAugmentation(
+      {
+        normalizedIntent: prompt,
+        coreNeeds: [],
+        avoid: [],
+        fallbackDiscoveryQueries: ["fantasy strategy magic"],
+      },
+      EMPTY_INTENT_SIGNALS,
+      prompt
+    );
+    assert.ok(
+      !merged.fallbackDiscoveryQueries.some((q) => /warcraft III/i.test(q))
+    );
+  });
 });
 
 describe("scoreMustHaveConstraintBoost", () => {
@@ -325,6 +434,39 @@ describe("isStrongFastPick", () => {
         relevanceBoost: 10,
       }),
       true
+    );
+  });
+
+  it("accepts RAWG fallback filler when candidate passes fantasy must-haves", () => {
+    const constraints = extractMustHaveConstraints(
+      FANTASY_STRATEGY_PROMPT,
+      EMPTY_INTENT_SIGNALS
+    );
+    assert.equal(
+      isStrongFastPick({
+        pick: { match: 62, matchTier: "good_alternative", reason: "" },
+        relevanceBoost: 18,
+        candidate: {
+          name: "SpellForce 3",
+          genres: [{ name: "Strategy" }],
+          tags: [{ name: "Fantasy" }],
+        },
+        mustHaveConstraints: constraints,
+      }),
+      true
+    );
+    assert.equal(
+      isStrongFastPick({
+        pick: { match: 62, matchTier: "good_alternative", reason: "" },
+        relevanceBoost: 18,
+        candidate: {
+          name: "Rise of Nations",
+          genres: [{ name: "Strategy" }],
+          tags: [{ name: "Historical" }],
+        },
+        mustHaveConstraints: constraints,
+      }),
+      false
     );
   });
 });
