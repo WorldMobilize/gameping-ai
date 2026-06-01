@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
-import { steamHeaderImage } from "@/lib/curated/game-links";
 import { getSiteOrigin as resolveSiteOrigin } from "@/lib/site-url";
 
 export const SITE_NAME = "GamePing AI";
 
+export const DEFAULT_SITE_TITLE = "GamePing AI — AI game discovery with real prices";
+
 /** Default homepage / root meta description (gaming-native positioning). */
 export const DEFAULT_SITE_DESCRIPTION =
   "Describe what you feel like playing. GamePing finds games that actually match your vibe — with real store prices and price alerts.";
+
+/** Social card copy (Open Graph / Twitter) — stable branded preview text. */
+export const DEFAULT_SOCIAL_DESCRIPTION =
+  "Describe what you feel like playing. GamePing finds games that match your vibe — with real store prices and price alerts.";
+
+/** Next.js file route: `src/app/opengraph-image.tsx` (1200×630). */
+export const DEFAULT_OG_IMAGE_PATH = "/opengraph-image";
 
 /** Canonical origin for sitemap, robots, and metadata (see `NEXT_PUBLIC_SITE_URL`). */
 export function getSiteOrigin(): string {
@@ -25,7 +33,14 @@ export function absoluteUrl(path: string): string {
 export const ROBOTS_INDEX = { index: true, follow: true } as const;
 export const ROBOTS_NOINDEX = { index: false, follow: false } as const;
 
-const DEFAULT_OG_IMAGE = steamHeaderImage(1145360);
+export const DEFAULT_OG_IMAGE = absoluteUrl(DEFAULT_OG_IMAGE_PATH);
+
+const DEFAULT_OG_IMAGE_META = {
+  url: DEFAULT_OG_IMAGE,
+  width: 1200,
+  height: 630,
+  alt: SITE_NAME,
+} as const;
 
 export type PublicPageSeoInput = {
   title: string;
@@ -51,13 +66,21 @@ export function buildPublicPageMetadata(input: PublicPageSeoInput): Metadata {
       title: input.title,
       description: input.description,
       url: canonical,
-      images: [{ url: ogImage, alt: SITE_NAME }],
+      images: [
+        ogImage === DEFAULT_OG_IMAGE
+          ? DEFAULT_OG_IMAGE_META
+          : { url: ogImage, alt: SITE_NAME },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: input.title,
       description: input.description,
-      images: [ogImage],
+      images: [
+        ogImage === DEFAULT_OG_IMAGE
+          ? DEFAULT_OG_IMAGE_META
+          : { url: ogImage, alt: SITE_NAME },
+      ],
     },
   };
 }

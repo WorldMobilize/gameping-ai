@@ -4,26 +4,41 @@ import CookieBanner from "@/components/CookieBanner";
 import AppProviders from "@/components/AppProviders";
 import ConditionalFooter from "@/components/ConditionalFooter";
 import { Analytics } from "@vercel/analytics/next";
-import { DEFAULT_SITE_DESCRIPTION, getMetadataBase, SITE_NAME } from "@/lib/seo/site";
-import { steamHeaderImage } from "@/lib/curated/game-links";
+import {
+  DEFAULT_SITE_DESCRIPTION,
+  DEFAULT_SITE_TITLE,
+  DEFAULT_SOCIAL_DESCRIPTION,
+  DEFAULT_OG_IMAGE,
+  getMetadataBase,
+  SITE_NAME,
+} from "@/lib/seo/site";
 
-const defaultOgImage = steamHeaderImage(1145360);
+const defaultOgImageMeta = {
+  url: DEFAULT_OG_IMAGE,
+  width: 1200,
+  height: 630,
+  alt: SITE_NAME,
+} as const;
 
 export const metadata: Metadata = {
   metadataBase: getMetadataBase(),
   title: {
-    default: "GamePing AI — AI game discovery with real prices",
+    default: DEFAULT_SITE_TITLE,
     template: "%s",
   },
   description: DEFAULT_SITE_DESCRIPTION,
   openGraph: {
     type: "website",
     siteName: SITE_NAME,
-    images: [{ url: defaultOgImage, alt: SITE_NAME }],
+    title: DEFAULT_SITE_TITLE,
+    description: DEFAULT_SOCIAL_DESCRIPTION,
+    images: [defaultOgImageMeta],
   },
   twitter: {
     card: "summary_large_image",
-    images: [defaultOgImage],
+    title: DEFAULT_SITE_TITLE,
+    description: DEFAULT_SOCIAL_DESCRIPTION,
+    images: [defaultOgImageMeta],
   },
 };
 

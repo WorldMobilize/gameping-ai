@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@source "../../src/**/*.{js,ts,jsx,tsx}";
+@source "./**/*.{ts,tsx}";
+
+body {
+  margin: 0;
+  background: #05060f;
+  color: #f8fafc;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.gp-prompt-textarea {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.35) transparent;
+}
+
+.gp-prompt-textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+.gp-prompt-textarea::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.35);
+}

@@ -12,7 +12,8 @@
     "test:refine": "node --import tsx --test src/lib/recommend-refine.test.ts",
     "test:fast-mode": "node --import tsx --test src/lib/fast-mode-latency.test.ts",
     "test:fast-pick": "node --import tsx --test src/lib/fast-pick-verified-lookup.test.ts",
-    "test:social-export": "node --import tsx --test src/lib/social-export.test.ts src/lib/social-export-access.test.ts"
+    "test:social-export": "node --import tsx --test src/lib/social-export.test.ts src/lib/social-export-access.test.ts",
+    "generate:instagram-highlights": "node --import tsx scripts/generate-instagram-highlights/generate.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
@@ -33,6 +34,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "playwright": "^1.49.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
     "typescript": "^5"
