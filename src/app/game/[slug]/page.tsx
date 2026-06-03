@@ -49,6 +49,7 @@ type RawgGame = {
   description_raw?: string;
   background_image?: string;
   rating?: number;
+  ratings_count?: number;
   metacritic?: number;
   released?: string;
   genres?: { name: string }[];
@@ -657,6 +658,7 @@ export default async function GameDetailPage({
           publishers: rawg?.publishers?.map((p) => p.name),
           released: rawg?.released ?? null,
           rating: rawg?.rating ?? null,
+          ratingCount: rawg?.ratings_count ?? null,
           platforms: rawg?.platforms?.map((p) => p.platform.name),
           path: gameDetailPath(title),
           breadcrumbs,

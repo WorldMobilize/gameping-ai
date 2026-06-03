@@ -10,6 +10,8 @@ export type GameStructuredDataInput = {
   publishers?: string[];
   released?: string | null;
   rating?: number | null;
+  /** RAWG ratings_count (or equivalent) — required for valid AggregateRating in JSON-LD. */
+  ratingCount?: number | null;
   platforms?: string[];
   path: string;
   breadcrumbs: GameBreadcrumbItem[];
@@ -18,6 +20,47 @@ export type GameStructuredDataInput = {
     priceCurrency: string;
   } | null;
 };
+
+/** Sources that may carry a RAWG-style rating count (no invented defaults). */
+export type RatingCountSource = {
+  ratingCount?: number | null;
+  ratings_count?: number | null;
+  ratingsCount?: number | null;
+  reviews_count?: number | null;
+};
+
+export function resolveSchemaRatingCount(
+  source: RatingCountSource | null | undefined
+): number | null {
+  if (!source) return null;
+  const candidates = [
+    source.ratingCount,
+    source.ratings_count,
+    source.ratingsCount,
+    source.reviews_count,
+  ];
+  for (const value of candidates) {
+    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+      continue;
+    }
+    const count = Math.floor(value);
+    if (count > 0) return count;
+  }
+  return null;
+}
+
+export function buildAggregateRatingJsonLd(
+  ratingValue: number,
+  ratingCount: number
+): Record<string, unknown> {
+  return {
+    "@type": "AggregateRating",
+    ratingValue,
+    ratingCount,
+    bestRating: 5,
+    worstRating: 0,
+  };
+}
 
 function stripDescription(text: string, max = 500): string {
   const cleaned = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
@@ -81,17 +124,18 @@ export function buildVideoGameJsonLd(input: GameStructuredDataInput) {
     game.datePublished = input.released.trim();
   }
 
-  if (
+  const ratingValue =
     input.rating != null &&
     Number.isFinite(input.rating) &&
     input.rating > 0
-  ) {
-    game.aggregateRating = {
-      "@type": "AggregateRating",
-      ratingValue: input.rating,
-      bestRating: 5,
-      worstRating: 0,
-    };
+      ? input.rating
+      : null;
+  const ratingCount = resolveSchemaRatingCount({
+    ratingCount: input.ratingCount,
+  });
+
+  if (ratingValue != null && ratingCount != null) {
+    game.aggregateRating = buildAggregateRatingJsonLd(ratingValue, ratingCount);
   }
 
   if (input.platforms?.length) {
