@@ -4,8 +4,8 @@ type SocialPlatformIconProps = {
 };
 
 const iconProps = {
-  width: 24,
-  height: 24,
+  width: 26,
+  height: 26,
   fill: "currentColor",
   "aria-hidden": true as const,
 };
@@ -41,6 +41,7 @@ export default function SocialPlatformIcon({
         </svg>
       );
     default:
+      /* Unknown label (e.g. future Discord) — add a case when the profile goes live. */
       return null;
   }
 }

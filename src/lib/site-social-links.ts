@@ -4,7 +4,7 @@ export type SiteSocialLink = {
   ariaLabel: string;
 };
 
-/** Official GamePing AI social profiles. */
+/** Official GamePing AI social profiles. Add Discord here + SocialPlatformIcon when live. */
 export const SITE_SOCIAL_LINKS: SiteSocialLink[] = [
   {
     label: "Instagram",
