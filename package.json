@@ -13,6 +13,7 @@
     "test:fast-mode": "node --import tsx --test src/lib/fast-mode-latency.test.ts",
     "test:fast-pick": "node --import tsx --test src/lib/fast-pick-verified-lookup.test.ts",
     "test:social-export": "node --import tsx --test src/lib/social-export.test.ts src/lib/social-export-access.test.ts",
+    "test:analytics": "node --import tsx --test src/lib/product-analytics/page-metadata.test.ts",
     "generate:instagram-highlights": "node --import tsx scripts/generate-instagram-highlights/generate.mts"
   },
   "dependencies": {

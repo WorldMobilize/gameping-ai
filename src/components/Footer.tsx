@@ -1,6 +1,10 @@
 import Link from "next/link";
 import FeedbackButton from "@/components/FeedbackButton";
 import { EARLY_ACCESS_NOTICE } from "@/lib/product-copy";
+import { SITE_SOCIAL_LINKS } from "@/lib/site-social-links";
+
+const socialLinkClass =
+  "transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60";
 
 export default function Footer() {
   return (
@@ -16,6 +20,26 @@ export default function Footer() {
               Prices and availability may change—always confirm final pricing on the
               store before purchasing.
             </p>
+            <div className="mt-5">
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-slate-300/70">
+                Follow us
+              </p>
+              <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-400">
+                {SITE_SOCIAL_LINKS.map((item) => (
+                  <li key={item.label}>
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={item.ariaLabel}
+                      className={socialLinkClass}
+                    >
+                      {item.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:gap-10">

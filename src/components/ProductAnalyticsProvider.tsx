@@ -8,6 +8,10 @@ import {
   markSessionStarted,
   trackProductEvent,
 } from "@/lib/product-analytics/client";
+import {
+  buildPageViewMetadata,
+  buildSessionStartMetadata,
+} from "@/lib/product-analytics/page-metadata";
 
 const HEARTBEAT_MS = 30_000;
 
@@ -23,7 +27,9 @@ export default function ProductAnalyticsProvider({
   useEffect(() => {
     if (!hasSessionStarted()) {
       markSessionStarted();
-      trackProductEvent("session_start");
+      trackProductEvent("session_start", {
+        metadata: buildSessionStartMetadata(),
+      });
     }
 
     const onEnd = () => {
@@ -47,7 +53,10 @@ export default function ProductAnalyticsProvider({
     const path = qs ? `${pathname}?${qs}` : pathname;
     if (!path || path === lastPathRef.current) return;
     lastPathRef.current = path;
-    trackProductEvent("page_view", { page_path: path });
+    trackProductEvent("page_view", {
+      page_path: path,
+      metadata: buildPageViewMetadata(),
+    });
   }, [pathname, searchParams]);
 
   useEffect(() => {
