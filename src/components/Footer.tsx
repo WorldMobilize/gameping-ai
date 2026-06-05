@@ -1,10 +1,11 @@
 import Link from "next/link";
 import FeedbackButton from "@/components/FeedbackButton";
+import SocialPlatformIcon from "@/components/SocialPlatformIcon";
 import { EARLY_ACCESS_NOTICE } from "@/lib/product-copy";
 import { SITE_SOCIAL_LINKS } from "@/lib/site-social-links";
 
 const socialLinkClass =
-  "transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60";
+  "inline-flex items-center justify-center rounded-md p-1 text-slate-400 transition-colors duration-200 hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60";
 
 export default function Footer() {
   return (
@@ -24,7 +25,7 @@ export default function Footer() {
               <p className="text-xs font-black uppercase tracking-[0.35em] text-slate-300/70">
                 Follow us
               </p>
-              <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-sm text-slate-400">
+              <ul className="mt-2 flex flex-wrap items-center gap-3">
                 {SITE_SOCIAL_LINKS.map((item) => (
                   <li key={item.label}>
                     <a
@@ -34,7 +35,7 @@ export default function Footer() {
                       aria-label={item.ariaLabel}
                       className={socialLinkClass}
                     >
-                      {item.label}
+                      <SocialPlatformIcon platform={item.label} className="h-5 w-5" />
                     </a>
                   </li>
                 ))}
