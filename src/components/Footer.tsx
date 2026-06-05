@@ -35,10 +35,7 @@ export default function Footer() {
                       aria-label={item.ariaLabel}
                       className={socialLinkClass}
                     >
-                      <SocialPlatformIcon
-                        platform={item.label}
-                        className="h-[26px] w-[26px]"
-                      />
+                      <SocialPlatformIcon platform={item.label} />
                     </a>
                   </li>
                 ))}
