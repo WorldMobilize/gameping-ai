@@ -35,7 +35,7 @@ export default function Footer() {
                       aria-label={item.ariaLabel}
                       className={socialLinkClass}
                     >
-                      <SocialPlatformIcon platform={item.label} className="h-5 w-5" />
+                      <SocialPlatformIcon platform={item.label} className="h-6 w-6" />
                     </a>
                   </li>
                 ))}
@@ -155,18 +155,20 @@ export default function Footer() {
           </div>
         </div>
 
-        <p className="mt-10 max-w-3xl border-t border-white/10 pt-6 text-xs leading-relaxed text-slate-500">
-          {EARLY_ACCESS_NOTICE}
-        </p>
+        <div className="mt-10 border-t border-white/10 pt-6">
+          <p className="max-w-3xl text-xs leading-relaxed text-slate-500">
+            {EARLY_ACCESS_NOTICE}
+          </p>
 
-        <div className="mt-6 flex flex-col gap-3 text-xs text-slate-500 sm:flex-row sm:items-start sm:justify-between">
-          <p className="whitespace-nowrap">
-            © {new Date().getFullYear()} GamePing AI. All rights reserved.
-          </p>
-          <p className="max-w-3xl">
-            Built with third-party services (e.g., OpenAI, RAWG, CheapShark, Supabase,
-            Stripe) depending on features enabled.
-          </p>
+          <div className="mt-6 flex flex-col gap-3 text-xs text-slate-500 sm:flex-row sm:items-start sm:justify-between">
+            <p className="whitespace-nowrap">
+              © {new Date().getFullYear()} GamePing AI. All rights reserved.
+            </p>
+            <p className="max-w-3xl">
+              Built with third-party services (e.g., OpenAI, RAWG, CheapShark, Supabase,
+              Stripe) depending on features enabled.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

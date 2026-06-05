@@ -4,8 +4,8 @@ type SocialPlatformIconProps = {
 };
 
 const iconProps = {
-  width: 20,
-  height: 20,
+  width: 24,
+  height: 24,
   fill: "currentColor",
   "aria-hidden": true as const,
 };
