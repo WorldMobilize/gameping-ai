@@ -31,7 +31,14 @@ export function proxiedSocialImageUrl(
   }
 }
 
-export type SocialExportSlideId = "hook" | "prompt" | "cta" | `game-${number}`
+export type SocialExportSlideId =
+  | "hook"
+  | "prompt"
+  | "engagement"
+  | "cta"
+  | `game-${number}`
+
+export const SOCIAL_ENGAGEMENT_HOOK = "WHAT GAME WOULD YOU ADD TO THIS LIST? 🎮"
 
 const SOCIAL_HOOK_FALLBACK = "GAMES MATCHING THIS VIBE 🎮"
 
@@ -97,6 +104,7 @@ export function buildSocialExportSlidePlan(
       gameIndex: index,
     })),
   ]
+  plan.push({ id: "engagement", filenamePart: "your-pick" })
   if (includeCta) {
     plan.push({ id: "cta", filenamePart: "try-gameping" })
   }

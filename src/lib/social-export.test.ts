@@ -7,7 +7,7 @@ import {
 } from "@/lib/social-export"
 
 describe("social-export", () => {
-  it("builds hook, prompt, game, and CTA slide plan in order", () => {
+  it("builds hook, prompt, games, engagement, and CTA slide plan in order", () => {
     const plan = buildSocialExportSlidePlan(
       [
         { title: "To the Moon", match: 90, reason: "A" },
@@ -19,8 +19,18 @@ describe("social-export", () => {
     assert.equal(plan[1]?.id, "prompt")
     assert.equal(plan[2]?.id, "game-1")
     assert.equal(plan[3]?.id, "game-2")
-    assert.equal(plan[4]?.id, "cta")
-    assert.equal(plan.length, 5)
+    assert.equal(plan[4]?.id, "engagement")
+    assert.equal(plan[5]?.id, "cta")
+    assert.equal(plan.length, 6)
+  })
+
+  it("includes engagement but omits CTA when includeCta is false", () => {
+    const plan = buildSocialExportSlidePlan(
+      [{ title: "Hades", match: 96, reason: "Fast roguelite" }],
+      false
+    )
+    assert.equal(plan.at(-1)?.id, "engagement")
+    assert.equal(plan.some((s) => s.id === "cta"), false)
   })
 
   it("proxied URLs are unique per cache key for the same upstream URL", () => {

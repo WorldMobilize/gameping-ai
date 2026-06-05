@@ -1,15 +1,9 @@
 import SocialSlideFrame from "@/components/social/SocialSlideFrame"
-import { promptToSocialHook } from "@/lib/social-export"
+import { SOCIAL_ENGAGEMENT_HOOK } from "@/lib/social-export"
 
-type SocialHookSlideProps = {
-  prompt: string
-}
-
-export default function SocialHookSlide({ prompt }: SocialHookSlideProps) {
-  const hook = promptToSocialHook(prompt)
-
+export default function SocialEngagementSlide() {
   return (
-    <SocialSlideFrame data-social-slide="hook" centerContent>
+    <SocialSlideFrame data-social-slide="engagement" centerContent>
       <h1
         style={{
           margin: 0,
@@ -23,7 +17,7 @@ export default function SocialHookSlide({ prompt }: SocialHookSlideProps) {
           letterSpacing: "-0.02em",
         }}
       >
-        &ldquo;{hook}&rdquo;
+        {SOCIAL_ENGAGEMENT_HOOK}
       </h1>
     </SocialSlideFrame>
   )
