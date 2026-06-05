@@ -31,7 +31,52 @@ export function proxiedSocialImageUrl(
   }
 }
 
-export type SocialExportSlideId = "prompt" | "cta" | `game-${number}`
+export type SocialExportSlideId = "hook" | "prompt" | "cta" | `game-${number}`
+
+const SOCIAL_HOOK_FALLBACK = "GAMES MATCHING THIS VIBE 🎮"
+
+/** Optional emoji suffix for content-first hook slides (not added to fallback). */
+function socialHookEmoji(hookUpper: string): string | null {
+  const h = hookUpper.toLowerCase()
+  if (/mess with your mind|mind.?bend|psycholog|horror|creepy|unsettl/.test(h)) {
+    return "👀"
+  }
+  if (/love gaming|gaming again|make you love/.test(h)) {
+    return "🎮"
+  }
+  return null
+}
+
+/**
+ * Turns a user recommend prompt into a short uppercase hook for slide 1.
+ * Falls back when the prompt is not game-themed enough to headline cleanly.
+ */
+export function promptToSocialHook(prompt: string): string {
+  const trimmed = prompt.trim()
+  if (!trimmed) return SOCIAL_HOOK_FALLBACK
+
+  let text = trimmed
+    .toLowerCase()
+    .replace(/[\u2018\u2019']/g, "")
+    .replace(/[^\w\s$]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+
+  text = text.replace(
+    /^(find me|find|looking for|i want|i need|give me|recommend|suggest|show me|something like)\s+/,
+    ""
+  )
+
+  text = text.replace(/\bme\b/g, "you")
+  text = text.replace(/\bmy\b/g, "your")
+
+  if (!/\bgames?\b/.test(text)) return SOCIAL_HOOK_FALLBACK
+  if (text.length < 8 || text.length > 120) return SOCIAL_HOOK_FALLBACK
+
+  const hook = text.toUpperCase()
+  const emoji = socialHookEmoji(hook)
+  return emoji ? `${hook} ${emoji}` : hook
+}
 
 export type SocialExportSlidePlan = {
   id: SocialExportSlideId
@@ -44,6 +89,7 @@ export function buildSocialExportSlidePlan(
   includeCta: boolean
 ): SocialExportSlidePlan[] {
   const plan: SocialExportSlidePlan[] = [
+    { id: "hook", filenamePart: "hook" },
     { id: "prompt", filenamePart: "your-search" },
     ...games.map((game, index) => ({
       id: `game-${index + 1}` as const,

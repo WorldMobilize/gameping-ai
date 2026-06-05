@@ -3,6 +3,7 @@
 import { forwardRef, type CSSProperties, type ReactNode } from "react"
 import SocialCtaSlide from "@/components/social/SocialCtaSlide"
 import SocialGameCard from "@/components/social/SocialGameCard"
+import SocialHookSlide from "@/components/social/SocialHookSlide"
 import SocialPromptSlide from "@/components/social/SocialPromptSlide"
 import type { SocialExportGame, SocialExportSlideId } from "@/lib/social-export"
 
@@ -31,8 +32,10 @@ const SocialExportDeck = forwardRef<HTMLDivElement, SocialExportDeckProps>(
     }
 
     let slide: ReactNode = null
-    if (activeSlideId === "prompt") {
-      slide = <SocialPromptSlide prompt={prompt} />
+    if (activeSlideId === "hook") {
+      slide = <SocialHookSlide prompt={prompt} />
+    } else if (activeSlideId === "prompt") {
+      slide = <SocialPromptSlide />
     } else if (activeSlideId === "cta") {
       slide = <SocialCtaSlide />
     } else if (activeSlideId.startsWith("game-")) {
