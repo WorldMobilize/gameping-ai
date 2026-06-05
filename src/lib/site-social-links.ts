@@ -4,10 +4,7 @@ export type SiteSocialLink = {
   ariaLabel: string;
 };
 
-/**
- * Official GamePing AI social profiles.
- * Update href values when accounts are live.
- */
+/** Official GamePing AI social profiles. */
 export const SITE_SOCIAL_LINKS: SiteSocialLink[] = [
   {
     label: "Instagram",
