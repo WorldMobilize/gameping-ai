@@ -346,6 +346,7 @@ Rules:
 - "reason" on each suggested title: one short gamer-voice line (why it fits the request). Same language as the user (Italian in → Italian out). No Wikipedia intros ("is an open-world RPG that…").
 - "fallbackDiscoveryQueries" should be 4 to 8 short RAWG-friendly search queries (include English terms when helpful).
 - If the user asks for games LIKE / SIMILAR TO / ALTERNATIVES TO / "tipo" / "come" / "simili a" a NAMED game, put that game name in "referenceTitles" and "excludeTitles". Do NOT put that reference game in "suggestedTitles" as a recommendation — suggest similar games instead.
+- If the user mentions games they LOVED / LOVE / PLAYED / FINISHED / ENJOYED / FAVORITE (e.g. "I loved Persona, Omori, Disco Elysium"), put each named title in "referenceTitles" and "excludeTitles". Do NOT recommend those exact games unless the user explicitly wants to find/buy that title.
 - If the user clearly wants to FIND / PRICE / DISCOUNT a specific game by name (e.g. "trova Hades", "prezzo di Elden Ring"), leave "excludeTitles" empty and you may include that game in "suggestedTitles".
 - Respect the user's maximum budget when suggesting titles when practical (prefer titles likely affordable under that cap).
 - Weight the user's selected tags heavily when choosing suggestions.
@@ -512,6 +513,8 @@ export async function aiSingleCallFastDiscovery(params: {
     "- For discovery prompts, fallbackDiscoveryQueries must use high-signal phrases (cult classic indie, memorable narrative indie, emotional atmospheric adventure) — never bare surprise, experience, indie, weird, or unforgettable alone.",
     "- For highly specific multi-constraint prompts (fantasy+elves/orcs+strategy, faction building, etc.): treat setting/races/mechanics as MUST-HAVE — do not suggest games that contradict the required setting (e.g. sci-fi when fantasy races are required). Use high-signal fallbackDiscoveryQueries tied to all constraints.",
     "- Games like/similar to X: X in referenceTitles and excludeTitles; do not recommend X.",
+    "- Loved/favorite/played/finished/enjoyed games: each named title in referenceTitles and excludeTitles; do not recommend those exact games.",
+    "- Genre/combat (JRPG, turn-based RPG, tactical RPG, FPS, etc.) are MUST-HAVE when stated — do not substitute story-only adventures or walking sims.",
     "- No markdown. No extra keys.",
     disambiguationBlock,
     discoveryOnlyRules,

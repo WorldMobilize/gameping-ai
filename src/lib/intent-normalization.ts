@@ -649,7 +649,7 @@ export function enrichPromptForDiscovery(
   const mustHave = extractMustHaveConstraints(base, signals)
   if (mustHave.active) {
     hints.push(
-      `Must-have constraints (hard requirements — do not suggest contradicting games): settings=[${mustHave.settings.join(", ") || "none"}], races=[${mustHave.races.join(", ") || "none"}], mechanics=[${mustHave.mechanics.join(", ") || "none"}]. Example: fantasy+elves/orcs required → reject sci-fi-only strategy like space/planetfall settings.`
+      `Must-have constraints (hard requirements — do not suggest contradicting games): settings=[${mustHave.settings.join(", ") || "none"}], races=[${mustHave.races.join(", ") || "none"}], mechanics=[${mustHave.mechanics.join(", ") || "none"}], genres=[${mustHave.genres.join(", ") || "none"}]. Example: fantasy+elves/orcs required → reject sci-fi-only strategy like space/planetfall settings; JRPG/turn-based required → reject story-only walking sims.`
     )
   }
 
@@ -925,6 +925,17 @@ export function mergeIntentAugmentation(
     }
     for (const m of mustHave.mechanics) {
       coreNeeds.push(m.replace(/-/g, " "))
+    }
+    for (const g of mustHave.genres) {
+      coreNeeds.push(g.replace(/-/g, " "))
+    }
+    if (requiresRpgGenreCombat(mustHave)) {
+      avoid.push(
+        "walking simulator",
+        "story-only adventure",
+        "visual novel without RPG combat",
+        "Life is Strange-style narrative"
+      )
     }
     if (mustHave.settings.includes("fantasy")) {
       avoid.push(
@@ -1282,11 +1293,123 @@ function isHighlySpecificPrompt(normalizedText: string): boolean {
   return false
 }
 
+const TASTE_REFERENCE_PREFIX_RE =
+  /\b(?:i\s+(?:loved|love|played|already\s+played|finished|enjoyed)|my\s+favorite\s+games?\s+(?:are|include)|games?\s+i\s+(?:liked|loved|enjoyed|played|finished))\s+/gi
+
+const TASTE_LIST_GOAL_RE =
+  /\.\s+(?:i\s+want|i\s+need|i'm\s+looking|im\s+looking|looking\s+for|give\s+me|find\s+me|recommend|something\s+like)\b/i
+
+const TASTE_TITLE_NOISE = new Set([
+  "a",
+  "an",
+  "the",
+  "and",
+  "or",
+  "my",
+  "some",
+  "really",
+  "very",
+  "games",
+  "game",
+  "giochi",
+  "gioco",
+])
+
+function expandSlashNumberGameTitles(segment: string): string[] {
+  const trimmed = segment.trim()
+  if (!trimmed) return []
+
+  const spaced = trimmed.match(/^(.+?\S)\s+(\d+(?:\s*\/\s*\d+)+)$/)
+  if (spaced) {
+    const prefix = spaced[1]!.trim()
+    const nums = spaced[2]!.split(/\s*\/\s*/).map((n) => n.trim()).filter(Boolean)
+    if (prefix.length >= 2 && nums.length >= 2) {
+      return nums.map((n) => `${prefix} ${n}`)
+    }
+  }
+
+  const tight = trimmed.match(/^(.+?\D)(\d+(?:\/\d+)+)$/)
+  if (tight) {
+    const prefix = tight[1]!.trim()
+    const nums = tight[2]!.split("/").map((n) => n.trim()).filter(Boolean)
+    if (prefix.length >= 2 && nums.length >= 2) {
+      return nums.map((n) => `${prefix}${n}`)
+    }
+  }
+
+  return [trimmed]
+}
+
+function splitTasteReferenceSegments(fragment: string): string[] {
+  const parts: string[] = []
+  for (const chunk of fragment.split(/,/)) {
+    const trimmed = chunk.trim()
+    if (!trimmed) continue
+    if (/\band\b/i.test(trimmed)) {
+      for (const sub of trimmed.split(/\band\b/i)) {
+        const s = sub.trim()
+        if (s) parts.push(s)
+      }
+    } else {
+      parts.push(trimmed)
+    }
+  }
+  return parts
+}
+
+function isPlausibleTasteReferenceTitle(title: string): boolean {
+  const t = title.trim()
+  if (t.length < 2 || t.length > 72) return false
+  const lower = t.toLowerCase()
+  if (TASTE_LIST_GOAL_RE.test(lower) || /\bi\s+want\b/i.test(lower)) return false
+  const tokens = lower.split(/\s+/).filter(Boolean)
+  if (tokens.length === 0) return false
+  if (tokens.every((tok) => TASTE_TITLE_NOISE.has(tok))) return false
+  if (/^(story|narrative|cozy|horror|indie|jrpg|rpg)$/i.test(t)) return false
+  return true
+}
+
+/**
+ * Extract games the user cites as loved/played/finished taste anchors (exclude from picks).
+ * Conservative: only parses clear taste-reference phrases, not generic title mentions.
+ */
+export function extractTasteReferenceTitlesFromPrompt(prompt: string): string[] {
+  const out = new Set<string>()
+  const text = prompt.trim()
+  if (!text) return []
+
+  for (const match of text.matchAll(TASTE_REFERENCE_PREFIX_RE)) {
+    const startIdx = match.index! + match[0].length
+    let rest = text.slice(startIdx)
+    const goalIdx = rest.search(TASTE_LIST_GOAL_RE)
+    if (goalIdx >= 0) {
+      rest = rest.slice(0, goalIdx)
+    } else {
+      rest = (rest.split(/[.!?]/)[0] ?? rest).trim()
+    }
+
+    for (const segment of splitTasteReferenceSegments(rest)) {
+      for (const expanded of expandSlashNumberGameTitles(segment)) {
+        const cleaned = expanded
+          .replace(/^["'«»]+|["'«»]+$/g, "")
+          .replace(/\s+(please|thanks|thx)\s*$/i, "")
+          .trim()
+        if (isPlausibleTasteReferenceTitle(cleaned)) {
+          out.add(cleaned)
+        }
+      }
+    }
+  }
+
+  return [...out].slice(0, 16)
+}
+
 export type MustHaveConstraints = {
   active: boolean
   settings: string[]
   races: string[]
   mechanics: string[]
+  genres: string[]
   exclusions: string[]
 }
 
@@ -1410,6 +1533,7 @@ export function extractMustHaveConstraints(
     settings: [],
     races: [],
     mechanics: [],
+    genres: [],
     exclusions: [],
   }
 
@@ -1424,7 +1548,22 @@ export function extractMustHaveConstraints(
   const settings: string[] = []
   const races: string[] = []
   const mechanics: string[] = []
+  const genres: string[] = []
   const exclusions: string[] = []
+
+  if (/\bj\.?\s*r\.?\s*p\.?\s*g\.?\s*s?\b|\bjrpgs?\b/i.test(n)) genres.push("jrpg")
+  if (/\bcrpgs?\b/i.test(n)) genres.push("crpg")
+  if (/\baction\s+rpgs?\b/i.test(n)) genres.push("action-rpg")
+  if (/\btactical\s+rpgs?\b/i.test(n)) genres.push("tactical-rpg")
+  if (
+    /\b(?:^|\s)rpgs?\b|\brole[\s-]?playing(?:\s+games?)?\b|\bgdr\b|\bgiochi?\s+di\s+ruolo\b/i.test(
+      n
+    ) &&
+    !genres.includes("jrpg")
+  ) {
+    genres.push("rpg")
+  }
+  if (/\b(?:fps|first[\s-]?person\s+shooter)\b|\bshooters?\b/i.test(n)) genres.push("fps")
 
   if (/\b(fantasy|medieval|high fantasy|dark fantasy)\b/.test(n)) settings.push("fantasy")
   if (/\b(sci-fi|science fiction|futuristic|space opera)\b/.test(n)) settings.push("sci-fi")
@@ -1453,11 +1592,28 @@ export function extractMustHaveConstraints(
   if (/\b(faction management|faction manag|manage factions?|factions? manag)\b/.test(n)) {
     mechanics.push("faction-management")
   }
-  if (/\b(turn[\s-]?based)\b/.test(n)) mechanics.push("turn-based")
+  if (/\bturn[\s-]?based(?:\s+(?:rpg|jrpg|combat|battles?))?\b|\bturn[\s-]?based\b/i.test(n)) {
+    mechanics.push("turn-based")
+  }
   if (/\b(real[\s-]?time strategy|\brts\b)\b/.test(n)) mechanics.push("rts")
   if (/\b(strateg(y|ico|ia)|4x)\b/.test(n)) mechanics.push("strategy")
   if (/\b(party companions?|companion party|persistent party)\b/.test(n)) {
     mechanics.push("party-companions")
+  }
+  if (/\b(co[\s-]?op|cooperative)\b/i.test(n) && !/\b(not|no|less|without)\s+co[\s-]?op\b/i.test(n)) {
+    mechanics.push("co-op")
+  }
+  if (
+    /\b(multiplayer|multi[\s-]?player|online\s+co[\s-]?op)\b/i.test(n) &&
+    !/\b(not|no|less|without)\s+multi/i.test(n)
+  ) {
+    mechanics.push("multiplayer")
+  }
+  if (
+    /\b(single[\s-]?player|solo)\b/i.test(n) &&
+    !/\b(not|no)\s+single[\s-]?player\b/i.test(n)
+  ) {
+    mechanics.push("singleplayer")
   }
 
   if (/\b(not multiplayer|no multiplayer|single[\s-]?player only|senza multiplayer)\b/.test(n)) {
@@ -1466,16 +1622,72 @@ export function extractMustHaveConstraints(
   if (/\b(not horror|no horror|senza horror)\b/.test(n)) exclusions.push("horror")
   if (/\b(not farming|no farming|no farm)\b/.test(n)) exclusions.push("farming")
 
+  const hasGenreCombatCombo =
+    genres.length >= 1 &&
+    (mechanics.some((m) =>
+      ["turn-based", "co-op", "multiplayer", "singleplayer", "rts", "strategy"].includes(m)
+    ) ||
+      genres.some((g) => ["jrpg", "tactical-rpg", "action-rpg", "crpg", "fps"].includes(g)))
+
   const active =
     isHighlySpecificPrompt(n) ||
     (settings.length >= 1 && races.length >= 1) ||
     (settings.includes("fantasy") && mechanics.length >= 2) ||
     races.length >= 2 ||
-    mechanics.length >= 4
+    mechanics.length >= 4 ||
+    hasGenreCombatCombo ||
+    (genres.includes("jrpg") && mechanics.includes("turn-based"))
 
   if (!active) return inactive
 
-  return { active: true, settings, races, mechanics, exclusions }
+  return { active: true, settings, races, mechanics, genres, exclusions }
+}
+
+const RPG_GENRE_METADATA_RE =
+  /\b(rpg|role-playing|role playing|jrpg|j-rpg|tactical rpg|strategy rpg|action rpg|crpg|turn-based strategy|turn based strategy|massively multiplayer)\b/i
+
+const NARRATIVE_ONLY_MISMATCH_NAME_RE =
+  /\b(life is strange|firewatch|what remains of edith finch|the forgotten city|gone home|her story|night in the woods|telling me|a normal lost phone|simulacra)\b/i
+
+/** Hard genre/combat requirement: JRPG, turn-based RPG, or tactical RPG. */
+export function requiresRpgGenreCombat(constraints: MustHaveConstraints): boolean {
+  if (!constraints.active) return false
+  if (constraints.genres.includes("jrpg") || constraints.genres.includes("tactical-rpg")) {
+    return true
+  }
+  if (constraints.genres.includes("rpg") && constraints.mechanics.includes("turn-based")) {
+    return true
+  }
+  if (constraints.genres.includes("crpg") && constraints.mechanics.includes("turn-based")) {
+    return true
+  }
+  return false
+}
+
+export function hasRpgGenreMetadata(
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
+): boolean {
+  return RPG_GENRE_METADATA_RE.test(candidateBlob(candidate))
+}
+
+/** Story-rich adventure/walking sim with no RPG metadata — clear mismatch for JRPG prompts. */
+export function isNarrativeAdventureMismatch(
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
+): boolean {
+  if (hasRpgGenreMetadata(candidate)) return false
+
+  const name = candidate.name.toLowerCase()
+  const genreText = (candidate.genres ?? []).map((g) => g.name).join(" ").toLowerCase()
+  const blob = candidateBlob(candidate)
+
+  if (NARRATIVE_ONLY_MISMATCH_NAME_RE.test(name)) return true
+
+  const walkingSim = /\b(walking simulator|interactive fiction|visual novel)\b/i.test(blob)
+  const adventureOnly =
+    /\badventure\b/i.test(genreText) &&
+    !/\b(rpg|role-playing|strategy|tactical|jrpg)\b/i.test(genreText)
+
+  return walkingSim || (adventureOnly && /\b(narrative|story|mystery|choices)\b/i.test(blob))
 }
 
 /** Franchise-informed RAWG search seeds for fantasy race strategy (retrieval only). */
@@ -1633,6 +1845,35 @@ export function scoreMustHaveConstraintBoost(
       case "party-companions":
         if (/\b(companion|companions|party|character)\b/i.test(blob)) delta += 10
         break
+      case "co-op":
+        if (/\b(co-op|cooperative|online co-op)\b/i.test(blob)) delta += 10
+        else delta -= 16
+        break
+      case "multiplayer":
+        if (/\b(multiplayer|online|co-op)\b/i.test(blob)) delta += 10
+        else delta -= 14
+        break
+      case "singleplayer":
+        if (/\b(single player|single-player|solo)\b/i.test(blob)) delta += 6
+        break
+    }
+  }
+
+  for (const genre of constraints.genres) {
+    switch (genre) {
+      case "jrpg":
+      case "rpg":
+      case "crpg":
+      case "action-rpg":
+      case "tactical-rpg":
+        if (hasRpgGenreMetadata(candidate)) delta += 14
+        else if (isNarrativeAdventureMismatch(candidate)) delta -= 50
+        else delta -= 24
+        break
+      case "fps":
+        if (/\b(shooter|fps|first-person)\b/i.test(blob)) delta += 12
+        else delta -= 18
+        break
     }
   }
 
@@ -1680,6 +1921,10 @@ export function violatesMustHaveConstraints(
       SCI_FI_SETTING_RE.test(name) ||
       /\bplanetfall\b/i.test(name)
     if (scifiHit && !fantasyRaceHit) return true
+  }
+
+  if (requiresRpgGenreCombat(constraints) && isNarrativeAdventureMismatch(candidate)) {
+    return true
   }
 
   return false

@@ -78,6 +78,7 @@ import {
   detectIntentSignals,
   detectResultCountPolicy,
   enrichPromptForDiscovery,
+  extractTasteReferenceTitlesFromPrompt,
   mergeIntentAugmentation,
   reorderFastPicksByRelevance,
   trimFastPicksToConfidence,
@@ -854,6 +855,10 @@ function explicitRequirementPenaltyBlock(params: {
     { re: /\bopen\s+world\b|\bexploration\b/i, tag: "exploration" },
     { re: /\bfps\b|\bshooter\b|\bfirst[-\s]person\b/i, tag: "shooting/FPS" },
     { re: /\bpuzzle\b|\bplatformer\b/i, tag: "puzzle/platforming" },
+    {
+      re: /\bj\.?\s*r\.?\s*p\.?\s*g\.?\s*s?\b|\bjrpgs?\b|\bturn[\s-]?based\s+(?:rpg|jrpg|combat)\b|\btactical\s+rpg|\bcrpgs?\b|\baction\s+rpg/i,
+      tag: "JRPG/RPG genre+combat",
+    },
   ];
   for (const { re, tag } of pairs) {
     if (re.test(q)) hints.add(tag);
@@ -871,13 +876,27 @@ function explicitRequirementPenaltyBlock(params: {
     hints.add(`vibes:${vibes.slice(0, 56)}`);
   }
 
-  if (hints.size === 0) return "";
+  const genreCombatHard =
+    /\bjrpgs?\b|\bturn[\s-]?based\s+(?:rpg|jrpg)|\btactical\s+rpg|\bcrpgs?\b|\baction\s+rpg/i.test(
+      q
+    );
+
+  if (hints.size === 0 && !genreCombatHard) return "";
 
   const summary = [...hints].slice(0, 12).join("; ");
+  const genreHierarchyBlock = genreCombatHard
+    ? `
+Genre/combat hierarchy (must follow):
+- Stated genre and combat loop (JRPG, turn-based RPG, tactical RPG, etc.) are HARD requirements.
+- Story, vibe, or narrative depth alone does NOT justify picks outside that genre/combat loop.
+- Mark relevant=false / partial_match for walking sims and story-only adventures (e.g. Life is Strange, Firewatch, The Forgotten City) when the user asked for RPG/JRPG/turn-based combat.
+`
+    : "";
+
   return `
-Explicit asks inferred from user signal: ${summary}
-When an ask above is substantive (e.g. combat, multiplayer, narrative depth, difficulty) and a candidate only pays lip service—or contradicts it—set relevant=false for filtering. For reranking, assign partial_match or good_alternative with candid, human matchNotes (not robotic labels) and modest match scores; do not use best_match for weak alignment. Prefer three or four excellent fits over five or six mediocre ones.
-`;
+Explicit asks inferred from user signal: ${summary || "genre/combat constraints detected"}
+When an ask above is substantive (e.g. combat, multiplayer, narrative depth, difficulty, JRPG/turn-based RPG) and a candidate only pays lip service—or contradicts it—set relevant=false for filtering. For reranking, assign partial_match or good_alternative with candid, human matchNotes (not robotic labels) and modest match scores; do not use best_match for weak alignment. Genre/combat requirements outrank story or vibe overlap alone. Prefer three or four excellent fits over five or six mediocre ones.
+${genreHierarchyBlock}`;
 }
 
 async function aiSemanticRelevanceFilter(params: {
@@ -2129,6 +2148,11 @@ export async function POST(req: Request) {
     const regexRefsFromPrompt = extractReferenceTitlesFromPrompt(
       normalizedInput.userPrompt
     );
+    const tasteRefsFromPrompt = extractTasteReferenceTitlesFromPrompt(
+      isRefineRequest
+        ? `${refineContext!.originalPrompt} ${refineContext!.refineMessage}`
+        : normalizedInput.userPrompt
+    );
 
     const intentSignals = detectIntentSignals(
       isRefineRequest
@@ -2272,6 +2296,7 @@ export async function POST(req: Request) {
 
     const excludeListRaw = [
       ...regexRefsFromPrompt,
+      ...tasteRefsFromPrompt,
       ...(intent.excludeTitles ?? []),
       ...(intent.referenceTitles ?? []),
     ];

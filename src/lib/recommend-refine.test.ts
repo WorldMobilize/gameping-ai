@@ -4,7 +4,10 @@ import { describe, it } from "node:test"
 import {
   applyRefineIntentAdjustments,
   buildRefineDiscoveryUserPrompt,
+  classifyRefineIntent,
   extractMoreLikeReferenceTitles,
+  extractReferenceTitlesFromRefineMessage,
+  extractRemovalTitles,
   formatRecommendRunPromptWithRefine,
   parseRefineContext,
   parseRefineContextRequest,
@@ -90,12 +93,47 @@ describe("recommend-refine", () => {
   it("builds compact discovery prompt with prior picks and refine", () => {
     const text = buildRefineDiscoveryUserPrompt({
       originalPrompt: "weird underrated games",
-      refineMessage: "I already know these",
+      refineMessage: "must be co-op only",
       previousResultTitles: ["Hades", "Celeste"],
     })
-    assert.match(text, /Refine \(override prior assumptions\): I already know these/)
+    assert.match(text, /Refine \(stricter constraints/)
     assert.match(text, /1\) Hades/)
     assert.match(text, /2\) Celeste/)
     assert.match(text, /Prior picks/)
+  })
+
+  it("classifies direction correction and extracts RDR2/Fallout refs", () => {
+    const msg = "Less indie, more like RDR2/Fallout NV"
+    assert.equal(classifyRefineIntent(msg), "direction_correction")
+    assert.deepEqual(extractReferenceTitlesFromRefineMessage(msg), ["RDR2", "Fallout NV"])
+
+    const resolved = resolveRefineExcludeAndReference({
+      originalPrompt: "Games I wish I could play again for the first time",
+      previousResultTitles: ["Journey", "Celeste", "Firewatch"],
+      refineMessage: msg,
+    })
+    assert.ok(resolved.referenceTitles.includes("RDR2"))
+    assert.equal(resolved.excludeTitles.length, 3)
+  })
+
+  it("extracts removal titles on minor edit", () => {
+    assert.deepEqual(extractRemovalTitles("remove Celeste, keep the rest"), ["Celeste"])
+    const resolved = resolveRefineExcludeAndReference({
+      originalPrompt: "cozy games",
+      previousResultTitles: ["Stardew Valley", "Celeste"],
+      refineMessage: "remove Celeste",
+    })
+    assert.ok(resolved.excludeTitles.some((t) => /celeste/i.test(t)))
+  })
+
+  it("builds direction-correction discovery prompt leading with refine", () => {
+    const text = buildRefineDiscoveryUserPrompt({
+      originalPrompt: "Games I wish I could play again for the first time",
+      refineMessage: "Less indie, more like RDR2/Fallout NV",
+      previousResultTitles: ["Journey", "Celeste"],
+    })
+    assert.match(text, /Taste direction correction/)
+    assert.match(text, /Less indie, more like RDR2\/Fallout NV/)
+    assert.match(text, /Original context only/)
   })
 })

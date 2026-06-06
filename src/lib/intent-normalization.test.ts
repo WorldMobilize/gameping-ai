@@ -7,7 +7,10 @@ import {
   detectIntentSignals,
   detectResultCountPolicy,
   extractMustHaveConstraints,
+  extractTasteReferenceTitlesFromPrompt,
   isFantasyRaceStrategyMustHave,
+  isNarrativeAdventureMismatch,
+  requiresRpgGenreCombat,
   FANTASY_RACE_STRATEGY_FRANCHISE_QUERIES,
   EMPTY_INTENT_SIGNALS,
   isDiscoveryShovelwareTitle,
@@ -870,5 +873,69 @@ describe("mergeIntentAugmentation", () => {
     assert.equal(merged.fallbackDiscoveryQueries.some((q) => q === "surprise"), false);
     assert.ok(merged.fallbackDiscoveryQueries.some((q) => /cult classic/i.test(q)));
     assert.ok(merged.avoid.some((a) => /shovelware/i.test(a)));
+  });
+});
+
+describe("extractTasteReferenceTitlesFromPrompt", () => {
+  it("extracts loved/played titles including slash-number lists", () => {
+    const titles = extractTasteReferenceTitlesFromPrompt(
+      "I love Persona 3/4/5, Omori, Disco Elysium, Cyberpunk, Baldur's Gate. I want a story rich JRPG."
+    );
+    assert.ok(titles.some((t) => /persona 3/i.test(t)));
+    assert.ok(titles.some((t) => /persona 5/i.test(t)));
+    assert.ok(titles.some((t) => /omori/i.test(t)));
+    assert.ok(titles.some((t) => /disco elysium/i.test(t)));
+    assert.ok(titles.some((t) => /baldur/i.test(t)));
+    assert.equal(titles.some((t) => /story rich/i.test(t)), false);
+  });
+});
+
+describe("JRPG must-have constraints", () => {
+  it("activates for turn based JRPG prompts", () => {
+    const c = extractMustHaveConstraints(
+      "Turn based JRPG with amazing story",
+      EMPTY_INTENT_SIGNALS
+    );
+    assert.equal(c.active, true);
+    assert.ok(c.genres.includes("jrpg"));
+    assert.ok(c.mechanics.includes("turn-based"));
+    assert.equal(requiresRpgGenreCombat(c), true);
+  });
+
+  it("flags narrative adventure mismatches", () => {
+    const c = extractMustHaveConstraints(
+      "Turn based JRPG with amazing story",
+      EMPTY_INTENT_SIGNALS
+    );
+    assert.equal(
+      isNarrativeAdventureMismatch({
+        name: "Life is Strange",
+        genres: [{ name: "Adventure" }],
+        tags: [{ name: "Story Rich" }],
+      }),
+      true
+    );
+    assert.equal(
+      violatesMustHaveConstraints(
+        {
+          name: "Firewatch",
+          genres: [{ name: "Adventure" }],
+          tags: [{ name: "Narrative" }],
+        },
+        c
+      ),
+      true
+    );
+    assert.equal(
+      violatesMustHaveConstraints(
+        {
+          name: "Dragon Quest XI",
+          genres: [{ name: "RPG" }, { name: "Adventure" }],
+          tags: [{ name: "Turn-Based" }],
+        },
+        c
+      ),
+      false
+    );
   });
 });

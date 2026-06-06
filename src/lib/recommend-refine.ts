@@ -8,6 +8,8 @@ export type RecommendRefineContext = {
 
 export const REFINE_MESSAGE_MAX = 200
 
+export type RefineIntentKind = "minor_edit" | "direction_correction" | "stricter_constraint"
+
 export type RefineContextParseResult =
   | { ok: true; context: RecommendRefineContext }
   | { ok: false; error: "refine_message_too_long" | "refine_context_invalid" }
@@ -31,6 +33,118 @@ function mergeUniqueStrings(items: string[], max: number): string[] {
     if (out.length >= max) break
   }
   return out
+}
+
+function splitReferenceTitleList(fragment: string): string[] {
+  const parts: string[] = []
+  for (const chunk of fragment.split(/,/)) {
+    const trimmed = chunk.trim()
+    if (!trimmed) continue
+    if (/\band\b/i.test(trimmed)) {
+      for (const sub of trimmed.split(/\band\b/i)) {
+        const s = sub.trim()
+        if (s) parts.push(s)
+      }
+    } else if (trimmed.includes("/")) {
+      for (const sub of trimmed.split(/\s*\/\s*/)) {
+        const s = sub.trim()
+        if (s) parts.push(s)
+      }
+    } else {
+      parts.push(trimmed)
+    }
+  }
+  return parts
+}
+
+function isPlausibleRefineTitle(title: string): boolean {
+  const t = title.trim()
+  if (t.length < 2 || t.length > 64) return false
+  const lower = t.toLowerCase()
+  if (/^(the|a|an|that|this|those|these|one|game|games|indie|aaa|more|less)$/i.test(lower)) {
+    return false
+  }
+  if (/^(first|second|third|\d+(st|nd|rd|th)?)$/i.test(lower)) return false
+  return true
+}
+
+export function classifyRefineIntent(refineMessage: string): RefineIntentKind {
+  const r = refineMessage.toLowerCase().trim()
+  if (!r) return "minor_edit"
+
+  if (
+    /\b(must be|only|has to be|needs to be|strictly|not hard|no horror|under\s+\$?\d|under\s+\d+\s*(usd|eur|\$|€)?)\b/i.test(
+      r
+    )
+  ) {
+    return "stricter_constraint"
+  }
+
+  if (
+    /\b(more like|closer to|similar to|not that vibe|more\s+(?:aaa|open[\s-]?world|rpg|action|strategy|open world))\b/i.test(
+      r
+    ) ||
+    /\bless\s+\w+(?:\s+\w+)?\s*,?\s*more like\b/i.test(r)
+  ) {
+    return "direction_correction"
+  }
+
+  if (/\b(remove|replace|without|no\s+\w|not\s+[a-z0-9])/i.test(r)) {
+    return "minor_edit"
+  }
+
+  return "minor_edit"
+}
+
+function isOrdinalOrPriorPickReference(text: string): boolean {
+  return /\b(?:the\s+)?(first|second|third|\d+(?:st|nd|rd|th)?)(?:\s+(?:game|pick|result|one))?\b/i.test(
+    text
+  )
+}
+
+/** Parse new taste anchors from refine phrasing (e.g. more like RDR2/Fallout NV). */
+export function extractReferenceTitlesFromRefineMessage(refineMessage: string): string[] {
+  const out = new Set<string>()
+  const patterns = [
+    /\b(?:more like|closer to|similar to)\s+(.+?)(?:[.!?]|$)/i,
+    /\bless\s+[\w\s-]+,?\s*more like\s+(.+?)(?:[.!?]|$)/i,
+  ]
+
+  for (const re of patterns) {
+    const m = refineMessage.match(re)
+    if (!m?.[1]) continue
+    if (isOrdinalOrPriorPickReference(m[1])) continue
+    for (const part of splitReferenceTitleList(m[1])) {
+      const cleaned = part.replace(/^["'«»]+|["'«»]+$/g, "").trim()
+      if (isOrdinalOrPriorPickReference(cleaned)) continue
+      if (isPlausibleRefineTitle(cleaned)) out.add(cleaned)
+    }
+  }
+
+  return [...out].slice(0, 8)
+}
+
+/** Parse explicit removal targets (remove Celeste, no Celeste, not Celeste). */
+export function extractRemovalTitles(refineMessage: string): string[] {
+  const out = new Set<string>()
+  const patterns = [
+    /\b(?:remove|replace|without)\s+([^,.!?]+)/gi,
+    /\bno\s+([A-Za-z0-9][^,.!?]{1,48})/gi,
+    /\bnot\s+([A-Za-z0-9][^,.!?]{1,48})/gi,
+  ]
+
+  for (const re of patterns) {
+    for (const m of refineMessage.matchAll(re)) {
+      const raw = m[1]?.trim()
+      if (!raw) continue
+      for (const part of splitReferenceTitleList(raw)) {
+        const cleaned = part.replace(/^["'«»]+|["'«»]+$/g, "").trim()
+        if (isPlausibleRefineTitle(cleaned)) out.add(cleaned)
+      }
+    }
+  }
+
+  return [...out].slice(0, 8)
 }
 
 export function parseRefineContextRequest(body: unknown): RefineContextParseResult {
@@ -79,15 +193,32 @@ export function formatRecommendRunPromptWithRefine(
   return `${base} | refine: ${refine}`
 }
 
-/** User prompt sent to discovery AI — original + refinement + prior picks (compact for latency). */
+/** User prompt sent to discovery AI — varies by refine classification. */
 export function buildRefineDiscoveryUserPrompt(ctx: RecommendRefineContext): string {
   const prior = ctx.previousResultTitles
     .map((title, i) => `${i + 1}) ${title}`)
     .join("; ")
+  const kind = classifyRefineIntent(ctx.refineMessage)
+  const refine = ctx.refineMessage.trim()
+  const original = ctx.originalPrompt.trim()
 
-  return `${ctx.originalPrompt.trim()}
-Refine (override prior assumptions): ${ctx.refineMessage.trim()}
-Prior picks — do not repeat unless refinement asks for more like one: ${prior}`
+  if (kind === "direction_correction") {
+    return `Taste direction correction — this OVERRIDES the original request direction:
+${refine}
+Reference taste anchors from the correction must dominate suggestedTitles and fallbackDiscoveryQueries.
+Original context only (secondary — do not repeat its indie/emotional bias if it conflicts): ${original}
+Prior picks — do not repeat unless explicitly referenced above: ${prior}`
+  }
+
+  if (kind === "stricter_constraint") {
+    return `${original}
+Refine (stricter constraints — apply on top of original direction): ${refine}
+Prior picks — do not repeat: ${prior}`
+  }
+
+  return `${original}
+Refine (keep same direction, apply edits only): ${refine}
+Prior picks — do not repeat: ${prior}`
 }
 
 export function refineWantsMoreLikePrevious(refineMessage: string): boolean {
@@ -152,28 +283,61 @@ export function resolveRefineExcludeAndReference(ctx: RecommendRefineContext): {
   excludeTitles: string[]
   referenceTitles: string[]
 } {
-  const moreLike = extractMoreLikeReferenceTitles(
+  const kind = classifyRefineIntent(ctx.refineMessage)
+  const removals = extractRemovalTitles(ctx.refineMessage)
+  const moreLikePrior = extractMoreLikeReferenceTitles(
     ctx.refineMessage,
     ctx.previousResultTitles
   )
+  const newRefs = extractReferenceTitlesFromRefineMessage(ctx.refineMessage)
 
-  if (refineWantsMoreLikePrevious(ctx.refineMessage) && moreLike.length > 0) {
-    const moreLikeKeys = new Set(moreLike.map((t) => t.toLowerCase()))
+  if (kind === "direction_correction") {
+    const referenceTitles = mergeUniqueStrings([...moreLikePrior, ...newRefs], 10)
+
+    if (moreLikePrior.length > 0) {
+      const keepKeys = new Set(moreLikePrior.map((t) => t.toLowerCase()))
+      return {
+        excludeTitles: mergeUniqueStrings(
+          [
+            ...ctx.previousResultTitles.filter((t) => !keepKeys.has(t.toLowerCase())),
+            ...removals,
+          ],
+          16
+        ),
+        referenceTitles,
+      }
+    }
+
     return {
-      excludeTitles: ctx.previousResultTitles.filter(
-        (t) => !moreLikeKeys.has(t.toLowerCase())
-      ),
-      referenceTitles: moreLike,
+      excludeTitles: mergeUniqueStrings([...ctx.previousResultTitles, ...removals], 16),
+      referenceTitles,
     }
   }
 
-  if (refineWantsMoreLikePrevious(ctx.refineMessage)) {
-    return { excludeTitles: [], referenceTitles: ctx.previousResultTitles.slice(0, 1) }
+  if (kind === "minor_edit") {
+    return {
+      excludeTitles: mergeUniqueStrings([...ctx.previousResultTitles, ...removals], 16),
+      referenceTitles: moreLikePrior,
+    }
+  }
+
+  if (refineWantsMoreLikePrevious(ctx.refineMessage) && moreLikePrior.length > 0) {
+    const moreLikeKeys = new Set(moreLikePrior.map((t) => t.toLowerCase()))
+    return {
+      excludeTitles: mergeUniqueStrings(
+        [
+          ...ctx.previousResultTitles.filter((t) => !moreLikeKeys.has(t.toLowerCase())),
+          ...removals,
+        ],
+        16
+      ),
+      referenceTitles: moreLikePrior,
+    }
   }
 
   return {
-    excludeTitles: [...ctx.previousResultTitles],
-    referenceTitles: [],
+    excludeTitles: mergeUniqueStrings([...ctx.previousResultTitles, ...removals], 16),
+    referenceTitles: moreLikePrior,
   }
 }
 
@@ -191,6 +355,7 @@ export function applyRefineIntentAdjustments(
   const r = refineMessage.toLowerCase()
   const coreNeeds = [...intent.coreNeeds]
   const avoid = [...intent.avoid]
+  const kind = classifyRefineIntent(refineMessage)
 
   if (/\b(not multiplayer|no multiplayer|less multiplayer|without multiplayer)\b/.test(r)) {
     avoid.push("multiplayer", "online co-op", "mmo")
@@ -237,7 +402,34 @@ export function applyRefineIntentAdjustments(
     }
   }
 
-  const normalizedIntent = `${intent.normalizedIntent.trim()} — Refinement: ${refineMessage.trim()}`
+  if (kind === "direction_correction") {
+    if (/\bless indie\b/i.test(r)) {
+      avoid.push("small emotional indie", "walking simulator", "short narrative indie")
+    }
+    if (
+      /\b(rdr2|red dead redemption|fallout\s*nv|fallout new vegas|fallout)\b/i.test(r)
+    ) {
+      coreNeeds.push(
+        "open world",
+        "freedom",
+        "roleplay",
+        "choices matter",
+        "sandbox RPG",
+        "exploration"
+      )
+      avoid.push(
+        "short emotional indie",
+        "walking simulator",
+        "linear narrative adventure",
+        "art house indie"
+      )
+    }
+  }
+
+  const normalizedIntent =
+    kind === "direction_correction"
+      ? `${refineMessage.trim()} (direction correction — overrides conflicting parts of: ${intent.normalizedIntent.trim()})`
+      : `${intent.normalizedIntent.trim()} — Refinement: ${refineMessage.trim()}`
 
   return {
     normalizedIntent,
