@@ -10,6 +10,12 @@ import {
   isFamousIndieForObscurePrompt,
 } from "@/lib/recommend-diversity-core"
 import type { RawgCandidate } from "@/lib/rawg-discovery"
+import {
+  buildPromptConstraintDisambiguationRules,
+  extractPromptConstraints,
+  scorePromptConstraintBoost,
+  violatesPromptConstraints,
+} from "@/lib/recommend-prompt-constraints"
 
 export type DiscoverySubkind =
   | "anti_aaa"
@@ -589,6 +595,10 @@ export function shouldRejectCandidateForSignals(
 
   const mustHave = extractMustHaveConstraints(userPrompt, signals)
   if (violatesMustHaveConstraints(candidate, mustHave)) return true
+  const promptConstraints = extractPromptConstraints(userPrompt)
+  if (promptConstraints.active && violatesPromptConstraints(candidate, promptConstraints)) {
+    return true
+  }
   if (shouldRejectNonCanonicalSideEdition(candidate.name, userPrompt)) return true
   if (shouldRejectDirtyPlatformTitleVariant(candidate.name, userPrompt)) return true
   if (isFantasyRaceStrategyMustHave(mustHave) && isWeakFantasyStrategyFillerTitle(candidate.name)) {
@@ -677,6 +687,11 @@ export function enrichPromptForDiscovery(
     )
   }
 
+  const promptConstraints = extractPromptConstraints(base)
+  if (promptConstraints.active) {
+    hints.push(...buildPromptConstraintDisambiguationRules(promptConstraints))
+  }
+
   if (hints.length === 0) return base
   return `${base}\n${hints.join("\n")}`
 }
@@ -729,6 +744,7 @@ export function buildDisambiguationRules(
       "For fantasy race strategy prompts, fallbackDiscoveryQueries must include high-signal phrases like \"fantasy RTS orcs elves\", \"fantasy faction strategy\" — not generic \"strategy factions\" or \"city building\" alone."
     )
   }
+  rules.push(...buildPromptConstraintDisambiguationRules(extractPromptConstraints(userPrompt)))
   return rules
 }
 
@@ -1223,6 +1239,10 @@ export function scoreCandidateRelevanceBoost(params: {
 
   const mustHave = extractMustHaveConstraints(params.userPrompt, signals)
   delta += scoreMustHaveConstraintBoost(candidate, mustHave)
+  delta += scorePromptConstraintBoost(
+    candidate,
+    extractPromptConstraints(params.userPrompt)
+  )
   delta += scoreCanonicalTitlePreference({
     candidateName: candidate.name,
     userPrompt: params.userPrompt,
@@ -1272,6 +1292,14 @@ export function shouldDropWeakFastPick(params: {
 
   const mustHave = extractMustHaveConstraints(userPrompt, signals)
   if (mustHave.active && candidate && violatesMustHaveConstraints(candidate, mustHave)) {
+    return true
+  }
+  const promptConstraints = extractPromptConstraints(userPrompt)
+  if (
+    promptConstraints.active &&
+    candidate &&
+    violatesPromptConstraints(candidate, promptConstraints)
+  ) {
     return true
   }
   if (
@@ -1731,7 +1759,8 @@ export function extractMustHaveConstraints(
     races.length >= 2 ||
     mechanics.length >= 4 ||
     hasGenreCombatCombo ||
-    (genres.includes("jrpg") && mechanics.includes("turn-based"))
+    (genres.includes("jrpg") && mechanics.includes("turn-based")) ||
+    (genres.includes("rpg") && /\b(stor(y|ies|ytelling)|narrative)\b/i.test(n))
 
   if (!active) return inactive
 
@@ -1743,6 +1772,14 @@ const RPG_GENRE_METADATA_RE =
 
 const NARRATIVE_ONLY_MISMATCH_NAME_RE =
   /\b(life is strange|firewatch|what remains of edith finch|the forgotten city|gone home|her story|night in the woods|telling me|a normal lost phone|simulacra)\b/i
+
+/** User asked for RPG/JRPG/CRPG genre identity (not story vibe alone). */
+export function requiresRpgGenreIdentity(constraints: MustHaveConstraints): boolean {
+  if (!constraints.active) return false
+  return constraints.genres.some((g) =>
+    ["rpg", "jrpg", "crpg", "action-rpg", "tactical-rpg"].includes(g)
+  )
+}
 
 /** Hard genre/combat requirement: JRPG, turn-based RPG, or tactical RPG. */
 export function requiresRpgGenreCombat(constraints: MustHaveConstraints): boolean {
@@ -2065,6 +2102,10 @@ export function violatesMustHaveConstraints(
   }
 
   if (requiresRpgGenreCombat(constraints) && isNarrativeAdventureMismatch(candidate)) {
+    return true
+  }
+
+  if (requiresRpgGenreIdentity(constraints) && isNarrativeAdventureMismatch(candidate)) {
     return true
   }
 
