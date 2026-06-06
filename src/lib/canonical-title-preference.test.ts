@@ -4,9 +4,11 @@ import { describe, it } from "node:test"
 import {
   isNonCanonicalSideEdition,
   isDirtyPlatformTitleVariant,
+  isDirtyUnofficialTitleVariant,
   isWeakFantasyStrategyFillerTitle,
   scoreCanonicalTitlePreference,
   shouldRejectDirtyPlatformTitleVariant,
+  shouldRejectDirtyUnofficialTitleVariant,
   shouldRejectNonCanonicalSideEdition,
 } from "@/lib/canonical-title-preference"
 
@@ -87,5 +89,16 @@ describe("canonical-title-preference", () => {
       isDirtyPlatformTitleVariant("Dark Souls: Remastered"),
       false
     )
+  })
+
+  it("flags unofficial mod/multiplayer title variants but keeps legitimate editions", () => {
+    assert.equal(isDirtyUnofficialTitleVariant("Undertale MULTIPLAYER"), true)
+    assert.equal(
+      shouldRejectDirtyUnofficialTitleVariant("Undertale MULTIPLAYER", "story RPG no grind"),
+      true
+    )
+    assert.equal(isDirtyUnofficialTitleVariant("Persona 5 Royal"), false)
+    assert.equal(isDirtyUnofficialTitleVariant("The Witcher 3: Wild Hunt"), false)
+    assert.equal(isDirtyUnofficialTitleVariant("Baldur's Gate 3"), false)
   })
 })

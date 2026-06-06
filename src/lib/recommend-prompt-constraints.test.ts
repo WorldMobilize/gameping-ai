@@ -97,6 +97,33 @@ describe("scorePromptConstraintBoost", () => {
     );
     assert.equal(violatesPromptConstraints(wolf, constraints), true);
   });
+
+  it("boosts accessible story RPG canon for no-grind RPG prompts", () => {
+    const constraints = extractPromptConstraints(
+      "I want an RPG with a great story but I hate grinding and difficult combat"
+    );
+    const massEffect = mockCandidate("Mass Effect 2", ["RPG", "Action"], ["Story Rich"]);
+    const xenoblade = mockCandidate("Xenoblade Chronicles 2", ["RPG"], ["JRPG"]);
+
+    assert.ok(
+      scorePromptConstraintBoost(massEffect, constraints) >
+        scorePromptConstraintBoost(xenoblade, constraints)
+    );
+  });
+
+  it("rejects Life is Strange even with spurious RPG metadata", () => {
+    const constraints = extractPromptConstraints(
+      "I want an RPG with a great story but I hate grinding and difficult combat"
+    );
+    const lis = mockCandidate("Life is Strange: Before the Storm", ["Adventure", "RPG"], [
+      "Story Rich",
+      "Choices Matter",
+    ]);
+
+    assert.ok(isStoryOnlyAdventureMismatch(lis));
+    assert.equal(violatesPromptConstraints(lis, constraints), true);
+    assert.ok(scorePromptConstraintBoost(lis, constraints) < -40);
+  });
 });
 
 describe("constraint preservation regression", () => {

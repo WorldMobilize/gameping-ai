@@ -2,6 +2,7 @@ import {
   isWeakFantasyStrategyFillerTitle,
   scoreCanonicalTitlePreference,
   shouldRejectDirtyPlatformTitleVariant,
+  shouldRejectDirtyUnofficialTitleVariant,
   shouldRejectNonCanonicalSideEdition,
 } from "@/lib/canonical-title-preference"
 import {
@@ -13,6 +14,8 @@ import type { RawgCandidate } from "@/lib/rawg-discovery"
 import {
   buildPromptConstraintDisambiguationRules,
   extractPromptConstraints,
+  isStoryOnlyAdventureMismatch,
+  requiresExplicitRpgIdentity,
   scorePromptConstraintBoost,
   violatesPromptConstraints,
 } from "@/lib/recommend-prompt-constraints"
@@ -601,6 +604,7 @@ export function shouldRejectCandidateForSignals(
   }
   if (shouldRejectNonCanonicalSideEdition(candidate.name, userPrompt)) return true
   if (shouldRejectDirtyPlatformTitleVariant(candidate.name, userPrompt)) return true
+  if (shouldRejectDirtyUnofficialTitleVariant(candidate.name, userPrompt)) return true
   if (isFantasyRaceStrategyMustHave(mustHave) && isWeakFantasyStrategyFillerTitle(candidate.name)) {
     return true
   }
@@ -1303,6 +1307,14 @@ export function shouldDropWeakFastPick(params: {
     return true
   }
   if (
+    promptConstraints.active &&
+    requiresExplicitRpgIdentity(promptConstraints) &&
+    candidate
+  ) {
+    if (isStoryOnlyAdventureMismatch(candidate)) return true
+    if (matchTier === "partial_match" && !hasRpgGenreMetadata(candidate)) return true
+  }
+  if (
     mustHave.active &&
     requiresFantasyRaces(mustHave) &&
     candidate &&
@@ -1771,7 +1783,7 @@ const RPG_GENRE_METADATA_RE =
   /\b(rpg|role-playing|role playing|jrpg|j-rpg|tactical rpg|strategy rpg|action rpg|crpg|turn-based strategy|turn based strategy|massively multiplayer)\b/i
 
 const NARRATIVE_ONLY_MISMATCH_NAME_RE =
-  /\b(life is strange|firewatch|what remains of edith finch|the forgotten city|gone home|her story|night in the woods|telling me|a normal lost phone|simulacra)\b/i
+  /\b(life is strange|before the storm|firewatch|to the moon|what remains of edith finch|the forgotten city|gone home|her story|night in the woods|telling me|a normal lost phone|simulacra|oxenfree|gris)\b/i
 
 /** User asked for RPG/JRPG/CRPG genre identity (not story vibe alone). */
 export function requiresRpgGenreIdentity(constraints: MustHaveConstraints): boolean {
@@ -1806,13 +1818,13 @@ export function hasRpgGenreMetadata(
 export function isNarrativeAdventureMismatch(
   candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
 ): boolean {
-  if (hasRpgGenreMetadata(candidate)) return false
-
   const name = candidate.name.toLowerCase()
   const genreText = (candidate.genres ?? []).map((g) => g.name).join(" ").toLowerCase()
   const blob = candidateBlob(candidate)
 
   if (NARRATIVE_ONLY_MISMATCH_NAME_RE.test(name)) return true
+
+  if (hasRpgGenreMetadata(candidate)) return false
 
   const walkingSim = /\b(walking simulator|interactive fiction|visual novel)\b/i.test(blob)
   const adventureOnly =
@@ -2161,6 +2173,16 @@ export function isStrongFastPick(params: {
   }
 
   if (pick.matchTier === "partial_match") {
+    const promptConstraints = extractPromptConstraints(userPrompt)
+    if (
+      promptConstraints.active &&
+      requiresExplicitRpgIdentity(promptConstraints) &&
+      candidate
+    ) {
+      if (isStoryOnlyAdventureMismatch(candidate) || !hasRpgGenreMetadata(candidate)) {
+        return false
+      }
+    }
     return pick.match >= 80 && relevanceBoost >= -12
   }
   if (pick.matchTier === "good_alternative") {

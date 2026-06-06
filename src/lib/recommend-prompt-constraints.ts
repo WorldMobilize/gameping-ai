@@ -34,7 +34,17 @@ const RPG_GENRE_METADATA_RE =
   /\b(rpg|role-playing|role playing|jrpg|j-rpg|tactical rpg|strategy rpg|action rpg|crpg|turn-based strategy|turn based strategy)\b/i;
 
 const STORY_ONLY_ADVENTURE_NAME_RE =
-  /\b(firewatch|life is strange|to the moon|what remains of edith finch|the forgotten city|gone home|her story|night in the woods|a normal lost phone|simulacra|telling me|oxenfree|gris)\b/i;
+  /\b(firewatch|life is strange|before the storm|to the moon|what remains of edith finch|the forgotten city|gone home|her story|night in the woods|a normal lost phone|simulacra|telling me|oxenfree|gris|walking simulator|kentucky route zero|as dusk falls|twelve minutes)\b/i;
+
+/** Canonical accessible story RPGs for RPG + story + low-grind / easy-combat prompts. */
+const ACCESSIBLE_STORY_RPG_CANON_RE =
+  /\b(mass effect|dragon age|disco elysium|witcher|baldur'?s gate|persona|fire emblem|banner saga|pillars of eternity|divinity|outer worlds)\b/i;
+
+const GRIND_HEAVY_FRANCHISE_RE =
+  /\b(xenoblade|tales of|final fantasy|ffxiv|ff xi|monster hunter|souls|elden ring|dark souls|bloodborne|sekiro|outward|kenshi|kingdom come|lost ark|black desert|runescape|granblue|gacha)\b/i;
+
+const SURVIVAL_OR_HARDCORE_RPG_RE =
+  /\b(survival rpg|survival horror rpg|hardcore rpg|soulslike|permadeath|kenshi|outward|kingdom come deliverance|valheim|subnautica|green hell|the forest|dayz|rust)\b/i;
 
 const PASSIVE_DETECTIVE_NAME_RE =
   /\b(the wolf among us|wolf among us|telltale|batman the telltale|game of thrones telltale|tales from the borderlands|the walking dead telltale|detroit become human|heavy rain|beyond two souls|until dawn)\b/i;
@@ -176,22 +186,38 @@ export function extractPromptConstraints(userPrompt: string): PromptConstraints 
   };
 }
 
-function hasRpgGenreMetadata(
+export function hasRpgGenreMetadata(
   candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
 ): boolean {
   return RPG_GENRE_METADATA_RE.test(candidateBlob(candidate));
 }
 
+export function requiresExplicitRpgIdentity(constraints: PromptConstraints): boolean {
+  if (!constraints.active) return false;
+  return (
+    constraints.genreIdentity.includes("rpg") || constraints.genreIdentity.includes("jrpg")
+  );
+}
+
+function wantsAccessibleStoryRpg(constraints: PromptConstraints): boolean {
+  if (!requiresExplicitRpgIdentity(constraints)) return false;
+  return (
+    constraints.avoidRequirements.includes("grind") ||
+    constraints.avoidRequirements.includes("difficult-combat")
+  );
+}
+
 export function isStoryOnlyAdventureMismatch(
   candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
 ): boolean {
-  if (hasRpgGenreMetadata(candidate)) return false;
-
   const name = candidate.name.toLowerCase();
   const genreText = (candidate.genres ?? []).map((g) => g.name).join(" ").toLowerCase();
   const blob = candidateBlob(candidate);
 
+  // Hard reject known story-only adventures even when RAWG tags spurious RPG metadata.
   if (STORY_ONLY_ADVENTURE_NAME_RE.test(name)) return true;
+
+  if (hasRpgGenreMetadata(candidate)) return false;
 
   const walkingSim = /\b(walking simulator|interactive fiction|visual novel)\b/i.test(blob);
   const adventureOnly =
@@ -275,14 +301,15 @@ export function scorePromptConstraintBoost(
   let delta = 0;
   const blob = candidateBlob(candidate);
   const name = candidate.name.toLowerCase();
+  const storyOnlyMismatch = isStoryOnlyAdventureMismatch(candidate);
 
   const wantsRpg =
     constraints.genreIdentity.includes("rpg") ||
     constraints.genreIdentity.includes("jrpg");
 
   if (wantsRpg) {
-    if (hasRpgGenreMetadata(candidate)) delta += 16;
-    else if (isStoryOnlyAdventureMismatch(candidate)) delta -= 58;
+    if (storyOnlyMismatch) delta -= 58;
+    else if (hasRpgGenreMetadata(candidate)) delta += 16;
     else delta -= 28;
   }
 
@@ -307,14 +334,46 @@ export function scorePromptConstraintBoost(
     if (/\boutward\b/i.test(name)) delta -= 42;
   }
 
+  if (wantsAccessibleStoryRpg(constraints) && !storyOnlyMismatch) {
+    if (hasRpgGenreMetadata(candidate)) {
+      if (ACCESSIBLE_STORY_RPG_CANON_RE.test(name) || ACCESSIBLE_STORY_RPG_CANON_RE.test(blob)) {
+        delta += 24;
+      }
+      if (
+        /\b(story rich|narrative|choice driven|choices matter|party based|companions|character driven)\b/i.test(
+          blob
+        )
+      ) {
+        delta += 14;
+      }
+      if (/\b(story mode|easy mode|accessible|casual)\b/i.test(blob)) delta += 8;
+    }
+    if (GRIND_HEAVY_FRANCHISE_RE.test(name) || GRIND_HEAVY_FRANCHISE_RE.test(blob)) {
+      delta -= 38;
+    }
+    if (SURVIVAL_OR_HARDCORE_RPG_RE.test(name) || SURVIVAL_OR_HARDCORE_RPG_RE.test(blob)) {
+      delta -= 42;
+    }
+  }
+
   if (constraints.avoidRequirements.includes("grind")) {
     if (GRIND_HEAVY_METADATA_RE.test(blob)) delta -= 32;
-    if (/\b(story rich|narrative|choice driven)\b/i.test(blob) && wantsRpg) delta += 6;
+    if (
+      !storyOnlyMismatch &&
+      /\b(story rich|narrative|choice driven)\b/i.test(blob) &&
+      wantsRpg
+    ) {
+      delta += 6;
+    }
   }
 
   if (constraints.avoidRequirements.includes("difficult-combat")) {
     if (DIFFICULT_COMBAT_METADATA_RE.test(blob)) delta -= 34;
-    if (/\b(story rich|narrative|turn-based|tactical)\b/i.test(blob) && wantsRpg) {
+    if (
+      !storyOnlyMismatch &&
+      /\b(story rich|narrative|turn-based|tactical)\b/i.test(blob) &&
+      wantsRpg
+    ) {
       delta += 8;
     }
   }
@@ -372,6 +431,11 @@ export function buildPromptConstraintDisambiguationRules(
   }
   if (constraints.avoidRequirements.includes("difficult-combat")) {
     rules.push("- User avoids difficult combat — prefer accessible story RPGs over punishing combat systems.");
+  }
+  if (wantsAccessibleStoryRpg(constraints)) {
+    rules.push(
+      "- RPG + story + low grind/easy combat: prioritize accessible story RPGs (Mass Effect, Dragon Age, Disco Elysium, Witcher 3, Baldur's Gate 3, Persona, Fire Emblem, Banner Saga). Reject story-only adventures (Life is Strange, Firewatch, To the Moon) and grind-heavy/hardcore RPGs."
+    );
   }
 
   return rules;

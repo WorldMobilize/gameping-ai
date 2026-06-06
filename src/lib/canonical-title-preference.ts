@@ -24,6 +24,22 @@ const DIRTY_PLATFORM_TITLE_MARKERS: RegExp[] = [
   /\bunofficial port\b/i,
 ]
 
+/** Unofficial / modded / fan variants attached to otherwise canonical titles. */
+const DIRTY_UNOFFICIAL_TITLE_MARKERS: RegExp[] = [
+  /\bMULTIPLAYER\b/i,
+  /\bMOD\b/i,
+  /\bMODDED\b/i,
+  /\bFAN\s*GAME\b/i,
+  /\bFANMADE\b/i,
+  /\bFAN-MADE\b/i,
+  /\bUNOFFICIAL\b/i,
+  /\bROMHACK\b/i,
+  /\bROM\s*HACK\b/i,
+  /\bHACK\s*ROM\b/i,
+  /\bONLINE\s+UNOFFICIAL\b/i,
+  /\bUNOFFICIAL\s+ONLINE\b/i,
+]
+
 /** Conservative: reject obvious ROM/region/platform dump titles, not retail remasters. */
 export function isDirtyPlatformTitleVariant(title: string): boolean {
   const n = title.trim()
@@ -34,21 +50,51 @@ export function isDirtyPlatformTitleVariant(title: string): boolean {
   return DIRTY_PLATFORM_TITLE_MARKERS.some((re) => re.test(n))
 }
 
+/** Reject fan mods, multiplayer hacks, and other non-canonical title variants. */
+export function isDirtyUnofficialTitleVariant(title: string): boolean {
+  const n = title.trim()
+  if (!n) return false
+  if (ALLOWED_EDITION_MARKERS.test(n) && !DIRTY_UNOFFICIAL_TITLE_MARKERS.some((re) => re.test(n))) {
+    return false
+  }
+  return DIRTY_UNOFFICIAL_TITLE_MARKERS.some((re) => re.test(n))
+}
+
+function userPromptMentionsTitleVariant(userPrompt: string, candidateName: string): boolean {
+  const prompt = userPrompt.toLowerCase()
+  const name = candidateName.toLowerCase()
+  if (prompt.includes(name.slice(0, Math.min(24, name.length)))) return true
+  return false
+}
+
 export function shouldRejectDirtyPlatformTitleVariant(
   candidateName: string,
   userPrompt = ""
 ): boolean {
   if (!isDirtyPlatformTitleVariant(candidateName)) return false
   const prompt = userPrompt.toLowerCase()
-  const name = candidateName.toLowerCase()
-  if (prompt.includes(name.slice(0, Math.min(24, name.length)))) return false
+  if (userPromptMentionsTitleVariant(userPrompt, candidateName)) return false
   if (/\b(psp|ps2|rus|fan translation|rom)\b/i.test(prompt)) return false
+  return true
+}
+
+export function shouldRejectDirtyUnofficialTitleVariant(
+  candidateName: string,
+  userPrompt = ""
+): boolean {
+  if (!isDirtyUnofficialTitleVariant(candidateName)) return false
+  if (userPromptMentionsTitleVariant(userPrompt, candidateName)) return false
+  const prompt = userPrompt.toLowerCase()
+  if (/\b(multiplayer|mod|fan game|unofficial|rom hack|hack)\b/i.test(prompt)) return false
   return true
 }
 
 /** Dedupe/scoring penalty for non-canonical platform dump titles. */
 export function dirtyPlatformTitleVariantPenalty(title: string): number {
-  return isDirtyPlatformTitleVariant(title) ? 58 : 0
+  let penalty = 0
+  if (isDirtyPlatformTitleVariant(title)) penalty += 58
+  if (isDirtyUnofficialTitleVariant(title)) penalty += 62
+  return penalty
 }
 
 /** Prefer base/canonical game entries over side editions and weak franchise variants. */
@@ -148,6 +194,9 @@ export function scoreCanonicalTitlePreference(params: {
   }
   if (shouldRejectDirtyPlatformTitleVariant(candidateName, userPrompt)) {
     delta -= 55
+  }
+  if (shouldRejectDirtyUnofficialTitleVariant(candidateName, userPrompt)) {
+    delta -= 60
   }
 
   const suggested = (suggestedTitle ?? "").trim()
