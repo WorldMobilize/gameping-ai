@@ -6,6 +6,7 @@ import {
 } from "@/lib/canonical-title-preference"
 import {
   hasObscureDiscoveryIntent,
+  isDiscoveryCanonTitle,
   isFamousIndieForObscurePrompt,
 } from "@/lib/recommend-diversity-core"
 import type { RawgCandidate } from "@/lib/rawg-discovery"
@@ -652,6 +653,16 @@ export function enrichPromptForDiscovery(
         "User wants hidden gems / under-the-radar / not-usual-indie picks — do NOT default to famous indie canon (Hollow Knight, Undertale, Celeste, Edith Finch, Oxenfree, Night in the Woods, Gris, A Short Hike). Prefer acclaimed lower-awareness titles with proven quality."
       )
     }
+    if (
+      /\b(love gaming again|restore my love for games|remind me why games are special|magic of gaming)\b/i.test(
+        base
+      ) &&
+      !hasObscureDiscoveryIntent(base)
+    ) {
+      hints.push(
+        "User wants memorable / magical games that restore love for gaming — NOT hidden gems. Mix classics, ambitious games, and unique experiences; avoid clustering narrative indie safe picks or curator-default discovery darlings."
+      )
+    }
   }
   if (signals.cozyShortSession) {
     hints.push(
@@ -1170,13 +1181,19 @@ export function scoreCandidateRelevanceBoost(params: {
       else if (added > 15_000 && ratings > 8_000) delta -= 16
       const nameLower = candidate.name.toLowerCase()
       if (
-        /\b(norco|signalis|citizen sleeper|hypnospace outlaw|pentiment|chants of sennaar|void stranger|obra dinn|in stars and time|pathologic|sable|dredge|tunic|animal well|paradise killer|golden idol|eliza|1000xresist|felvidek|slay the princess|cosmic wheel sisterhood)\b/i.test(
+        isDiscoveryCanonTitle(candidate.name) &&
+        ratings >= 250 &&
+        rating >= 3.5
+      ) {
+        delta += 4
+      } else if (
+        /\b(hypnospace outlaw|chants of sennaar|void stranger|obra dinn|in stars and time|pathologic|sable|dredge|tunic|animal well|golden idol|eliza|1000xresist|felvidek|cosmic wheel sisterhood)\b/i.test(
           `${nameLower} ${blob}`
         ) &&
         ratings >= 250 &&
         rating >= 3.5
       ) {
-        delta += 18
+        delta += 8
       }
     }
     if (signals.discoverySubkind === "lonely_beautiful") {

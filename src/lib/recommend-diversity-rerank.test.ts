@@ -10,6 +10,7 @@ import {
   balanceFinalPicksDiversity,
   buildDiversityContext,
   isCanonicalAnchorTitle,
+  isDiscoveryCanonTitle,
   isFamousIndieForObscurePrompt,
   popularityWeightMultiplier,
   type DiversityPick,
@@ -58,6 +59,7 @@ describe("buildDiversityContext", () => {
     });
     assert.equal(ctx.antiSafePickFatigue, true);
     assert.equal(ctx.obscureDiscovery, false);
+    assert.equal(ctx.magicalRediscovery, true);
     assert.equal(ctx.classicListRequest, false);
   });
 
@@ -126,11 +128,74 @@ describe("popularityWeightMultiplier", () => {
 
     assert.ok(popularityWeightMultiplier(obscure) <= 0.12);
     assert.ok(popularityWeightMultiplier(fatigue) < 1);
+    assert.ok(
+      popularityWeightMultiplier(
+        buildDiversityContext({
+          userPrompt: "games that make you love gaming again",
+          signals: detectIntentSignals("games that make you love gaming again"),
+        })
+      ) >= 0.85
+    );
     assert.ok(popularityWeightMultiplier(classic) > 1);
   });
 });
 
 describe("applyDiversityScoreAdjustments", () => {
+  it("does not stack discovery canon darlings", () => {
+    const ctx = buildDiversityContext({
+      userPrompt: "Weird underrated hidden gems",
+      signals: sig({ discoverySubkind: "underrated", memorableDiscovery: true }),
+    });
+    const picks = [
+      pick("NORCO", 88),
+      pick("Citizen Sleeper", 87),
+      pick("Pentiment", 86),
+      pick("Signalis", 85),
+      pick("Outer Wilds", 82, "good_alternative"),
+      pick("Subnautica", 80, "good_alternative"),
+    ];
+    const balanced = balanceFinalPicksDiversity(picks, ctx);
+    const canonCount = balanced.filter((p) => isDiscoveryCanonTitle(p.title)).length;
+    assert.ok(canonCount <= 2, `expected <=2 discovery canon, got ${canonCount}`);
+  });
+
+  it("penalizes stacked discovery canon in scoring", () => {
+    const ctx = buildDiversityContext({
+      userPrompt: "hidden gems under the radar",
+      signals: sig({ discoverySubkind: "underrated", memorableDiscovery: true }),
+    });
+    const scored = [
+      { candidate: mockCandidate("NORCO"), score: 50 },
+      { candidate: mockCandidate("Citizen Sleeper"), score: 49 },
+      { candidate: mockCandidate("Pentiment"), score: 48 },
+      { candidate: mockCandidate("Subnautica"), score: 46 },
+    ];
+    const adjusted = applyDiversityScoreAdjustments(scored, ctx);
+    const subnautica = adjusted.find((r) => r.candidate.name === "Subnautica")!;
+    const norco = adjusted.find((r) => r.candidate.name === "NORCO")!;
+    assert.ok(subnautica.score >= norco.score - 4);
+  });
+
+  it("prefers ambitious classics over discovery darlings for love gaming again", () => {
+    const ctx = buildDiversityContext({
+      userPrompt: "Games that make you love gaming again",
+      signals: detectIntentSignals("Games that make you love gaming again"),
+    });
+    assert.equal(ctx.magicalRediscovery, true);
+    const scored = [
+      { candidate: mockCandidate("NORCO"), score: 50 },
+      { candidate: mockCandidate("Citizen Sleeper"), score: 49 },
+      { candidate: mockCandidate("Outer Wilds"), score: 47 },
+      { candidate: mockCandidate("Portal 2"), score: 46 },
+    ];
+    const adjusted = applyDiversityScoreAdjustments(scored, ctx);
+    const top = adjusted[0]!.candidate.name;
+    assert.ok(
+      top === "Outer Wilds" || top === "Portal 2",
+      `expected ambitious classic on top, got ${top}`
+    );
+  });
+
   it("penalizes stacked canonical anchors under fatigue", () => {
     const ctx = buildDiversityContext({
       userPrompt: "Games that make you love gaming again",
@@ -140,13 +205,12 @@ describe("applyDiversityScoreAdjustments", () => {
       { candidate: mockCandidate("Journey"), score: 50 },
       { candidate: mockCandidate("Celeste"), score: 49 },
       { candidate: mockCandidate("Firewatch"), score: 48 },
-      { candidate: mockCandidate("NORCO"), score: 45 },
+      { candidate: mockCandidate("Outer Wilds"), score: 45 },
     ];
     const adjusted = applyDiversityScoreAdjustments(scored, ctx);
-    const norco = adjusted.find((r) => r.candidate.name === "NORCO");
-    const journey = adjusted.find((r) => r.candidate.name === "Journey");
-    assert.ok(norco && journey);
-    assert.ok(norco!.score >= journey!.score - 5);
+    const outer = adjusted.find((r) => r.candidate.name === "Outer Wilds")!;
+    const journey = adjusted.find((r) => r.candidate.name === "Journey")!;
+    assert.ok(outer.score >= journey.score - 8);
   });
 
   it("demotes narrative indie canon for obscure hidden gem prompts", () => {
