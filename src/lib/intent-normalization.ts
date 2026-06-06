@@ -212,7 +212,7 @@ export function detectIntentSignals(text: string): IntentSignals {
     (/\bhorror\b/.test(n) && /\bpsicolog\w*\b/.test(n))
 
   const memorableDiscovery =
-    /\b(surprise\s+me|stupiscimi|something\s+unforgettable|unforgettable|hidden\s+gem|overlooked\s+gem|cult\s+classic|sottovalutat\w*|underrated|tired\s+of\s+aaa|weird\s+but|memorable|think(?:ing)?\s+about\s+(?:it|them|this)\s+(?:later|after|week)|still\s+be\s+thinking|gemme\s+nascoste|qualcosa\s+di\s+special\w*|qualcosa\s+che\s+non\s+dimenticher\w*)\b/.test(
+    /\b(surprise\s+me|stupiscimi|something\s+unforgettable|unforgettable|hidden\s+gem|overlooked\s+gem|cult\s+classic|sottovalutat\w*|underrated|tired\s+of\s+aaa|weird\s+but|memorable|think(?:ing)?\s+about\s+(?:it|them|this)\s+(?:later|after|week)|still\s+be\s+thinking|gemme\s+nascoste|qualcosa\s+di\s+special\w*|qualcosa\s+che\s+non\s+dimenticher\w*|love\s+gaming\s+again|make\s+you\s+love\s+gaming|fall\s+in\s+love\s+with\s+gaming|restore\s+(?:my\s+)?faith\s+in\s+gaming|rekindle.*gaming)\b/.test(
       n
     ) ||
     (/\b(special|meaningful|emotional(?:ly)?\s+memorable|genuinely\s+lonely|lonely\s+but\s+beautiful|beautiful\s+way)\b/.test(
@@ -1146,6 +1146,26 @@ export function scoreCandidateRelevanceBoost(params: {
 
     if (signals.discoverySubkind === "anti_aaa" && added > 75000 && ratings > 40000) {
       delta -= 28
+    }
+    if (signals.discoverySubkind === "underrated") {
+      const nameLower = candidate.name.toLowerCase()
+      if (
+        /\b(undertale|hollow knight|disco elysium|celeste|journey|stardew valley|hades|outer wilds|portal 2)\b/i.test(
+          `${nameLower} ${blob}`
+        )
+      ) {
+        delta -= 34
+      }
+      if (added > 50000 && ratings > 25000) delta -= 20
+      if (
+        /\b(norco|signalis|citizen sleeper|hypnospace outlaw|pentiment|chants of sennaar|void stranger|obra dinn|in stars and time|pathologic|sable|dredge|tunic|animal well)\b/i.test(
+          `${nameLower} ${blob}`
+        ) &&
+        ratings >= 300 &&
+        rating >= 3.5
+      ) {
+        delta += 16
+      }
     }
     if (signals.discoverySubkind === "lonely_beautiful") {
       if (/\b(exploration|atmospheric|adventure|indie|narrative|walking)\b/i.test(genres)) {

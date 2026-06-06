@@ -286,10 +286,17 @@ export async function aiFirstDiscovery(params: {
   filtersEnabled?: boolean
   /** Prompt-specific disambiguation (e.g. Steam Deck vs deckbuilder). */
   disambiguationRules?: string[]
+  /** Anti-consensus / hidden-gem personality rules from diversity context. */
+  personalityRules?: string
 }) {
   const { openai, normalizedInput } = params
   const filtersEnabled = params.filtersEnabled !== false
   const discoveryStarted = performance.now()
+
+  const personalityBlock =
+    params.personalityRules?.trim()
+      ? `\nRecommendation personality (must follow):\n${params.personalityRules.trim()}\n`
+      : ""
 
   const disambiguationBlock =
     params.disambiguationRules && params.disambiguationRules.length > 0
@@ -350,7 +357,7 @@ Rules:
 - If the user clearly wants to FIND / PRICE / DISCOUNT a specific game by name (e.g. "trova Hades", "prezzo di Elden Ring"), leave "excludeTitles" empty and you may include that game in "suggestedTitles".
 - Respect the user's maximum budget when suggesting titles when practical (prefer titles likely affordable under that cap).
 - Weight the user's selected tags heavily when choosing suggestions.
-${disambiguationBlock}${discoveryOnlyRules}
+${personalityBlock}${disambiguationBlock}${discoveryOnlyRules}
 - Keep everything concise. No markdown. No extra keys.
 `,
           },
@@ -457,10 +464,21 @@ export async function aiSingleCallFastDiscovery(params: {
   filtersEnabled?: boolean
   /** Prompt-specific disambiguation (e.g. Steam Deck vs deckbuilder). */
   disambiguationRules?: string[]
+  /** Anti-consensus / hidden-gem personality rules from diversity context. */
+  personalityRules?: string
 }) {
   const { openai, normalizedInput } = params
   const filtersEnabled = params.filtersEnabled !== false
   const started = performance.now()
+
+  const personalityBlock =
+    params.personalityRules?.trim()
+      ? [
+          "Recommendation personality (must follow):",
+          ...params.personalityRules.trim().split("\n").map((l) => l.trim()).filter(Boolean),
+          "",
+        ].join("\n")
+      : ""
 
   const disambiguationBlock =
     params.disambiguationRules && params.disambiguationRules.length > 0
@@ -511,6 +529,8 @@ export async function aiSingleCallFastDiscovery(params: {
     "- fallbackDiscoveryQueries: 2–3 short English RAWG search strings when useful; else [].",
     "- Open-ended discovery (surprise me, hidden gems, unforgettable, tired of AAA, lonely but beautiful): pick critically respected indie/cult classics with strong reputation — NOT shovelware, VR demos, or titles that only match keywords like surprise/experience/loneliness.",
     "- For discovery prompts, fallbackDiscoveryQueries must use high-signal phrases (cult classic indie, memorable narrative indie, emotional atmospheric adventure) — never bare surprise, experience, indie, weird, or unforgettable alone.",
+    "- Avoid defaulting to the same universally recommended games unless they are clearly the best personal fit; hidden gem means actually less obvious, not simply famous indie icons.",
+    personalityBlock,
     "- For highly specific multi-constraint prompts (fantasy+elves/orcs+strategy, faction building, etc.): treat setting/races/mechanics as MUST-HAVE — do not suggest games that contradict the required setting (e.g. sci-fi when fantasy races are required). Use high-signal fallbackDiscoveryQueries tied to all constraints.",
     "- Games like/similar to X: X in referenceTitles and excludeTitles; do not recommend X.",
     "- Loved/favorite/played/finished/enjoyed games: each named title in referenceTitles and excludeTitles; do not recommend those exact games.",

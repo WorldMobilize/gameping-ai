@@ -39,9 +39,13 @@ import {
   applyDiversityScoreAdjustments,
   balanceFinalPicksDiversity,
   buildDeterministicFallbackPicks,
+  buildDiversityContext,
   buildRecoveryReason,
+  diversityPersonalityPromptBlock,
+  popularityWeightMultiplier,
   RECOVERY_MAX_ADDITIONS,
   RECOVERY_MAX_TOTAL_PICKS,
+  type DiversityContext,
 } from "@/lib/recommend-diversity-rerank";
 import { blockUnverifiedLoggedInUser } from "@/lib/require-verified-email";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
@@ -1401,6 +1405,7 @@ async function verifySuggestedTitles(params: {
   normalizedIntent?: string;
   coreNeeds?: string[];
   userPrompt?: string;
+  popularityWeight?: number;
 }) {
   const {
     rawgKey,
@@ -1411,6 +1416,7 @@ async function verifySuggestedTitles(params: {
     normalizedIntent = "",
     coreNeeds = [],
     userPrompt = "",
+    popularityWeight = 1,
   } = params;
   const maxTitles = params.maxTitles ?? 12;
   // Trim RAWG fan-out: top titles only (keeps quality while reducing worst-case latency).
@@ -1473,7 +1479,7 @@ async function verifySuggestedTitles(params: {
       const score =
         tm * 100 +
         metadataQualityScore(c) +
-        popularityScore(c) * 0.35 +
+        popularityScore(c) * 0.35 * popularityWeight +
         relevanceBoost +
         canonicalBoost;
       if (score > bestScore) {
@@ -1511,6 +1517,7 @@ function scoreVerifiedCandidates(params: {
   candidates: VerifiedCandidate[];
   intentSignals: IntentSignals;
   userPrompt: string;
+  popularityWeight?: number;
 }) {
   const {
     normalizedIntent,
@@ -1521,6 +1528,7 @@ function scoreVerifiedCandidates(params: {
     candidates,
     intentSignals,
     userPrompt,
+    popularityWeight = 1,
   } = params;
 
   const scored = candidates.map((c) => {
@@ -1546,7 +1554,7 @@ function scoreVerifiedCandidates(params: {
     const titleBoost = titleMatch > 0 ? titleMatch * 18 : 0;
     const confBoost = titleMatch > 0 ? (conf / 100) * 10 : 0;
     const meta = metadataQualityScore(c);
-    const pop = popularityScore(c);
+    const pop = popularityScore(c) * popularityWeight;
 
     return {
       candidate: c,
@@ -2180,11 +2188,22 @@ export async function POST(req: Request) {
         : normalizedInput.userPrompt
     );
 
-    const intentSignals = detectIntentSignals(
-      isRefineRequest
-        ? `${refineContext!.originalPrompt} ${refineContext!.refineMessage}`
-        : normalizedInput.userPrompt
-    );
+    const diversityPrompt = isRefineRequest
+      ? `${refineContext!.originalPrompt} ${refineContext!.refineMessage}`
+      : normalizedInput.userPrompt;
+
+    const intentSignals = detectIntentSignals(diversityPrompt);
+    const buildDiversityContextForRun = (extraReferenceTitles: string[] = []) =>
+      buildDiversityContext({
+        userPrompt: diversityPrompt,
+        signals: intentSignals,
+        referenceTitles: [
+          ...regexRefsFromPrompt,
+          ...tasteRefsFromPrompt,
+          ...extraReferenceTitles,
+        ],
+      });
+    let diversityContext: DiversityContext = buildDiversityContextForRun();
     const disambiguationRules = buildDisambiguationRules(
       intentSignals,
       isRefineRequest ? refineContext!.originalPrompt : normalizedInput.userPrompt
@@ -2231,6 +2250,7 @@ export async function POST(req: Request) {
           filtersEnabled,
           normalizedInput: discoveryNormalizedInput,
           disambiguationRules,
+          personalityRules: diversityPersonalityPromptBlock(diversityContext),
         });
         // Reuse the same intent shape for cache keys + downstream RAWG logic.
         aiDiscovery = { intent: fast.intent, usage: fast.usage } as Awaited<
@@ -2245,6 +2265,7 @@ export async function POST(req: Request) {
           filtersEnabled,
           normalizedInput: discoveryNormalizedInput,
           disambiguationRules,
+          personalityRules: diversityPersonalityPromptBlock(diversityContext),
         });
       }
     } catch (err) {
@@ -2271,6 +2292,7 @@ export async function POST(req: Request) {
             filtersEnabled,
             normalizedInput: discoveryNormalizedInput,
             disambiguationRules,
+            personalityRules: diversityPersonalityPromptBlock(diversityContext),
           });
         } else {
           throw err;
@@ -2280,6 +2302,9 @@ export async function POST(req: Request) {
     timing.aiDiscoveryMs = performance.now() - tDiscovery;
     stageMs["ai.discovery"] = timing.aiDiscoveryMs;
     const intent = aiDiscovery.intent;
+
+    diversityContext = buildDiversityContextForRun(intent.referenceTitles ?? []);
+    const popularityWeight = popularityWeightMultiplier(diversityContext);
 
     const intentMerged = mergeIntentAugmentation(
       {
@@ -2434,6 +2459,7 @@ export async function POST(req: Request) {
         normalizedIntent: intent.normalizedIntent,
         coreNeeds: intent.coreNeeds ?? [],
         userPrompt: normalizedInput.userPrompt,
+        popularityWeight,
       });
     }
     timing.rawgVerificationMs = performance.now() - tVerify;
@@ -2544,7 +2570,8 @@ export async function POST(req: Request) {
           dedupeCandidates(fetched)
         );
 
-        const diverse = selectDiverseTop([...scored], 20).map((s) => s.candidate);
+        const scoredDiverse = applyDiversityScoreAdjustments(scored, diversityContext);
+        const diverse = selectDiverseTop([...scoredDiverse], 20).map((s) => s.candidate);
         const used = new Set(picksForEnrichment.map((p) => p.id));
         const fallbackRelevanceFloor =
           resultCountPolicy === "quality_first" ? -15 : -35;
@@ -2632,6 +2659,11 @@ export async function POST(req: Request) {
           });
         });
       }
+
+      picksForEnrichment = balanceFinalPicksDiversity(
+        picksForEnrichment,
+        diversityContext
+      );
 
       // Ensure images if missing.
       let picksWithImages = picksForEnrichment;
@@ -2738,7 +2770,8 @@ export async function POST(req: Request) {
         dedupeCandidates(fetched)
       );
 
-      const diverse = selectDiverseTop([...scored], 50)
+      const scoredDiverse = applyDiversityScoreAdjustments(scored, diversityContext);
+      const diverse = selectDiverseTop([...scoredDiverse], 50)
         .map((s) => s.candidate)
         .filter(
           (c) =>
@@ -2763,9 +2796,10 @@ export async function POST(req: Request) {
       candidates: candidatePool,
       intentSignals,
       userPrompt: normalizedInput.userPrompt,
+      popularityWeight,
     });
     // Conservative diversity: soften canonical anchors, nudge discovery gems when already relevant.
-    scoredFinal = applyDiversityScoreAdjustments(scoredFinal);
+    scoredFinal = applyDiversityScoreAdjustments(scoredFinal, diversityContext);
 
     // Quality rule: better 3 strong than 5 filler.
     let strong = scoredFinal
@@ -2882,6 +2916,7 @@ Rules:
 - Match must be a number from 0 to 100 (semantic fit including tags/genres/platforms intent).
 ${rerankCopyStyleBlock(copyLocale)}
 ${explicitRerankBlock}
+${diversityPersonalityPromptBlock(diversityContext)}
 ${rankingHint}
 - Do not quote exact prices in "reason" or "matchNote"; budget is handled separately.
 - No markdown, no bullet symbols, no extra keys.
@@ -2990,7 +3025,8 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
       .slice(0, 6);
 
     let picksForEnrichment: PreEnrichPick[] = balanceFinalPicksDiversity(
-      pickedVerified
+      pickedVerified,
+      diversityContext
     );
 
     if (picksForEnrichment.length === 0 && scoredFinal.length > 0) {
@@ -3000,6 +3036,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
           isExcludedGameTitle(title, excludeAnchors, excludeNormalized),
         locale: copyLocale,
         max: 4,
+        ctx: diversityContext,
         mapCandidate: (c) => ({
           id: c.id,
           title: c.name,
@@ -3029,7 +3066,10 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
         intentSignals,
       });
     }
-    picksForEnrichment = balanceFinalPicksDiversity(picksForEnrichment);
+    picksForEnrichment = balanceFinalPicksDiversity(
+      picksForEnrichment,
+      diversityContext
+    );
     timing.recoveryMs = performance.now() - tRecovery;
     stageMs["recovery"] = timing.recoveryMs;
 
