@@ -3,8 +3,10 @@ import { describe, it } from "node:test"
 
 import {
   isNonCanonicalSideEdition,
+  isDirtyPlatformTitleVariant,
   isWeakFantasyStrategyFillerTitle,
   scoreCanonicalTitlePreference,
+  shouldRejectDirtyPlatformTitleVariant,
   shouldRejectNonCanonicalSideEdition,
 } from "@/lib/canonical-title-preference"
 
@@ -63,5 +65,27 @@ describe("canonical-title-preference", () => {
       preferFranchiseMainline: true,
     })
     assert.ok(wc3 > orcs)
+  })
+
+  it("flags dirty platform/region dump title variants", () => {
+    assert.equal(
+      isDirtyPlatformTitleVariant("Danganronpa: Trigger Happy Havoc On PSP (RUS)"),
+      true
+    )
+    assert.equal(
+      shouldRejectDirtyPlatformTitleVariant(
+        "Danganronpa: Trigger Happy Havoc On PSP (RUS)",
+        "turn based JRPG"
+      ),
+      true
+    )
+    assert.equal(
+      isDirtyPlatformTitleVariant("Persona 5 Royal"),
+      false
+    )
+    assert.equal(
+      isDirtyPlatformTitleVariant("Dark Souls: Remastered"),
+      false
+    )
   })
 })

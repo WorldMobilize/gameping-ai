@@ -1,3 +1,56 @@
+const ALLOWED_EDITION_MARKERS =
+  /\b(hd remaster|definitive edition|royal|reload|complete edition|game of the year|goty|director's cut|ultimate edition|enhanced edition|special edition)\b/i
+
+/** Region/platform dump markers — not legitimate retail editions. */
+const DIRTY_PLATFORM_TITLE_MARKERS: RegExp[] = [
+  /\(\s*RUS\s*\)/i,
+  /\(\s*ENG\s*\)/i,
+  /\(\s*JPN\s*\)/i,
+  /\(\s*EUR\s*\)/i,
+  /\bon psp\b/i,
+  /\bon ps2\b/i,
+  /\bon ps3\b/i,
+  /\bon ps4\b/i,
+  /\bon ps5\b/i,
+  /\bon xbox\b/i,
+  /\bon switch\b/i,
+  /\bon nintendo\b/i,
+  /\bon pc\b/i,
+  /\bROM\b/i,
+  /\bISO\b/i,
+  /\bfan translation\b/i,
+  /\bfantrans\b/i,
+  /\b(pirate|bootleg)\b/i,
+  /\bunofficial port\b/i,
+]
+
+/** Conservative: reject obvious ROM/region/platform dump titles, not retail remasters. */
+export function isDirtyPlatformTitleVariant(title: string): boolean {
+  const n = title.trim()
+  if (!n) return false
+  if (ALLOWED_EDITION_MARKERS.test(n) && !/\(\s*(RUS|ENG|JPN|EUR)\s*\)/i.test(n)) {
+    return false
+  }
+  return DIRTY_PLATFORM_TITLE_MARKERS.some((re) => re.test(n))
+}
+
+export function shouldRejectDirtyPlatformTitleVariant(
+  candidateName: string,
+  userPrompt = ""
+): boolean {
+  if (!isDirtyPlatformTitleVariant(candidateName)) return false
+  const prompt = userPrompt.toLowerCase()
+  const name = candidateName.toLowerCase()
+  if (prompt.includes(name.slice(0, Math.min(24, name.length)))) return false
+  if (/\b(psp|ps2|rus|fan translation|rom)\b/i.test(prompt)) return false
+  return true
+}
+
+/** Dedupe/scoring penalty for non-canonical platform dump titles. */
+export function dirtyPlatformTitleVariantPenalty(title: string): number {
+  return isDirtyPlatformTitleVariant(title) ? 58 : 0
+}
+
 /** Prefer base/canonical game entries over side editions and weak franchise variants. */
 
 const SIDE_EDITION_PATTERNS: RegExp[] = [
@@ -76,6 +129,7 @@ export function nonCanonicalSideEditionDedupePenalty(title: string): number {
   if (isNonCanonicalSideEdition(title)) penalty += 42
   if (/\bversus edition\b/i.test(title)) penalty += 18
   if (/\bstrategy edition\b/i.test(title)) penalty += 16
+  penalty += dirtyPlatformTitleVariantPenalty(title)
   return penalty
 }
 
@@ -91,6 +145,9 @@ export function scoreCanonicalTitlePreference(params: {
 
   if (shouldRejectNonCanonicalSideEdition(candidateName, userPrompt)) {
     delta -= 50
+  }
+  if (shouldRejectDirtyPlatformTitleVariant(candidateName, userPrompt)) {
+    delta -= 55
   }
 
   const suggested = (suggestedTitle ?? "").trim()

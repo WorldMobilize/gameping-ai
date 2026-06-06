@@ -96,6 +96,10 @@ import {
   type IntentSignals,
 } from "@/lib/intent-normalization";
 import { scoreCanonicalTitlePreference } from "@/lib/canonical-title-preference";
+import {
+  expandReferenceTitleExcludes,
+  matchesReferenceExclude,
+} from "@/lib/reference-title-aliases";
 
 type VerifiedCandidate = RawgCandidate & {
   _suggested?: {
@@ -278,6 +282,16 @@ function normalizeTitleForMatch(title: string) {
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function isExcludedGameTitle(
+  title: string,
+  excludeAnchors: string[],
+  excludeNormalized: Set<string>
+) {
+  const norm = normalizeTitleForMatch(title);
+  if (excludeNormalized.has(norm)) return true;
+  return matchesReferenceExclude(title, excludeAnchors);
 }
 
 function titleTokensForMatch(title: string) {
@@ -880,6 +894,10 @@ function explicitRequirementPenaltyBlock(params: {
     /\bjrpgs?\b|\bturn[\s-]?based\s+(?:rpg|jrpg)|\btactical\s+rpg|\bcrpgs?\b|\baction\s+rpg/i.test(
       q
     );
+  const turnBasedJrpgHard =
+    /\bturn[\s-]?based\s+(?:jrpg|rpg)\b|\bjrpg\b.*\bturn[\s-]?based\b|\bturn[\s-]?based\b.*\bjrpg\b/i.test(
+      q
+    );
 
   if (hints.size === 0 && !genreCombatHard) return "";
 
@@ -890,6 +908,7 @@ Genre/combat hierarchy (must follow):
 - Stated genre and combat loop (JRPG, turn-based RPG, tactical RPG, etc.) are HARD requirements.
 - Story, vibe, or narrative depth alone does NOT justify picks outside that genre/combat loop.
 - Mark relevant=false / partial_match for walking sims and story-only adventures (e.g. Life is Strange, Firewatch, The Forgotten City) when the user asked for RPG/JRPG/turn-based combat.
+${turnBasedJrpgHard ? "- Turn-based was explicitly requested: action JRPGs / real-time combat RPGs (e.g. Xenoblade, Tales of, Star Ocean) must be partial_match at best — never claim turn-based mechanics unless metadata supports it." : ""}
 `
     : "";
 
@@ -1375,6 +1394,7 @@ async function verifySuggestedTitles(params: {
   rawgKey: string;
   suggestedTitles: AiSuggestedTitle[];
   excludeNormalized: Set<string>;
+  excludeAnchors: string[];
   /** Cap parallel RAWG title lookups (default 12; fast mode uses 8). */
   maxTitles?: number;
   intentSignals?: IntentSignals;
@@ -1386,6 +1406,7 @@ async function verifySuggestedTitles(params: {
     rawgKey,
     suggestedTitles,
     excludeNormalized,
+    excludeAnchors = [],
     intentSignals = EMPTY_INTENT_SIGNALS,
     normalizedIntent = "",
     coreNeeds = [],
@@ -1399,7 +1420,7 @@ async function verifySuggestedTitles(params: {
   const resolved = await mapPool(slice, RAWG_VERIFY_CONCURRENCY, async (s) => {
     const title = s.title.trim();
     if (!title) return null;
-    if (excludeNormalized.has(normalizeTitleForMatch(title))) return null;
+    if (isExcludedGameTitle(title, excludeAnchors, excludeNormalized)) return null;
     if (intentSignals.steamDeck && isSteamDeckTitleKeywordSpam(title)) return null;
     if (
       intentSignals.psychologicalHorror &&
@@ -1463,7 +1484,7 @@ async function verifySuggestedTitles(params: {
     }
 
     if (!best) return null;
-    if (excludeNormalized.has(normalizeTitleForMatch(best.name))) return null;
+    if (isExcludedGameTitle(best.name, excludeAnchors, excludeNormalized)) return null;
 
     return {
       ...best,
@@ -1539,10 +1560,13 @@ function scoreVerifiedCandidates(params: {
 
 function filterCandidatesByExclude(
   pool: VerifiedCandidate[],
+  excludeAnchors: string[],
   excludeNormalized: Set<string>
 ) {
-  if (excludeNormalized.size === 0) return pool;
-  return pool.filter((c) => !excludeNormalized.has(normalizeTitleForMatch(c.name)));
+  if (excludeNormalized.size === 0 && excludeAnchors.length === 0) return pool;
+  return pool.filter(
+    (c) => !isExcludedGameTitle(c.name, excludeAnchors, excludeNormalized)
+  );
 }
 
 type PreEnrichPick = {
@@ -1717,6 +1741,7 @@ function augmentPicksWithRecovery(params: {
   };
   normalizedInput: { userPrompt: string };
   tagTokens: string[];
+  excludeAnchors: string[];
   excludeNormalized: Set<string>;
   filtersEnabled: boolean;
   locale: "it" | "en";
@@ -1729,6 +1754,7 @@ function augmentPicksWithRecovery(params: {
     intent,
     normalizedInput,
     tagTokens,
+    excludeAnchors,
     excludeNormalized,
     filtersEnabled,
     locale,
@@ -1764,7 +1790,7 @@ function augmentPicksWithRecovery(params: {
 
   for (const c of candidatePool) {
     if (usedIds.has(c.id)) continue;
-    if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
+    if (isExcludedGameTitle(c.name, excludeAnchors, excludeNormalized)) continue;
     if (!isProbablyBaseGame(c)) continue;
     const sc = scoreById.get(c.id);
     if (sc === undefined) continue;
@@ -2303,10 +2329,12 @@ export async function POST(req: Request) {
     if (isRefineRequest) {
       applyRefineExcludeAndReferenceToIntent(intent, refineContext!, excludeListRaw);
     }
+    let excludeAnchors = expandReferenceTitleExcludes(excludeListRaw);
     let excludeNormalized = new Set(
-      excludeListRaw.map((t) => normalizeTitleForMatch(t)).filter(Boolean)
+      excludeAnchors.map((t) => normalizeTitleForMatch(t)).filter(Boolean)
     );
     if (isExplicitTitleLookupQuery(normalizedInput.userPrompt)) {
+      excludeAnchors = [];
       excludeNormalized = new Set();
     }
 
@@ -2400,6 +2428,7 @@ export async function POST(req: Request) {
         rawgKey,
         suggestedTitles: intent.suggestedTitles,
         excludeNormalized,
+        excludeAnchors,
         maxTitles: singleCallFastEnabled ? 8 : undefined,
         intentSignals,
         normalizedIntent: intent.normalizedIntent,
@@ -2410,7 +2439,7 @@ export async function POST(req: Request) {
     timing.rawgVerificationMs = performance.now() - tVerify;
     stageMs["rawg.verifySuggestedTitles"] = timing.rawgVerificationMs;
 
-    verified = filterCandidatesByExclude(verified, excludeNormalized);
+    verified = filterCandidatesByExclude(verified, excludeAnchors, excludeNormalized);
     verified = verified.filter(
       (c) =>
         !shouldRejectCandidateForSignals(
@@ -2445,7 +2474,7 @@ export async function POST(req: Request) {
           verifiedBySuggested
         );
         if (!c) continue;
-        if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
+        if (isExcludedGameTitle(c.name, excludeAnchors, excludeNormalized)) continue;
         if (shouldRejectCandidateForSignals(c, intentSignals, normalizedInput.userPrompt)) continue;
         if (
           shouldRejectFastPickForMustHave({
@@ -2524,7 +2553,7 @@ export async function POST(req: Request) {
 
         for (const c of diverse) {
           if (used.has(c.id)) continue;
-          if (excludeNormalized.has(normalizeTitleForMatch(c.name))) continue;
+          if (isExcludedGameTitle(c.name, excludeAnchors, excludeNormalized)) continue;
           if (!isProbablyBaseGame(c)) continue;
           if (shouldRejectCandidateForSignals(c, intentSignals, normalizedInput.userPrompt)) continue;
           const relevanceBoost = scoreCandidateRelevanceBoost({
@@ -2718,7 +2747,11 @@ export async function POST(req: Request) {
       candidatePool = dedupeCandidates([...candidatePool, ...diverse]);
     }
 
-    candidatePool = filterCandidatesByExclude(candidatePool, excludeNormalized);
+    candidatePool = filterCandidatesByExclude(
+      candidatePool,
+      excludeAnchors,
+      excludeNormalized
+    );
 
     // 4) Final candidate scoring and pruning.
     let scoredFinal = scoreVerifiedCandidates({
@@ -2920,7 +2953,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
         if (!Number.isFinite(id)) return null;
         const c = poolById.get(Number(id));
         if (!c) return null;
-        if (excludeNormalized.has(normalizeTitleForMatch(c.name))) return null;
+        if (isExcludedGameTitle(c.name, excludeAnchors, excludeNormalized)) return null;
 
         const matchRaw =
           typeof g.match === "number"
@@ -2963,7 +2996,8 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
     if (picksForEnrichment.length === 0 && scoredFinal.length > 0) {
       picksForEnrichment = buildDeterministicFallbackPicks({
         scoredFinal,
-        isExcluded: (title) => excludeNormalized.has(normalizeTitleForMatch(title)),
+        isExcluded: (title) =>
+          isExcludedGameTitle(title, excludeAnchors, excludeNormalized),
         locale: copyLocale,
         max: 4,
         mapCandidate: (c) => ({
@@ -2988,6 +3022,7 @@ ${hasCandidatePool ? `Candidate pool (pick ids only):\n${JSON.stringify(
         },
         normalizedInput,
         tagTokens,
+        excludeAnchors,
         excludeNormalized,
         filtersEnabled,
         locale: copyLocale,

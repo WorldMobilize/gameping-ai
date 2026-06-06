@@ -10,7 +10,10 @@ import {
   extractTasteReferenceTitlesFromPrompt,
   isFantasyRaceStrategyMustHave,
   isNarrativeAdventureMismatch,
+  isActionJrpgMismatch,
+  hasTurnBasedCombatMetadata,
   requiresRpgGenreCombat,
+  requiresTurnBasedRpg,
   FANTASY_RACE_STRATEGY_FRANCHISE_QUERIES,
   EMPTY_INTENT_SIGNALS,
   isDiscoveryShovelwareTitle,
@@ -937,5 +940,46 @@ describe("JRPG must-have constraints", () => {
       ),
       false
     );
+  });
+
+  it("penalizes action JRPGs when turn-based is required", () => {
+    const c = extractMustHaveConstraints(
+      "Turn based JRPG with amazing story",
+      EMPTY_INTENT_SIGNALS
+    );
+    assert.equal(requiresTurnBasedRpg(c), true);
+    assert.equal(
+      isActionJrpgMismatch({
+        name: "Xenoblade Chronicles 2",
+        genres: [{ name: "RPG" }, { name: "Action" }],
+        tags: [{ name: "Action RPG" }],
+      }),
+      true
+    );
+    assert.equal(
+      hasTurnBasedCombatMetadata({
+        name: "Dragon Quest XI",
+        genres: [{ name: "RPG" }],
+        tags: [{ name: "Turn-Based" }],
+      }),
+      true
+    );
+    const xenobladeBoost = scoreMustHaveConstraintBoost(
+      {
+        name: "Xenoblade Chronicles 2",
+        genres: [{ name: "RPG" }],
+        tags: [{ name: "Action RPG" }],
+      },
+      c
+    );
+    const dqBoost = scoreMustHaveConstraintBoost(
+      {
+        name: "Dragon Quest XI",
+        genres: [{ name: "RPG" }],
+        tags: [{ name: "Turn-Based" }],
+      },
+      c
+    );
+    assert.ok(dqBoost > xenobladeBoost);
   });
 });

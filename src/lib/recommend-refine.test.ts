@@ -2,6 +2,11 @@ import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 
 import {
+  expandReferenceTitleExcludes,
+  matchesReferenceExclude,
+} from "@/lib/reference-title-aliases"
+import {
+  applyRefineExcludeAndReferenceToIntent,
   applyRefineIntentAdjustments,
   buildRefineDiscoveryUserPrompt,
   classifyRefineIntent,
@@ -113,7 +118,30 @@ describe("recommend-refine", () => {
       refineMessage: msg,
     })
     assert.ok(resolved.referenceTitles.includes("RDR2"))
+    assert.ok(
+      expandReferenceTitleExcludes(resolved.referenceTitles).some((t) =>
+        /red dead redemption 2/i.test(t)
+      )
+    )
     assert.equal(resolved.excludeTitles.length, 3)
+
+    const excludeListRaw: string[] = []
+    const intent: { referenceTitles?: string[]; excludeTitles?: string[] } = {}
+    applyRefineExcludeAndReferenceToIntent(
+      intent,
+      {
+        originalPrompt: "Games I wish I could play again for the first time",
+        previousResultTitles: ["Journey", "Celeste", "Firewatch"],
+        refineMessage: msg,
+      },
+      excludeListRaw
+    )
+    assert.ok(
+      excludeListRaw.some((t) => /red dead redemption 2/i.test(t))
+    )
+    assert.ok(
+      matchesReferenceExclude("Red Dead Redemption 2", excludeListRaw)
+    )
   })
 
   it("extracts removal titles on minor edit", () => {

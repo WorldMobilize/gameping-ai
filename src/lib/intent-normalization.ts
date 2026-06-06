@@ -1,6 +1,7 @@
 import {
   isWeakFantasyStrategyFillerTitle,
   scoreCanonicalTitlePreference,
+  shouldRejectDirtyPlatformTitleVariant,
   shouldRejectNonCanonicalSideEdition,
 } from "@/lib/canonical-title-preference"
 import type { RawgCandidate } from "@/lib/rawg-discovery"
@@ -577,6 +578,7 @@ export function shouldRejectCandidateForSignals(
   const mustHave = extractMustHaveConstraints(userPrompt, signals)
   if (violatesMustHaveConstraints(candidate, mustHave)) return true
   if (shouldRejectNonCanonicalSideEdition(candidate.name, userPrompt)) return true
+  if (shouldRejectDirtyPlatformTitleVariant(candidate.name, userPrompt)) return true
   if (isFantasyRaceStrategyMustHave(mustHave) && isWeakFantasyStrategyFillerTitle(candidate.name)) {
     return true
   }
@@ -936,6 +938,15 @@ export function mergeIntentAugmentation(
         "visual novel without RPG combat",
         "Life is Strange-style narrative"
       )
+    }
+    if (requiresTurnBasedRpg(mustHave)) {
+      avoid.push(
+        "action JRPG",
+        "real-time combat JRPG",
+        "action RPG combat loop",
+        "Xenoblade-style action combat"
+      )
+      coreNeeds.push("turn-based combat", "command-based battles")
     }
     if (mustHave.settings.includes("fantasy")) {
       avoid.push(
@@ -1690,6 +1701,46 @@ export function isNarrativeAdventureMismatch(
   return walkingSim || (adventureOnly && /\b(narrative|story|mystery|choices)\b/i.test(blob))
 }
 
+const TURN_BASED_COMBAT_METADATA_RE =
+  /\b(turn-based|turn based|command-based|party-based turn|tactical turn|grid-based|strategy rpg)\b/i
+
+const ACTION_ORIENTED_JRPG_RE =
+  /\b(action rpg|real-time combat|real time combat|hack and slash|action combat|musou|arena combat)\b/i
+
+const ACTION_JRPG_FRANCHISE_RE =
+  /\b(xenoblade|tales of|star ocean|kingdom hearts|\bys\b|\bnier\b|final fantasy xv|ffxv)\b/i
+
+/** User explicitly asked for turn-based JRPG / turn-based RPG combat. */
+export function requiresTurnBasedRpg(constraints: MustHaveConstraints): boolean {
+  if (!constraints.active || !constraints.mechanics.includes("turn-based")) return false
+  return constraints.genres.some((g) =>
+    ["jrpg", "rpg", "crpg", "tactical-rpg"].includes(g)
+  )
+}
+
+export function hasTurnBasedCombatMetadata(
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
+): boolean {
+  return TURN_BASED_COMBAT_METADATA_RE.test(candidateBlob(candidate))
+}
+
+/** Action-oriented JRPG with no turn-based metadata — weak match when turn-based is required. */
+export function isActionJrpgMismatch(
+  candidate: Pick<RawgCandidate, "name" | "genres" | "tags">
+): boolean {
+  if (hasTurnBasedCombatMetadata(candidate)) return false
+  if (!hasRpgGenreMetadata(candidate)) return false
+
+  const blob = candidateBlob(candidate)
+  const name = candidate.name.toLowerCase()
+
+  if (ACTION_ORIENTED_JRPG_RE.test(blob)) return true
+  if (ACTION_JRPG_FRANCHISE_RE.test(name) || ACTION_JRPG_FRANCHISE_RE.test(blob)) return true
+  if (/\baction rpg\b/i.test(blob) && !TURN_BASED_COMBAT_METADATA_RE.test(blob)) return true
+
+  return false
+}
+
 /** Franchise-informed RAWG search seeds for fantasy race strategy (retrieval only). */
 export const FANTASY_RACE_STRATEGY_FRANCHISE_QUERIES = [
   "warcraft III strategy",
@@ -1838,6 +1889,12 @@ export function scoreMustHaveConstraintBoost(
         break
       case "turn-based":
         if (/\b(turn-based|turn based)\b/i.test(blob)) delta += 8
+        if (requiresTurnBasedRpg(constraints) && hasTurnBasedCombatMetadata(candidate)) {
+          delta += 16
+        }
+        if (requiresTurnBasedRpg(constraints) && isActionJrpgMismatch(candidate)) {
+          delta -= 54
+        }
         break
       case "rts":
         if (/\b(rts|real-time strategy)\b/i.test(blob)) delta += 8

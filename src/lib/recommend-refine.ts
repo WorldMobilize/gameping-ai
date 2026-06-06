@@ -1,4 +1,4 @@
-/** One-shot recommendation refinement (not multi-turn chat). */
+import { expandReferenceTitleExcludes } from "@/lib/reference-title-aliases"
 
 export type RecommendRefineContext = {
   originalPrompt: string
@@ -206,6 +206,7 @@ export function buildRefineDiscoveryUserPrompt(ctx: RecommendRefineContext): str
     return `Taste direction correction — this OVERRIDES the original request direction:
 ${refine}
 Reference taste anchors from the correction must dominate suggestedTitles and fallbackDiscoveryQueries.
+Do NOT recommend the exact reference anchor games themselves (e.g. if user says more like RDR2/Fallout NV, suggest similar open-world RPGs — not Red Dead Redemption 2 or Fallout: New Vegas).
 Original context only (secondary — do not repeat its indie/emotional bias if it conflicts): ${original}
 Prior picks — do not repeat unless explicitly referenced above: ${prior}`
   }
@@ -452,15 +453,17 @@ export function applyRefineExcludeAndReferenceToIntent(
 ): void {
   const { excludeTitles, referenceTitles } = resolveRefineExcludeAndReference(ctx)
   excludeListRaw.push(...excludeTitles)
-  if (referenceTitles.length > 0) {
+
+  const referenceExpanded = expandReferenceTitleExcludes(referenceTitles)
+  if (referenceExpanded.length > 0) {
     intent.referenceTitles = mergeUniqueStrings(
       [...(intent.referenceTitles ?? []), ...referenceTitles],
       16
     )
     intent.excludeTitles = mergeUniqueStrings(
-      [...(intent.excludeTitles ?? []), ...referenceTitles],
-      16
+      [...(intent.excludeTitles ?? []), ...referenceExpanded],
+      20
     )
-    excludeListRaw.push(...referenceTitles)
+    excludeListRaw.push(...referenceExpanded)
   }
 }
