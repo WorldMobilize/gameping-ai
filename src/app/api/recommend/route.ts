@@ -82,6 +82,7 @@ import {
   detectIntentSignals,
   detectResultCountPolicy,
   enrichPromptForDiscovery,
+  extractPromptExcludedTitles,
   extractTasteReferenceTitlesFromPrompt,
   mergeIntentAugmentation,
   reorderFastPicksByRelevance,
@@ -2182,15 +2183,13 @@ export async function POST(req: Request) {
     const regexRefsFromPrompt = extractReferenceTitlesFromPrompt(
       normalizedInput.userPrompt
     );
-    const tasteRefsFromPrompt = extractTasteReferenceTitlesFromPrompt(
-      isRefineRequest
-        ? `${refineContext!.originalPrompt} ${refineContext!.refineMessage}`
-        : normalizedInput.userPrompt
-    );
 
     const diversityPrompt = isRefineRequest
       ? `${refineContext!.originalPrompt} ${refineContext!.refineMessage}`
       : normalizedInput.userPrompt;
+
+    const tasteRefsFromPrompt = extractTasteReferenceTitlesFromPrompt(diversityPrompt);
+    const promptExcludedTitles = extractPromptExcludedTitles(diversityPrompt);
 
     const intentSignals = detectIntentSignals(diversityPrompt);
     const buildDiversityContextForRun = (extraReferenceTitles: string[] = []) =>
@@ -2348,6 +2347,7 @@ export async function POST(req: Request) {
     const excludeListRaw = [
       ...regexRefsFromPrompt,
       ...tasteRefsFromPrompt,
+      ...promptExcludedTitles,
       ...(intent.excludeTitles ?? []),
       ...(intent.referenceTitles ?? []),
     ];

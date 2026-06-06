@@ -355,6 +355,8 @@ Rules:
 - If the user asks for games LIKE / SIMILAR TO / ALTERNATIVES TO / "tipo" / "come" / "simili a" a NAMED game, put that game name in "referenceTitles" and "excludeTitles". Do NOT put that reference game in "suggestedTitles" as a recommendation — suggest similar games instead.
 - If the user mentions games they LOVED / LOVE / PLAYED / FINISHED / ENJOYED / FAVORITE (e.g. "I loved Persona, Omori, Disco Elysium"), put each named title in "referenceTitles" and "excludeTitles". Do NOT recommend those exact games unless the user explicitly wants to find/buy that title.
 - If the user clearly wants to FIND / PRICE / DISCOUNT a specific game by name (e.g. "trova Hades", "prezzo di Elden Ring"), leave "excludeTitles" empty and you may include that game in "suggestedTitles".
+- If the user names games to AVOID or EXCLUDE (e.g. "not Hollow Knight", "without Undertale"), put each named title in "excludeTitles" and do NOT recommend them.
+- Hidden gem / under-the-radar / not-usual-indie requests: suggest lower-awareness acclaimed titles — NOT famous indie canon (Hollow Knight, Undertale, Celeste, Edith Finch, Oxenfree, Night in the Woods, Gris, A Short Hike) unless explicitly named.
 - Respect the user's maximum budget when suggesting titles when practical (prefer titles likely affordable under that cap).
 - Weight the user's selected tags heavily when choosing suggestions.
 ${personalityBlock}${disambiguationBlock}${discoveryOnlyRules}
@@ -529,7 +531,9 @@ export async function aiSingleCallFastDiscovery(params: {
     "- fallbackDiscoveryQueries: 2–3 short English RAWG search strings when useful; else [].",
     "- Open-ended discovery (surprise me, hidden gems, unforgettable, tired of AAA, lonely but beautiful): pick critically respected indie/cult classics with strong reputation — NOT shovelware, VR demos, or titles that only match keywords like surprise/experience/loneliness.",
     "- For discovery prompts, fallbackDiscoveryQueries must use high-signal phrases (cult classic indie, memorable narrative indie, emotional atmospheric adventure) — never bare surprise, experience, indie, weird, or unforgettable alone.",
-    "- Avoid defaulting to the same universally recommended games unless they are clearly the best personal fit; hidden gem means actually less obvious, not simply famous indie icons.",
+    "- Avoid defaulting to the same universally recommended games unless they are clearly the best personal fit; hidden gem means actually less obvious acclaimed quality, not famous indie icons everyone already knows.",
+    "- Hidden gem / under-the-radar / not-usual-indie: do NOT recommend Hollow Knight, Undertale, Celeste, Edith Finch, Oxenfree, Night in the Woods, Gris, A Short Hike unless user explicitly names them; prefer lower-awareness picks like NORCO, Signalis, Citizen Sleeper, Pentiment.",
+    "- If user names games to avoid (not X, without Y), put them in excludeTitles.",
     personalityBlock,
     "- For highly specific multi-constraint prompts (fantasy+elves/orcs+strategy, faction building, etc.): treat setting/races/mechanics as MUST-HAVE — do not suggest games that contradict the required setting (e.g. sci-fi when fantasy races are required). Use high-signal fallbackDiscoveryQueries tied to all constraints.",
     "- Games like/similar to X: X in referenceTitles and excludeTitles; do not recommend X.",

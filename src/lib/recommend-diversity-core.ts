@@ -11,7 +11,12 @@ export const CANONICAL_SOFT_PENALTY = 4;
 export const CANONICAL_FATIGUE_PENALTY = 16;
 export const CANONICAL_FATIGUE_STACK_PENALTY = 8;
 export const DISCOVERY_SOFT_BOOST = 5;
-export const DISCOVERY_OBSCURE_BOOST = 9;
+export const DISCOVERY_OBSCURE_BOOST = 12;
+/** Strong penalty for famous indie canon under explicit obscure/hidden-gem intent. */
+export const FAMOUS_INDIE_OBSCURE_PENALTY = 38;
+export const FAMOUS_INDIE_OBSCURE_SORT_PENALTY = 34;
+export const MAX_FAMOUS_INDIE_PICKS_OBSCURE = 1;
+export const POPULARITY_WEIGHT_OBSCURE = 0.1;
 /** Discovery boost only applies when the candidate already has decent semantic fit. */
 export const DISCOVERY_MIN_BASE_SCORE = 34;
 /** Skip canonical penalty when the title leads the pool by this margin (obvious best fit). */
@@ -50,18 +55,30 @@ const CANONICAL_ANCHOR_KEYS = new Set(
     "portal 2",
     "breath of the wild",
     "the legend of zelda breath of the wild",
+    "oxenfree",
+    "night in the woods",
+    "a short hike",
+    "the beginner s guide",
   ].map(normalizeTitleKey)
 );
 
 /** Famous indie icons that dominate "hidden gem" prompts — penalize only under obscure intent. */
 const FAMOUS_INDIE_OBSCURE_KEYS = new Set(
   [
-    "undertale",
-    "hollow knight",
-    "disco elysium",
-    "celeste",
     "journey",
+    "celeste",
+    "hollow knight",
+    "undertale",
+    "disco elysium",
+    "firewatch",
+    "what remains of edith finch",
+    "gris",
+    "life is strange",
+    "oxenfree",
+    "night in the woods",
+    "a short hike",
     "stardew valley",
+    "the beginner s guide",
     "hades",
     "outer wilds",
     "portal 2",
@@ -98,6 +115,16 @@ const DISCOVERY_GEM_KEYS = new Set(
     "chants of sennaar",
     "in stars and time",
     "citizen sleeper 2",
+    "paradise killer",
+    "the case of the golden idol",
+    "case of the golden idol",
+    "eliza",
+    "1000xresist",
+    "felvidek",
+    "who s lila",
+    "slay the princess",
+    "the cosmic wheel sisterhood",
+    "cosmic wheel sisterhood",
   ].map(normalizeTitleKey)
 );
 
@@ -111,7 +138,15 @@ const BROAD_EMOTIONAL_PROMPT_RE =
   /\b(love gaming again|make you love gaming|fall in love with gaming|games that (?:make|made) you|stayed with me|unforgettable|memorable|emotional|feel something|restore my faith|rekindle|magic of gaming|giochi che ti restano|qualcosa di speciale)\b/i;
 
 const OBSCURE_INTENT_PROMPT_RE =
-  /\b(hidden gems?|underrated|less famous|obscure|weird games?|overlooked|sottovalutat\w*|gemme nascoste|non famos\w*|under the radar)\b/i;
+  /\b(hidden gems?|underrated|less famous|obscure|weird underrated|weird games?|overlooked|sottovalutat\w*|gemme nascoste|non famos\w*|under the radar|lower awareness|not mainstream indie)\b/i;
+
+const NOT_USUAL_INDIE_PROMPT_RE =
+  /\b(not the usual indie|not usual indie|not usual recommendations|no usual indie|less obvious indie|without the usual indie|usual indie recommendations|non[\s-]?typical indie|not the usual recommendations)\b/i;
+
+export function hasObscureDiscoveryIntent(prompt: string): boolean {
+  const n = prompt.trim().toLowerCase();
+  return OBSCURE_INTENT_PROMPT_RE.test(n) || NOT_USUAL_INDIE_PROMPT_RE.test(n);
+}
 
 export type DiversityContext = {
   antiSafePickFatigue: boolean;
@@ -155,7 +190,7 @@ export function buildDiversityContext(params: {
   const classicListRequest = CLASSIC_LIST_PROMPT_RE.test(n);
   const obscureDiscovery =
     params.signals.discoverySubkind === "underrated" ||
-    OBSCURE_INTENT_PROMPT_RE.test(n);
+    hasObscureDiscoveryIntent(prompt);
 
   const broadEmotional =
     params.signals.memorableDiscovery ||
@@ -178,7 +213,7 @@ export function buildDiversityContext(params: {
 /** Scale RAWG popularity contribution by prompt personality (not a ban). */
 export function popularityWeightMultiplier(ctx: DiversityContext): number {
   if (ctx.classicListRequest) return 1.15;
-  if (ctx.obscureDiscovery) return 0.22;
+  if (ctx.obscureDiscovery) return POPULARITY_WEIGHT_OBSCURE;
   if (ctx.antiSafePickFatigue) return 0.55;
   return 1;
 }
@@ -233,7 +268,20 @@ function discoveryBoostForRow(
 function obscureFamousIndiePenalty(title: string, ctx?: DiversityContext): number {
   if (!ctx?.obscureDiscovery) return 0;
   if (!isFamousIndieForObscurePrompt(title)) return 0;
-  return 22;
+  return FAMOUS_INDIE_OBSCURE_PENALTY;
+}
+
+function obscurePopularityPenalty(
+  added: number,
+  ratings: number,
+  ctx?: DiversityContext
+): number {
+  if (!ctx?.obscureDiscovery) return 0;
+  if (added > 50_000 && ratings > 25_000) return 40;
+  if (added > 30_000 && ratings > 15_000) return 30;
+  if (added > 15_000 && ratings > 8_000) return 20;
+  if (added > 8_000 && ratings > 4_000) return 12;
+  return 0;
 }
 
 /**
@@ -274,17 +322,15 @@ export function applyDiversityScoreAdjustments(
       typeof row.candidate.ratings_count === "number"
         ? row.candidate.ratings_count
         : 0;
-    if (ctx?.obscureDiscovery && added > 50000 && ratings > 25000) {
-      score -= 18;
-    }
+    score -= obscurePopularityPenalty(added, ratings, ctx);
     if (
       ctx?.obscureDiscovery &&
-      ratings >= 350 &&
-      ratings <= 9000 &&
+      ratings >= 250 &&
+      ratings <= 12_000 &&
       typeof row.candidate.rating === "number" &&
       row.candidate.rating >= 3.6
     ) {
-      score += 10;
+      score += 14;
     }
 
     return { candidate: row.candidate, score };
@@ -341,7 +387,7 @@ function effectivePickSortScore(pick: DiversityPick, ctx?: DiversityContext): nu
     s += ctx?.obscureDiscovery ? 4 : 2;
   }
   if (ctx?.obscureDiscovery && isFamousIndieForObscurePrompt(pick.title)) {
-    s -= 20;
+    s -= FAMOUS_INDIE_OBSCURE_SORT_PENALTY;
   }
   if (pick.matchTier === "partial_match") s -= 4;
   if (isRecoveryFillerReason(pick.reason)) s -= 8;
@@ -460,12 +506,17 @@ export function balanceFinalPicksDiversity(
   let out = applyBucketComposition(ordered, ctx);
 
   let discoveryCount = 0;
+  let famousIndieCount = 0;
   const capped: DiversityPick[] = [];
   for (const pick of out) {
     if (capped.length >= 6) break;
     if (isDiscoveryGemTitle(pick.title)) {
       if (discoveryCount >= MAX_DISCOVERY_PICKS_IN_RESPONSE) continue;
       discoveryCount += 1;
+    }
+    if (ctx?.obscureDiscovery && isFamousIndieForObscurePrompt(pick.title)) {
+      if (famousIndieCount >= MAX_FAMOUS_INDIE_PICKS_OBSCURE) continue;
+      famousIndieCount += 1;
     }
     capped.push(pick);
   }
@@ -560,7 +611,9 @@ export function diversityPersonalityPromptBlock(ctx: DiversityContext): string {
   }
   if (ctx.obscureDiscovery) {
     lines.push(
-      "- Hidden gem / underrated prompt: prefer actually less obvious acclaimed titles — not famous indie icons everyone already knows (Undertale, Hollow Knight, Disco Elysium) unless uniquely perfect."
+      "- Hidden gem / underrated / under-the-radar / not-usual-indie prompt: do NOT recommend famous indie canon (Hollow Knight, Undertale, Celeste, Journey, Edith Finch, Oxenfree, Night in the Woods, Gris, A Short Hike, Firewatch, Life is Strange, Stardew Valley, Disco Elysium, The Beginner's Guide) unless the user explicitly names them.",
+      "- Hidden gem means lower-awareness but still high-quality — think acclaimed cult picks like NORCO, Signalis, Citizen Sleeper, Hypnospace Outlaw, Pentiment, Chants of Sennaar, Void Stranger, Paradise Killer, Slay the Princess — not Reddit-default indie icons.",
+      "- Prefer RAWG titles with strong ratings but modest mainstream awareness; never shovelware or keyword spam."
     );
   }
   if (ctx.explicitLikeRequest) {

@@ -4,6 +4,10 @@ import {
   shouldRejectDirtyPlatformTitleVariant,
   shouldRejectNonCanonicalSideEdition,
 } from "@/lib/canonical-title-preference"
+import {
+  hasObscureDiscoveryIntent,
+  isFamousIndieForObscurePrompt,
+} from "@/lib/recommend-diversity-core"
 import type { RawgCandidate } from "@/lib/rawg-discovery"
 
 export type DiscoverySubkind =
@@ -229,7 +233,7 @@ export function detectIntentSignals(text: string): IntentSignals {
     )
 
   let discoverySubkind: DiscoverySubkind | null = null
-  if (memorableDiscovery || cozyShortSession) {
+  if (memorableDiscovery || cozyShortSession || hasObscureDiscoveryIntent(n)) {
     discoverySubkind = detectDiscoverySubkind(n)
   }
 
@@ -252,7 +256,14 @@ export function detectDiscoverySubkind(normalizedText: string): DiscoverySubkind
   if (/\b(lonely|loneliness|solitud\w*|genuinely\s+lonely|beautiful\s+way)\b/.test(n)) {
     return "lonely_beautiful"
   }
-  if (/\b(underrated|sottovalutat\w*|hidden\s+gem|overlooked|under\s+\$\d+|under\s+\d+\s*(?:usd|eur|\$|€)?)\b/.test(n)) {
+  if (
+    /\b(not the usual indie|not usual indie|not usual recommendations|no usual indie|less obvious indie|without the usual indie|under the radar|not mainstream indie)\b/.test(
+      n
+    ) ||
+    /\b(underrated|sottovalutat\w*|hidden\s+gem|overlooked|less famous|obscure|weird underrated|under\s+\$\d+|under\s+\d+\s*(?:usd|eur|\$|€)?)\b/.test(
+      n
+    )
+  ) {
     return "underrated"
   }
   if (/\b(one\s+weekend|finish\s+in\s+a\s+weekend|short\s+unforgettable|lasting\s+impression|finire\s+in\s+un\s+weekend)\b/.test(n)) {
@@ -638,7 +649,7 @@ export function enrichPromptForDiscovery(
     }
     if (signals.discoverySubkind === "underrated") {
       hints.push(
-        "Balance underrated/hidden-gem discovery with proven quality — acclaimed but not obvious safe picks."
+        "User wants hidden gems / under-the-radar / not-usual-indie picks — do NOT default to famous indie canon (Hollow Knight, Undertale, Celeste, Edith Finch, Oxenfree, Night in the Woods, Gris, A Short Hike). Prefer acclaimed lower-awareness titles with proven quality."
       )
     }
   }
@@ -1147,24 +1158,25 @@ export function scoreCandidateRelevanceBoost(params: {
     if (signals.discoverySubkind === "anti_aaa" && added > 75000 && ratings > 40000) {
       delta -= 28
     }
-    if (signals.discoverySubkind === "underrated") {
+    const obscureIntent =
+      signals.discoverySubkind === "underrated" ||
+      hasObscureDiscoveryIntent(params.userPrompt)
+    if (obscureIntent) {
+      if (isFamousIndieForObscurePrompt(candidate.name)) {
+        delta -= 44
+      }
+      if (added > 50_000 && ratings > 25_000) delta -= 32
+      else if (added > 30_000 && ratings > 15_000) delta -= 24
+      else if (added > 15_000 && ratings > 8_000) delta -= 16
       const nameLower = candidate.name.toLowerCase()
       if (
-        /\b(undertale|hollow knight|disco elysium|celeste|journey|stardew valley|hades|outer wilds|portal 2)\b/i.test(
-          `${nameLower} ${blob}`
-        )
-      ) {
-        delta -= 34
-      }
-      if (added > 50000 && ratings > 25000) delta -= 20
-      if (
-        /\b(norco|signalis|citizen sleeper|hypnospace outlaw|pentiment|chants of sennaar|void stranger|obra dinn|in stars and time|pathologic|sable|dredge|tunic|animal well)\b/i.test(
+        /\b(norco|signalis|citizen sleeper|hypnospace outlaw|pentiment|chants of sennaar|void stranger|obra dinn|in stars and time|pathologic|sable|dredge|tunic|animal well|paradise killer|golden idol|eliza|1000xresist|felvidek|slay the princess|cosmic wheel sisterhood)\b/i.test(
           `${nameLower} ${blob}`
         ) &&
-        ratings >= 300 &&
+        ratings >= 250 &&
         rating >= 3.5
       ) {
-        delta += 16
+        delta += 18
       }
     }
     if (signals.discoverySubkind === "lonely_beautiful") {
@@ -1398,6 +1410,41 @@ function isPlausibleTasteReferenceTitle(title: string): boolean {
   if (tokens.every((tok) => TASTE_TITLE_NOISE.has(tok))) return false
   if (/^(story|narrative|cozy|horror|indie|jrpg|rpg)$/i.test(t)) return false
   return true
+}
+
+/** Titles the user explicitly asks to avoid (e.g. "not Hollow Knight or Undertale"). */
+export function extractPromptExcludedTitles(prompt: string): string[] {
+  const out = new Set<string>()
+  const text = prompt.trim()
+  if (!text) return []
+
+  const clauses = [
+    ...text.matchAll(
+      /\b(?:not|without|excluding|exclude|no)\s+(.+?)(?:[.!?]|$)/gi
+    ),
+  ]
+  for (const match of clauses) {
+    let segment = (match[1] ?? "").trim()
+    segment = segment
+      .replace(
+        /\b(the usual indie recommendations?|usual indie|usual recommendations?|usual picks?)\b/gi,
+        ""
+      )
+      .trim()
+    if (!segment) continue
+
+    for (const part of segment.split(/\s*(?:,|\/|\bor\b|\band\b|\bnor\b)\s*/i)) {
+      const cleaned = part
+        .replace(/^["'«»]+|["'«»]+$/g, "")
+        .replace(/\s+(please|thanks|thx)\s*$/i, "")
+        .trim()
+      if (cleaned.length < 3) continue
+      if (/^(usual|indie|recommendations?|games?|picks?)$/i.test(cleaned)) continue
+      out.add(cleaned)
+    }
+  }
+
+  return [...out]
 }
 
 /**

@@ -7,6 +7,7 @@ import {
   detectIntentSignals,
   detectResultCountPolicy,
   extractMustHaveConstraints,
+  extractPromptExcludedTitles,
   extractTasteReferenceTitlesFromPrompt,
   isFantasyRaceStrategyMustHave,
   isNarrativeAdventureMismatch,
@@ -876,6 +877,16 @@ describe("mergeIntentAugmentation", () => {
     assert.equal(merged.fallbackDiscoveryQueries.some((q) => q === "surprise"), false);
     assert.ok(merged.fallbackDiscoveryQueries.some((q) => /cult classic/i.test(q)));
     assert.ok(merged.avoid.some((a) => /shovelware/i.test(a)));
+  });
+});
+
+describe("extractPromptExcludedTitles", () => {
+  it("extracts titles from not X or Y clauses", () => {
+    const titles = extractPromptExcludedTitles(
+      "Hidden gems under the radar, not Hollow Knight or Undertale"
+    );
+    assert.ok(titles.some((t) => /hollow knight/i.test(t)));
+    assert.ok(titles.some((t) => /undertale/i.test(t)));
   });
 });
 
