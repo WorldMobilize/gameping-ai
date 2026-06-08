@@ -36,7 +36,11 @@ export type SocialExportSlideId =
   | "prompt"
   | "engagement"
   | "cta"
+  | "ai-request"
+  | "ai-request-cta"
   | `game-${number}`
+
+export type SocialExportMode = "standard" | "ai-game-request"
 
 export const SOCIAL_ENGAGEMENT_HOOK = "WHAT GAME WOULD YOU ADD TO THIS LIST? 🎮"
 
@@ -89,6 +93,46 @@ export type SocialExportSlidePlan = {
   id: SocialExportSlideId
   filenamePart: string
   gameIndex?: number
+}
+
+/** Episode number for the recurring "AI Game Request" social series (min 1). */
+export function normalizeAiGameRequestEpisode(value: number): number {
+  if (!Number.isFinite(value) || value < 1) return 1
+  return Math.floor(value)
+}
+
+/** Font size for request quote on AI Game Request slide 1. */
+export function socialAiRequestQuoteFontSize(prompt: string): number {
+  const len = prompt.trim().length
+  if (len <= 60) return 48
+  if (len <= 100) return 42
+  if (len <= 150) return 36
+  if (len <= 220) return 30
+  return 26
+}
+
+export function aiGameRequestSeriesTitle(episode: number): string {
+  return `AI Game Request #${normalizeAiGameRequestEpisode(episode)} 🎮`
+}
+
+export function aiGameRequestCtaEpisodeLabel(currentEpisode: number): number {
+  return normalizeAiGameRequestEpisode(currentEpisode) + 1
+}
+
+export function buildAiGameRequestSlidePlan(
+  games: SocialExportGame[],
+  episodeNumber: number
+): SocialExportSlidePlan[] {
+  const ep = normalizeAiGameRequestEpisode(episodeNumber)
+  return [
+    { id: "ai-request", filenamePart: `ai-game-request-${ep}` },
+    ...games.map((game, index) => ({
+      id: `game-${index + 1}` as const,
+      filenamePart: slugifyForSocialFilename(game.title),
+      gameIndex: index,
+    })),
+    { id: "ai-request-cta", filenamePart: `drop-request-ep-${ep + 1}` },
+  ]
 }
 
 export function buildSocialExportSlidePlan(

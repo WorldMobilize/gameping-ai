@@ -1,9 +1,14 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 import {
+  aiGameRequestCtaEpisodeLabel,
+  aiGameRequestSeriesTitle,
+  buildAiGameRequestSlidePlan,
   buildSocialExportSlidePlan,
+  normalizeAiGameRequestEpisode,
   promptToSocialHook,
   proxiedSocialImageUrl,
+  socialAiRequestQuoteFontSize,
 } from "@/lib/social-export"
 
 describe("social-export", () => {
@@ -24,6 +29,24 @@ describe("social-export", () => {
     assert.equal(plan.length, 6)
   })
 
+  it("builds AI Game Request series deck without hook, prompt, or engagement", () => {
+    const plan = buildAiGameRequestSlidePlan(
+      [
+        { title: "Skyrim", match: 90, reason: "A" },
+        { title: "Oblivion", match: 85, reason: "B" },
+      ],
+      1
+    )
+    assert.equal(plan[0]?.id, "ai-request")
+    assert.equal(plan[1]?.id, "game-1")
+    assert.equal(plan[2]?.id, "game-2")
+    assert.equal(plan[3]?.id, "ai-request-cta")
+    assert.equal(plan.length, 4)
+    assert.equal(plan.some((s) => s.id === "hook"), false)
+    assert.equal(plan.some((s) => s.id === "prompt"), false)
+    assert.equal(plan.some((s) => s.id === "engagement"), false)
+  })
+
   it("includes engagement but omits CTA when includeCta is false", () => {
     const plan = buildSocialExportSlidePlan(
       [{ title: "Hades", match: 96, reason: "Fast roguelite" }],
@@ -38,6 +61,21 @@ describe("social-export", () => {
     const a = proxiedSocialImageUrl(url, "game-1-to-the-moon")
     const b = proxiedSocialImageUrl(url, "game-2-oxenfree")
     assert.notEqual(a, b)
+  })
+})
+
+describe("AI Game Request helpers", () => {
+  it("normalizes episode numbers", () => {
+    assert.equal(normalizeAiGameRequestEpisode(0), 1)
+    assert.equal(normalizeAiGameRequestEpisode(2.7), 2)
+    assert.equal(aiGameRequestSeriesTitle(3), "AI Game Request #3 🎮")
+    assert.equal(aiGameRequestCtaEpisodeLabel(1), 2)
+    assert.equal(aiGameRequestCtaEpisodeLabel(2), 3)
+  })
+
+  it("scales quote font size for long prompts", () => {
+    assert.equal(socialAiRequestQuoteFontSize("short prompt"), 48)
+    assert.ok(socialAiRequestQuoteFontSize("x".repeat(200)) < 48)
   })
 })
 

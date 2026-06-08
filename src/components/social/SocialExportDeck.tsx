@@ -1,6 +1,8 @@
 "use client"
 
 import { forwardRef, type CSSProperties, type ReactNode } from "react"
+import SocialAiGameRequestCtaSlide from "@/components/social/SocialAiGameRequestCtaSlide"
+import SocialAiGameRequestSlide from "@/components/social/SocialAiGameRequestSlide"
 import SocialCtaSlide from "@/components/social/SocialCtaSlide"
 import SocialGameCard from "@/components/social/SocialGameCard"
 import SocialEngagementSlide from "@/components/social/SocialEngagementSlide"
@@ -12,6 +14,7 @@ type SocialExportDeckProps = {
   prompt: string
   games: SocialExportGame[]
   hasBudgetFilter?: boolean
+  episodeNumber?: number
   /** When set, only this slide is mounted (one-at-a-time export). */
   activeSlideId: SocialExportSlideId | null
 }
@@ -27,7 +30,10 @@ const HIDDEN_DECK_STYLE: CSSProperties = {
 }
 
 const SocialExportDeck = forwardRef<HTMLDivElement, SocialExportDeckProps>(
-  function SocialExportDeck({ prompt, games, hasBudgetFilter = false, activeSlideId }, ref) {
+  function SocialExportDeck(
+    { prompt, games, hasBudgetFilter = false, episodeNumber = 1, activeSlideId },
+    ref
+  ) {
     if (!activeSlideId) {
       return <div ref={ref} aria-hidden style={HIDDEN_DECK_STYLE} />
     }
@@ -37,10 +43,16 @@ const SocialExportDeck = forwardRef<HTMLDivElement, SocialExportDeckProps>(
       slide = <SocialHookSlide prompt={prompt} />
     } else if (activeSlideId === "prompt") {
       slide = <SocialPromptSlide />
+    } else if (activeSlideId === "ai-request") {
+      slide = (
+        <SocialAiGameRequestSlide prompt={prompt} episodeNumber={episodeNumber} />
+      )
     } else if (activeSlideId === "engagement") {
       slide = <SocialEngagementSlide />
     } else if (activeSlideId === "cta") {
       slide = <SocialCtaSlide />
+    } else if (activeSlideId === "ai-request-cta") {
+      slide = <SocialAiGameRequestCtaSlide episodeNumber={episodeNumber} />
     } else if (activeSlideId.startsWith("game-")) {
       const rank = Number.parseInt(activeSlideId.replace("game-", ""), 10)
       const game = games[rank - 1]
