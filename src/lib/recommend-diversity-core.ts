@@ -156,6 +156,68 @@ const DISCOVERY_GEM_KEYS = new Set(
 const CLASSIC_LIST_PROMPT_RE =
   /\b(best games? ever|greatest games?|all[\s-]?time|masterpieces?|iconic games?|classic games?|must[\s-]?play|essential games?|top games? of all time|migliori giochi di sempre)\b/i;
 
+/** Hall-of-fame / bucket-list / everyone-should-play prompts — not hidden gems. */
+const GAMING_CANON_EXTENDED_PROMPT_RE =
+  /\b(everyone should play|should play once|once in (?:your|their|a) life|before you die|must play(?:\s+games?)?(?:\s+before)?|games? (?:every|all) (?:gamer|player)s? should|every gamer should|gaming masterpieces?|masterpiece games?|experience as a gamer|games? to experience|hall of fame|bucket list games?|play at least once|landmark games?|genre[\s-]?defining|cultural impact|essential (?:gaming )?experiences?|canon games?|games? you must experience|should experience at least once)\b/i;
+
+/** Landmark / genre-defining titles for gaming-canon prompts. */
+const GAMING_CANON_LANDMARK_KEYS = new Set(
+  [
+    "outer wilds",
+    "portal 2",
+    "red dead redemption 2",
+    "the witcher 3 wild hunt",
+    "the witcher 3",
+    "mass effect",
+    "mass effect 2",
+    "the elder scrolls v skyrim",
+    "skyrim",
+    "the legend of zelda breath of the wild",
+    "breath of the wild",
+    "bioshock",
+    "bioshock infinite",
+    "half life 2",
+    "half-life 2",
+    "shadow of the colossus",
+    "elden ring",
+    "disco elysium",
+    "minecraft",
+    "subnautica",
+    "hades",
+    "hollow knight",
+    "persona 5 royal",
+    "persona 5",
+    "portal",
+    "the last of us",
+    "god of war",
+    "horizon zero dawn",
+    "dark souls",
+    "bloodborne",
+    "sekiro shadows die twice",
+    "sekiro",
+    "final fantasy vii",
+    "final fantasy xiv",
+    "world of warcraft",
+    "grand theft auto v",
+    "gta v",
+    "super mario odyssey",
+    "super mario galaxy",
+    "the legend of zelda tears of the kingdom",
+    "tears of the kingdom",
+    "metal gear solid",
+    "chrono trigger",
+    "earthbound",
+    "undertale",
+    "divinity original sin 2",
+    "baldur s gate 3",
+    "baldurs gate 3",
+  ].map(normalizeTitleKey)
+);
+
+export const GAMING_CANON_LANDMARK_BOOST = 14;
+export const GAMING_CANON_NARRATIVE_INDIE_PENALTY = 12;
+export const MAX_NARRATIVE_INDIE_GAMING_CANON = 2;
+
 const EXPLICIT_LIKE_PROMPT_RE =
   /\b(games?\s+like|similar\s+to|alternatives?\s+to|tipo|simili?\s+a|come)\b/i;
 
@@ -176,10 +238,25 @@ export function hasObscureDiscoveryIntent(prompt: string): boolean {
   return OBSCURE_INTENT_PROMPT_RE.test(n) || NOT_USUAL_INDIE_PROMPT_RE.test(n);
 }
 
+/** Essential / hall-of-fame / everyone-should-play — not obscure or quirky discovery. */
+export function hasGamingCanonIntent(prompt: string): boolean {
+  const n = prompt.trim().toLowerCase();
+  return CLASSIC_LIST_PROMPT_RE.test(n) || GAMING_CANON_EXTENDED_PROMPT_RE.test(n);
+}
+
+export function isGamingCanonLandmarkTitle(title: string): boolean {
+  return GAMING_CANON_LANDMARK_KEYS.has(normalizeTitleKey(title));
+}
+
+export function isNarrativeIndieFatigueTitle(title: string): boolean {
+  return NARRATIVE_INDIE_FATIGUE_KEYS.has(normalizeTitleKey(title));
+}
+
 export type DiversityContext = {
   antiSafePickFatigue: boolean;
   obscureDiscovery: boolean;
   magicalRediscovery: boolean;
+  gamingCanon: boolean;
   explicitLikeRequest: boolean;
   classicListRequest: boolean;
   referenceTitles: string[];
@@ -228,18 +305,22 @@ export function buildDiversityContext(params: {
   const referenceTitles = params.referenceTitles ?? [];
 
   const explicitLikeRequest = EXPLICIT_LIKE_PROMPT_RE.test(n);
-  const classicListRequest = CLASSIC_LIST_PROMPT_RE.test(n);
+  const gamingCanon =
+    params.signals.gamingCanon || hasGamingCanonIntent(prompt);
+  const classicListRequest = gamingCanon;
   const obscureDiscovery =
-    params.signals.discoverySubkind === "underrated" ||
-    hasObscureDiscoveryIntent(prompt);
+    !gamingCanon &&
+    (params.signals.discoverySubkind === "underrated" ||
+      hasObscureDiscoveryIntent(prompt));
 
   const magicalRediscovery =
+    !gamingCanon &&
     MAGICAL_rediscovery_PROMPT_RE.test(n) &&
     !obscureDiscovery &&
-    !classicListRequest &&
     !explicitLikeRequest;
 
   const broadEmotional =
+    !gamingCanon &&
     (params.signals.memorableDiscovery ||
       BROAD_EMOTIONAL_PROMPT_RE.test(n) ||
       params.signals.discoverySubkind === "lonely_beautiful" ||
@@ -247,14 +328,15 @@ export function buildDiversityContext(params: {
     !magicalRediscovery;
 
   const antiSafePickFatigue =
+    !gamingCanon &&
     (broadEmotional || magicalRediscovery) &&
-    !classicListRequest &&
     !explicitLikeRequest;
 
   return {
     antiSafePickFatigue,
     obscureDiscovery,
     magicalRediscovery,
+    gamingCanon,
     explicitLikeRequest,
     classicListRequest,
     referenceTitles,
@@ -263,7 +345,7 @@ export function buildDiversityContext(params: {
 
 /** Scale RAWG popularity contribution by prompt personality (not a ban). */
 export function popularityWeightMultiplier(ctx: DiversityContext): number {
-  if (ctx.classicListRequest) return 1.15;
+  if (ctx.gamingCanon || ctx.classicListRequest) return 1.28;
   if (ctx.obscureDiscovery) return POPULARITY_WEIGHT_OBSCURE;
   if (ctx.magicalRediscovery) return 0.88;
   if (ctx.antiSafePickFatigue) return 0.55;
@@ -289,7 +371,7 @@ function canonicalPenaltyForRow(params: {
   canonicalCountSoFar: number;
 }): number {
   if (!isFatigueAnchorTitle(params.title, params.ctx)) return 0;
-  if (params.ctx?.classicListRequest) return 0;
+  if (params.ctx?.gamingCanon || params.ctx?.classicListRequest) return 0;
 
   const isClearLeader =
     params.index === 0 && params.topMargin >= CANONICAL_CLEAR_LEAD_MARGIN;
@@ -331,7 +413,7 @@ function discoveryBoostForRow(
   baseScore: number,
   ctx?: DiversityContext
 ): number {
-  if (ctx?.classicListRequest || ctx?.magicalRediscovery) return 0;
+  if (ctx?.gamingCanon || ctx?.classicListRequest || ctx?.magicalRediscovery) return 0;
   if (baseScore < DISCOVERY_MIN_BASE_SCORE) return 0;
   if (!isDiscoveryGemTitle(title)) return 0;
   if (isDiscoveryCanonTitle(title)) {
@@ -403,6 +485,16 @@ export function applyDiversityScoreAdjustments(
         ? row.candidate.ratings_count
         : 0;
     score -= obscurePopularityPenalty(added, ratings, ctx);
+    if (ctx?.gamingCanon) {
+      if (isGamingCanonLandmarkTitle(title)) {
+        score += GAMING_CANON_LANDMARK_BOOST;
+      } else if (
+        isNarrativeIndieFatigueTitle(title) &&
+        !isGamingCanonLandmarkTitle(title)
+      ) {
+        score -= GAMING_CANON_NARRATIVE_INDIE_PENALTY;
+      }
+    }
     if (
       ctx?.obscureDiscovery &&
       ratings >= 250 &&
@@ -462,6 +554,15 @@ function classifyPickBucket(pick: DiversityPick, ctx?: DiversityContext): PickBu
 
 function effectivePickSortScore(pick: DiversityPick, ctx?: DiversityContext): number {
   let s = pick.match;
+  if (ctx?.gamingCanon) {
+    if (isGamingCanonLandmarkTitle(pick.title)) s += 10;
+    else if (
+      isNarrativeIndieFatigueTitle(pick.title) &&
+      !isGamingCanonLandmarkTitle(pick.title)
+    ) {
+      s -= GAMING_CANON_NARRATIVE_INDIE_PENALTY;
+    }
+  }
   if (isFatigueAnchorTitle(pick.title, ctx)) {
     s -= ctx?.antiSafePickFatigue || ctx?.magicalRediscovery
       ? CANONICAL_FATIGUE_PENALTY
@@ -610,9 +711,18 @@ export function balanceFinalPicksDiversity(
   let discoveryCount = 0;
   let discoveryCanonCount = 0;
   let famousIndieCount = 0;
+  let narrativeIndieCount = 0;
   const capped: DiversityPick[] = [];
   for (const pick of out) {
     if (capped.length >= 6) break;
+    if (
+      ctx?.gamingCanon &&
+      isNarrativeIndieFatigueTitle(pick.title) &&
+      !isGamingCanonLandmarkTitle(pick.title)
+    ) {
+      if (narrativeIndieCount >= MAX_NARRATIVE_INDIE_GAMING_CANON) continue;
+      narrativeIndieCount += 1;
+    }
     if (isDiscoveryGemTitle(pick.title) && !isDiscoveryCanonTitle(pick.title)) {
       if (discoveryCount >= MAX_DISCOVERY_PICKS_IN_RESPONSE) continue;
       discoveryCount += 1;
@@ -707,6 +817,15 @@ export function buildDeterministicFallbackPicks(params: {
 
 /** Prompt block for discovery/rerank AI — personality over consensus defaults. */
 export function diversityPersonalityPromptBlock(ctx: DiversityContext): string {
+  if (ctx.gamingCanon) {
+    return [
+      "- User asks for gaming canon / essential experiences everyone should play — interpret as hall-of-fame masterpieces, NOT hidden gems, obscure picks, or quirky discovery.",
+      "- Prioritize landmark, genre-defining, critically acclaimed classics with cultural impact (e.g. Portal 2, RDR2, Outer Wilds, Mass Effect, Witcher 3, Zelda, Elden Ring, BioShock, Half-Life 2, Disco Elysium, Hades, Subnautica).",
+      "- Mix narrative masterpieces, gameplay masterpieces, and genre-defining classics — do NOT return only emotional indie walking-sim style lists (Journey, Celeste, Edith Finch, Firewatch only).",
+      "- Famous acclaimed titles are appropriate and expected for this prompt.",
+    ].join("\n");
+  }
+
   const lines: string[] = [
     "- Avoid defaulting to the same universally recommended games unless they are clearly the best personal fit.",
     "- Prioritize personal fit and variety over internet consensus safe picks.",

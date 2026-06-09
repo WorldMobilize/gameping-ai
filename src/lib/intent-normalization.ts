@@ -6,6 +6,7 @@ import {
   shouldRejectNonCanonicalSideEdition,
 } from "@/lib/canonical-title-preference"
 import {
+  hasGamingCanonIntent,
   hasObscureDiscoveryIntent,
   isDiscoveryCanonTitle,
   isFamousIndieForObscurePrompt,
@@ -36,6 +37,8 @@ export type IntentSignals = {
   memorableDiscovery: boolean
   /** Cozy + short-session evening play (distinct ranking/query pool). */
   cozyShortSession: boolean
+  /** Hall-of-fame / essential / everyone-should-play — not obscure discovery. */
+  gamingCanon: boolean
   discoverySubkind: DiscoverySubkind | null
 }
 
@@ -45,6 +48,7 @@ export const EMPTY_INTENT_SIGNALS: IntentSignals = {
   psychologicalHorror: false,
   memorableDiscovery: false,
   cozyShortSession: false,
+  gamingCanon: false,
   discoverySubkind: null,
 }
 
@@ -225,16 +229,19 @@ export function detectIntentSignals(text: string): IntentSignals {
     /\b(psychological\s+horror|psych\s+horror|horror\s+psicolog\w*)\b/.test(n) ||
     (/\bhorror\b/.test(n) && /\bpsicolog\w*\b/.test(n))
 
+  const gamingCanon = hasGamingCanonIntent(n)
+
   const memorableDiscovery =
-    /\b(surprise\s+me|stupiscimi|something\s+unforgettable|unforgettable|hidden\s+gem|overlooked\s+gem|cult\s+classic|sottovalutat\w*|underrated|tired\s+of\s+aaa|weird\s+but|memorable|think(?:ing)?\s+about\s+(?:it|them|this)\s+(?:later|after|week)|still\s+be\s+thinking|gemme\s+nascoste|qualcosa\s+di\s+special\w*|qualcosa\s+che\s+non\s+dimenticher\w*|love\s+gaming\s+again|make\s+you\s+love\s+gaming|fall\s+in\s+love\s+with\s+gaming|restore\s+(?:my\s+)?faith\s+in\s+gaming|rekindle.*gaming)\b/.test(
-      n
-    ) ||
-    (/\b(special|meaningful|emotional(?:ly)?\s+memorable|genuinely\s+lonely|lonely\s+but\s+beautiful|beautiful\s+way)\b/.test(
-      n
-    ) &&
-      /\b(feel|game|gioch\w*|experience|atmosphere|emotional|lonely|beautiful)\b/.test(
+    !gamingCanon &&
+    (/\b(surprise\s+me|stupiscimi|something\s+unforgettable|unforgettable|hidden\s+gem|overlooked\s+gem|cult\s+classic|sottovalutat\w*|underrated|tired\s+of\s+aaa|weird\s+but|memorable|think(?:ing)?\s+about\s+(?:it|them|this)\s+(?:later|after|week)|still\s+be\s+thinking|gemme\s+nascoste|qualcosa\s+di\s+special\w*|qualcosa\s+che\s+non\s+dimenticher\w*|love\s+gaming\s+again|make\s+you\s+love\s+gaming|fall\s+in\s+love\s+with\s+gaming|restore\s+(?:my\s+)?faith\s+in\s+gaming|rekindle.*gaming)\b/.test(
         n
-      ))
+      ) ||
+      (/\b(special|meaningful|emotional(?:ly)?\s+memorable|genuinely\s+lonely|lonely\s+but\s+beautiful|beautiful\s+way)\b/.test(
+        n
+      ) &&
+        /\b(feel|game|gioch\w*|experience|atmosphere|emotional|lonely|beautiful)\b/.test(
+          n
+        )))
 
   const cozyShortSession =
     /\b(cozy|cosy|rilassante|relaxing|chill|wholesome|comfort)\b/.test(n) &&
@@ -243,7 +250,10 @@ export function detectIntentSignals(text: string): IntentSignals {
     )
 
   let discoverySubkind: DiscoverySubkind | null = null
-  if (memorableDiscovery || cozyShortSession || hasObscureDiscoveryIntent(n)) {
+  if (
+    !gamingCanon &&
+    (memorableDiscovery || cozyShortSession || hasObscureDiscoveryIntent(n))
+  ) {
     discoverySubkind = detectDiscoverySubkind(n)
   }
 
@@ -253,6 +263,7 @@ export function detectIntentSignals(text: string): IntentSignals {
     psychologicalHorror,
     memorableDiscovery,
     cozyShortSession,
+    gamingCanon,
     discoverySubkind,
   }
 }
@@ -646,6 +657,11 @@ export function enrichPromptForDiscovery(
   if (signals.psychologicalHorror) {
     hints.push(
       "Intent note: psychological horror — established, recognizable horror-genre games only; never obscure titles whose names are keyword lists like \"Psychological Horror Game\"."
+    )
+  }
+  if (signals.gamingCanon || hasGamingCanonIntent(base)) {
+    hints.push(
+      "Intent note: gaming canon / essential experiences / everyone-should-play — prioritize landmark masterpieces and genre-defining classics (Portal 2, RDR2, Outer Wilds, Mass Effect, Witcher 3, Zelda, Elden Ring, BioShock, Disco Elysium, Hades). NOT hidden gems, obscure discovery, or emotional-indie-only lists."
     )
   }
   if (signals.memorableDiscovery) {

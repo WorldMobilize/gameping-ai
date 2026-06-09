@@ -358,6 +358,7 @@ Rules:
 - If the user names games to AVOID or EXCLUDE (e.g. "not Hollow Knight", "without Undertale"), put each named title in "excludeTitles" and do NOT recommend them.
 - Hidden gem / under-the-radar / not-usual-indie requests: suggest lower-awareness acclaimed titles — NOT famous indie canon (Hollow Knight, Undertale, Celeste, Edith Finch, Oxenfree, Night in the Woods, Gris, A Short Hike) unless explicitly named.
 - Love-gaming-again / restore faith in gaming prompts: memorable classics and ambitious games — NOT hidden gems; avoid clustering curator darlings (NORCO, Pentiment, Citizen Sleeper).
+- Gaming canon / everyone-should-play / essential experiences / must-play-before-you-die: landmark masterpieces and genre-defining classics — NOT hidden gems, obscure picks, or emotional-indie-only lists.
 - Respect the user's maximum budget when suggesting titles when practical (prefer titles likely affordable under that cap).
 - Weight the user's selected tags heavily when choosing suggestions.
 ${personalityBlock}${disambiguationBlock}${discoveryOnlyRules}
@@ -535,6 +536,7 @@ export async function aiSingleCallFastDiscovery(params: {
     "- Avoid defaulting to the same universally recommended games unless they are clearly the best personal fit; hidden gem means actually less obvious acclaimed quality, not famous indie icons everyone already knows.",
     "- Hidden gem / under-the-radar / not-usual-indie: do NOT recommend Hollow Knight, Undertale, Celeste, Edith Finch, Oxenfree, Night in the Woods, Gris, A Short Hike unless user explicitly names them; prefer lower-awareness acclaimed quality.",
     "- Love-gaming-again / magical / memorable prompts are NOT hidden gems — mix classics and ambitious games; do not fill lists with NORCO/Pentiment/Citizen Sleeper curator darlings.",
+    "- Gaming canon / everyone-should-play / essential experiences: landmark masterpieces and genre-defining classics — NOT hidden gems or emotional-indie-only lists.",
     "- If user names games to avoid (not X, without Y), put them in excludeTitles.",
     personalityBlock,
     "- For highly specific multi-constraint prompts (fantasy+elves/orcs+strategy, faction building, etc.): treat setting/races/mechanics as MUST-HAVE — do not suggest games that contradict the required setting (e.g. sci-fi when fantasy races are required). Use high-signal fallbackDiscoveryQueries tied to all constraints.",

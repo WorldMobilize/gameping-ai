@@ -9,9 +9,12 @@ import {
   applyDiversityScoreAdjustments,
   balanceFinalPicksDiversity,
   buildDiversityContext,
+  hasGamingCanonIntent,
+  hasObscureDiscoveryIntent,
   isCanonicalAnchorTitle,
   isDiscoveryCanonTitle,
   isFamousIndieForObscurePrompt,
+  isGamingCanonLandmarkTitle,
   popularityWeightMultiplier,
   type DiversityPick,
 } from "./recommend-diversity-core.ts";
@@ -84,13 +87,59 @@ describe("buildDiversityContext", () => {
     assert.equal(ctx.antiSafePickFatigue, false);
   });
 
-  it("activates obscure discovery for hidden gem prompts", () => {
+  it("activates gaming canon for everyone-should-play prompts", () => {
+    const prompt = "Games everyone should play once in their life";
+    const signals = detectIntentSignals(prompt);
+    const ctx = buildDiversityContext({
+      userPrompt: prompt,
+      signals,
+    });
+    assert.equal(hasGamingCanonIntent(prompt), true);
+    assert.equal(signals.gamingCanon, true);
+    assert.equal(signals.memorableDiscovery, false);
+    assert.equal(ctx.gamingCanon, true);
+    assert.equal(ctx.obscureDiscovery, false);
+    assert.equal(ctx.antiSafePickFatigue, false);
+    assert.equal(ctx.magicalRediscovery, false);
+    assert.ok(popularityWeightMultiplier(ctx) > 1.15);
+  });
+
+  it("activates gaming canon for essential and must-play phrasing", () => {
+    for (const prompt of [
+      "Must play games before you die",
+      "Games every gamer should experience",
+      "Essential games",
+      "Gaming masterpieces",
+    ]) {
+      assert.equal(hasGamingCanonIntent(prompt), true, prompt);
+      const ctx = buildDiversityContext({
+        userPrompt: prompt,
+        signals: detectIntentSignals(prompt),
+      });
+      assert.equal(ctx.gamingCanon, true, prompt);
+      assert.equal(ctx.obscureDiscovery, false, prompt);
+    }
+  });
+
+  it("still activates obscure discovery for hidden gem prompts", () => {
     const prompt = "Weird underrated hidden gems";
     const ctx = buildDiversityContext({
       userPrompt: prompt,
       signals: detectIntentSignals(prompt),
     });
     assert.equal(ctx.obscureDiscovery, true);
+    assert.equal(ctx.gamingCanon, false);
+    assert.equal(hasObscureDiscoveryIntent(prompt), true);
+  });
+
+  it("still activates obscure discovery when hidden gems mentioned with everyone", () => {
+    const prompt = "hidden gems everyone ignores";
+    const ctx = buildDiversityContext({
+      userPrompt: prompt,
+      signals: detectIntentSignals(prompt),
+    });
+    assert.equal(ctx.obscureDiscovery, true);
+    assert.equal(ctx.gamingCanon, false);
   });
 
   it("activates obscure discovery for not-usual-indie prompts", () => {
@@ -108,6 +157,26 @@ describe("buildDiversityContext", () => {
     assert.equal(isFamousIndieForObscurePrompt("Oxenfree"), true);
     assert.equal(isFamousIndieForObscurePrompt("What Remains of Edith Finch"), true);
     assert.equal(isFamousIndieForObscurePrompt("A Short Hike"), true);
+  });
+});
+
+describe("gaming canon scoring", () => {
+  it("boosts landmark titles over narrative indie fatigue picks", () => {
+    const ctx = buildDiversityContext({
+      userPrompt: "games everyone should play once",
+      signals: detectIntentSignals("games everyone should play once"),
+    });
+    const portal = mockCandidate("Portal 2", { ratings_count: 50_000, added: 80_000 });
+    const journey = mockCandidate("Journey", { ratings_count: 30_000, added: 40_000 });
+    const adjusted = applyDiversityScoreAdjustments(
+      [
+        { candidate: journey, score: 80 },
+        { candidate: portal, score: 78 },
+      ],
+      ctx
+    );
+    assert.ok(isGamingCanonLandmarkTitle("Portal 2"));
+    assert.equal(adjusted[0]?.candidate.name, "Portal 2");
   });
 });
 
@@ -258,17 +327,17 @@ describe("applyDiversityScoreAdjustments", () => {
     assert.ok(isFamousIndieForObscurePrompt("Undertale"));
   });
 
-  it("does not over-penalize canonical titles for classic list prompts", () => {
+  it("favors landmark classics over discovery darlings for gaming canon prompts", () => {
     const ctx = buildDiversityContext({
       userPrompt: "Best games ever made",
       signals: detectIntentSignals("Best games ever made"),
     });
     const scored = [
-      { candidate: mockCandidate("Journey"), score: 50 },
-      { candidate: mockCandidate("NORCO"), score: 48 },
+      { candidate: mockCandidate("Portal 2"), score: 48 },
+      { candidate: mockCandidate("NORCO"), score: 50 },
     ];
     const adjusted = applyDiversityScoreAdjustments(scored, ctx);
-    assert.ok(adjusted[0]!.candidate.name === "Journey");
+    assert.equal(adjusted[0]!.candidate.name, "Portal 2");
   });
 });
 
