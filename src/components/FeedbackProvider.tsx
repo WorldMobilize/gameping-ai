@@ -1,6 +1,7 @@
 "use client";
 
 import { FEEDBACK_MESSAGE_MAX, FEEDBACK_TYPES, type FeedbackType } from "@/lib/feedback";
+import { loadFeedbackRecommendContext } from "@/lib/feedback-recommend-context";
 import { trackProductEvent } from "@/lib/product-analytics/client";
 import {
   createContext,
@@ -88,6 +89,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
     try {
       const pageUrl =
         typeof window !== "undefined" ? window.location.href.slice(0, 2048) : null;
+      const recommendationContext = loadFeedbackRecommendContext();
 
       const res = await fetch("/api/feedback", {
         method: "POST",
@@ -97,6 +99,9 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
           message: trimmed,
           pageUrl,
           email: email.trim() || undefined,
+          ...(recommendationContext
+            ? { recommendationContext }
+            : {}),
         }),
       });
 

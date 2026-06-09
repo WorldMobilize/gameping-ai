@@ -7,6 +7,7 @@ import {
   normalizeFeedbackPageUrl,
   resolveFeedbackContextArea,
 } from "@/lib/feedback";
+import { sanitizeFeedbackRecommendContext } from "@/lib/feedback-recommend-context";
 import { rateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -79,6 +80,17 @@ export async function POST(req: Request) {
     const contextArea = resolveFeedbackContextArea(pageUrl);
     const userAgent = truncate(req.headers.get("user-agent"), FEEDBACK_USER_AGENT_MAX);
 
+    let recommendationContext: ReturnType<typeof sanitizeFeedbackRecommendContext> = null;
+    if (body.recommendationContext != null) {
+      recommendationContext = sanitizeFeedbackRecommendContext(body.recommendationContext);
+      if (!recommendationContext) {
+        return NextResponse.json(
+          { ok: false, error: "Invalid recommendation context" },
+          { status: 400 }
+        );
+      }
+    }
+
     const row = {
       user_id: user?.id ?? null,
       type,
@@ -87,6 +99,7 @@ export async function POST(req: Request) {
       context_area: contextArea,
       email: emailRaw || null,
       user_agent: userAgent,
+      recommendation_context: recommendationContext,
       status: "new",
     };
 

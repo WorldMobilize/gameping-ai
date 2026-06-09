@@ -12,6 +12,7 @@ create table if not exists public.feedback_reports (
   context_area text null,
   email text null,
   user_agent text null,
+  recommendation_context jsonb null,
   status text not null default 'new',
   created_at timestamptz not null default now(),
   constraint feedback_reports_type_check check (
@@ -38,7 +39,15 @@ create index if not exists feedback_reports_context_area_idx
 create index if not exists feedback_reports_status_idx
   on public.feedback_reports (status);
 
+create index if not exists feedback_reports_has_context_idx
+  on public.feedback_reports ((recommendation_context is not null))
+  where recommendation_context is not null;
+
 alter table public.feedback_reports enable row level security;
+
+-- Migration for existing deployments:
+-- alter table public.feedback_reports
+--   add column if not exists recommendation_context jsonb null;
 
 -- Authenticated: insert own rows only
 drop policy if exists "feedback_reports_insert_authenticated" on public.feedback_reports;

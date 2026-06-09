@@ -20,6 +20,7 @@ import {
   PROMPT_MAX_DEFAULT,
 } from "@/lib/recommend-limits";
 import { EMAIL_NOT_VERIFIED_MESSAGE } from "@/lib/auth-email-verification";
+import { persistFeedbackRecommendContextFromResults } from "@/lib/feedback-recommend-context";
 import { hasMeaningfulRecommendInput } from "@/lib/recommend-input";
 import {
   clearRecommendSessionState,
@@ -624,6 +625,11 @@ export default function RecommendPage() {
         noStrongMatchesAfterSuccess: nextGames.length === 0,
         resultsReveal: reveal,
       });
+      persistFeedbackRecommendContextFromResults({
+        prompt: form.userPrompt,
+        games: nextGames,
+        isRefine: false,
+      });
       if (debugEnabled && data?.debug) {
         setApiDebug(data.debug as RecommendDebug);
       }
@@ -782,6 +788,13 @@ export default function RecommendPage() {
         noStrongMatchesAfterSuccess: nextGames.length === 0,
         resultsReveal: reveal,
         refineUsed: true,
+      });
+      persistFeedbackRecommendContextFromResults({
+        prompt: form.userPrompt,
+        games: nextGames,
+        isRefine: true,
+        originalPrompt: form.userPrompt,
+        refineMessage,
       });
       if (debugEnabled && data?.debug) {
         setApiDebug(data.debug as RecommendDebug);
