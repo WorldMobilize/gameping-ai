@@ -148,6 +148,18 @@ export async function POST(req: Request) {
     const { error: tgErr } = await admin.from("tracked_games").delete().eq("user_id", userId);
     if (tgErr) console.error("[delete-account] tracked_games", tgErr);
 
+    const { error: steamGamesErr } = await admin
+      .from("user_steam_games")
+      .delete()
+      .eq("user_id", userId);
+    if (steamGamesErr) console.error("[delete-account] user_steam_games", steamGamesErr);
+
+    const { error: steamConnErr } = await admin
+      .from("user_steam_connections")
+      .delete()
+      .eq("user_id", userId);
+    if (steamConnErr) console.error("[delete-account] user_steam_connections", steamConnErr);
+
     await admin
       .from("rate_limit_events")
       .delete()

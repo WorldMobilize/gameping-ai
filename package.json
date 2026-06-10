@@ -14,7 +14,8 @@
     "test:fast-pick": "node --import tsx --test src/lib/fast-pick-verified-lookup.test.ts",
     "test:social-export": "node --import tsx --test src/lib/social-export.test.ts src/lib/social-export-access.test.ts",
     "test:analytics": "node --import tsx --test src/lib/product-analytics/page-metadata.test.ts",
-    "generate:instagram-highlights": "node --import tsx scripts/generate-instagram-highlights/generate.mts"
+    "generate:instagram-highlights": "node --import tsx scripts/generate-instagram-highlights/generate.mts",
+    "test:steam-library": "node --import tsx --test src/lib/steam-library/access.test.ts src/lib/steam-library/parse-steam-input.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

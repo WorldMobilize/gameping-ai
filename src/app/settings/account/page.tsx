@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import ManageBillingButton from "@/components/ManageBillingButton";
 import Navbar from "@/components/Navbar";
+import SteamLibraryImportSection from "@/components/SteamLibraryImportSection";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -211,6 +212,8 @@ export default function AccountSettingsPage() {
               ) : null}
             </section>
 
+            <SteamLibraryImportSection />
+
             <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-8">
               <p className="text-xs font-black uppercase tracking-[0.35em] text-white/40">
                 Preferences & notifications
@@ -235,8 +238,8 @@ export default function AccountSettingsPage() {
               <h2 className="mt-3 text-2xl font-black text-white">Delete account</h2>
               <p className="mt-4 text-sm leading-7 text-white/70">
                 Permanently delete your GamePing account, saved recommendation runs, tracked games,
-                alert history tied to those games, profile row, and outbound-click records linked to
-                your user ID. This cannot be undone.
+                imported Steam library data, alert history tied to those games, profile row, and
+                outbound-click records linked to your user ID. This cannot be undone.
               </p>
               <p className="mt-4 text-sm leading-7 text-white/60">
                 If you have an active Premium subscription, cancel it in Stripe (use the billing links
