@@ -37,6 +37,7 @@ import {
 } from "@/lib/pricing/price-service";
 import { verifiedDealDisplayDedupeKey } from "@/lib/pricing/verified-deal-row";
 import { formatDisplayDate } from "@/lib/format-display-date";
+import GameDnaProfileCard from "@/components/GameDnaProfileCard";
 import {
   RECOMMEND_FIT_TRANSPARENCY_NOTE,
   resolveRecommendFitBody,
@@ -278,35 +279,6 @@ function recommendMatchTierLabel(tier: RecommendFitContext["matchTier"]): string
   return null;
 }
 
-function PersistentTasteComingSoonCard() {
-  return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-7">
-      <p className="text-sm uppercase tracking-[0.35em] text-purple-300">Coming soon</p>
-      <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-white/45">
-        Persistent taste profile
-      </p>
-      <h2 className="mt-4 text-3xl font-black">Your long-term game taste profile</h2>
-      <p className="mt-5 max-w-2xl text-lg leading-8 text-white/70">
-        Soon, GamePing will learn from your saved searches, tracked games, and optional Steam
-        library import to build a persistent taste profile — helping future recommendations and deal
-        alerts feel more personal over time.
-      </p>
-      <p className="mt-4 text-sm text-white/40">
-        Today, game-fit explanations are based on your current recommendation search. Persistent
-        memory is planned for a future premium update.
-      </p>
-      <div className="mt-8">
-        <Link
-          href="/recommend"
-          className="inline-flex rounded-full bg-white px-8 py-4 text-base font-black text-black shadow-[0_0_24px_rgba(255,255,255,0.1)] transition hover:bg-cyan-100"
-        >
-          Find games for me
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 function RecommendContextFitCard({ context }: { context: RecommendFitContext }) {
   const tierLabel = recommendMatchTierLabel(context.matchTier);
   const fitBody = resolveRecommendFitBody(context.reason);
@@ -352,11 +324,11 @@ function RecommendContextFitCard({ context }: { context: RecommendFitContext }) 
 }
 
 function PersonalFitSection({ context }: { context: RecommendFitContext | null }) {
-  if (!context) {
-    return <PersistentTasteComingSoonCard />;
+  if (context) {
+    return <RecommendContextFitCard context={context} />;
   }
 
-  return <RecommendContextFitCard context={context} />;
+  return <GameDnaProfileCard />;
 }
 
 function DetailRow({

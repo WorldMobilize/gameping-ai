@@ -7,6 +7,7 @@ import {
   resolveSteamIdFromInput,
   SteamApiError,
 } from "@/lib/steam-library/steam-api";
+import { buildTasteDna } from "@/lib/steam-library/build-taste-dna";
 import { normalizeSteamGameTitle } from "@/lib/steam-library/title-norm";
 
 export const STEAM_LIBRARY_PRIVATE_MESSAGE =
@@ -69,6 +70,13 @@ export async function importSteamLibraryForUser(params: {
 
   const now = new Date().toISOString();
   const totalPlaytimeMin = games.reduce((sum, g) => sum + g.playtime_forever, 0);
+  const tasteDna = buildTasteDna(
+    games.map((game) => ({
+      title: game.name,
+      playtimeForever: game.playtime_forever,
+    })),
+    now
+  );
   const profileUrl =
     parsed.profileUrl ?? `https://steamcommunity.com/profiles/${steamId}`;
 
@@ -93,7 +101,7 @@ export async function importSteamLibraryForUser(params: {
         total_playtime_min: totalPlaytimeMin,
         imported_at: now,
         updated_at: now,
-        taste_dna: null,
+        taste_dna: tasteDna,
         taste_version: 1,
         rawg_enriched_at: null,
       },

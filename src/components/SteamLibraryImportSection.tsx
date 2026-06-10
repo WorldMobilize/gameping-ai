@@ -156,7 +156,10 @@ export default function SteamLibraryImportSection() {
   const connected = summary?.connected === true;
 
   return (
-    <section className="rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.06] p-8">
+    <section
+      id="steam-library-import"
+      className="rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.06] p-8"
+    >
       <p className="text-xs font-black uppercase tracking-[0.35em] text-emerald-200/90">
         Steam Library Import
       </p>
