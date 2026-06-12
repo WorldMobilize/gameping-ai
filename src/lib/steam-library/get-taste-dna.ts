@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isTasteDna, type TasteDna } from "@/lib/steam-library/build-taste-dna";
+import { isTasteDna, type TasteDna } from "@/lib/steam-library/taste-dna-types";
 
 export async function getTasteDnaForUser(params: {
   supabase: SupabaseClient;

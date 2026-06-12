@@ -37,7 +37,7 @@ import {
 } from "@/lib/pricing/price-service";
 import { verifiedDealDisplayDedupeKey } from "@/lib/pricing/verified-deal-row";
 import { formatDisplayDate } from "@/lib/format-display-date";
-import GameDnaProfileCard from "@/components/GameDnaProfileCard";
+import PersonalGameFitCard from "@/components/PersonalGameFitCard";
 import {
   RECOMMEND_FIT_TRANSPARENCY_NOTE,
   resolveRecommendFitBody,
@@ -323,12 +323,20 @@ function RecommendContextFitCard({ context }: { context: RecommendFitContext }) 
   );
 }
 
-function PersonalFitSection({ context }: { context: RecommendFitContext | null }) {
+function PersonalFitSection({
+  context,
+  gameSlug,
+  rawgId,
+}: {
+  context: RecommendFitContext | null;
+  gameSlug: string;
+  rawgId?: number | null;
+}) {
   if (context) {
     return <RecommendContextFitCard context={context} />;
   }
 
-  return <GameDnaProfileCard />;
+  return <PersonalGameFitCard gameSlug={gameSlug} rawgId={rawgId} />;
 }
 
 function DetailRow({
@@ -926,7 +934,11 @@ export default async function GameDetailPage({
             </p>
           </div>
 
-          <PersonalFitSection context={recommendFitContext} />
+          <PersonalFitSection
+            context={recommendFitContext}
+            gameSlug={title}
+            rawgId={gameId}
+          />
 
           <div
             id="verified-store-deals"

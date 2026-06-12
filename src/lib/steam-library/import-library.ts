@@ -8,6 +8,8 @@ import {
   SteamApiError,
 } from "@/lib/steam-library/steam-api";
 import { buildTasteDna } from "@/lib/steam-library/build-taste-dna";
+import { enrichTasteDnaWithAi } from "@/lib/steam-library/synthesize-taste-dna";
+import { TASTE_DNA_V2_VERSION } from "@/lib/steam-library/taste-dna-types";
 import { normalizeSteamGameTitle } from "@/lib/steam-library/title-norm";
 
 export const STEAM_LIBRARY_PRIVATE_MESSAGE =
@@ -70,13 +72,14 @@ export async function importSteamLibraryForUser(params: {
 
   const now = new Date().toISOString();
   const totalPlaytimeMin = games.reduce((sum, g) => sum + g.playtime_forever, 0);
-  const tasteDna = buildTasteDna(
+  const tasteDnaBase = buildTasteDna(
     games.map((game) => ({
       title: game.name,
       playtimeForever: game.playtime_forever,
     })),
     now
   );
+  const tasteDna = await enrichTasteDnaWithAi(tasteDnaBase);
   const profileUrl =
     parsed.profileUrl ?? `https://steamcommunity.com/profiles/${steamId}`;
 
@@ -102,7 +105,7 @@ export async function importSteamLibraryForUser(params: {
         imported_at: now,
         updated_at: now,
         taste_dna: tasteDna,
-        taste_version: 1,
+        taste_version: TASTE_DNA_V2_VERSION,
         rawg_enriched_at: null,
       },
       { onConflict: "user_id" }
