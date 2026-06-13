@@ -1,31 +1,31 @@
 import Link from "next/link";
-import HomeProductDemo from "@/components/home/HomeProductDemo";
+import HomeHeroInsightPanel from "@/components/home/HomeHeroInsightPanel";
 import { HOME_VALUE_PROPS } from "@/components/home/home-demo-data";
 import { HomeValuePropIcon } from "@/components/home/HomeValuePropIcons";
 
 export default function HomeHero() {
   return (
-    <section className="gp-home-hero relative overflow-hidden px-5 pb-20 pt-24 min-[960px]:px-8 min-[960px]:pb-24 min-[960px]:pt-28 xl:px-10 2xl:px-16 lg:pt-32">
+    <section className="gp-home-hero relative overflow-hidden px-5 pb-16 pt-24 min-[960px]:px-8 min-[960px]:pb-20 min-[960px]:pt-28 xl:px-10 2xl:px-16">
       <div className="gp-home-hero-bg pointer-events-none absolute inset-0" aria-hidden />
 
       <div className="relative z-10 mx-auto w-full max-w-[1500px]">
-        <div className="grid grid-cols-1 items-start gap-10 min-[960px]:grid-cols-[minmax(360px,0.9fr)_minmax(460px,1.1fr)] min-[960px]:gap-8 xl:gap-12">
+        <div className="grid grid-cols-1 items-start gap-10 min-[960px]:grid-cols-[minmax(360px,0.95fr)_minmax(320px,0.85fr)] min-[960px]:gap-8 xl:gap-12">
           <div className="gp-home-hero-copy min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300/75">
               Personal game discovery
             </p>
 
-            <h1 className="mt-4 text-4xl font-semibold leading-[1.06] tracking-tight text-white sm:text-5xl min-[960px]:text-[2.35rem] min-[960px]:leading-[1.05] xl:text-[3.4rem] xl:leading-[1.04]">
+            <h1 className="mt-3 text-4xl font-semibold leading-[1.06] tracking-tight text-white sm:text-5xl min-[960px]:text-[2.35rem] min-[960px]:leading-[1.05] xl:text-[3.25rem] xl:leading-[1.04]">
               Find the next game you&apos;ll actually{" "}
               <span className="text-sky-400">love.</span>
             </h1>
 
-            <p className="mt-5 max-w-lg text-lg leading-8 text-white/55 min-[960px]:max-w-none xl:max-w-lg">
+            <p className="mt-4 max-w-lg text-lg leading-8 text-white/55 min-[960px]:max-w-none xl:max-w-lg">
               GamePing learns your taste, explains every recommendation, and helps you
               discover games worth your time.
             </p>
 
-            <div className="mt-9 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center">
+            <div className="mt-8 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center">
               <Link
                 href="/recommend"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-400 px-7 py-3.5 text-sm font-semibold text-[#041018] transition hover:bg-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060f]"
@@ -49,7 +49,7 @@ export default function HomeHero() {
               </a>
             </div>
 
-            <p className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/35">
+            <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/35">
               <span>No login required</span>
               <span className="text-sky-400/60" aria-hidden>
                 ·
@@ -61,9 +61,9 @@ export default function HomeHero() {
               <span>Prices on every game page</span>
             </p>
 
-            <ul className="mt-12 grid gap-5 min-[480px]:grid-cols-2 min-[480px]:gap-6">
+            <ul className="mt-10 grid gap-4 min-[480px]:grid-cols-2 min-[480px]:gap-5">
               {HOME_VALUE_PROPS.map((prop) => (
-                <li key={prop.id} className="flex items-start gap-3.5">
+                <li key={prop.id} className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-400/20 bg-sky-400/[0.07]">
                     <HomeValuePropIcon id={prop.id} />
                   </span>
@@ -77,7 +77,7 @@ export default function HomeHero() {
 
             <nav
               aria-label="Explore GamePing"
-              className="mt-10 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[0.06] pt-6 text-sm"
+              className="mt-8 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[0.06] pt-5 text-sm"
             >
               <Link
                 href="/recommend"
@@ -100,8 +100,8 @@ export default function HomeHero() {
             </nav>
           </div>
 
-          <div className="gp-home-hero-demo min-w-0 w-full min-[960px]:sticky min-[960px]:top-28 min-[960px]:ml-auto min-[960px]:max-w-[820px]">
-            <HomeProductDemo />
+          <div className="gp-home-hero-insight min-w-0 w-full min-[960px]:ml-auto min-[960px]:max-w-[480px] xl:max-w-[520px]">
+            <HomeHeroInsightPanel />
           </div>
         </div>
       </div>

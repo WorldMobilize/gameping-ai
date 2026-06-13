@@ -91,7 +91,7 @@ function DemoGameCard({
       }`}
       style={{ transitionDelay: visible ? `${index * 100}ms` : "0ms" }}
     >
-      <div className="relative h-[112px] w-full overflow-hidden bg-[#080a12] min-[480px]:h-[120px] min-[960px]:h-[118px] xl:h-auto xl:aspect-[460/215]">
+      <div className="relative h-[112px] w-full overflow-hidden bg-[#080a12] min-[480px]:h-[120px] min-[960px]:h-[118px] xl:h-auto xl:aspect-[460/215] [.gp-home-section-demo_&]:min-[960px]:h-[132px] [.gp-home-section-demo_&]:xl:h-auto [.gp-home-section-demo_&]:xl:aspect-[460/215]">
         <Image
           src={pick.image}
           alt=""
@@ -148,7 +148,11 @@ function DemoGameCard({
   );
 }
 
-export default function HomeProductDemo() {
+export default function HomeProductDemo({
+  variant = "default",
+}: {
+  variant?: "default" | "section";
+}) {
   const reducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<DemoPhase>("typing-initial");
   const [typedLength, setTypedLength] = useState(0);
@@ -272,8 +276,13 @@ export default function HomeProductDemo() {
 
   const sessionLabel = isRefined ? "Refine preview" : "Taste-based picks";
 
+  const isSection = variant === "section";
+  const rootClass = isSection
+    ? "gp-home-demo relative w-full min-w-0 max-w-none"
+    : "gp-home-demo relative w-full min-w-0 max-w-[820px]";
+
   return (
-    <div className="gp-home-demo relative w-full min-w-0 max-w-[820px]" aria-hidden>
+    <div className={rootClass} aria-hidden>
       <div className="gp-home-demo-glass overflow-hidden rounded-2xl border border-white/[0.09] shadow-[0_32px_80px_-24px_rgba(0,0,0,0.75)]">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] bg-black/25 px-3.5 py-2.5 backdrop-blur-md min-[960px]:px-4 min-[960px]:py-3">
           <div className="flex min-w-0 items-center gap-2.5">

@@ -61,6 +61,22 @@ export const HOME_REFINED_PICKS: HomeDemoPick[] = [
   },
 ];
 
+export const HOME_HERO_INSIGHT = {
+  title: "GamePing turns vague prompts into useful picks",
+  input: "I want a co-op game with progression",
+  understands: [
+    { label: "Mood", value: "relaxed co-op" },
+    { label: "Need", value: "long-term progression" },
+    { label: "Avoid", value: "endless generic lists" },
+  ],
+  outputs: [
+    "5 curated picks",
+    "Reasons + concerns",
+    "Real prices where available",
+    "Refine if needed",
+  ],
+};
+
 export type HomeValueProp = {
   id: string;
   label: string;
@@ -93,12 +109,12 @@ export const HOME_VALUE_PROPS: HomeValueProp[] = [
 export const HOME_FEATURES = [
   {
     step: "01",
-    title: "Describe what you feel like playing",
+    title: "Describe the game you want",
     text: "One sentence is enough—or add budget, platform, and mood when you want tighter picks.",
   },
   {
     step: "02",
-    title: "Get picks with reasons and possible concerns",
+    title: "Get picks with reasons",
     text: "Up to five matches with fit scores, plain-language why, and honest trade-offs.",
   },
   {
