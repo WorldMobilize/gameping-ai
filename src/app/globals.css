@@ -232,6 +232,36 @@ body {
   animation: gp-home-pulse-text 1.2s ease-in-out infinite;
 }
 
+.gp-home-hero-bg {
+  background:
+    radial-gradient(ellipse 90% 60% at 15% 0%, rgba(56, 189, 248, 0.09), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 10%, rgba(99, 102, 241, 0.06), transparent 50%),
+    radial-gradient(ellipse 80% 40% at 50% 100%, rgba(15, 23, 42, 0.9), transparent),
+    linear-gradient(180deg, #06080f 0%, #05060f 45%, #05060f 100%);
+}
+
+.gp-home-demo-glass {
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.01) 40%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  backdrop-filter: blur(12px);
+}
+
+.gp-home-demo-user {
+  animation: gp-home-fade-up 0.4s ease-out both;
+}
+
+.gp-home-demo-assistant {
+  animation: gp-home-fade-up 0.4s ease-out both;
+}
+
+.gp-home-demo-card {
+  will-change: transform, opacity;
+}
+
 .gp-home-feature-card {
   transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
 }

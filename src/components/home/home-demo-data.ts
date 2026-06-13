@@ -1,7 +1,11 @@
+import { steamHeaderImage } from "@/lib/curated/game-links";
+
 export type HomeDemoPick = {
   title: string;
   match: number;
   reason: string;
+  image: string;
+  tags: string[];
 };
 
 export const HOME_INITIAL_PROMPT =
@@ -12,18 +16,24 @@ export const HOME_REFINE_PROMPT = "Less cozy, more survival and exploration";
 export const HOME_INITIAL_PICKS: HomeDemoPick[] = [
   {
     title: "Stardew Valley",
-    match: 94,
+    match: 92,
     reason: "Shared farming with gentle co-op and steady progression at your pace.",
+    image: steamHeaderImage(413150),
+    tags: ["Co-op", "Cozy", "Progression"],
   },
   {
     title: "Spiritfarer",
-    match: 91,
+    match: 89,
     reason: "Calm rhythm, meaningful growth, and a journey you can share.",
+    image: steamHeaderImage(972660),
+    tags: ["Co-op", "Relaxing", "Story"],
   },
   {
     title: "Unrailed!",
-    match: 88,
+    match: 87,
     reason: "Quick co-op sessions with teamwork and escalating challenge.",
+    image: steamHeaderImage(1016920),
+    tags: ["Co-op", "Arcade", "Teamwork"],
   },
 ];
 
@@ -32,24 +42,52 @@ export const HOME_REFINED_PICKS: HomeDemoPick[] = [
     title: "Valheim",
     match: 92,
     reason: "Co-op survival with exploration and long-term base building.",
+    image: steamHeaderImage(892970),
+    tags: ["Survival", "Exploration", "Building"],
   },
   {
     title: "No Man's Sky",
     match: 89,
     reason: "Vast worlds to explore together with steady progression.",
+    image: steamHeaderImage(275850),
+    tags: ["Survival", "Exploration", "Sci-fi"],
   },
   {
     title: "Enshrouded",
     match: 87,
     reason: "Survival crafting with discovery and shared progression.",
+    image: steamHeaderImage(1203620),
+    tags: ["Survival", "Crafting", "Co-op"],
   },
 ];
 
-export const HOME_TRUST_BADGES = [
-  { label: "Personal recommendations", detail: "Curated picks, not endless lists" },
-  { label: "Taste-based fit", detail: "Reasons that match how you play" },
-  { label: "Real prices", detail: "Verified store prices on game pages" },
-  { label: "Steam library optional", detail: "Connect when you want deeper fit" },
+export type HomeValueProp = {
+  id: string;
+  label: string;
+  detail: string;
+};
+
+export const HOME_VALUE_PROPS: HomeValueProp[] = [
+  {
+    id: "taste",
+    label: "Taste-based discovery",
+    detail: "Understands why you enjoy games",
+  },
+  {
+    id: "dna",
+    label: "Gaming DNA",
+    detail: "Build your personal taste profile",
+  },
+  {
+    id: "refine",
+    label: "Refine search",
+    detail: "Adjust recommendations instantly",
+  },
+  {
+    id: "deals",
+    label: "Deal aware",
+    detail: "Find games you'll love before buying",
+  },
 ];
 
 export const HOME_FEATURES = [
@@ -84,3 +122,9 @@ export const HOME_DEAL_POINTS = [
     text: "Offers are selected for your region when storefront data supports it.",
   },
 ];
+
+/** @deprecated Use HOME_VALUE_PROPS — kept for any stale imports */
+export const HOME_TRUST_BADGES = HOME_VALUE_PROPS.map((p) => ({
+  label: p.label,
+  detail: p.detail,
+}));
