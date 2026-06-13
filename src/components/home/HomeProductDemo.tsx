@@ -91,26 +91,26 @@ function DemoGameCard({
       }`}
       style={{ transitionDelay: visible ? `${index * 100}ms` : "0ms" }}
     >
-      <div className="relative aspect-[460/215] w-full overflow-hidden bg-[#080a12]">
+      <div className="relative h-[112px] w-full overflow-hidden bg-[#080a12] min-[480px]:h-[120px] min-[960px]:h-[118px] xl:h-auto xl:aspect-[460/215]">
         <Image
           src={pick.image}
           alt=""
           aria-hidden
           fill
-          sizes="(max-width: 768px) 88vw, 340px"
+          sizes="(max-width: 959px) 92vw, (max-width: 1279px) 42vw, 480px"
           className="scale-[1.35] object-cover object-[42%_50%] opacity-50 blur-lg saturate-150"
         />
         <Image
           src={pick.image}
           alt={`${pick.title} header art`}
           fill
-          sizes="(max-width: 768px) 88vw, 340px"
+          sizes="(max-width: 959px) 92vw, (max-width: 1279px) 42vw, 480px"
           priority={index === 0}
           className="z-[1] scale-[1.08] object-contain object-[42%_50%]"
         />
-        <div className="absolute inset-x-0 bottom-0 z-[2] h-16 bg-gradient-to-t from-black/80 to-transparent" />
-        <div className="absolute bottom-2.5 left-3 right-3 z-[3] flex items-end justify-between gap-2">
-          <h3 className="truncate text-sm font-semibold tracking-tight text-white drop-shadow-sm">
+        <div className="absolute inset-x-0 bottom-0 z-[2] h-12 bg-gradient-to-t from-black/80 to-transparent xl:h-16" />
+        <div className="absolute bottom-2 left-2.5 right-2.5 z-[3] flex items-end justify-between gap-2 xl:bottom-2.5 xl:left-3 xl:right-3">
+          <h3 className="truncate text-[13px] font-semibold tracking-tight text-white drop-shadow-sm xl:text-sm">
             {pick.title}
           </h3>
           <span className="shrink-0 rounded-full bg-sky-400/90 px-2.5 py-1 text-xs font-bold tabular-nums text-[#041018]">
@@ -124,7 +124,7 @@ function DemoGameCard({
         ) : null}
       </div>
 
-      <div className="space-y-2.5 p-3.5">
+      <div className="space-y-2 p-3 min-[960px]:space-y-2.5 min-[960px]:p-3.5">
         <div className="flex flex-wrap gap-1.5">
           {pick.tags.map((tag) => (
             <span
@@ -270,22 +270,26 @@ export default function HomeProductDemo() {
   const showUserInitial =
     phase !== "typing-initial" || typedLength > 0 || reducedMotion;
 
+  const sessionLabel = isRefined ? "Refine preview" : "Taste-based picks";
+
   return (
-    <div className="gp-home-demo relative w-full" aria-hidden>
+    <div className="gp-home-demo relative w-full min-w-0 max-w-[820px]" aria-hidden>
       <div className="gp-home-demo-glass overflow-hidden rounded-2xl border border-white/[0.09] shadow-[0_32px_80px_-24px_rgba(0,0,0,0.75)]">
-        <div className="flex items-center justify-between border-b border-white/[0.06] bg-black/25 px-4 py-3 backdrop-blur-md">
-          <div className="flex gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]/80" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]/80" />
-            <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]/80" />
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] bg-black/25 px-3.5 py-2.5 backdrop-blur-md min-[960px]:px-4 min-[960px]:py-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-sky-400/15 ring-1 ring-sky-400/25">
+              <span className="text-[9px] font-bold text-sky-300">GP</span>
+            </span>
+            <span className="truncate text-xs font-semibold text-white/75">
+              GamePing session
+            </span>
           </div>
-          <p className="text-[11px] font-medium tracking-wide text-white/35">
-            gameping.ai
-          </p>
-          <div className="w-10" />
+          <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-white/45">
+            {sessionLabel}
+          </span>
         </div>
 
-        <div className="space-y-4 bg-[#070910]/80 p-4 backdrop-blur-sm md:p-5">
+        <div className="space-y-3.5 bg-[#070910]/80 p-3.5 backdrop-blur-sm min-[960px]:space-y-4 min-[960px]:p-4 xl:p-5">
           <UserBubble
             visible={showUserInitial}
             text={initialBubbleText}
@@ -346,7 +350,7 @@ export default function HomeProductDemo() {
           ) : null}
         </div>
 
-        <div className="flex items-center justify-between border-t border-white/[0.06] bg-black/20 px-4 py-2.5 text-[11px] text-white/35 backdrop-blur-md">
+        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] bg-black/20 px-3.5 py-2 text-[10px] text-white/35 backdrop-blur-md min-[960px]:px-4 min-[960px]:py-2.5 min-[960px]:text-[11px]">
           <span>{showRefinedResults ? "Refined results" : "Sample session"}</span>
           <span className="tabular-nums">
             {showRefinedResults || showInitialResults ? "3 of 5" : "—"}

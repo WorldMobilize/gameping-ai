@@ -220,6 +220,13 @@ body {
   animation: gp-home-fade-up 0.75s ease-out 0.12s both;
 }
 
+@media (min-width: 960px) {
+  .gp-home-hero-demo {
+    justify-self: end;
+    width: 100%;
+  }
+}
+
 .gp-home-tag {
   animation: gp-home-fade-up 0.5s ease-out both;
 }
