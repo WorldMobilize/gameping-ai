@@ -2,92 +2,80 @@ type IconProps = {
   className?: string;
 };
 
-const STROKE = 1.65;
+const ICON_PROPS = {
+  viewBox: "0 0 24 24",
+  fill: "none" as const,
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true,
+};
 
-/** Finding new worlds — compass with discovery marker */
-export function TasteDiscoveryIcon({ className = "h-[18px] w-[18px]" }: IconProps) {
+/** Exploration compass — cardinal ring + north needle */
+export function TasteDiscoveryIcon({ className = "h-[22px] w-[22px]" }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth={STROKE} opacity="0.35" />
-      <circle cx="12" cy="12" r="5.5" stroke="currentColor" strokeWidth={STROKE} />
+    <svg className={className} {...ICON_PROPS}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 4.5v2M12 17.5v2M4.5 12h2M17.5 12h2" />
       <path
-        d="M12 8.5 13.6 12 12 15.5 10.4 12Z"
+        d="M12 6.5 14.2 12.5 12 11 9.8 12.5 12 6.5z"
+        fill="currentColor"
         stroke="currentColor"
-        strokeWidth={STROKE}
         strokeLinejoin="round"
       />
-      <path d="M12 4.5v1.2M12 18.3v1.2M4.5 12h1.2M18.3 12h1.2" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" />
-      <circle cx="16.8" cy="7.2" r="1.1" fill="currentColor" opacity="0.85" />
-      <path d="M16.8 7.2 14.2 10.2" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" opacity="0.5" />
-    </svg>
-  );
-}
-
-/** Personal gaming profile — fingerprint + identity nodes */
-export function GamingDnaIcon({ className = "h-[18px] w-[18px]" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
-        d="M12 4.5c-2.8 0-4.5 2-4.5 4.2 0 1.8.8 2.8 1.8 3.8M12 4.5c2.8 0 4.5 2 4.5 4.2 0 1.8-.8 2.8-1.8 3.8M12 12.5v3.5M9.2 16.2c.6 1.4 1.8 2.3 2.8 2.3s2.2-.9 2.8-2.3"
+        d="M12 17.5 13.5 13 12 14 10.5 13 12 17.5z"
         stroke="currentColor"
-        strokeWidth={STROKE}
-        strokeLinecap="round"
-      />
-      <circle cx="7" cy="18.5" r="1.35" stroke="currentColor" strokeWidth={STROKE} />
-      <circle cx="12" cy="20" r="1.35" stroke="currentColor" strokeWidth={STROKE} />
-      <circle cx="17" cy="18.5" r="1.35" stroke="currentColor" strokeWidth={STROKE} />
-      <path d="M8.35 18.5 10.65 19.6M13.35 19.6 15.65 18.5" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" opacity="0.55" />
-    </svg>
-  );
-}
-
-/** Shape recommendations — sliders + branching path */
-export function RefineSearchIcon({ className = "h-[18px] w-[18px]" }: IconProps) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M4 8h11M4 13h9M4 18h7" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" />
-      <circle cx="17" cy="8" r="2" stroke="currentColor" strokeWidth={STROKE} />
-      <circle cx="15" cy="13" r="2" stroke="currentColor" strokeWidth={STROKE} />
-      <circle cx="13" cy="18" r="2" stroke="currentColor" strokeWidth={STROKE} />
-      <path
-        d="M19 5v4M19 5h3M19 5h-3M21 16v3M21 16h2M21 16h-2"
-        stroke="currentColor"
-        strokeWidth={STROKE}
-        strokeLinecap="round"
         strokeLinejoin="round"
-        opacity="0.55"
+        opacity="0.4"
       />
     </svg>
   );
 }
 
-/** Never miss the right moment — tag + radar pulse */
-export function DealAwareIcon({ className = "h-[18px] w-[18px]" }: IconProps) {
+/** Player profile fingerprint — clean readable arcs */
+export function GamingDnaIcon({ className = "h-[22px] w-[22px]" }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6.5 6.5h6.5l3 2.8v8.2L12 20l-5.5-2.5V6.5z"
-        stroke="currentColor"
-        strokeWidth={STROKE}
-        strokeLinejoin="round"
-      />
-      <path d="M13 6.5v2.8H16.5" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" strokeLinejoin="round" />
-      <path
-        d="M9.5 11.5 10.8 12.8 13.2 10.2"
-        stroke="currentColor"
-        strokeWidth={STROKE}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M18.5 9a3.5 3.5 0 0 1 0 6" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" opacity="0.45" />
-      <path d="M20 9a5 5 0 0 1 0 6" stroke="currentColor" strokeWidth={STROKE} strokeLinecap="round" opacity="0.25" />
-      <circle cx="18.5" cy="12" r="0.9" fill="currentColor" />
+    <svg className={className} {...ICON_PROPS}>
+      <path d="M12 10.5a2.5 2.5 0 0 0-2.5 2.5" />
+      <path d="M12 7.5a5.5 5.5 0 0 0-5.5 5.5" />
+      <path d="M12 5a8 8 0 0 0-8 8" />
+      <path d="M12 14v2.5" />
+      <path d="M9 18.5a3 3 0 0 0 6 0" />
+    </svg>
+  );
+}
+
+/** Lucide-style SlidersHorizontal */
+export function RefineSearchIcon({ className = "h-[22px] w-[22px]" }: IconProps) {
+  return (
+    <svg className={className} {...ICON_PROPS}>
+      <line x1="21" x2="14" y1="4" y2="4" />
+      <line x1="10" x2="3" y1="4" y2="4" />
+      <line x1="21" x2="12" y1="12" y2="12" />
+      <line x1="8" x2="3" y1="12" y2="12" />
+      <line x1="21" x2="16" y1="20" y2="20" />
+      <line x1="12" x2="3" y1="20" y2="20" />
+      <line x1="14" x2="14" y1="2" y2="6" />
+      <line x1="8" x2="8" y1="10" y2="14" />
+      <line x1="16" x2="16" y1="18" y2="22" />
+    </svg>
+  );
+}
+
+/** Lucide-style Tag */
+export function DealAwareIcon({ className = "h-[22px] w-[22px]" }: IconProps) {
+  return (
+    <svg className={className} {...ICON_PROPS}>
+      <path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z" />
+      <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
 export function HomeValuePropIcon({ id }: { id: string }) {
-  const className = "gp-home-value-icon-svg h-[18px] w-[18px] shrink-0 text-sky-400";
+  const className = "gp-home-value-icon-svg h-[22px] w-[22px] shrink-0 text-sky-400";
 
   switch (id) {
     case "taste":

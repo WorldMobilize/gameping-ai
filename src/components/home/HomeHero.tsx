@@ -61,20 +61,20 @@ export default function HomeHero() {
               <span>Prices on every game page</span>
             </p>
 
-            <ul className="mt-10 grid gap-3 min-[480px]:grid-cols-2 min-[480px]:gap-3.5">
+            <ul className="mt-11 grid gap-3.5 min-[480px]:grid-cols-2 min-[480px]:gap-4">
               {HOME_VALUE_PROPS.map((prop) => (
                 <li
                   key={prop.id}
-                  className="gp-home-value-benefit group flex items-start gap-3.5 rounded-xl border border-white/[0.05] bg-white/[0.015] px-3.5 py-3.5 transition-colors hover:border-sky-400/15 hover:bg-sky-400/[0.03]"
+                  className="gp-home-value-benefit group flex items-start gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-4 transition-colors hover:border-sky-400/25 hover:bg-sky-400/[0.04]"
                 >
-                  <span className="gp-home-value-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-400/20 bg-sky-400/[0.07] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:border-sky-400/30">
+                  <span className="gp-home-value-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-sky-400/20 bg-sky-400/[0.08] transition-all duration-300 group-hover:border-sky-400/40 group-hover:bg-sky-400/[0.12]">
                     <HomeValuePropIcon id={prop.id} />
                   </span>
-                  <div className="min-w-0 pt-0.5">
-                    <p className="text-sm font-medium leading-snug text-white/90">
+                  <div className="min-w-0 pt-1">
+                    <p className="text-[15px] font-semibold leading-snug text-white">
                       {prop.label}
                     </p>
-                    <p className="mt-1 text-xs leading-5 text-white/40">{prop.detail}</p>
+                    <p className="mt-1.5 text-sm leading-6 text-white/45">{prop.detail}</p>
                   </div>
                 </li>
               ))}

@@ -248,49 +248,48 @@ body {
 }
 
 .gp-home-hero-bg {
-  background:
-    radial-gradient(ellipse 100% 70% at 20% -5%, rgba(56, 189, 248, 0.14), transparent 52%),
-    radial-gradient(ellipse 80% 55% at 88% 8%, rgba(129, 140, 248, 0.07), transparent 48%),
-    radial-gradient(ellipse 90% 50% at 50% 100%, rgba(8, 12, 22, 0.95), transparent 55%),
-    linear-gradient(180deg, #070912 0%, #05060f 55%, #05060f 100%);
+  background: linear-gradient(180deg, #070912 0%, #05060f 100%);
+}
+
+.gp-home-hero-city-wrap {
+  position: absolute;
+  inset: 0;
+}
+
+.gp-home-hero-city-image {
+  object-position: 58% 52%;
+  opacity: 0.74;
+  filter: brightness(0.58) saturate(1.12) contrast(1.04);
+}
+
+.gp-home-hero-city-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 6, 15, 0.42);
 }
 
 .gp-home-hero-atmosphere-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    ellipse 55% 40% at 72% 28%,
-    rgba(56, 189, 248, 0.08),
-    transparent 70%
-  );
-  animation: gp-home-ambient-drift 28s ease-in-out infinite alternate;
-}
-
-.gp-home-hero-atmosphere-grid {
-  position: absolute;
-  inset: 0;
-  opacity: 0.22;
-  background-image:
-    linear-gradient(rgba(56, 189, 248, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: linear-gradient(180deg, transparent 0%, black 35%, black 85%, transparent 100%);
-  transform: perspective(900px) rotateX(58deg) scale(1.35);
-  transform-origin: 50% 100%;
-}
-
-.gp-home-hero-atmosphere-traces {
-  position: absolute;
-  inset: 0;
-  opacity: 0.35;
   background:
-    linear-gradient(118deg, transparent 42%, rgba(56, 189, 248, 0.12) 49%, transparent 56%),
-    linear-gradient(72deg, transparent 58%, rgba(167, 139, 250, 0.06) 62%, transparent 66%);
-  animation: gp-home-trace-shift 22s ease-in-out infinite alternate;
+    radial-gradient(ellipse 55% 45% at 72% 62%, rgba(34, 211, 238, 0.14), transparent 68%),
+    radial-gradient(ellipse 40% 35% at 20% 15%, rgba(56, 189, 248, 0.06), transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  animation: gp-home-ambient-drift 32s ease-in-out infinite alternate;
 }
 
-.gp-home-hero-skyline {
-  animation: gp-home-skyline-drift 40s ease-in-out infinite alternate;
+.gp-home-hero-atmosphere-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(5, 6, 15, 0.92) 0%,
+    rgba(5, 6, 15, 0.78) 32%,
+    rgba(5, 6, 15, 0.42) 52%,
+    rgba(5, 6, 15, 0.12) 68%,
+    transparent 82%
+  );
 }
 
 .gp-home-hero-atmosphere-fog {
@@ -298,11 +297,44 @@ body {
   inset: 0;
   background: linear-gradient(
     180deg,
-    transparent 0%,
-    rgba(5, 6, 15, 0.15) 45%,
-    rgba(5, 6, 15, 0.75) 78%,
-    #05060f 100%
+    rgba(5, 6, 15, 0.82) 0%,
+    rgba(5, 6, 15, 0.35) 18%,
+    rgba(5, 6, 15, 0.08) 42%,
+    rgba(5, 6, 15, 0.2) 78%,
+    rgba(5, 6, 15, 0.65) 100%
   );
+}
+
+@media (max-width: 959px) {
+  .gp-home-hero-city-image {
+    object-position: 50% 62%;
+    opacity: 0.52;
+    filter: brightness(0.5) saturate(1.08);
+  }
+
+  .gp-home-hero-city-dim {
+    background: rgba(5, 6, 15, 0.55);
+  }
+
+  .gp-home-hero-atmosphere-scrim {
+    background: linear-gradient(
+      180deg,
+      rgba(5, 6, 15, 0.9) 0%,
+      rgba(5, 6, 15, 0.72) 28%,
+      rgba(5, 6, 15, 0.38) 55%,
+      rgba(5, 6, 15, 0.2) 100%
+    );
+  }
+
+  .gp-home-hero-atmosphere-glow {
+    opacity: 0.55;
+  }
+}
+
+@media (min-width: 1440px) {
+  .gp-home-hero-city-image {
+    object-position: 62% 48%;
+  }
 }
 
 .gp-home-hero-particle {
@@ -328,58 +360,13 @@ body {
   opacity: 0.7;
 }
 
-.gp-home-hero-particle-3 {
-  left: 64%;
-  top: 48%;
-  animation-delay: -6s;
-  background: rgba(167, 139, 250, 0.45);
-  box-shadow: 0 0 8px rgba(167, 139, 250, 0.25);
-}
-
-.gp-home-hero-particle-4 {
-  left: 34%;
-  top: 58%;
-  animation-delay: -9s;
-  width: 2px;
-  height: 2px;
-}
-
-.gp-home-hero-particle-5 {
-  left: 88%;
-  top: 62%;
-  animation-delay: -12s;
-  opacity: 0.5;
-}
-
 @keyframes gp-home-ambient-drift {
   from {
     transform: translate3d(0, 0, 0) scale(1);
   }
 
   to {
-    transform: translate3d(-2%, 1.5%, 0) scale(1.04);
-  }
-}
-
-@keyframes gp-home-trace-shift {
-  from {
-    transform: translateX(0);
-    opacity: 0.28;
-  }
-
-  to {
-    transform: translateX(2.5%);
-    opacity: 0.42;
-  }
-}
-
-@keyframes gp-home-skyline-drift {
-  from {
-    transform: translateX(0);
-  }
-
-  to {
-    transform: translateX(-1.5%);
+    transform: translate3d(-1.5%, 1%, 0) scale(1.03);
   }
 }
 
@@ -397,7 +384,11 @@ body {
 }
 
 .gp-home-value-benefit:hover .gp-home-value-icon-svg {
-  transform: scale(1.06);
+  transform: scale(1.05);
+}
+
+.gp-home-value-icon {
+  transition: border-color 0.3s ease, background-color 0.3s ease;
 }
 
 .gp-home-value-icon-svg {
@@ -493,8 +484,6 @@ body {
   }
 
   .gp-home-hero-atmosphere-glow,
-  .gp-home-hero-atmosphere-traces,
-  .gp-home-hero-skyline,
   .gp-home-hero-particle {
     animation: none;
   }
