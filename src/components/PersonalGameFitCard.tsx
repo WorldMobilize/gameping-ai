@@ -20,58 +20,79 @@ function fitTierLabel(tier: PersonalGameFitTier): string {
 
 function fitTierClassName(tier: PersonalGameFitTier): string {
   if (tier === "great_fit" || tier === "owned") {
-    return "rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-200";
+    return "rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200 ring-1 ring-emerald-500/25";
   }
   if (tier === "good_fit" || tier === "different_but_worth_trying") {
-    return "rounded-full bg-amber-500/25 px-3 py-1 text-xs font-bold text-amber-200";
+    return "rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-200 ring-1 ring-amber-500/25";
   }
   if (tier === "partial_fit") {
-    return "rounded-full bg-orange-500/25 px-3 py-1 text-xs font-bold text-orange-200";
+    return "rounded-full bg-orange-500/15 px-3 py-1 text-xs font-semibold text-orange-200 ring-1 ring-orange-500/25";
   }
-  return "rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/55";
+  return "rounded-full bg-white/[0.06] px-3 py-1 text-xs font-semibold text-white/55 ring-1 ring-white/10";
+}
+
+function FitBulletList({
+  title,
+  items,
+  variant,
+}: {
+  title: string;
+  items: string[];
+  variant: "pro" | "con";
+}) {
+  if (items.length === 0) return null;
+
+  const dotClass =
+    variant === "pro" ? "bg-cyan-400/80" : "bg-white/35";
+
+  return (
+    <div className="mt-7">
+      <p className="text-sm font-semibold text-white/85">{title}</p>
+      <ul className="mt-3 space-y-3">
+        {items.map((line) => (
+          <li key={line} className="flex gap-3 text-[15px] leading-6 text-white/70">
+            <span
+              className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${dotClass}`}
+              aria-hidden
+            />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function PersonalGameFitContent({ fit }: { fit: PersonalGameFit }) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-7">
-      <p className="text-sm uppercase tracking-[0.35em] text-purple-300">Personal fit</p>
-      <h2 className="mt-4 text-3xl font-black">Is this game right for you?</h2>
+    <div className="rounded-2xl border border-cyan-400/15 bg-[#0a0b14]/70 p-7 md:p-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-200/80">
+        Your Personal Fit
+      </p>
+      <h2 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
+        Is this game right for you?
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-white/50">
+        Based on your Gaming DNA and this game&apos;s design.
+      </p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
         <span className={fitTierClassName(fit.fitTier)}>{fitTierLabel(fit.fitTier)}</span>
         {fit.fitTier !== "owned" ? (
-          <span className="rounded-full bg-purple-500/20 px-3 py-1 text-sm font-bold text-purple-300">
-            {fit.fitScore}% match
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5">
+            <span className="text-xs font-medium text-white/45">Fit score</span>
+            <span className="text-sm font-bold tabular-nums text-cyan-200">{fit.fitScore}%</span>
           </span>
         ) : null}
       </div>
 
-      <p className="mt-5 text-lg leading-8 text-white/75">{fit.headline}</p>
+      <p className="mt-5 text-lg leading-8 text-white/80">{fit.headline}</p>
 
-      {fit.whyYouMayLike.length > 0 ? (
-        <div className="mt-8">
-          <p className="text-sm font-bold text-white/80">Why you may like it:</p>
-          <ul className="mt-3 space-y-2 text-base leading-7 text-white/70">
-            {fit.whyYouMayLike.map((line) => (
-              <li key={line}>- {line}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+      <FitBulletList title="Why you may like it" items={fit.whyYouMayLike} variant="pro" />
+      <FitBulletList title="Potential concerns" items={fit.potentialConcerns} variant="con" />
 
-      {fit.potentialConcerns.length > 0 ? (
-        <div className="mt-8">
-          <p className="text-sm font-bold text-white/80">Potential concerns:</p>
-          <ul className="mt-3 space-y-2 text-base leading-7 text-white/65">
-            {fit.potentialConcerns.map((line) => (
-              <li key={line}>- {line}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      <p className="mt-8 text-xs leading-relaxed text-white/35">
-        Based on your imported Steam Taste DNA. Recommendations do not use Taste DNA yet.
+      <p className="mt-8 border-t border-white/[0.08] pt-5 text-xs leading-relaxed text-white/40">
+        From your imported Steam library. Search recommendations do not use Gaming DNA yet.
       </p>
     </div>
   );
@@ -80,13 +101,14 @@ function PersonalGameFitContent({ fit }: { fit: PersonalGameFit }) {
 function LoadingCard() {
   return (
     <div
-      className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-7 animate-pulse motion-reduce:animate-none"
+      className="rounded-2xl border border-white/10 bg-[#0a0b14]/50 p-7 animate-pulse motion-reduce:animate-none md:p-8"
       aria-busy="true"
       aria-label="Loading personal game fit"
     >
-      <div className="h-4 w-28 rounded bg-white/10" />
-      <div className="mt-6 h-9 w-72 max-w-full rounded bg-white/10" />
-      <div className="mt-5 h-24 max-w-2xl rounded bg-white/[0.06]" />
+      <div className="h-3 w-32 rounded bg-white/10" />
+      <div className="mt-6 h-8 w-72 max-w-full rounded bg-white/10" />
+      <div className="mt-3 h-4 w-56 max-w-full rounded bg-white/[0.06]" />
+      <div className="mt-8 h-24 max-w-2xl rounded bg-white/[0.05]" />
     </div>
   );
 }

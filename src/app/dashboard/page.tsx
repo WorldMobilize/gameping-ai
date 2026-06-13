@@ -365,8 +365,8 @@ export default function Dashboard() {
       <Navbar />
 
       <section className="relative overflow-hidden px-6 py-16">
-        <div className="absolute left-10 top-20 h-72 w-72 rounded-full bg-cyan-500/15 blur-3xl" />
-        <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/15 blur-3xl" />
+        <div className="absolute left-10 top-20 h-72 w-72 rounded-full bg-cyan-500/8 blur-3xl" />
+        <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-cyan-600/5 blur-3xl" />
 
         <div className="relative z-10 mx-auto max-w-6xl">
           <EmailVerificationNotice className="mb-8" />
@@ -405,7 +405,7 @@ export default function Dashboard() {
 
             <Link
               href="/recommend"
-              className="inline-flex shrink-0 items-center justify-center rounded-full bg-cyan-400 px-8 py-4 text-sm font-black text-black shadow-[0_0_28px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
+              className="inline-flex shrink-0 items-center justify-center rounded-full bg-cyan-400 px-8 py-4 text-sm font-bold text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               New recommendation
             </Link>
@@ -464,7 +464,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => loadSearches()}
-                  className="inline-flex items-center justify-center rounded-full bg-cyan-400 px-8 py-3.5 text-sm font-black text-black shadow-[0_0_28px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
+                  className="inline-flex items-center justify-center rounded-full bg-cyan-400 px-8 py-3.5 text-sm font-bold text-black transition hover:bg-cyan-300"
                 >
                   Retry
                 </button>
@@ -502,7 +502,7 @@ export default function Dashboard() {
               </p>
               <Link
                 href="/recommend"
-                className="mt-6 flex w-full items-center justify-center rounded-full bg-cyan-400 px-6 py-3.5 text-center text-sm font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300 sm:mx-auto sm:inline-flex sm:w-auto sm:px-8 sm:py-4 sm:text-base"
+                className="mt-6 flex w-full items-center justify-center rounded-full bg-cyan-400 px-6 py-3.5 text-center text-sm font-bold text-black transition hover:bg-cyan-300 sm:mx-auto sm:inline-flex sm:w-auto sm:px-8 sm:py-4 sm:text-base"
               >
                 Create your first search
               </Link>
@@ -543,7 +543,7 @@ export default function Dashboard() {
                         )}
 
                         {search.preferences?.platform && (
-                          <span className="rounded-full bg-purple-400/10 px-3 py-1 text-xs font-bold text-purple-300">
+                          <span className="rounded-full bg-cyan-400/12 px-3 py-1 text-xs font-semibold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20">
                             {search.preferences.platform}
                           </span>
                         )}
@@ -639,7 +639,7 @@ export default function Dashboard() {
                               )}
                             </h3>
 
-                            <span className="shrink-0 rounded-full bg-purple-500/20 px-3 py-1 text-xs font-bold text-purple-300">
+                            <span className="shrink-0 rounded-full bg-cyan-400/12 px-3 py-1 text-xs font-semibold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20">
                               {game.match}% match
                             </span>
                           </div>

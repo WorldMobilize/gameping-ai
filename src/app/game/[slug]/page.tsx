@@ -285,27 +285,31 @@ function RecommendContextFitCard({ context }: { context: RecommendFitContext }) 
   const matchNote = sanitizeRecommendFitCopy(context.matchNote);
 
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-7">
-      <p className="text-sm uppercase tracking-[0.35em] text-purple-300">Personal fit</p>
-      <h2 className="mt-4 text-3xl font-black">Why this fits your vibe</h2>
+    <div className="rounded-2xl border border-white/10 bg-[#0a0b14]/60 p-7 md:p-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+        From your search
+      </p>
+      <h2 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
+        Why this fits your vibe
+      </h2>
 
       {(tierLabel || context.match !== undefined) && (
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center gap-2">
           {tierLabel ? (
             <span
               className={
                 context.matchTier === "best_match"
-                  ? "rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-200"
+                  ? "rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200 ring-1 ring-emerald-500/25"
                   : context.matchTier === "good_alternative"
-                    ? "rounded-full bg-amber-500/25 px-3 py-1 text-xs font-bold text-amber-200"
-                    : "rounded-full bg-orange-500/25 px-3 py-1 text-xs font-bold text-orange-200"
+                    ? "rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-200 ring-1 ring-amber-500/25"
+                    : "rounded-full bg-orange-500/15 px-3 py-1 text-xs font-semibold text-orange-200 ring-1 ring-orange-500/25"
               }
             >
               {tierLabel}
             </span>
           ) : null}
           {context.match !== undefined ? (
-            <span className="rounded-full bg-purple-500/20 px-3 py-1 text-sm font-bold text-purple-300">
+            <span className="rounded-full bg-cyan-400/12 px-3 py-1 text-sm font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20">
               {context.match}% match
             </span>
           ) : null}
@@ -660,8 +664,7 @@ export default async function GameDetailPage({
         )}
 
         <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-[#05060f]/80 to-[#05060f]" />
-        <div className="absolute left-10 top-20 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute bottom-20 right-10 h-96 w-96 rounded-full bg-purple-600/20 blur-3xl" />
+        <div className="pointer-events-none absolute left-10 top-20 h-72 w-72 rounded-full bg-cyan-500/8 blur-3xl" />
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 py-8">
           <GameBreadcrumbs items={breadcrumbs} />
@@ -698,7 +701,7 @@ export default async function GameDetailPage({
                     href={freeToPlayStoreUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
+                    className="rounded-full bg-cyan-400 px-8 py-4 text-base font-bold text-black transition hover:-translate-y-0.5 hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                   >
                     View store page
                   </a>
@@ -711,7 +714,7 @@ export default async function GameDetailPage({
                     href={primaryTrustedBuyUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
+                    className="rounded-full bg-cyan-400 px-8 py-4 text-base font-bold text-black transition hover:-translate-y-0.5 hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                   >
                     {primaryDeal
                       ? `Buy on ${primaryDeal.store.name || "store"}`
@@ -720,7 +723,7 @@ export default async function GameDetailPage({
                 ) : pricingMode === "verified_price" && hasVerifiedStoreListings ? (
                   <a
                     href="#verified-store-deals"
-                    className="rounded-full bg-cyan-400 px-8 py-4 text-base font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 hover:bg-cyan-300"
+                    className="rounded-full bg-cyan-400 px-8 py-4 text-base font-bold text-black transition hover:-translate-y-0.5 hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
                   >
                     Compare verified listings
                   </a>
@@ -750,9 +753,7 @@ export default async function GameDetailPage({
             </div>
 
             <div className="relative">
-              <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-cyan-400/20 to-purple-600/20 blur-2xl" />
-
-              <div className="relative overflow-hidden rounded-[2rem] border border-white/15 bg-white/10 shadow-2xl backdrop-blur">
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#0a0b14]/80 shadow-lg shadow-black/25">
                 {heroImage ? (
                   <img
                     src={heroImage}

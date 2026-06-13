@@ -46,7 +46,7 @@ function shortEmailLabel(email: string, max = 22): string {
 type MenuCoords = { top: number; right: number };
 
 export default function Navbar({
-  ctaLabel = "Try it",
+  ctaLabel = "Try GamePing",
   ctaHref = "/recommend",
 }: NavbarProps) {
   const { showToast } = useToast();
@@ -247,14 +247,14 @@ export default function Navbar({
             GamePing <span className="text-cyan-300">AI</span>
           </span>
           <span
-            className="w-fit shrink-0 rounded-full border border-purple-400/35 bg-purple-500/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.18em] text-purple-200/90 sm:hidden"
-            title="GamePing AI early access"
+            className="w-fit shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-white/45 sm:hidden"
+            title="GamePing early access"
           >
             Early access
           </span>
           <span
-            className="hidden w-fit shrink-0 rounded-full border border-purple-400/35 bg-purple-500/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.22em] text-purple-200/90 sm:inline"
-            title="GamePing AI early access"
+            className="hidden w-fit shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-white/45 sm:inline"
+            title="GamePing early access"
           >
             Early Access
           </span>
@@ -306,7 +306,7 @@ export default function Navbar({
                   onClick={() => setAccountMenuOpen((o) => !o)}
                 >
                   <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-cyan-400/25 bg-gradient-to-br from-cyan-500/35 via-[#141a32] to-purple-600/40 text-sm font-extrabold leading-none text-white shadow-[0_0_14px_rgba(34,211,238,0.18)] ring-1 ring-white/15"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/15 bg-[#141824] text-sm font-bold leading-none text-white/90"
                     aria-hidden
                   >
                     {avatarInitial(userDisplayName, userEmail)}

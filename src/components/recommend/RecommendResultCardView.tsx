@@ -29,13 +29,13 @@ type RecommendResultCardViewProps = {
   fitMetaLine?: string | null
 }
 
-/** Outer shell — matches /recommend result card (cyan accent border for export fidelity). */
+/** Outer shell — matches /recommend result card styling. */
 export const RECOMMEND_RESULT_CARD_SHELL =
-  "relative flex w-full flex-col overflow-hidden rounded-3xl border bg-white/[0.04] shadow-[0_0_30px_rgba(168,85,247,0.12)]"
+  "relative flex w-full flex-col overflow-hidden rounded-2xl border bg-[#0a0b14]/50"
 
 export function recommendResultCardShellClass(emphasizeCyanBorder: boolean) {
   return emphasizeCyanBorder
-    ? `${RECOMMEND_RESULT_CARD_SHELL} border-cyan-400/40`
+    ? `${RECOMMEND_RESULT_CARD_SHELL} border-cyan-400/25`
     : `${RECOMMEND_RESULT_CARD_SHELL} border-white/10`
 }
 
@@ -62,10 +62,10 @@ export default function RecommendResultCardView({
   const bodyPadClass = isExport ? "flex flex-1 flex-col p-8" : "flex flex-1 flex-col p-6"
 
   const rankClass = isExport
-    ? "rounded-full bg-cyan-400 px-4 py-1.5 text-sm font-black text-black"
-    : "rounded-full bg-cyan-400 px-3 py-1 text-xs font-black text-black"
+    ? "rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-sm font-semibold tabular-nums text-white/60"
+    : "rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold tabular-nums text-white/60"
 
-  const titleClass = isExport ? "text-4xl font-black leading-tight" : "text-2xl font-black"
+  const titleClass = isExport ? "text-4xl font-black leading-tight tracking-tight" : "text-2xl font-bold tracking-tight"
 
   const fitNoteClass = isExport
     ? "mt-3 text-base leading-6 text-white/50"
@@ -76,14 +76,14 @@ export default function RecommendResultCardView({
     : "rounded-full px-3 py-1 text-xs font-bold"
 
   const badgeMatchClass = isExport
-    ? "rounded-full bg-purple-500/20 px-4 py-1.5 text-base font-bold text-purple-300"
-    : "rounded-full bg-purple-500/20 px-3 py-1 text-sm font-bold text-purple-300"
+    ? "rounded-full bg-cyan-400/12 px-4 py-1.5 text-base font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20"
+    : "rounded-full bg-cyan-400/12 px-3 py-1 text-sm font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20"
 
   const budgetClass = isExport ? "mt-4 text-sm text-white/45" : "mt-3 text-xs text-white/45"
 
   const whyLabelClass = isExport
-    ? "text-sm font-bold uppercase tracking-[0.2em] text-white/40"
-    : "text-xs font-bold uppercase tracking-[0.2em] text-white/40"
+    ? "text-sm font-semibold uppercase tracking-[0.15em] text-white/40"
+    : "text-xs font-semibold uppercase tracking-[0.15em] text-white/40"
 
   const whyBodyClass = isExport
     ? "mt-3 text-lg leading-8 text-white/70"
@@ -92,8 +92,8 @@ export default function RecommendResultCardView({
   const whyMetaClass = isExport ? "mt-3 text-sm text-white/40" : "mt-2 text-xs text-white/40"
 
   const ctaClass = isExport
-    ? "inline-flex rounded-full bg-cyan-400/90 px-6 py-3.5 text-base font-bold text-black"
-    : "inline-flex rounded-full bg-cyan-400/90 px-5 py-3 text-sm font-bold text-black"
+    ? "inline-flex rounded-full bg-cyan-400 px-6 py-3.5 text-base font-bold text-black"
+    : "inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-bold text-black"
 
   const tierLabel = recommendMatchTierLabel(game.matchTier)
 
@@ -163,7 +163,7 @@ export default function RecommendResultCardView({
         {budgetLine ? <p className={budgetClass}>{budgetLine}</p> : null}
 
         <div className="mt-4 flex flex-1 flex-col">
-          <p className={whyLabelClass}>Why it fits your search</p>
+          <p className={whyLabelClass}>Why it fits</p>
           <p className={whyBodyClass}>{fitBody}</p>
           {resolvedFitMeta ? (
             <p className={whyMetaClass}>{resolvedFitMeta}</p>

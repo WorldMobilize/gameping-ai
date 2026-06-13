@@ -908,33 +908,31 @@ export default function RecommendPage() {
       <Navbar ctaLabel="Home" ctaHref="/" />
 
       <section className="relative overflow-hidden px-6 py-16">
-        <div className="absolute left-0 top-24 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute right-0 top-96 h-96 w-96 rounded-full bg-purple-600/20 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="pointer-events-none absolute left-0 top-24 h-72 w-72 rounded-full bg-cyan-500/8 blur-3xl" />
 
         <div className="relative z-10 mx-auto max-w-6xl">
           <EmailVerificationNotice className="mb-8" />
 
           <div className="grid gap-10 lg:grid-cols-[1fr_360px] lg:items-start">
             <div>
-              <p className="mb-4 text-xs font-black uppercase tracking-[0.5em] text-cyan-300">
-                GamePing AI
+              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-white/40">
+                Recommendations
               </p>
 
-              <h1 className="max-w-4xl text-5xl font-black leading-tight md:text-7xl">
+              <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight md:text-6xl">
                 Find the game you actually feel like playing.
               </h1>
 
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-white/60">
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-white/55">
                 {filtersEnabled
-                  ? "Use filters for more specific recommendations. Verified prices live on each game’s details page."
-                  : "Describe the kind of game you want—free-form, AI-first discovery. Turn on Advanced filters when you want budget, tags, or platform to steer results."}
+                  ? "Use filters when you want tighter picks. Verified prices live on each game page."
+                  : "Describe the kind of game you want in your own words. Turn on Advanced filters for budget, tags, or platform."}
               </p>
             </div>
 
-            <div className="rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-6 shadow-[0_0_50px_rgba(34,211,238,0.12)]">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
-                Best results
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+                Tips
               </p>
 
               <div className="mt-5 space-y-4 text-sm text-white/70">
@@ -960,13 +958,13 @@ export default function RecommendPage() {
             className="mt-12 space-y-6"
             aria-busy={loading}
           >
-            <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_0_60px_rgba(168,85,247,0.08)] md:p-8">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
+            <section className="rounded-2xl border border-white/10 bg-[#0a0b14]/60 p-6 md:p-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
                 Start here
               </p>
 
-              <h2 className="mt-3 text-3xl font-black">
-                Describe what you want to play
+              <h2 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
+                What do you want to play?
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-white/50">
@@ -984,7 +982,7 @@ export default function RecommendPage() {
 "Like Elden Ring, but less punishing"
 "A cozy game for short evening sessions"`}
                 maxLength={promptMaxForUi}
-                className={`gp-prompt-textarea mt-6 min-h-48 w-full resize-y rounded-3xl border border-white/10 bg-black/40 p-5 text-sm leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-cyan-400/70 focus:shadow-[0_0_30px_rgba(34,211,238,0.12)] ${
+                className={`gp-prompt-textarea mt-6 min-h-52 w-full resize-y rounded-2xl border border-white/10 bg-black/30 p-5 text-[15px] leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/15 ${
                   promptScrollable ? "overflow-y-auto" : "overflow-y-hidden"
                 }`}
                 value={form.userPrompt}
@@ -1187,15 +1185,15 @@ export default function RecommendPage() {
             </section>
             </div>
 
-            <div className="rounded-[2rem] border border-cyan-400/20 bg-gradient-to-r from-cyan-400/15 to-purple-500/15 p-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm font-bold text-white">
-                    Ready to analyze your taste?
+                  <p className="text-sm font-semibold text-white/90">
+                    Ready to discover your picks?
                   </p>
                   <p className="mt-1 text-sm text-white/50">
-                    You’ll get up to five picks with match scores and tailored explanations.
-                    Check prices and deals on the game details page.
+                    Up to five curated matches with scores and clear reasons. Check deals on
+                    each game page.
                   </p>
                 </div>
 
@@ -1203,13 +1201,13 @@ export default function RecommendPage() {
                   type="submit"
                   disabled={loading || dailyLimitReached}
                   aria-disabled={loading || dailyLimitReached}
-                  className="rounded-full bg-cyan-400 px-10 py-4 font-black text-black shadow-[0_0_40px_rgba(34,211,238,0.35)] transition hover:bg-cyan-300 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-full bg-cyan-400 px-10 py-4 font-bold text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060f] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {dailyLimitReached
                     ? "Daily limit reached"
                     : loading
-                      ? "Analyzing your taste..."
-                      : "Find my perfect games"}
+                      ? "Finding your picks..."
+                      : "Get my picks"}
                 </button>
               </div>
             </div>
@@ -1252,7 +1250,7 @@ export default function RecommendPage() {
                   className="mx-auto mb-6 h-1 max-w-[220px] overflow-hidden rounded-full bg-white/[0.07] ring-1 ring-white/[0.06]"
                   aria-hidden="true"
                 >
-                  <div className="h-full w-full animate-pulse rounded-full bg-gradient-to-r from-cyan-400/30 via-cyan-300/60 to-purple-500/30 motion-reduce:animate-none" />
+                  <div className="h-full w-full animate-pulse rounded-full bg-cyan-400/40 motion-reduce:animate-none" />
                 </div>
 
                 <ul className="mb-8 space-y-2.5 text-center text-[13px] leading-relaxed text-white/45 md:text-sm md:leading-relaxed">
@@ -1326,11 +1324,11 @@ export default function RecommendPage() {
             >
               <div className="mt-14 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
-                    Results
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/40">
+                    Your picks
                   </p>
-                  <h2 className="mt-3 text-3xl font-black">
-                    Found games that match your taste
+                  <h2 className="mt-3 text-3xl font-black tracking-tight">
+                    Curated for your search
                   </h2>
                 </div>
 
@@ -1383,30 +1381,30 @@ export default function RecommendPage() {
                 {games.map((game, index) => (
                   <div
                     key={`${game.title}-${index}`}
-                    className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-[0_0_30px_rgba(168,85,247,0.12)] transition hover:-translate-y-1 hover:border-cyan-400/40"
+                    className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0b14]/50 transition hover:border-white/15"
                   >
                     {game.image ? (
-                      <div className="h-48 w-full overflow-hidden bg-black/40">
+                      <div className="h-52 w-full overflow-hidden bg-black/40">
                         <img
                           src={game.image}
                           alt={game.title}
-                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
                         />
                       </div>
                     ) : (
-                      <div className="flex h-48 w-full items-center justify-center bg-black/40 text-white/40">
+                      <div className="flex h-52 w-full items-center justify-center bg-black/40 text-sm text-white/40">
                         No image available
                       </div>
                     )}
 
                     <div className="flex flex-1 flex-col p-6">
                       <div className="mb-3">
-                        <span className="rounded-full bg-cyan-400 px-3 py-1 text-xs font-black text-black">
+                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold tabular-nums text-white/60">
                           #{index + 1}
                         </span>
                       </div>
 
-                      <h2 className="text-2xl font-black">{game.title}</h2>
+                      <h2 className="text-2xl font-bold tracking-tight">{game.title}</h2>
 
                       {(() => {
                         const fitNote = sanitizeRecommendFitCopy(game.matchNote);
@@ -1431,7 +1429,7 @@ export default function RecommendPage() {
                             Best match
                           </span>
                         )}
-                        <span className="rounded-full bg-purple-500/20 px-3 py-1 text-sm font-bold text-purple-300">
+                        <span className="rounded-full bg-cyan-400/12 px-3 py-1 text-sm font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20">
                           {game.match}% match
                         </span>
                       </div>
@@ -1448,23 +1446,22 @@ export default function RecommendPage() {
                       })()}
 
                       <div className="mt-4 flex flex-1 flex-col">
-                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">
-                          Why it fits your search
+                        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40">
+                          Why it fits
                         </p>
                         <p className="mt-2 text-sm leading-6 text-white/70">
                           {resolveRecommendFitBody(game.reason)}
                         </p>
                         <p className="mt-2 text-xs text-white/40">
-                          Mood, pacing, and mechanics from this recommendation search — not a
-                          saved taste profile yet.
+                          Based on this search — not your saved Gaming DNA yet.
                         </p>
                       </div>
 
-                      <div className="mt-auto border-t border-white/10 pt-5">
+                      <div className="mt-auto border-t border-white/[0.08] pt-5">
                         <a
                           href={gameDetailHrefFromRecommend(game)}
                           onClick={() => persistRecommendSession()}
-                          className="inline-flex rounded-full bg-cyan-400/90 px-5 py-3 text-sm font-bold text-black transition hover:bg-cyan-300"
+                          className="inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-bold text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0b14]"
                         >
                           View details
                         </a>
@@ -1530,18 +1527,18 @@ export default function RecommendPage() {
 
               <form
                 onSubmit={handleEmailSubmit}
-                className="mt-10 rounded-3xl border border-purple-500/40 bg-purple-500/10 p-6"
+                className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-7"
               >
-                <h2 className="text-2xl font-black">Save these recommendations</h2>
+                <h2 className="text-2xl font-black tracking-tight">Save these picks</h2>
 
-                <p className="mt-2 text-white/60">
-                  Save this search to your dashboard so you can revisit these picks later. Price
-                  alerts for individual games are managed from each game page.
+                <p className="mt-2 text-sm leading-6 text-white/55">
+                  Save this search to your dashboard and revisit these picks later. Track prices
+                  from each game&apos;s detail page.
                 </p>
 
                 {loggedUserEmail && (
-                  <p className="mt-4 text-sm text-cyan-300">
-                    We’ll save this search for: {loggedUserEmail}
+                  <p className="mt-4 text-sm text-white/50">
+                    Saving for: <span className="text-cyan-200/90">{loggedUserEmail}</span>
                   </p>
                 )}
 
@@ -1549,9 +1546,9 @@ export default function RecommendPage() {
                   {loggedUserEmail ? (
                     <button
                       type="submit"
-                      className="rounded-full bg-purple-500 px-8 py-4 font-bold text-white transition hover:bg-purple-400"
+                      className="rounded-full border border-white/15 bg-white/[0.06] px-8 py-3.5 text-sm font-semibold text-white/90 transition hover:border-white/25 hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
                     >
-                      Save these recommendations
+                      Save recommendations
                     </button>
                   ) : (
                     <a

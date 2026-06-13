@@ -17,9 +17,8 @@ export default function Footer() {
               GamePing <span className="text-cyan-300">AI</span>
             </p>
             <p className="mt-3 max-w-md text-sm leading-6 text-slate-400">
-              AI-powered game recommendations with deal-aware price lookups.
-              Prices and availability may change—always confirm final pricing on the
-              store before purchasing.
+              Personal game recommendations with deal-aware price lookups. Prices and
+              availability may change—always confirm on the store before purchasing.
             </p>
             <div className="mt-5">
               <p className="text-xs font-black uppercase tracking-[0.35em] text-slate-300/70">
