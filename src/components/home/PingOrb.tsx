@@ -2,14 +2,16 @@ type PingOrbProps = {
   size?: number;
   className?: string;
   bars?: number;
-  /** hero = larger core, more rings, radio arcs */
-  variant?: "hero" | "default" | "compact";
+  /** showcase = large hero with horizontal waveform + energy rings */
+  variant?: "showcase" | "hero" | "default" | "compact";
 };
 
+const SHOWCASE_BARS = 24;
+
 /**
- * Ping — the game discovery companion, shown as a glowing signal orb.
- * Pure CSS/SVG: concentric signal rings, radio arcs, pulsing mint core,
- * and animated waveform bars. No robot/face/mascot. Respects reduced motion.
+ * Ping — digital discovery companion as a glowing signal entity.
+ * Showcase variant: large core, horizontal waveform, energy rings, soft glow.
+ * No face, robot, or mascot. CSS/SVG only.
  */
 export default function PingOrb({
   size = 160,
@@ -17,8 +19,56 @@ export default function PingOrb({
   bars = 5,
   variant = "default",
 }: PingOrbProps) {
-  const isHero = variant === "hero";
+  const isShowcase = variant === "showcase";
+  const isHero = variant === "hero" || isShowcase;
   const isCompact = variant === "compact";
+
+  if (isShowcase) {
+    return (
+      <div
+        className={`gp-ping-showcase relative ${className}`}
+        style={{ width: size, height: size * 0.72 }}
+        aria-hidden
+      >
+        <span className="gp-ping-showcase-glow" />
+        <svg className="gp-ping-showcase-rings" viewBox="0 0 320 220" fill="none">
+          <circle cx="160" cy="110" r="95" className="gp-ping-static-ring gp-ping-static-ring-1" />
+          <circle cx="160" cy="110" r="72" className="gp-ping-static-ring gp-ping-static-ring-2" />
+          <circle cx="160" cy="110" r="50" className="gp-ping-static-ring gp-ping-static-ring-3" />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => {
+            const rad = (deg * Math.PI) / 180;
+            const cx = 160 + Math.cos(rad) * 72;
+            const cy = 110 + Math.sin(rad) * 72;
+            return (
+              <circle
+                key={deg}
+                cx={cx}
+                cy={cy}
+                r="2.5"
+                className="gp-ping-ring-dot"
+              />
+            );
+          })}
+        </svg>
+
+        <div className="gp-ping-showcase-wave-wrap">
+          <div className="gp-ping-showcase-wave">
+            {Array.from({ length: SHOWCASE_BARS }).map((_, i) => (
+              <span
+                key={i}
+                className="gp-ping-showcase-bar"
+                style={{ animationDelay: `${(i % 12) * 0.08}s` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="gp-ping-showcase-core">
+          <div className="gp-ping-showcase-core-inner" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

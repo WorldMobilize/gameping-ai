@@ -61,6 +61,42 @@ export const HOME_REFINED_PICKS: HomeDemoPick[] = [
   },
 ];
 
+/** Static hero product-preview (no API). */
+export const HOME_HERO_DASHBOARD = {
+  tasteScore: 92,
+  traits: ["Exploration", "Story rich", "Progression"],
+  playStyle: "Co-op explorer",
+  picks: [
+    HOME_INITIAL_PICKS[0],
+    HOME_INITIAL_PICKS[1],
+    HOME_REFINED_PICKS[0],
+    HOME_REFINED_PICKS[1],
+  ],
+  whySummary:
+    "These picks share relaxed co-op pacing with room to grow at your own speed—exploration and progression without pressure.",
+};
+
+export const HOME_FLOW_STEPS = [
+  {
+    step: "1",
+    title: "Tell GamePing what you feel like playing",
+    text: "One sentence is enough—or add budget, platform, and mood when you want tighter picks.",
+    icon: "ping" as const,
+  },
+  {
+    step: "2",
+    title: "GamePing understands your taste",
+    text: "Ping reads mood, motivations, and what to avoid—not just genre tags.",
+    icon: "taste" as const,
+  },
+  {
+    step: "3",
+    title: "Get games you'll actually love",
+    text: "Up to five matches with fit scores, plain-language why, and honest trade-offs.",
+    icon: "love" as const,
+  },
+];
+
 export const HOME_HERO_INSIGHT = {
   title: "GamePing turns vague prompts into useful picks",
   input: "I want a co-op game with progression",
@@ -111,16 +147,19 @@ export const HOME_FEATURES = [
     step: "01",
     title: "Describe the game you want",
     text: "One sentence is enough—or add budget, platform, and mood when you want tighter picks.",
+    icon: "prompt" as const,
   },
   {
     step: "02",
     title: "Get picks with reasons",
     text: "Up to five matches with fit scores, plain-language why, and honest trade-offs.",
+    icon: "picks" as const,
   },
   {
     step: "03",
     title: "Refine, save, or track prices",
     text: "Nudge results with a follow-up, save a run to your dashboard, or track deals on favorites.",
+    icon: "refine" as const,
   },
 ];
 
@@ -128,14 +167,17 @@ export const HOME_DEAL_POINTS = [
   {
     title: "Real prices where available",
     text: "See verified store offers on each game page before you click through to buy.",
+    icon: "price" as const,
   },
   {
     title: "Price tracking",
     text: "Follow a game from its page and get alerts when deals hit your dashboard.",
+    icon: "track" as const,
   },
   {
     title: "Regional pricing",
     text: "Offers are selected for your region when storefront data supports it.",
+    icon: "region" as const,
   },
 ];
 

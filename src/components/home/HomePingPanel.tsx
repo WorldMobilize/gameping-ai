@@ -1,58 +1,55 @@
 import PingOrb from "@/components/home/PingOrb";
-import { HOME_HERO_INSIGHT } from "@/components/home/home-demo-data";
+import { HOME_VALUE_PROPS } from "@/components/home/home-demo-data";
+import { HomeValuePropIcon } from "@/components/home/HomeValuePropIcons";
+
+const PANEL_TONES = ["violet", "mint", "coral", "amber"] as const;
 
 export default function HomePingPanel() {
   return (
     <div className="gp-home-ping-panel w-full min-w-0">
-      <div className="gp-home-ping-card relative overflow-hidden rounded-[2.25rem] p-7 min-[960px]:p-9">
-        <span className="gp-home-panel-blob gp-home-panel-blob-mint" aria-hidden />
-        <span className="gp-home-panel-blob gp-home-panel-blob-violet" aria-hidden />
+      <div className="gp-home-showcase-card">
+        <span className="gp-home-showcase-glow gp-showcase-glow-mint" aria-hidden />
+        <span className="gp-home-showcase-glow gp-showcase-glow-violet" aria-hidden />
+        <span className="gp-home-showcase-glow gp-showcase-glow-coral" aria-hidden />
 
-        <div className="relative flex flex-col items-center px-2 text-center">
-          <PingOrb size={208} variant="hero" />
-          <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.24em] text-teal-200/85">
-            Meet Ping
-          </p>
-          <p className="mt-3 max-w-[17rem] text-[16px] leading-[1.65] text-white/88">
-            &ldquo;I don&apos;t just look at tags. I learn{" "}
-            <span className="font-medium text-white">why you play</span>.&rdquo;
-          </p>
-        </div>
-
-        <div className="relative mt-8 space-y-3.5 px-1">
-          <div className="gp-home-ping-bubble-user ml-auto max-w-[90%] rounded-[1.25rem] rounded-br-lg px-4 py-3 text-[14px] leading-relaxed text-white/82">
-            &ldquo;{HOME_HERO_INSIGHT.input}&rdquo;
-          </div>
-
-          <div className="gp-home-ping-bubble-ping rounded-[1.25rem] rounded-bl-lg px-4 py-3.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-teal-200/75">
-              Ping understands
+        <div className="gp-home-showcase-inner">
+          <div className="flex flex-col items-center text-center">
+            <PingOrb size={300} variant="showcase" />
+            <p className="gp-home-ping-wordmark mt-2 text-[1.65rem] font-bold tracking-[0.32em] text-teal-100">
+              PING
             </p>
-            <ul className="mt-2.5 space-y-2">
-              {HOME_HERO_INSIGHT.understands.map((item) => (
-                <li key={item.label} className="flex gap-2 text-sm">
-                  <span className="shrink-0 font-medium text-white/50">{item.label}:</span>
-                  <span className="text-white/88">{item.value}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="mt-1.5 text-sm text-white/55">
+              Your game discovery companion
+            </p>
           </div>
-        </div>
 
-        <ul className="relative mt-5 flex flex-wrap justify-center gap-2 px-1">
-          {HOME_HERO_INSIGHT.outputs.map((item, i) => {
-            const dot = ["bg-teal-300", "bg-violet-300", "bg-rose-300", "bg-amber-300"][i % 4];
-            return (
-              <li
-                key={item}
-                className="gp-home-ping-chip flex items-center gap-2 rounded-full px-3.5 py-2 text-xs text-white/72"
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden />
-                {item}
-              </li>
-            );
-          })}
-        </ul>
+          <blockquote className="gp-home-ping-quote mx-auto mt-8 max-w-[20rem] text-center text-[15px] leading-[1.7] text-white/80">
+            &ldquo;I don&apos;t just look at tags. I learn{" "}
+            <span className="gp-home-accent-text font-semibold">why</span> you play.&rdquo;
+          </blockquote>
+
+          <ul className="mt-8 grid grid-cols-2 gap-3 min-[480px]:grid-cols-4 min-[480px]:gap-2.5">
+            {HOME_VALUE_PROPS.map((prop, i) => {
+              const tone = PANEL_TONES[i % 4];
+              return (
+                <li
+                  key={prop.id}
+                  className={`gp-home-mini-card gp-mini-${tone} flex flex-col items-center rounded-[1.15rem] px-3 py-4 text-center`}
+                >
+                  <span className="gp-home-mini-icon flex h-12 w-12 items-center justify-center rounded-full">
+                    <HomeValuePropIcon id={prop.id} />
+                  </span>
+                  <p className={`gp-mini-title gp-mini-title-${tone} mt-3 text-[12px] font-semibold leading-snug`}>
+                    {prop.label}
+                  </p>
+                  <p className="mt-1.5 text-[11px] leading-4 text-white/50">
+                    {prop.detail}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
     </div>
   );

@@ -122,27 +122,19 @@ export default function HomeGameCarousel() {
   const loop = carouselPicks;
 
   return (
-    <section
-      className="relative py-14 md:py-20"
-      aria-labelledby="home-game-carousel-heading"
-    >
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-20 bg-gradient-to-r from-[#0a0c14] via-[#0a0c14]/80 to-transparent md:w-28" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-20 bg-gradient-to-l from-[#0a0c14] via-[#0a0c14]/80 to-transparent md:w-28" />
+    <section className="gp-pastel-section relative py-14 md:py-20" aria-labelledby="home-game-carousel-heading">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-20 bg-gradient-to-r from-[#0d1018] via-[#0d1018]/85 to-transparent md:w-28" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-20 bg-gradient-to-l from-[#0d1018] via-[#0d1018]/85 to-transparent md:w-28" />
 
       <div className="relative z-[2] mx-auto max-w-6xl px-6">
         <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-200/70">
-              Explore
-            </p>
-            <h2
-              id="home-game-carousel-heading"
-              className="mt-2 text-2xl font-bold tracking-tight md:text-3xl"
-            >
+            <p className="gp-pastel-label">Explore</p>
+            <h2 id="home-game-carousel-heading" className="gp-pastel-section-title mt-2 text-2xl md:text-3xl">
               Games worth discovering
             </h2>
           </div>
-          <p className="max-w-sm text-sm leading-6 text-white/45 md:text-right">
+          <p className="max-w-sm text-sm leading-6 text-white/48 md:text-right">
             Hover to pause · scroll on mobile
           </p>
         </div>
@@ -153,7 +145,7 @@ export default function HomeGameCarousel() {
           {loop.map((game, index) => (
             <article
               key={`${game.title}-${index}`}
-              className="group relative w-[min(260px,76vw)] shrink-0 overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0a0b12] shadow-lg shadow-black/30 transition duration-300 hover:-translate-y-1 hover:border-cyan-400/25 motion-reduce:hover:translate-y-0"
+              className="group relative w-[min(260px,76vw)] shrink-0 overflow-hidden rounded-[1.35rem] border border-white/[0.08] bg-[#141a28]/90 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.5)] transition duration-300 hover:-translate-y-1 hover:border-teal-400/25 motion-reduce:hover:translate-y-0"
             >
               <CuratedGameArt
                 src={game.image}
@@ -174,7 +166,7 @@ export default function HomeGameCarousel() {
 
                 <Link
                   href={gameDetailPath(game.title)}
-                  className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] py-2 text-sm font-medium text-white/75 transition group-hover:border-cyan-400/30 group-hover:bg-cyan-400/10 group-hover:text-cyan-100"
+                  className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.04] py-2 text-sm font-medium text-white/75 transition group-hover:border-teal-400/30 group-hover:bg-teal-400/10 group-hover:text-teal-100"
                 >
                   View details
                 </Link>
