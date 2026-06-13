@@ -19,9 +19,6 @@ export default function HomeHeroAtmosphere() {
       <div className="gp-home-hero-atmosphere-glow" />
       <div className="gp-home-hero-atmosphere-scrim" />
       <div className="gp-home-hero-atmosphere-fog" />
-
-      <span className="gp-home-hero-particle gp-home-hero-particle-1" />
-      <span className="gp-home-hero-particle gp-home-hero-particle-2" />
     </div>
   );
 }
