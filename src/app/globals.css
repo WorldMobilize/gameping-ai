@@ -249,10 +249,163 @@ body {
 
 .gp-home-hero-bg {
   background:
-    radial-gradient(ellipse 90% 60% at 15% 0%, rgba(56, 189, 248, 0.09), transparent 55%),
-    radial-gradient(ellipse 70% 50% at 85% 10%, rgba(99, 102, 241, 0.06), transparent 50%),
-    radial-gradient(ellipse 80% 40% at 50% 100%, rgba(15, 23, 42, 0.9), transparent),
-    linear-gradient(180deg, #06080f 0%, #05060f 45%, #05060f 100%);
+    radial-gradient(ellipse 100% 70% at 20% -5%, rgba(56, 189, 248, 0.14), transparent 52%),
+    radial-gradient(ellipse 80% 55% at 88% 8%, rgba(129, 140, 248, 0.07), transparent 48%),
+    radial-gradient(ellipse 90% 50% at 50% 100%, rgba(8, 12, 22, 0.95), transparent 55%),
+    linear-gradient(180deg, #070912 0%, #05060f 55%, #05060f 100%);
+}
+
+.gp-home-hero-atmosphere-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 55% 40% at 72% 28%,
+    rgba(56, 189, 248, 0.08),
+    transparent 70%
+  );
+  animation: gp-home-ambient-drift 28s ease-in-out infinite alternate;
+}
+
+.gp-home-hero-atmosphere-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(180deg, transparent 0%, black 35%, black 85%, transparent 100%);
+  transform: perspective(900px) rotateX(58deg) scale(1.35);
+  transform-origin: 50% 100%;
+}
+
+.gp-home-hero-atmosphere-traces {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background:
+    linear-gradient(118deg, transparent 42%, rgba(56, 189, 248, 0.12) 49%, transparent 56%),
+    linear-gradient(72deg, transparent 58%, rgba(167, 139, 250, 0.06) 62%, transparent 66%);
+  animation: gp-home-trace-shift 22s ease-in-out infinite alternate;
+}
+
+.gp-home-hero-skyline {
+  animation: gp-home-skyline-drift 40s ease-in-out infinite alternate;
+}
+
+.gp-home-hero-atmosphere-fog {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(5, 6, 15, 0.15) 45%,
+    rgba(5, 6, 15, 0.75) 78%,
+    #05060f 100%
+  );
+}
+
+.gp-home-hero-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+  animation: gp-home-particle-float 14s ease-in-out infinite;
+}
+
+.gp-home-hero-particle-1 {
+  left: 12%;
+  top: 28%;
+  animation-delay: 0s;
+}
+
+.gp-home-hero-particle-2 {
+  left: 78%;
+  top: 22%;
+  animation-delay: -3s;
+  opacity: 0.7;
+}
+
+.gp-home-hero-particle-3 {
+  left: 64%;
+  top: 48%;
+  animation-delay: -6s;
+  background: rgba(167, 139, 250, 0.45);
+  box-shadow: 0 0 8px rgba(167, 139, 250, 0.25);
+}
+
+.gp-home-hero-particle-4 {
+  left: 34%;
+  top: 58%;
+  animation-delay: -9s;
+  width: 2px;
+  height: 2px;
+}
+
+.gp-home-hero-particle-5 {
+  left: 88%;
+  top: 62%;
+  animation-delay: -12s;
+  opacity: 0.5;
+}
+
+@keyframes gp-home-ambient-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    transform: translate3d(-2%, 1.5%, 0) scale(1.04);
+  }
+}
+
+@keyframes gp-home-trace-shift {
+  from {
+    transform: translateX(0);
+    opacity: 0.28;
+  }
+
+  to {
+    transform: translateX(2.5%);
+    opacity: 0.42;
+  }
+}
+
+@keyframes gp-home-skyline-drift {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-1.5%);
+  }
+}
+
+@keyframes gp-home-particle-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.35;
+  }
+
+  50% {
+    transform: translate3d(0, -10px, 0);
+    opacity: 0.85;
+  }
+}
+
+.gp-home-value-benefit:hover .gp-home-value-icon-svg {
+  transform: scale(1.06);
+}
+
+.gp-home-value-icon-svg {
+  transition: transform 0.3s ease;
+}
+
+.gp-home-insight-card {
+  will-change: transform;
 }
 
 .gp-home-demo-glass {
@@ -336,6 +489,19 @@ body {
   }
 
   .gp-home-deal-card:hover {
+    transform: none;
+  }
+
+  .gp-home-hero-atmosphere-glow,
+  .gp-home-hero-atmosphere-traces,
+  .gp-home-hero-skyline,
+  .gp-home-hero-particle {
+    animation: none;
+  }
+
+  .gp-home-value-benefit:hover .gp-home-value-icon,
+  .gp-home-value-benefit:hover .gp-home-value-icon-svg,
+  .gp-home-insight-card:hover {
     transform: none;
   }
 }

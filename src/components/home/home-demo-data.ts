@@ -70,10 +70,10 @@ export const HOME_HERO_INSIGHT = {
     { label: "Avoid", value: "endless generic lists" },
   ],
   outputs: [
-    "5 curated picks",
-    "Reasons + concerns",
-    "Real prices where available",
-    "Refine if needed",
+    "Curated game picks",
+    "Reasons + possible concerns",
+    "Real prices when available",
+    "Refine until it feels right",
   ],
 };
 
@@ -87,22 +87,22 @@ export const HOME_VALUE_PROPS: HomeValueProp[] = [
   {
     id: "taste",
     label: "Taste-based discovery",
-    detail: "Understands why you enjoy games",
+    detail: "Understands why you play",
   },
   {
     id: "dna",
     label: "Gaming DNA",
-    detail: "Build your personal taste profile",
+    detail: "Your personal taste profile",
   },
   {
     id: "refine",
     label: "Refine search",
-    detail: "Adjust recommendations instantly",
+    detail: "Adjust picks instantly",
   },
   {
     id: "deals",
     label: "Deal aware",
-    detail: "Find games you'll love before buying",
+    detail: "Find games worth buying",
   },
 ];
 

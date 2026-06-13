@@ -1,4 +1,5 @@
 import Link from "next/link";
+import HomeHeroAtmosphere from "@/components/home/HomeHeroAtmosphere";
 import HomeHeroInsightPanel from "@/components/home/HomeHeroInsightPanel";
 import { HOME_VALUE_PROPS } from "@/components/home/home-demo-data";
 import { HomeValuePropIcon } from "@/components/home/HomeValuePropIcons";
@@ -6,7 +7,7 @@ import { HomeValuePropIcon } from "@/components/home/HomeValuePropIcons";
 export default function HomeHero() {
   return (
     <section className="gp-home-hero relative overflow-hidden px-5 pb-16 pt-24 min-[960px]:px-8 min-[960px]:pb-20 min-[960px]:pt-28 xl:px-10 2xl:px-16">
-      <div className="gp-home-hero-bg pointer-events-none absolute inset-0" aria-hidden />
+      <HomeHeroAtmosphere />
 
       <div className="relative z-10 mx-auto w-full max-w-[1500px]">
         <div className="grid grid-cols-1 items-start gap-10 min-[960px]:grid-cols-[minmax(360px,0.95fr)_minmax(320px,0.85fr)] min-[960px]:gap-8 xl:gap-12">
@@ -28,10 +29,9 @@ export default function HomeHero() {
             <div className="mt-8 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center">
               <Link
                 href="/recommend"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-400 px-7 py-3.5 text-sm font-semibold text-[#041018] transition hover:bg-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060f]"
+                className="inline-flex items-center justify-center rounded-xl bg-sky-400 px-7 py-3.5 text-sm font-semibold text-[#041018] transition hover:bg-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060f]"
               >
                 Try GamePing
-                <span aria-hidden>→</span>
               </Link>
               <a
                 href="#how-it-works"
@@ -61,15 +61,20 @@ export default function HomeHero() {
               <span>Prices on every game page</span>
             </p>
 
-            <ul className="mt-10 grid gap-4 min-[480px]:grid-cols-2 min-[480px]:gap-5">
+            <ul className="mt-10 grid gap-3 min-[480px]:grid-cols-2 min-[480px]:gap-3.5">
               {HOME_VALUE_PROPS.map((prop) => (
-                <li key={prop.id} className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-400/20 bg-sky-400/[0.07]">
+                <li
+                  key={prop.id}
+                  className="gp-home-value-benefit group flex items-start gap-3.5 rounded-xl border border-white/[0.05] bg-white/[0.015] px-3.5 py-3.5 transition-colors hover:border-sky-400/15 hover:bg-sky-400/[0.03]"
+                >
+                  <span className="gp-home-value-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-400/20 bg-sky-400/[0.07] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:border-sky-400/30">
                     <HomeValuePropIcon id={prop.id} />
                   </span>
                   <div className="min-w-0 pt-0.5">
-                    <p className="text-sm font-medium text-white/88">{prop.label}</p>
-                    <p className="mt-0.5 text-xs leading-5 text-white/40">{prop.detail}</p>
+                    <p className="text-sm font-medium leading-snug text-white/90">
+                      {prop.label}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-white/40">{prop.detail}</p>
                   </div>
                 </li>
               ))}
