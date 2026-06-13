@@ -176,3 +176,96 @@ body {
   height: 0;
 }
 
+/* Homepage — hero enter, demo, cards (respects reduced motion) */
+@keyframes gp-home-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gp-home-cursor-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes gp-home-pulse-text {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.gp-home-hero-copy {
+  animation: gp-home-fade-up 0.65s ease-out both;
+}
+
+.gp-home-hero-demo {
+  animation: gp-home-fade-up 0.75s ease-out 0.12s both;
+}
+
+.gp-home-tag {
+  animation: gp-home-fade-up 0.5s ease-out both;
+}
+
+.gp-home-demo-cursor {
+  animation: gp-home-cursor-blink 1s step-end infinite;
+}
+
+.gp-home-demo-pulse {
+  animation: gp-home-pulse-text 1.2s ease-in-out infinite;
+}
+
+.gp-home-feature-card {
+  transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+}
+
+.gp-home-feature-card:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background-color: rgba(255, 255, 255, 0.04);
+  transform: translateY(-2px);
+}
+
+.gp-home-value-card {
+  transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+
+.gp-home-dna-mock {
+  animation: gp-home-fade-up 0.6s ease-out 0.15s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-home-hero-copy,
+  .gp-home-hero-demo,
+  .gp-home-tag,
+  .gp-home-dna-mock {
+    animation: none;
+  }
+
+  .gp-home-demo-cursor,
+  .gp-home-demo-pulse {
+    animation: none;
+    opacity: 1;
+  }
+
+  .gp-home-feature-card:hover {
+    transform: none;
+  }
+}
+

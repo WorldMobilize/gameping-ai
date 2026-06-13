@@ -123,27 +123,28 @@ export default function HomeGameCarousel() {
 
   return (
     <section
-      className="relative mb-8 border-y border-white/10 bg-[#070816]/80 pt-14 pb-16 md:mb-12 md:pt-16 md:pb-20"
+      className="relative py-14 md:py-20"
       aria-labelledby="home-game-carousel-heading"
     >
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-16 bg-gradient-to-r from-[#05060f] to-transparent md:w-24" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-16 bg-gradient-to-l from-[#05060f] to-transparent md:w-24" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-20 bg-gradient-to-r from-[#05060f] via-[#05060f]/80 to-transparent md:w-28" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-20 bg-gradient-to-l from-[#05060f] via-[#05060f]/80 to-transparent md:w-28" />
 
       <div className="relative z-[2] mx-auto max-w-6xl px-6">
-        <div className="mb-8">
-            <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
+        <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-200/70">
               Explore
             </p>
             <h2
               id="home-game-carousel-heading"
-              className="mt-2 text-2xl font-black md:text-3xl"
+              className="mt-2 text-2xl font-bold tracking-tight md:text-3xl"
             >
-              Popular picks on GamePing AI
+              Games worth discovering
             </h2>
-            <p className="mt-2 max-w-xl text-sm text-white/55">
-              Discover games by mood, vibe, or taste—hover to pause the drift, or scroll on your
-              phone.
-            </p>
+          </div>
+          <p className="max-w-sm text-sm leading-6 text-white/45 md:text-right">
+            Hover to pause · scroll on mobile
+          </p>
         </div>
       </div>
 
@@ -152,7 +153,7 @@ export default function HomeGameCarousel() {
           {loop.map((game, index) => (
             <article
               key={`${game.title}-${index}`}
-              className="group relative w-[min(280px,78vw)] shrink-0 overflow-hidden rounded-[1.35rem] border border-white/10 bg-white/[0.04] shadow-[0_12px_40px_rgba(0,0,0,0.35)] transition hover:border-cyan-400/35 hover:bg-cyan-400/[0.06]"
+              className="group relative w-[min(260px,76vw)] shrink-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0b12] shadow-lg shadow-black/30 transition duration-300 hover:-translate-y-1 hover:border-cyan-400/25 motion-reduce:hover:translate-y-0"
             >
               <CuratedGameArt
                 src={game.image}
@@ -163,17 +164,17 @@ export default function HomeGameCarousel() {
                 loading={index < 8 ? undefined : "lazy"}
               />
 
-              <div className="space-y-3 p-5 pt-4">
+              <div className="space-y-3 p-4 pt-3">
                 <div>
-                  <h3 className="text-lg font-black leading-tight">{game.title}</h3>
-                  <p className="mt-1 text-xs font-bold uppercase tracking-wider text-white/45">
+                  <h3 className="text-base font-semibold leading-tight">{game.title}</h3>
+                  <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-white/40">
                     {game.tag}
                   </p>
                 </div>
 
                 <Link
                   href={gameDetailPath(game.title)}
-                  className="inline-flex w-full items-center justify-center rounded-full border border-cyan-400/35 bg-cyan-400/10 py-2.5 text-sm font-black text-cyan-200 transition hover:border-cyan-300 hover:bg-cyan-400/20"
+                  className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.03] py-2 text-sm font-medium text-white/75 transition group-hover:border-cyan-400/30 group-hover:bg-cyan-400/10 group-hover:text-cyan-100"
                 >
                   View details
                 </Link>

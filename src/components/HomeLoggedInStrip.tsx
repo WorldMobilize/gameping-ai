@@ -32,23 +32,23 @@ export default function HomeLoggedInStrip() {
   if (!loggedIn) return null;
 
   return (
-    <div className="border-b border-cyan-400/20 bg-cyan-400/[0.06] px-6 py-3.5">
-      <div className="mx-auto flex max-w-6xl flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <span className="text-white/65">
-          Welcome back — jump back into discovery or review what you saved.
+    <div className="border-b border-white/[0.06] bg-[#0a0b12]/90 px-6 py-3">
+      <div className="mx-auto flex max-w-6xl flex-col gap-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <span className="text-white/50">
+          Welcome back — pick up where you left off.
         </span>
-        <div className="flex flex-wrap gap-x-6 gap-y-2 font-bold">
+        <div className="flex flex-wrap gap-x-5 gap-y-2">
           <Link
             href="/dashboard"
-            className="text-cyan-300 transition hover:text-cyan-200 hover:underline"
+            className="font-medium text-cyan-200/90 transition hover:text-cyan-100"
           >
-            Continue to dashboard
+            Dashboard
           </Link>
           <Link
             href="/recommend"
-            className="text-cyan-300 transition hover:text-cyan-200 hover:underline"
+            className="font-medium text-cyan-200/90 transition hover:text-cyan-100"
           >
-            Start a new recommendation
+            New recommendation
           </Link>
         </div>
       </div>
