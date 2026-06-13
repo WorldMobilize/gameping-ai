@@ -153,7 +153,7 @@ export default function HomeGameCarousel() {
           {loop.map((game, index) => (
             <article
               key={`${game.title}-${index}`}
-              className="group relative w-[min(260px,76vw)] shrink-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a0b12] shadow-lg shadow-black/30 transition duration-300 hover:-translate-y-1 hover:border-cyan-400/25 motion-reduce:hover:translate-y-0"
+              className="group relative w-[min(260px,76vw)] shrink-0 overflow-hidden rounded-3xl border border-white/[0.08] bg-[#0a0b12] shadow-lg shadow-black/30 transition duration-300 hover:-translate-y-1 hover:border-cyan-400/25 motion-reduce:hover:translate-y-0"
             >
               <CuratedGameArt
                 src={game.image}

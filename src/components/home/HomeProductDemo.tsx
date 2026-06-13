@@ -9,6 +9,7 @@ import {
   HOME_REFINED_PICKS,
   type HomeDemoPick,
 } from "@/components/home/home-demo-data";
+import PingOrb from "@/components/home/PingOrb";
 import { useReducedMotion } from "@/components/home/use-reduced-motion";
 
 type DemoPhase =
@@ -53,9 +54,7 @@ function AssistantMessage({
 }) {
   return (
     <div className="gp-home-demo-assistant flex gap-3">
-      <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-sky-400/15 ring-1 ring-sky-400/25">
-        <span className="text-[10px] font-bold text-sky-300">GP</span>
-      </span>
+      <PingOrb size={28} className="mt-0.5 shrink-0" bars={3} />
       <div
         className={`min-w-0 flex-1 text-sm leading-relaxed text-white/70 ${
           pulse ? "gp-home-demo-pulse" : ""
@@ -86,7 +85,7 @@ function DemoGameCard({
         visible ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-3"
       } ${
         expanded
-          ? "border-sky-400/20 bg-white/[0.04] shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
+          ? "border-cyan-400/25 bg-white/[0.04] shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
           : "border-white/[0.07] bg-white/[0.025]"
       }`}
       style={{ transitionDelay: visible ? `${index * 100}ms` : "0ms" }}
@@ -113,7 +112,7 @@ function DemoGameCard({
           <h3 className="truncate text-[13px] font-semibold tracking-tight text-white drop-shadow-sm xl:text-sm">
             {pick.title}
           </h3>
-          <span className="shrink-0 rounded-full bg-sky-400/90 px-2.5 py-1 text-xs font-bold tabular-nums text-[#041018]">
+          <span className="gp-home-cta-primary shrink-0 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums text-[#041814]">
             {pick.match}%
           </span>
         </div>
@@ -283,14 +282,12 @@ export default function HomeProductDemo({
 
   return (
     <div className={rootClass} aria-hidden>
-      <div className="gp-home-demo-glass overflow-hidden rounded-2xl border border-white/[0.09] shadow-[0_32px_80px_-24px_rgba(0,0,0,0.75)]">
+      <div className="gp-home-glass overflow-hidden rounded-[1.5rem] border border-white/[0.1] shadow-[0_32px_80px_-24px_rgba(0,0,0,0.75)]">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] bg-black/25 px-3.5 py-2.5 backdrop-blur-md min-[960px]:px-4 min-[960px]:py-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-sky-400/15 ring-1 ring-sky-400/25">
-              <span className="text-[9px] font-bold text-sky-300">GP</span>
-            </span>
+            <PingOrb size={22} className="shrink-0" bars={3} />
             <span className="truncate text-xs font-semibold text-white/75">
-              GamePing session
+              Ping session
             </span>
           </div>
           <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-white/45">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import HomeHeroAtmosphere from "@/components/home/HomeHeroAtmosphere";
-import HomeHeroInsightPanel from "@/components/home/HomeHeroInsightPanel";
+import HomePingPanel from "@/components/home/HomePingPanel";
 import { HOME_VALUE_PROPS } from "@/components/home/home-demo-data";
 import { HomeValuePropIcon } from "@/components/home/HomeValuePropIcons";
 
@@ -10,35 +10,36 @@ export default function HomeHero() {
       <HomeHeroAtmosphere />
 
       <div className="relative z-10 mx-auto w-full max-w-[1500px]">
-        <div className="grid grid-cols-1 items-start gap-10 min-[960px]:grid-cols-[minmax(360px,0.95fr)_minmax(320px,0.85fr)] min-[960px]:gap-8 xl:gap-12">
+        <div className="grid grid-cols-1 items-center gap-10 min-[960px]:grid-cols-[minmax(360px,1fr)_minmax(330px,0.82fr)] min-[960px]:gap-8 xl:gap-12">
           <div className="gp-home-hero-copy min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300/75">
-              Personal game discovery
+            <p className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/[0.06] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/90">
+              <span className="gp-home-eyebrow-dot h-1.5 w-1.5 rounded-full bg-cyan-300" aria-hidden />
+              Meet Ping · your discovery companion
             </p>
 
-            <h1 className="mt-3 text-4xl font-semibold leading-[1.06] tracking-tight text-white sm:text-5xl min-[960px]:text-[2.35rem] min-[960px]:leading-[1.05] xl:text-[3.25rem] xl:leading-[1.04]">
+            <h1 className="mt-4 text-4xl font-semibold leading-[1.06] tracking-tight text-white sm:text-5xl min-[960px]:text-[2.35rem] min-[960px]:leading-[1.05] xl:text-[3.25rem] xl:leading-[1.04]">
               Find the next game you&apos;ll actually{" "}
-              <span className="text-sky-400">love.</span>
+              <span className="gp-home-accent-text">love.</span>
             </h1>
 
-            <p className="mt-4 max-w-lg text-lg leading-8 text-white/55 min-[960px]:max-w-none xl:max-w-lg">
-              GamePing learns your taste, explains every recommendation, and helps you
+            <p className="mt-4 max-w-lg text-lg leading-8 text-white/60 min-[960px]:max-w-none xl:max-w-lg">
+              Ping learns your taste, explains every recommendation, and helps you
               discover games worth your time.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-stretch">
               <Link
                 href="/recommend"
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-sky-400 px-7 text-sm font-semibold leading-none text-[#041018] transition hover:bg-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060f]"
+                className="gp-home-cta-primary inline-flex h-12 items-center justify-center rounded-xl px-7 text-sm font-semibold leading-none text-[#041814] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060f]"
               >
                 Try GamePing
               </Link>
               <a
                 href="#how-it-works"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.02] px-7 text-sm font-medium leading-none text-white/80 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.03] px-7 text-sm font-medium leading-none text-white/80 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40"
               >
                 <svg
-                  className="block h-4 w-4 shrink-0 text-white/55"
+                  className="block h-4 w-4 shrink-0 text-cyan-300/80"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                   aria-hidden
@@ -51,33 +52,36 @@ export default function HomeHero() {
 
             <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/35">
               <span>No login required</span>
-              <span className="text-sky-400/60" aria-hidden>
+              <span className="text-cyan-400/60" aria-hidden>
                 ·
               </span>
               <span>Under a minute</span>
-              <span className="text-sky-400/60" aria-hidden>
+              <span className="text-cyan-400/60" aria-hidden>
                 ·
               </span>
               <span>Prices on every game page</span>
             </p>
 
             <ul className="mt-11 grid gap-3.5 min-[480px]:grid-cols-2 min-[480px]:gap-4">
-              {HOME_VALUE_PROPS.map((prop) => (
-                <li
-                  key={prop.id}
-                  className="gp-home-value-benefit group flex items-start gap-4 rounded-xl border border-white/[0.07] bg-[#070a12]/45 px-4 py-4 backdrop-blur-sm transition-colors hover:border-sky-400/30 hover:bg-sky-400/[0.05]"
-                >
-                  <span className="gp-home-value-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-sky-400/25 bg-gradient-to-br from-sky-400/[0.14] to-sky-400/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-300 group-hover:border-sky-400/45 group-hover:from-sky-400/[0.2]">
-                    <HomeValuePropIcon id={prop.id} />
-                  </span>
-                  <div className="min-w-0 pt-1">
-                    <p className="text-[15px] font-semibold leading-snug text-white">
-                      {prop.label}
-                    </p>
-                    <p className="mt-1.5 text-sm leading-6 text-white/45">{prop.detail}</p>
-                  </div>
-                </li>
-              ))}
+              {HOME_VALUE_PROPS.map((prop, i) => {
+                const tone = ["cyan", "violet", "amber", "rose"][i % 4];
+                return (
+                  <li
+                    key={prop.id}
+                    className={`gp-home-value-benefit gp-tone-${tone} group flex items-start gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.025] px-4 py-4 backdrop-blur-sm transition-colors hover:bg-white/[0.04]`}
+                  >
+                    <span className="gp-home-value-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-300">
+                      <HomeValuePropIcon id={prop.id} />
+                    </span>
+                    <div className="min-w-0 pt-1">
+                      <p className="text-[15px] font-semibold leading-snug text-white">
+                        {prop.label}
+                      </p>
+                      <p className="mt-1.5 text-sm leading-6 text-white/50">{prop.detail}</p>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
 
             <nav
@@ -86,7 +90,7 @@ export default function HomeHero() {
             >
               <Link
                 href="/recommend"
-                className="font-medium text-sky-200/90 transition hover:text-sky-100"
+                className="font-medium text-cyan-200/90 transition hover:text-cyan-100"
               >
                 Personal recommendations
               </Link>
@@ -105,8 +109,8 @@ export default function HomeHero() {
             </nav>
           </div>
 
-          <div className="gp-home-hero-insight min-w-0 w-full min-[960px]:ml-auto min-[960px]:max-w-[480px] xl:max-w-[520px]">
-            <HomeHeroInsightPanel />
+          <div className="gp-home-hero-insight min-w-0 w-full min-[960px]:ml-auto min-[960px]:max-w-[460px] xl:max-w-[500px]">
+            <HomePingPanel />
           </div>
         </div>
       </div>

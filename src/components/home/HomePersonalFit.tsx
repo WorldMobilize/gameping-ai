@@ -1,21 +1,22 @@
 export default function HomePersonalFit() {
   return (
-    <section className="border-y border-white/[0.06] bg-[#070910]/80 px-6 py-20 md:py-28">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+    <section className="relative overflow-hidden border-y border-white/[0.06] bg-[#070910]/80 px-6 py-20 md:py-28">
+      <span className="gp-home-section-blob gp-section-blob-mint" aria-hidden />
+      <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-sky-300/75">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300/80">
             Personal fit
           </p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
             Is this game right for you?
           </h2>
-          <p className="mt-4 max-w-md text-base leading-7 text-white/50">
-            On every game page, GamePing can answer whether a title fits your taste—with
+          <p className="mt-4 max-w-md text-base leading-7 text-white/55">
+            On every game page, Ping can answer whether a title fits your taste—with
             reasons you may like it and honest concerns before you buy.
           </p>
         </div>
 
-        <div className="gp-home-fit-mock rounded-2xl border border-white/[0.08] bg-[#0a0d14] p-6 md:p-7">
+        <div className="gp-home-fit-mock rounded-[1.75rem] border border-white/[0.08] bg-[#0a0d14] p-6 md:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/35">
