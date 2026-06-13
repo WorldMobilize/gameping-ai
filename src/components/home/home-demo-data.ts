@@ -2,82 +2,85 @@ export type HomeDemoPick = {
   title: string;
   match: number;
   reason: string;
-  price: string;
-  tag: string;
 };
 
-export type HomeDemoScenario = {
-  prompt: string;
-  highlightIndex: number;
-};
+export const HOME_INITIAL_PROMPT =
+  "I want a co-op game that feels relaxing but still has progression";
 
-export const HOME_DEMO_PICKS: HomeDemoPick[] = [
+export const HOME_REFINE_PROMPT = "Less cozy, more survival and exploration";
+
+export const HOME_INITIAL_PICKS: HomeDemoPick[] = [
   {
-    title: "Hades",
-    match: 96,
-    reason: "Fast combat and roguelite loops—great when you want momentum, not grind.",
-    price: "$8.24",
-    tag: "Roguelike",
+    title: "Stardew Valley",
+    match: 94,
+    reason: "Shared farming with gentle co-op and steady progression at your pace.",
   },
   {
-    title: "Disco Elysium",
+    title: "Spiritfarer",
     match: 91,
-    reason: "Story-rich choices and unforgettable writing when mood matters more than action.",
-    price: "$8.88",
-    tag: "Narrative RPG",
+    reason: "Calm rhythm, meaningful growth, and a journey you can share.",
   },
   {
-    title: "Hollow Knight",
+    title: "Unrailed!",
+    match: 88,
+    reason: "Quick co-op sessions with teamwork and escalating challenge.",
+  },
+];
+
+export const HOME_REFINED_PICKS: HomeDemoPick[] = [
+  {
+    title: "Valheim",
+    match: 92,
+    reason: "Co-op survival with exploration and long-term base building.",
+  },
+  {
+    title: "No Man's Sky",
     match: 89,
-    reason: "Atmospheric exploration with challenge—rewards patience and curiosity.",
-    price: "$7.49",
-    tag: "Metroidvania",
+    reason: "Vast worlds to explore together with steady progression.",
+  },
+  {
+    title: "Enshrouded",
+    match: 87,
+    reason: "Survival crafting with discovery and shared progression.",
   },
 ];
 
-export const HOME_DEMO_SCENARIOS: HomeDemoScenario[] = [
-  {
-    prompt: "Something like Hades but cozier, under $15",
-    highlightIndex: 0,
-  },
-  {
-    prompt: "Dark story RPG with real choices—not just combat",
-    highlightIndex: 1,
-  },
-  {
-    prompt: "Exploration-heavy, challenging, great atmosphere",
-    highlightIndex: 2,
-  },
-];
-
-export const HOME_VIBE_TAGS = [
-  "Cozy evenings",
-  "Dark story",
-  "Under $20",
-  "Steam Deck",
-  "Roguelike",
-  "Short sessions",
-  "Open world",
-  "Hidden gems",
+export const HOME_TRUST_BADGES = [
+  { label: "Personal recommendations", detail: "Curated picks, not endless lists" },
+  { label: "Taste-based fit", detail: "Reasons that match how you play" },
+  { label: "Real prices", detail: "Verified store prices on game pages" },
+  { label: "Steam library optional", detail: "Connect when you want deeper fit" },
 ];
 
 export const HOME_FEATURES = [
   {
     step: "01",
-    title: "Describe your taste",
-    text: "One sentence is enough—or add tags, budget, and platform when you want tighter picks.",
-    icon: "✦",
+    title: "Describe what you feel like playing",
+    text: "One sentence is enough—or add budget, platform, and mood when you want tighter picks.",
   },
   {
     step: "02",
-    title: "Get curated picks",
-    text: "Up to five matches with fit scores, plain-language reasons, and verified prices on each game page.",
-    icon: "◎",
+    title: "Get picks with reasons and possible concerns",
+    text: "Up to five matches with fit scores, plain-language why, and honest trade-offs.",
   },
   {
     step: "03",
-    title: "Save & track",
-    text: "Save a search to your dashboard, track deals on favorites, and connect Steam for personal fit.",
-    icon: "↗",
+    title: "Refine, save, or track prices",
+    text: "Nudge results with a follow-up, save a run to your dashboard, or track deals on favorites.",
+  },
+];
+
+export const HOME_DEAL_POINTS = [
+  {
+    title: "Real prices where available",
+    text: "See verified store offers on each game page before you click through to buy.",
+  },
+  {
+    title: "Price tracking",
+    text: "Follow a game from its page and get alerts when deals hit your dashboard.",
+  },
+  {
+    title: "Regional pricing",
+    text: "Offers are selected for your region when storefront data supports it.",
   },
 ];

@@ -2,29 +2,20 @@ import Link from "next/link";
 
 export default function HomeFinalCta() {
   return (
-    <section className="px-6 pb-24 pt-8 md:pb-32">
-      <div className="mx-auto max-w-3xl text-center">
-        <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
-          Ready to find your next favorite?
+    <section className="px-6 pb-24 pt-4 md:pb-32">
+      <div className="mx-auto max-w-3xl rounded-2xl border border-white/[0.08] bg-[#0a0d14]/80 px-8 py-14 text-center md:px-12 md:py-16">
+        <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+          Stop searching by tags. Start discovering by taste.
         </h2>
         <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-white/50">
-          Describe what you&apos;re in the mood for. GamePing handles the rest—and
-          shows you why each pick fits.
+          Describe what you want to feel while playing. GamePing handles the rest.
         </p>
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href="/recommend"
-            className="inline-flex min-w-[200px] items-center justify-center rounded-full bg-cyan-400 px-8 py-3.5 text-sm font-semibold text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-          >
-            Try GamePing
-          </Link>
-          <Link
-            href="/curated"
-            className="inline-flex min-w-[200px] items-center justify-center rounded-full border border-white/12 px-8 py-3.5 text-sm font-medium text-white/75 transition hover:border-white/20 hover:bg-white/[0.04]"
-          >
-            Browse curated lists
-          </Link>
-        </div>
+        <Link
+          href="/recommend"
+          className="mt-8 inline-flex min-w-[220px] items-center justify-center rounded-xl bg-sky-400 px-8 py-3.5 text-sm font-semibold text-[#041018] transition hover:bg-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+        >
+          Try GamePing
+        </Link>
       </div>
     </section>
   );
