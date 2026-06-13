@@ -65,9 +65,9 @@ export default function HomeHero() {
               {HOME_VALUE_PROPS.map((prop) => (
                 <li
                   key={prop.id}
-                  className="gp-home-value-benefit group flex items-start gap-4 rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-4 transition-colors hover:border-sky-400/25 hover:bg-sky-400/[0.04]"
+                  className="gp-home-value-benefit group flex items-start gap-4 rounded-xl border border-white/[0.07] bg-[#070a12]/45 px-4 py-4 backdrop-blur-sm transition-colors hover:border-sky-400/30 hover:bg-sky-400/[0.05]"
                 >
-                  <span className="gp-home-value-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-sky-400/20 bg-sky-400/[0.08] transition-all duration-300 group-hover:border-sky-400/40 group-hover:bg-sky-400/[0.12]">
+                  <span className="gp-home-value-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-sky-400/25 bg-gradient-to-br from-sky-400/[0.14] to-sky-400/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-300 group-hover:border-sky-400/45 group-hover:from-sky-400/[0.2]">
                     <HomeValuePropIcon id={prop.id} />
                   </span>
                   <div className="min-w-0 pt-1">
