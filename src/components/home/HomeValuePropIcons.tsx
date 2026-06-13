@@ -71,7 +71,7 @@ export function DealAwareIcon({ className = "h-6 w-6" }: IconProps) {
 }
 
 export function HomeValuePropIcon({ id }: { id: string }) {
-  const className = "gp-home-value-icon-svg h-7 w-7 shrink-0";
+  const className = "h-8 w-8 shrink-0";
 
   switch (id) {
     case "taste":

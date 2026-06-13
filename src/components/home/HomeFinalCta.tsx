@@ -1,20 +1,27 @@
 import Link from "next/link";
+import HomePageAtmosphere from "@/components/home/HomePageAtmosphere";
 import PingOrb from "@/components/home/PingOrb";
 
 export default function HomeFinalCta() {
   return (
-    <section className="gp-pastel-section px-5 pb-24 pt-4 md:pb-32">
-      <div className="gp-pastel-shell gp-pastel-cta mx-auto max-w-3xl px-8 py-14 text-center md:px-12 md:py-16">
-        <PingOrb size={80} variant="default" className="mx-auto" bars={4} />
-        <h2 className="gp-pastel-section-title mt-6">
-          Stop searching by tags. Start discovering by taste.
-        </h2>
-        <p className="gp-pastel-section-sub mx-auto mt-4 max-w-lg">
-          Describe what you want to feel while playing. Ping handles the rest.
-        </p>
-        <Link href="/recommend" className="gp-pastel-btn-primary mt-8 inline-flex min-w-[220px]">
-          Try GamePing
-        </Link>
+    <section className="gp-landing-section pb-24 md:pb-32">
+      <HomePageAtmosphere variant="section" />
+
+      <div className="gp-landing-wrap relative z-10">
+        <div className="gp-landing-shell gp-landing-cta-shell">
+          <PingOrb size={72} variant="default" className="mx-auto" bars={4} />
+          <h2 className="gp-landing-h2 mt-6">
+            Stop searching by tags. Start discovering by{" "}
+            <span className="gp-landing-accent">taste.</span>
+          </h2>
+          <p className="gp-landing-body mx-auto mt-4 max-w-lg">
+            Describe what you want to feel while playing. Ping handles the rest.
+          </p>
+          <Link href="/recommend" className="gp-landing-btn-primary mt-8 inline-flex min-w-[220px]">
+            Try GamePing
+            <span aria-hidden>→</span>
+          </Link>
+        </div>
       </div>
     </section>
   );

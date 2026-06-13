@@ -32,21 +32,21 @@ export default function HomeLoggedInStrip() {
   if (!loggedIn) return null;
 
   return (
-    <div className="border-b border-white/[0.06] bg-[#0a0b12]/90 px-6 py-3">
-      <div className="mx-auto flex max-w-6xl flex-col gap-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
+    <div className="border-b border-white/[0.06] bg-[#0c0f18]/95 px-6 py-3">
+      <div className="mx-auto flex max-w-[var(--gp-max,1180px)] flex-col gap-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
         <span className="text-white/50">
           Welcome back — pick up where you left off.
         </span>
         <div className="flex flex-wrap gap-x-5 gap-y-2">
           <Link
             href="/dashboard"
-            className="font-medium text-cyan-200/90 transition hover:text-cyan-100"
+            className="font-medium text-teal-200/90 transition hover:text-teal-100"
           >
             Dashboard
           </Link>
           <Link
             href="/recommend"
-            className="font-medium text-cyan-200/90 transition hover:text-cyan-100"
+            className="font-medium text-teal-200/90 transition hover:text-teal-100"
           >
             New recommendation
           </Link>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import HomeGameCarousel from "@/components/HomeGameCarousel";
 import HomeLoggedInStrip from "@/components/HomeLoggedInStrip";
 import HomeDealsSection from "@/components/home/HomeDealsSection";
+import HomeFeatureCards from "@/components/home/HomeFeatureCards";
 import HomeFinalCta from "@/components/home/HomeFinalCta";
 import HomeGamingDnaTeaser from "@/components/home/HomeGamingDnaTeaser";
 import HomeHero from "@/components/home/HomeHero";
@@ -19,12 +20,13 @@ export const metadata: Metadata = buildPublicPageMetadata({
 
 export default function Home() {
   return (
-    <main className="gp-home gp-pastel-app min-h-screen overflow-x-hidden text-white">
+    <main className="gp-landing min-h-screen overflow-x-hidden text-white">
       <Navbar />
       <HomeLoggedInStrip />
       <HomeHero />
-      <HomeTasteNotTags />
+      <HomeFeatureCards />
       <HomeHowItWorks />
+      <HomeTasteNotTags />
       <HomeGameCarousel />
       <HomeGamingDnaTeaser />
       <HomePersonalFit />

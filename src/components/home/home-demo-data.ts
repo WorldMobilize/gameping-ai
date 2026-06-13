@@ -79,22 +79,29 @@ export const HOME_HERO_DASHBOARD = {
 export const HOME_FLOW_STEPS = [
   {
     step: "1",
-    title: "Tell GamePing what you feel like playing",
-    text: "One sentence is enough—or add budget, platform, and mood when you want tighter picks.",
+    title: "Tell us what you want",
+    text: "Describe the mood, pace, or vibe you're after—one sentence is enough to start.",
     icon: "ping" as const,
   },
   {
     step: "2",
-    title: "GamePing understands your taste",
-    text: "Ping reads mood, motivations, and what to avoid—not just genre tags.",
+    title: "We understand your taste",
+    text: "GamePing reads motivations and what to avoid—not just genre tags on a box.",
     icon: "taste" as const,
   },
   {
     step: "3",
-    title: "Get games you'll actually love",
-    text: "Up to five matches with fit scores, plain-language why, and honest trade-offs.",
+    title: "Get better matches",
+    text: "Up to five picks with fit scores, plain-language why, and honest trade-offs.",
     icon: "love" as const,
   },
+];
+
+export const HOME_TRUST_PILLARS = [
+  { id: "personalized", label: "Personalized", icon: "target" as const },
+  { id: "transparent", label: "Transparent", icon: "shield" as const },
+  { id: "fast", label: "Fast & easy", icon: "bolt" as const },
+  { id: "gamers", label: "Made for gamers", icon: "heart" as const },
 ];
 
 export const HOME_HERO_INSIGHT = {
