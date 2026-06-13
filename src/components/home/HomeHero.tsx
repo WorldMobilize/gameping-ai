@@ -26,26 +26,26 @@ export default function HomeHero() {
               discover games worth your time.
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center">
+            <div className="mt-8 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-stretch">
               <Link
                 href="/recommend"
-                className="inline-flex items-center justify-center rounded-xl bg-sky-400 px-7 py-3.5 text-sm font-semibold text-[#041018] transition hover:bg-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060f]"
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-sky-400 px-7 text-sm font-semibold leading-none text-[#041018] transition hover:bg-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060f]"
               >
                 Try GamePing
               </Link>
               <a
                 href="#how-it-works"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.02] px-7 py-3.5 text-sm font-medium text-white/80 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[0.02] px-7 text-sm font-medium leading-none text-white/80 backdrop-blur-sm transition hover:border-white/20 hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/40"
               >
                 <svg
-                  className="h-4 w-4 text-white/55"
+                  className="block h-4 w-4 shrink-0 text-white/55"
                   viewBox="0 0 24 24"
                   fill="currentColor"
                   aria-hidden
                 >
-                  <path d="M8 5v14l11-7z" />
+                  <path d="M10 8.5v7l6.5-3.5L10 8.5z" />
                 </svg>
-                See how it works
+                <span>See how it works</span>
               </a>
             </div>
 

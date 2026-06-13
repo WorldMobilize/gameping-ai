@@ -12,37 +12,25 @@ const ICON_PROPS = {
   "aria-hidden": true,
 };
 
-/** Exploration compass — cardinal ring + north needle */
+/** Simple compass — circle + north-east needle */
 export function TasteDiscoveryIcon({ className = "h-[22px] w-[22px]" }: IconProps) {
   return (
     <svg className={className} {...ICON_PROPS}>
       <circle cx="12" cy="12" r="10" />
-      <path d="M12 4.5v2M12 17.5v2M4.5 12h2M17.5 12h2" />
-      <path
-        d="M12 6.5 14.2 12.5 12 11 9.8 12.5 12 6.5z"
-        fill="currentColor"
-        stroke="currentColor"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12 17.5 13.5 13 12 14 10.5 13 12 17.5z"
-        stroke="currentColor"
-        strokeLinejoin="round"
-        opacity="0.4"
-      />
+      <line x1="12" y1="12" x2="15.5" y2="8.5" />
+      <circle cx="12" cy="12" r="1.25" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
-/** Player profile fingerprint — clean readable arcs */
+/** Player taste profile — user in circle + signal node */
 export function GamingDnaIcon({ className = "h-[22px] w-[22px]" }: IconProps) {
   return (
     <svg className={className} {...ICON_PROPS}>
-      <path d="M12 10.5a2.5 2.5 0 0 0-2.5 2.5" />
-      <path d="M12 7.5a5.5 5.5 0 0 0-5.5 5.5" />
-      <path d="M12 5a8 8 0 0 0-8 8" />
-      <path d="M12 14v2.5" />
-      <path d="M9 18.5a3 3 0 0 0 6 0" />
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="10" r="2.25" />
+      <path d="M7.5 18.5v-1a4.5 4.5 0 0 1 9 0v1" />
+      <circle cx="16.75" cy="7.25" r="1.25" fill="currentColor" stroke="none" />
     </svg>
   );
 }

@@ -257,7 +257,7 @@ body {
 }
 
 .gp-home-hero-city-image {
-  object-position: 58% 52%;
+  object-position: 55% center;
   opacity: 0.74;
   filter: brightness(0.58) saturate(1.12) contrast(1.04);
 }
@@ -307,7 +307,7 @@ body {
 
 @media (max-width: 959px) {
   .gp-home-hero-city-image {
-    object-position: 50% 62%;
+    object-position: center center;
     opacity: 0.52;
     filter: brightness(0.5) saturate(1.08);
   }
@@ -333,7 +333,7 @@ body {
 
 @media (min-width: 1440px) {
   .gp-home-hero-city-image {
-    object-position: 62% 48%;
+    object-position: 55% center;
   }
 }
 
