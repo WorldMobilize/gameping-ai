@@ -126,8 +126,8 @@ export default function HomeGameCarousel() {
       className="relative py-14 md:py-20"
       aria-labelledby="home-game-carousel-heading"
     >
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-20 bg-gradient-to-r from-[#05060f] via-[#05060f]/80 to-transparent md:w-28" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-20 bg-gradient-to-l from-[#05060f] via-[#05060f]/80 to-transparent md:w-28" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-20 bg-gradient-to-r from-[#0a0c14] via-[#0a0c14]/80 to-transparent md:w-28" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-20 bg-gradient-to-l from-[#0a0c14] via-[#0a0c14]/80 to-transparent md:w-28" />
 
       <div className="relative z-[2] mx-auto max-w-6xl px-6">
         <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">

@@ -19,7 +19,7 @@ export const metadata: Metadata = buildPublicPageMetadata({
 
 export default function Home() {
   return (
-    <main className="gp-home min-h-screen overflow-x-hidden bg-[#05060f] text-white">
+    <main className="gp-home min-h-screen overflow-x-hidden bg-[#0a0c14] text-white">
       <Navbar />
       <HomeLoggedInStrip />
       <HomeHero />

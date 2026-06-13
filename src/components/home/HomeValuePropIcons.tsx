@@ -6,7 +6,7 @@ const ICON_PROPS = {
   viewBox: "0 0 24 24",
   fill: "none" as const,
   stroke: "currentColor",
-  strokeWidth: 2.4,
+  strokeWidth: 2.2,
   strokeLinecap: "round" as const,
   strokeLinejoin: "round" as const,
   "aria-hidden": true,
@@ -71,7 +71,7 @@ export function DealAwareIcon({ className = "h-6 w-6" }: IconProps) {
 }
 
 export function HomeValuePropIcon({ id }: { id: string }) {
-  const className = "gp-home-value-icon-svg h-6 w-6 shrink-0 text-sky-400";
+  const className = "gp-home-value-icon-svg h-7 w-7 shrink-0";
 
   switch (id) {
     case "taste":

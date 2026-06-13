@@ -54,7 +54,7 @@ function AssistantMessage({
 }) {
   return (
     <div className="gp-home-demo-assistant flex gap-3">
-      <PingOrb size={28} className="mt-0.5 shrink-0" bars={3} />
+      <PingOrb size={28} variant="compact" className="mt-0.5 shrink-0" bars={3} />
       <div
         className={`min-w-0 flex-1 text-sm leading-relaxed text-white/70 ${
           pulse ? "gp-home-demo-pulse" : ""
@@ -285,7 +285,7 @@ export default function HomeProductDemo({
       <div className="gp-home-glass overflow-hidden rounded-[1.5rem] border border-white/[0.1] shadow-[0_32px_80px_-24px_rgba(0,0,0,0.75)]">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.06] bg-black/25 px-3.5 py-2.5 backdrop-blur-md min-[960px]:px-4 min-[960px]:py-3">
           <div className="flex min-w-0 items-center gap-2.5">
-            <PingOrb size={22} className="shrink-0" bars={3} />
+            <PingOrb size={22} variant="compact" className="shrink-0" bars={3} />
             <span className="truncate text-xs font-semibold text-white/75">
               Ping session
             </span>
