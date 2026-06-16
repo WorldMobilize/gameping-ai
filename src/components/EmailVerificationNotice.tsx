@@ -9,11 +9,13 @@ import { useToast } from "@/components/ToastProvider";
 type EmailVerificationNoticeProps = {
   className?: string;
   compact?: boolean;
+  theme?: "dark" | "light";
 };
 
 export default function EmailVerificationNotice({
   className = "",
   compact = false,
+  theme = "dark",
 }: EmailVerificationNoticeProps) {
   const { showToast } = useToast();
   const [user, setUser] = useState<User | null>(null);
@@ -83,17 +85,25 @@ export default function EmailVerificationNotice({
     return null;
   }
 
+  const isLight = theme === "light";
+
   if (compact) {
     return (
       <p
-        className={`rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100/95 ${className}`}
+        className={`rounded-2xl border px-4 py-3 text-sm leading-relaxed ${
+          isLight
+            ? "border-amber-200/90 bg-amber-50 text-amber-950"
+            : "border-amber-400/30 bg-amber-500/10 text-amber-100/95"
+        } ${className}`}
       >
         Verify your email to unlock recommendations, saved runs, tracking, and Premium.{" "}
         <button
           type="button"
           disabled={resending}
           onClick={() => void resend()}
-          className="font-bold text-cyan-200 underline-offset-2 hover:underline disabled:opacity-50"
+          className={`font-bold underline-offset-2 hover:underline disabled:opacity-50 ${
+            isLight ? "text-cyan-700" : "text-cyan-200"
+          }`}
         >
           {resending ? "Sending…" : "Resend verification email"}
         </button>
@@ -103,20 +113,37 @@ export default function EmailVerificationNotice({
 
   return (
     <div
-      className={`rounded-2xl border border-amber-400/30 bg-amber-500/10 px-5 py-4 ${className}`}
+      className={`rounded-2xl border px-5 py-4 ${
+        isLight
+          ? "border-amber-200/90 bg-amber-50"
+          : "border-amber-400/30 bg-amber-500/10"
+      } ${className}`}
       role="status"
     >
-      <p className="text-sm font-bold text-amber-100">Verify your email</p>
-      <p className="mt-2 text-sm leading-relaxed text-amber-100/90">
+      <p className={`text-sm font-bold ${isLight ? "text-amber-950" : "text-amber-100"}`}>
+        Verify your email
+      </p>
+      <p
+        className={`mt-2 text-sm leading-relaxed ${
+          isLight ? "text-amber-900/90" : "text-amber-100/90"
+        }`}
+      >
         Please verify your email to unlock recommendations, saved runs, game tracking, and
         Premium. We sent a link to{" "}
-        <span className="font-semibold text-white">{user.email ?? "your inbox"}</span>.
+        <span className={`font-semibold ${isLight ? "text-slate-900" : "text-white"}`}>
+          {user.email ?? "your inbox"}
+        </span>
+        .
       </p>
       <button
         type="button"
         disabled={resending}
         onClick={() => void resend()}
-        className="mt-3 rounded-full border border-amber-400/40 bg-amber-500/15 px-4 py-2 text-sm font-bold text-amber-50 transition hover:bg-amber-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+        className={`mt-3 rounded-full border px-4 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+          isLight
+            ? "border-amber-300/80 bg-white text-amber-950 hover:bg-amber-100/80"
+            : "border-amber-400/40 bg-amber-500/15 text-amber-50 hover:bg-amber-500/25"
+        }`}
       >
         {resending ? "Sending…" : "Resend verification email"}
       </button>

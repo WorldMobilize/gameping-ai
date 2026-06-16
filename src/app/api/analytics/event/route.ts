@@ -16,16 +16,22 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const MAX_BODY_BYTES = 8_192;
 
+function analyticsAccepted(): NextResponse {
+  return new NextResponse(null, { status: 204 });
+}
+
+/** Best-effort product analytics ingest — never blocks the client. */
 export async function POST(req: Request) {
   try {
     const contentLength = req.headers.get("content-length");
     if (contentLength) {
       const n = Number(contentLength);
       if (Number.isFinite(n) && n > MAX_BODY_BYTES) {
-        return NextResponse.json({ ok: false, error: "Payload too large" }, { status: 413 });
+        return analyticsAccepted();
       }
     }
 
@@ -33,39 +39,42 @@ export async function POST(req: Request) {
     try {
       const raw = await req.text();
       if (raw.length > MAX_BODY_BYTES) {
-        return NextResponse.json({ ok: false, error: "Payload too large" }, { status: 413 });
+        return analyticsAccepted();
       }
       body = JSON.parse(raw) as Record<string, unknown>;
     } catch {
-      return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 });
+      return analyticsAccepted();
     }
 
     const eventRaw = typeof body.event_name === "string" ? body.event_name.trim() : "";
     if (!isProductAnalyticsEventName(eventRaw)) {
-      return NextResponse.json({ ok: false, error: "Invalid event_name" }, { status: 400 });
+      return analyticsAccepted();
     }
 
     const session_id = sanitizeSessionId(body.session_id);
     if (!session_id) {
-      return NextResponse.json({ ok: false, error: "Invalid session_id" }, { status: 400 });
+      return analyticsAccepted();
+    }
+
+    try {
+      const rl = await rateLimit({
+        req,
+        action: "analytics",
+        limit: 200,
+        windowMs: 10 * 60 * 1000,
+        userId: session_id,
+      });
+      if (!rl.allowed) {
+        return analyticsAccepted();
+      }
+    } catch {
+      /* rate-limit infra must not break analytics delivery */
     }
 
     const anonymous_id = sanitizeAnonymousId(body.anonymous_id);
     const page_path = sanitizePagePath(body.page_path);
     const referrer = sanitizeReferrer(body.referrer);
     const metadata = sanitizeProductAnalyticsMetadata(body.metadata);
-
-    const rl = await rateLimit({
-      req,
-      action: "analytics",
-      limit: 200,
-      windowMs: 10 * 60 * 1000,
-      userId: session_id,
-    });
-
-    if (!rl.allowed) {
-      return NextResponse.json({ ok: false, error: "Rate limited" }, { status: 429 });
-    }
 
     let user_id: string | null = null;
     try {
@@ -82,7 +91,7 @@ export async function POST(req: Request) {
     const device_type = inferDeviceType(user_agent);
     const country = inferCountryFromHeaders(req);
 
-    const ok = await insertProductEvent({
+    await insertProductEvent({
       event_name: eventRaw,
       session_id,
       anonymous_id,
@@ -94,14 +103,9 @@ export async function POST(req: Request) {
       country,
       metadata,
     });
-
-    if (!ok) {
-      return NextResponse.json({ ok: false, error: "Store failed" }, { status: 503 });
-    }
-
-    return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[analytics/event]", err);
-    return NextResponse.json({ ok: false, error: "Server error" }, { status: 500 });
   }
+
+  return analyticsAccepted();
 }

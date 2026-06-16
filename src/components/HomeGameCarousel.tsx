@@ -122,22 +122,21 @@ export default function HomeGameCarousel() {
   const loop = carouselPicks;
 
   return (
-    <section className="gp-landing-section relative py-14 md:py-20" aria-labelledby="home-game-carousel-heading">
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-20 gp-landing-carousel-fade md:w-28" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-20 bg-gradient-to-l from-[var(--gp-bg)] via-[var(--gp-bg)]/85 to-transparent md:w-28" />
+    <section
+      className="gp-landing-section gp-landing-section-below gp-landing-carousel-section"
+      aria-labelledby="home-game-carousel-heading"
+    >
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-16 gp-landing-carousel-fade md:w-24" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-16 bg-gradient-to-l from-[var(--gp-landing-depth)] via-[var(--gp-landing-depth)]/90 to-transparent md:w-24" />
 
       <div className="relative z-[2] mx-auto max-w-[var(--gp-max)] px-5 md:px-8">
-        <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="gp-landing-kicker">Explore</p>
-            <h2 id="home-game-carousel-heading" className="gp-landing-h2 mt-2 text-2xl md:text-3xl">
-              Games worth discovering
-            </h2>
-          </div>
-          <p className="max-w-sm text-sm leading-6 text-white/48 md:text-right">
-            Hover to pause · scroll on mobile
-          </p>
-        </div>
+        <header className="gp-landing-section-head mb-10 max-w-2xl">
+          <p className="gp-landing-kicker">Explore</p>
+          <h2 id="home-game-carousel-heading" className="gp-landing-h2 mt-2">
+            Discover worlds worth playing
+          </h2>
+          <p className="gp-landing-body mt-3">Hover to pause · scroll on mobile</p>
+        </header>
       </div>
 
       <div className="home-carousel-viewport relative z-[2] w-full">
@@ -166,7 +165,7 @@ export default function HomeGameCarousel() {
 
                 <Link
                   href={gameDetailPath(game.title)}
-                  className="inline-flex w-full items-center justify-center rounded-full border border-white/10 bg-white/[0.04] py-2 text-sm font-medium text-white/72 transition group-hover:border-teal-400/28 group-hover:bg-teal-400/10 group-hover:text-teal-100"
+                  className="gp-landing-carousel-link"
                 >
                   View details
                 </Link>

@@ -1,0 +1,230 @@
+/* GamePing public landing — pastel theme utilities */
+
+.gp-home-display {
+  font-family: "Orbitron", "Bahnschrift", "Segoe UI Variable Display", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: none;
+}
+
+.gp-home-hero-display {
+  font-family: "Orbitron", "Bahnschrift", "Segoe UI Variable Display", system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+}
+
+.gp-home-why-mini {
+  position: relative;
+  isolation: isolate;
+}
+
+.gp-home-why-radar-sweep {
+  animation: gp-home-why-radar-spin 4.5s linear infinite;
+}
+
+.gp-home-why-radar-pulse {
+  animation: gp-home-why-radar-ping 2.8s ease-out infinite;
+}
+
+@keyframes gp-home-why-radar-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes gp-home-why-radar-ping {
+  0% {
+    transform: translate(-50%, -50%) scale(0.85);
+    opacity: 0.95;
+  }
+
+  70% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-home-why-radar-sweep,
+  .gp-home-why-radar-pulse {
+    animation: none;
+  }
+}
+
+.gp-nav-inner {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding-inline: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .gp-nav-inner {
+    padding-inline: 2.5rem;
+  }
+}
+
+.gp-nav-home-layout {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.gp-nav-home-layout .gp-nav-brand {
+  flex: 0 0 auto;
+}
+
+.gp-nav-home-links {
+  display: none;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 1.75rem;
+  margin-left: 2rem;
+  min-width: 0;
+  overflow: hidden;
+}
+
+@media (min-width: 1280px) {
+  .gp-nav-home-links {
+    display: flex;
+  }
+}
+
+.gp-nav-home-layout .gp-nav-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+@keyframes gp-home-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes gp-home-float-delayed {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes gp-home-blob-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(12px, -8px) scale(1.04);
+  }
+
+  66% {
+    transform: translate(-8px, 10px) scale(0.98);
+  }
+}
+
+.gp-home-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.gp-home-card-light {
+  border-color: rgb(226 232 240 / 0.9);
+  background: rgb(255 255 255 / 0.92);
+  box-shadow: 0 8px 30px -12px rgb(100 116 139 / 0.18);
+}
+
+.gp-home-card-dark {
+  border-color: rgb(51 65 85 / 0.7);
+  background: rgb(15 23 42 / 0.85);
+  box-shadow: 0 12px 40px -16px rgb(0 0 0 / 0.45);
+}
+
+.gp-home-panel-light {
+  border-color: rgb(226 232 240 / 0.85);
+  background: rgb(255 255 255 / 0.88);
+}
+
+.gp-home-panel-dark {
+  border-color: rgb(51 65 85 / 0.75);
+  background: rgb(15 23 42 / 0.82);
+}
+
+.gp-home-panel-float {
+  animation: gp-home-float 6s ease-in-out infinite;
+}
+
+.gp-home-float {
+  animation: gp-home-float 6s ease-in-out infinite;
+}
+
+.gp-home-float-delayed {
+  animation: gp-home-float-delayed 6s ease-in-out 0.8s infinite;
+}
+
+.gp-home-blob-drift {
+  animation: gp-home-blob-drift 24s ease-in-out infinite alternate;
+}
+
+.gp-home-blob-drift-alt {
+  animation: gp-home-blob-drift 28s ease-in-out infinite alternate-reverse;
+}
+
+.gp-home-badge-shimmer {
+  background-size: 200% 100%;
+}
+
+.gp-home-chip-drift {
+  animation: gp-home-float 5s ease-in-out infinite;
+}
+
+.gp-home-chip-drift-alt {
+  animation: gp-home-float-delayed 5.5s ease-in-out infinite;
+}
+
+.gp-home-flow-line {
+  animation: gp-home-float 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-home-panel-float,
+  .gp-home-float,
+  .gp-home-float-delayed,
+  .gp-home-blob-drift,
+  .gp-home-blob-drift-alt,
+  .gp-home-chip-drift,
+  .gp-home-chip-drift-alt,
+  .gp-home-flow-line {
+    animation: none;
+  }
+}
+
+html:has([data-home-theme]) {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has([data-home-theme]) {
+    scroll-behavior: auto;
+  }
+}

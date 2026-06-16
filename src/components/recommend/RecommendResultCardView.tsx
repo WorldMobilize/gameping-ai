@@ -1,42 +1,49 @@
-import { recommendMatchTierLabel } from "@/lib/recommend-match-tier"
+import { recommendMatchTierLabel } from "@/lib/recommend-match-tier";
 import {
   resolveRecommendFitBody,
   sanitizeRecommendFitCopy,
-} from "@/lib/recommend-fit-display"
+} from "@/lib/recommend-fit-display";
+import type { RefObject } from "react";
+import {
+  recommendResultCardStyles,
+  type RecommendCardDensity,
+  type RecommendCardTheme,
+} from "@/components/recommend/recommend-result-card-styles";
 
 export type RecommendResultCardGame = {
-  title: string
-  match: number
-  reason: string
-  image?: string | null
-  matchTier?: "best_match" | "good_alternative" | "partial_match"
-  matchNote?: string
-  budgetNote?: string | null
-}
+  title: string;
+  match: number;
+  reason: string;
+  image?: string | null;
+  matchTier?: "best_match" | "good_alternative" | "partial_match";
+  matchNote?: string;
+  budgetNote?: string | null;
+  imagePosition?: string;
+};
 
 type RecommendResultCardViewProps = {
-  rank: number
-  game: RecommendResultCardGame
-  /** Resolved budget/price line (same logic as /recommend). */
-  budgetLine?: string | null
-  /** When set (social export), use proxied URL instead of game.image. */
-  imageSrc?: string | null
-  imageCacheKey?: string
-  /** Slightly larger type/spacing for 1080px export while keeping the same layout. */
-  density?: "page" | "export"
-  showViewDetails?: boolean
-  /** Override muted line under “why” (export uses shorter social copy). */
-  fitMetaLine?: string | null
-}
+  rank: number;
+  game: RecommendResultCardGame;
+  budgetLine?: string | null;
+  imageSrc?: string | null;
+  imageCacheKey?: string;
+  density?: RecommendCardDensity;
+  theme?: RecommendCardTheme;
+  showViewDetails?: boolean;
+  fitMetaLine?: string | null;
+  viewDetailsRef?: RefObject<HTMLButtonElement | null>;
+  highlightDetails?: boolean;
+  clickPulse?: boolean;
+};
 
 /** Outer shell — matches /recommend result card styling. */
 export const RECOMMEND_RESULT_CARD_SHELL =
-  "relative flex w-full flex-col overflow-hidden rounded-2xl border bg-[#0a0b14]/50"
+  "relative flex w-full flex-col overflow-hidden rounded-2xl border bg-[#0a0b14]/50";
 
 export function recommendResultCardShellClass(emphasizeCyanBorder: boolean) {
   return emphasizeCyanBorder
     ? `${RECOMMEND_RESULT_CARD_SHELL} border-cyan-400/25`
-    : `${RECOMMEND_RESULT_CARD_SHELL} border-white/10`
+    : `${RECOMMEND_RESULT_CARD_SHELL} border-white/10`;
 }
 
 export default function RecommendResultCardView({
@@ -46,66 +53,31 @@ export default function RecommendResultCardView({
   imageSrc,
   imageCacheKey,
   density = "page",
+  theme = "dark",
   showViewDetails = false,
   fitMetaLine: fitMetaLineProp,
+  viewDetailsRef,
+  highlightDetails = false,
+  clickPulse = false,
 }: RecommendResultCardViewProps) {
-  const isExport = density === "export"
-  const fitNote = sanitizeRecommendFitCopy(game.matchNote)
-  const fitBody = resolveRecommendFitBody(game.reason)
-  const resolvedImage = imageSrc ?? game.image ?? null
-  const shellClass = recommendResultCardShellClass(isExport)
+  const isExport = density === "export";
+  const fitNote = sanitizeRecommendFitCopy(game.matchNote);
+  const fitBody = resolveRecommendFitBody(game.reason);
+  const resolvedImage = imageSrc ?? game.image ?? null;
+  const s = recommendResultCardStyles(theme, density, isExport);
+  const shellClass = isExport ? recommendResultCardShellClass(true) : s.shell;
 
-  const imageWrapClass = isExport
-    ? "h-[300px] w-full overflow-hidden bg-black/40"
-    : "h-48 w-full overflow-hidden bg-black/40"
-
-  const bodyPadClass = isExport ? "flex flex-1 flex-col p-8" : "flex flex-1 flex-col p-6"
-
-  const rankClass = isExport
-    ? "rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-sm font-semibold tabular-nums text-white/60"
-    : "rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold tabular-nums text-white/60"
-
-  const titleClass = isExport ? "text-4xl font-black leading-tight tracking-tight" : "text-2xl font-bold tracking-tight"
-
-  const fitNoteClass = isExport
-    ? "mt-3 text-base leading-6 text-white/50"
-    : "mt-2 text-xs leading-5 text-white/50"
-
-  const badgeTierClass = isExport
-    ? "rounded-full px-4 py-1.5 text-sm font-bold"
-    : "rounded-full px-3 py-1 text-xs font-bold"
-
-  const badgeMatchClass = isExport
-    ? "rounded-full bg-cyan-400/12 px-4 py-1.5 text-base font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20"
-    : "rounded-full bg-cyan-400/12 px-3 py-1 text-sm font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20"
-
-  const budgetClass = isExport ? "mt-4 text-sm text-white/45" : "mt-3 text-xs text-white/45"
-
-  const whyLabelClass = isExport
-    ? "text-sm font-semibold uppercase tracking-[0.15em] text-white/40"
-    : "text-xs font-semibold uppercase tracking-[0.15em] text-white/40"
-
-  const whyBodyClass = isExport
-    ? "mt-3 text-lg leading-8 text-white/70"
-    : "mt-2 text-sm leading-6 text-white/70"
-
-  const whyMetaClass = isExport ? "mt-3 text-sm text-white/40" : "mt-2 text-xs text-white/40"
-
-  const ctaClass = isExport
-    ? "inline-flex rounded-full bg-cyan-400 px-6 py-3.5 text-base font-bold text-black"
-    : "inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-bold text-black"
-
-  const tierLabel = recommendMatchTierLabel(game.matchTier)
+  const tierLabel = recommendMatchTierLabel(game.matchTier);
 
   const defaultFitMeta =
-    "Mood, pacing, and mechanics from this recommendation search — not a saved taste profile yet."
+    "Mood, pacing, and mechanics from this recommendation search — not a saved taste profile yet.";
   const resolvedFitMeta =
-    fitMetaLineProp === undefined ? defaultFitMeta : fitMetaLineProp
+    fitMetaLineProp === undefined ? defaultFitMeta : fitMetaLineProp;
 
   return (
     <div className={shellClass}>
       {resolvedImage ? (
-        <div className={imageWrapClass}>
+        <div className={s.imageWrap}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             key={imageCacheKey ?? resolvedImage}
@@ -115,67 +87,63 @@ export default function RecommendResultCardView({
             decoding={imageSrc ? "sync" : undefined}
             data-export-image={game.image ?? ""}
             className="h-full w-full object-cover"
+            style={{ objectPosition: game.imagePosition ?? "center center" }}
           />
         </div>
       ) : (
         <div
-          className={`flex w-full items-center justify-center bg-black/40 text-white/40 ${
-            isExport ? "h-[300px] text-lg" : "h-48"
-          }`}
+          className={`flex w-full items-center justify-center ${s.placeholderBg} ${s.placeholderText} ${s.imagePlaceholder}`}
         >
           No image available
         </div>
       )}
 
-      <div className={bodyPadClass}>
+      <div className={s.bodyPad}>
         <div className="mb-3">
-          <span className={rankClass}>#{rank}</span>
+          <span className={s.rank}>#{rank}</span>
         </div>
 
-        <h2 className={titleClass}>{game.title}</h2>
+        <h2 className={s.title}>{game.title}</h2>
 
-        {fitNote ? <p className={fitNoteClass}>{fitNote}</p> : null}
+        {fitNote ? <p className={s.fitNote}>{fitNote}</p> : null}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {game.matchTier === "good_alternative" && (
-            <span className={`${badgeTierClass} bg-amber-500/25 text-amber-200`}>
-              Good alternative
-            </span>
+            <span className={`${s.badgeTier} ${s.tierAlt}`}>Good alternative</span>
           )}
           {game.matchTier === "partial_match" && (
-            <span className={`${badgeTierClass} bg-orange-500/25 text-orange-200`}>
-              Partial match
-            </span>
+            <span className={`${s.badgeTier} ${s.tierPartial}`}>Partial match</span>
           )}
           {game.matchTier === "best_match" && (
-            <span className={`${badgeTierClass} bg-emerald-500/20 text-emerald-200`}>
-              Best match
-            </span>
+            <span className={`${s.badgeTier} ${s.tierBest}`}>Best match</span>
           )}
           {!game.matchTier && tierLabel ? (
-            <span className={`${badgeTierClass} bg-emerald-500/20 text-emerald-200`}>
-              {tierLabel}
-            </span>
+            <span className={`${s.badgeTier} ${s.tierBest}`}>{tierLabel}</span>
           ) : null}
-          <span className={badgeMatchClass}>{game.match}% match</span>
+          <span className={s.badgeMatch}>{game.match}% match</span>
         </div>
 
-        {budgetLine ? <p className={budgetClass}>{budgetLine}</p> : null}
+        {budgetLine ? <p className={s.budget}>{budgetLine}</p> : null}
 
         <div className="mt-4 flex flex-1 flex-col">
-          <p className={whyLabelClass}>Why it fits</p>
-          <p className={whyBodyClass}>{fitBody}</p>
-          {resolvedFitMeta ? (
-            <p className={whyMetaClass}>{resolvedFitMeta}</p>
-          ) : null}
+          <p className={s.whyLabel}>Why it fits</p>
+          <p className={s.whyBody}>{fitBody}</p>
+          {resolvedFitMeta ? <p className={s.whyMeta}>{resolvedFitMeta}</p> : null}
         </div>
 
         {showViewDetails ? (
-          <div className="mt-auto border-t border-white/10 pt-5">
-            <span className={ctaClass}>View details</span>
+          <div className={s.ctaDivider}>
+            <button
+              ref={viewDetailsRef}
+              type="button"
+              tabIndex={-1}
+              className={`${s.cta} transition ${highlightDetails ? "ring-2 ring-cyan-400/55" : ""} ${clickPulse ? "scale-[0.97] opacity-90" : ""}`}
+            >
+              View details
+            </button>
           </div>
         ) : null}
       </div>
     </div>
-  )
+  );
 }

@@ -1,9 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&display=swap");
 @import "tailwindcss";
-@import "../styles/home-landing.css";
+@import "../styles/home-light.css";
+@import "../styles/ping-assistant.css";
 
 :root {
-  --background: #05060f;
-  --foreground: #f8fafc;
+  --background: #ffffff;
+  --foreground: #0f172a;
 }
 
 body {
@@ -145,6 +147,26 @@ body {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.gp-game-skeleton-bar-light {
+  position: relative;
+  overflow: hidden;
+  background: rgba(148, 163, 184, 0.15);
+}
+
+.gp-game-skeleton-bar-light::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(6, 182, 212, 0.08),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: gp-recommend-shimmer 1.85s ease-in-out infinite;
+}
+
 .gp-game-skeleton-bar::after {
   content: "";
   position: absolute;
@@ -161,6 +183,10 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .gp-game-skeleton-bar::after {
+    animation: none;
+  }
+
+  .gp-game-skeleton-bar-light::after {
     animation: none;
   }
 }
@@ -1181,7 +1207,7 @@ body {
   animation: gp-ping-signal-pulse 2.8s ease-in-out infinite 0.8s;
 }
 
-.gp-ping-core {
+.gp-ping-orb .gp-ping-core {
   position: relative;
   z-index: 2;
   display: grid;
@@ -1361,7 +1387,7 @@ body {
   .gp-home-stars,
   .gp-home-eyebrow-dot,
   .gp-ping-ring,
-  .gp-ping-core,
+  .gp-ping-orb .gp-ping-core,
   .gp-ping-wave span,
   .gp-ping-signal-arc,
   .gp-ping-showcase-bar,

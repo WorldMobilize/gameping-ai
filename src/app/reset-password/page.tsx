@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
+import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import {
+  APP_AUTH_CARD,
+  APP_INLINE_LINK,
+  APP_INPUT,
+  APP_PRIMARY_CTA_SM,
+  homeCyanAccentText,
+} from "@/components/app/app-styles";
 import { supabase } from "@/lib/supabase";
 
 export default function ResetPasswordPage() {
@@ -10,6 +17,7 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const accent = homeCyanAccentText(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,19 +48,17 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#05060f] text-white">
-      <Navbar />
-
-      <div className="relative flex items-center justify-center px-6 py-24">
-        <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/20 blur-3xl" />
-
-        <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
-          <h1 className="text-center text-3xl font-black">
-            Reset <span className="text-cyan-300">password</span>
+    <AppPageShell>
+      <AppSection
+        maxWidth="max-w-md"
+        className="flex flex-1 items-center justify-center py-12"
+      >
+        <div className={APP_AUTH_CARD}>
+          <h1 className="text-center text-3xl font-black text-slate-900 gp-home-display">
+            Reset <span className={accent}>password</span>
           </h1>
 
-          <p className="mt-3 text-center text-sm text-white/60">
+          <p className="mt-3 text-center text-sm text-slate-600">
             Enter the email for your GamePing account. We will send a reset link if it matches an
             account.
           </p>
@@ -65,7 +71,7 @@ export default function ResetPasswordPage() {
               id="reset-email"
               type="email"
               autoComplete="email"
-              className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 outline-none focus:border-cyan-400"
+              className={APP_INPUT}
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -73,13 +79,13 @@ export default function ResetPasswordPage() {
             />
 
             {errorMessage ? (
-              <p className="mt-3 text-sm text-red-300/95" role="alert">
+              <p className="mt-3 text-sm text-red-600" role="alert">
                 {errorMessage}
               </p>
             ) : null}
 
             {sent ? (
-              <p className="mt-4 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100/95">
+              <p className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-800">
                 If an account exists, we sent you a password reset link.
               </p>
             ) : null}
@@ -87,22 +93,19 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-6 w-full rounded-full bg-cyan-400 py-3 font-bold text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`mt-6 ${APP_PRIMARY_CTA_SM} w-full disabled:cursor-not-allowed disabled:opacity-60`}
             >
               {loading ? "Sending…" : "Send reset link"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-white/50">
-            <Link
-              href="/login"
-              className="font-semibold text-cyan-300 underline-offset-4 transition hover:underline"
-            >
+          <p className="mt-6 text-center text-sm text-slate-500">
+            <Link href="/login" className={APP_INLINE_LINK}>
               ← Back to login
             </Link>
           </p>
         </div>
-      </div>
-    </main>
+      </AppSection>
+    </AppPageShell>
   );
 }

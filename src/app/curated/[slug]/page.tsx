@@ -1,6 +1,15 @@
 import Link from "next/link";
 import CuratedGameArt from "@/components/CuratedGameArt";
-import Navbar from "@/components/Navbar";
+import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import {
+  APP_CARD_INTERACTIVE_LG,
+  APP_INLINE_LINK,
+  APP_KICKER,
+  APP_PAGE_LEAD,
+  APP_PAGE_TITLE,
+  APP_PRIMARY_CTA_SM,
+  APP_SECONDARY_CTA,
+} from "@/components/app/app-styles";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import {
   CURATED_COLLECTIONS,
@@ -38,51 +47,41 @@ export default async function CuratedCollectionPage({ params }: Props) {
   const others = CURATED_COLLECTIONS.filter((c) => c.slug !== slug).slice(0, 4);
 
   return (
-    <main className="min-h-screen bg-[#05060f] text-white">
-      <Navbar />
+    <AppPageShell>
+      <article>
+        <AppSection maxWidth="max-w-3xl">
+          <p className={APP_KICKER}>Curated collection</p>
+          <h1 className={APP_PAGE_TITLE}>{collection.h1}</h1>
 
-      <article className="relative overflow-hidden px-6 py-16 md:py-20">
-        <div className="absolute left-10 top-20 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/10 blur-3xl" />
+          <p className={APP_PAGE_LEAD}>{collection.intro}</p>
 
-        <div className="relative z-10 mx-auto max-w-3xl">
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
-            Curated collection
-          </p>
-          <h1 className="mt-4 text-4xl font-black md:text-5xl">{collection.h1}</h1>
-
-          <p className="mt-6 text-lg leading-8 text-white/65">{collection.intro}</p>
-
-          <p className="mt-6 text-sm leading-7 text-white/55">
+          <p className="mt-6 text-sm leading-7 text-slate-600">
             For recommendations shaped to your budget, platform, and mood, use{" "}
-            <Link href="/recommend" className="font-bold text-cyan-300 underline-offset-4 hover:underline">
+            <Link href="/recommend" className={APP_INLINE_LINK}>
               GamePing AI recommendations
             </Link>
             . You can also browse our{" "}
-            <Link href="/games" className="font-bold text-cyan-300 underline-offset-4 hover:underline">
+            <Link href="/games" className={APP_INLINE_LINK}>
               games directory (A–Z)
             </Link>{" "}
             or return to the{" "}
-            <Link href="/curated" className="font-bold text-cyan-300 underline-offset-4 hover:underline">
+            <Link href="/curated" className={APP_INLINE_LINK}>
               full list of collections
             </Link>
             .
           </p>
 
-          <div className="mt-10 rounded-3xl border border-cyan-400/25 bg-cyan-400/10 p-6">
-            <p className="text-sm font-bold text-cyan-100">Try your own recommendation</p>
-            <Link
-              href="/recommend"
-              className="mt-3 inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black shadow-[0_0_24px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
-            >
+          <div className="mt-10 rounded-3xl border border-cyan-200/80 bg-cyan-50/60 p-6">
+            <p className="text-sm font-bold text-slate-800">Try your own recommendation</p>
+            <Link href="/recommend" className={`mt-3 inline-flex ${APP_PRIMARY_CTA_SM}`}>
               Open GamePing AI
             </Link>
           </div>
-        </div>
+        </AppSection>
 
-        <div className="relative z-10 mx-auto mt-14 max-w-5xl">
-          <h2 className="text-xl font-black md:text-2xl">Games in this angle</h2>
-          <p className="mt-2 text-sm text-white/50">
+        <AppSection maxWidth="max-w-5xl" className="pt-0">
+          <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Games in this angle</h2>
+          <p className="mt-2 text-sm text-slate-500">
             Each entry explains why it fits this collection—tap through to the game page when
             available.
           </p>
@@ -91,7 +90,7 @@ export default async function CuratedCollectionPage({ params }: Props) {
             {collection.games.map((game) => (
               <li
                 key={game.title}
-                className="group flex flex-col overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04] shadow-[0_12px_40px_rgba(0,0,0,0.25)] transition hover:-translate-y-0.5 hover:border-cyan-400/35 hover:bg-cyan-400/[0.06]"
+                className={`group flex flex-col overflow-hidden ${APP_CARD_INTERACTIVE_LG} p-0 hover:-translate-y-0.5`}
               >
                 <CuratedGameArt
                   src={game.image}
@@ -101,11 +100,11 @@ export default async function CuratedCollectionPage({ params }: Props) {
                 />
 
                 <div className="flex flex-1 flex-col justify-center p-6">
-                  <h3 className="text-lg font-black">{game.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-white/60">{game.whyItFits}</p>
+                  <h3 className="text-lg font-bold text-slate-900">{game.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{game.whyItFits}</p>
                   <Link
                     href={gameDetailPath(game.title)}
-                    className="mt-4 inline-flex w-fit rounded-full border border-white/15 px-4 py-2 text-xs font-black uppercase tracking-wider text-cyan-200 transition hover:border-cyan-400/50 hover:bg-white/10"
+                    className={`mt-4 inline-flex w-fit ${APP_SECONDARY_CTA}`}
                   >
                     View game details
                   </Link>
@@ -113,26 +112,26 @@ export default async function CuratedCollectionPage({ params }: Props) {
               </li>
             ))}
           </ul>
-        </div>
+        </AppSection>
 
-        {others.length > 0 && (
-          <div className="relative z-10 mx-auto mt-16 max-w-5xl border-t border-white/10 pt-12">
-            <h2 className="text-xl font-black">More curated pages</h2>
+        {others.length > 0 ? (
+          <AppSection maxWidth="max-w-5xl" className="border-t border-slate-200/90 pt-12">
+            <h2 className="text-xl font-bold text-slate-900">More curated pages</h2>
             <ul className="mt-6 flex flex-wrap gap-3">
               {others.map((c) => (
                 <li key={c.slug}>
                   <Link
                     href={`/curated/${c.slug}`}
-                    className="inline-flex rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-bold text-white/80 transition hover:border-cyan-400/40 hover:text-cyan-200"
+                    className="inline-flex rounded-full border border-slate-200/90 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-cyan-300/70 hover:text-cyan-800"
                   >
                     {c.h1}
                   </Link>
                 </li>
               ))}
             </ul>
-          </div>
-        )}
+          </AppSection>
+        ) : null}
       </article>
-    </main>
+    </AppPageShell>
   );
 }

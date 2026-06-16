@@ -209,14 +209,23 @@ export default function HomeProductDemo({
   useEffect(() => {
     if (reducedMotion) {
       if (phase === "typing-initial") {
-        setTypedLength(HOME_INITIAL_PROMPT.length);
-        advance("results-initial");
+        const t = window.setTimeout(() => {
+          setTypedLength(HOME_INITIAL_PROMPT.length);
+          advance("results-initial");
+        }, 0);
+        return () => window.clearTimeout(t);
       } else if (phase === "hold-initial") {
-        setTypedLength(HOME_REFINE_PROMPT.length);
-        advance("results-refined");
+        const t = window.setTimeout(() => {
+          setTypedLength(HOME_REFINE_PROMPT.length);
+          advance("results-refined");
+        }, 0);
+        return () => window.clearTimeout(t);
       } else if (phase === "hold-refined") {
-        setTypedLength(0);
-        advance("typing-initial");
+        const t = window.setTimeout(() => {
+          setTypedLength(0);
+          advance("typing-initial");
+        }, 0);
+        return () => window.clearTimeout(t);
       }
       return;
     }
@@ -255,7 +264,10 @@ export default function HomeProductDemo({
 
   useEffect(() => {
     if (phase === "typing-initial" || phase === "typing-refine") {
-      setTypedLength(reducedMotion ? typingTarget.length : 0);
+      const t = window.setTimeout(() => {
+        setTypedLength(reducedMotion ? typingTarget.length : 0);
+      }, 0);
+      return () => window.clearTimeout(t);
     }
   }, [phase, reducedMotion, typingTarget]);
 

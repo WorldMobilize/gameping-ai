@@ -2,16 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AppPageShell from "@/components/app/AppPageShell";
+import {
+  APP_CARD,
+  APP_CARD_LG,
+  APP_INPUT,
+  APP_KICKER,
+  APP_MUTED,
+  APP_PRIMARY_CTA_LG,
+  APP_PRIMARY_CTA_SM,
+  APP_SECONDARY_CTA,
+} from "@/components/app/app-styles";
 import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import PlanLimitReached from "@/components/PlanLimitReached";
-import Navbar from "@/components/Navbar";
 import { useToast } from "@/components/ToastProvider";
 import { trackProductEvent } from "@/lib/product-analytics/client";
 import {
   LIMIT_TOAST_DURATION_MS,
   limitReachedToastMessage,
 } from "@/lib/product-copy";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   isEmailVerified,
 } from "@/lib/auth-email-verification";
@@ -41,6 +51,8 @@ import {
   prefersItalianRecommendCopy,
   resolveRecommendResultBudgetLine,
 } from "@/lib/recommend-result-card-budget";
+import PingRecommendExperience from "@/components/ping/PingRecommendExperience";
+import type { PingAssistantState } from "@/components/ping/PingAssistant";
 type Game = {
   title: string;
   match: number;
@@ -247,6 +259,48 @@ function isRecommendRoute(pathname: string | null): boolean {
   return pathname === "/recommend" || pathname.endsWith("/recommend");
 }
 
+function buildPingInspectMessage(game: Game): string {
+  const reason = resolveRecommendFitBody(game.reason);
+  const short =
+    reason.length > 120 ? `${reason.slice(0, 117).trimEnd()}…` : reason;
+  return `This fits because ${short}`;
+}
+
+function pingAssistantStateFromUi(
+  loading: boolean,
+  gamesCount: number,
+  inspectedGameIndex: number | null,
+  showPromptInput: boolean,
+  promptHasText: boolean
+): PingAssistantState {
+  if (inspectedGameIndex !== null && gamesCount > 0) return "inspecting";
+  if (loading) return "searching";
+  if (gamesCount > 0) return "complete";
+  if (showPromptInput && promptHasText) return "typing";
+  return "awake";
+}
+
+function pingAssistantMessageFromUi(
+  state: PingAssistantState,
+  games: Game[],
+  inspectedGameIndex: number | null,
+  askedPrompt: string | null
+): string {
+  if (state === "inspecting" && inspectedGameIndex !== null) {
+    const game = games[inspectedGameIndex];
+    if (game) return buildPingInspectMessage(game);
+  }
+  if (state === "searching") return "Scanning your request…";
+  if (state === "complete") return "Found a few strong matches.";
+  if (askedPrompt) return "What are we looking for today?";
+  return "What are we looking for today?";
+}
+
+function isHoverCapablePointer(): boolean {
+  if (typeof window === "undefined") return true;
+  return window.matchMedia("(hover: hover)").matches;
+}
+
 export default function RecommendPage() {
   const pathname = usePathname();
   const { showToast } = useToast();
@@ -299,6 +353,11 @@ export default function RecommendPage() {
   const [promptMaxForUi, setPromptMaxForUi] = useState(PROMPT_MAX_DEFAULT);
   const [refineInput, setRefineInput] = useState("");
   const [refineUsed, setRefineUsed] = useState(false);
+  const [pingModeParam, setPingModeParam] = useState(false);
+  const [pingQueryParam, setPingQueryParam] = useState<string | null>(null);
+  const [pingEditing, setPingEditing] = useState(false);
+  const [inspectedGameIndex, setInspectedGameIndex] = useState<number | null>(null);
+  const pingAutoRunRef = useRef(false);
   const loadingRef = useRef(false);
 
   function buildRecommendSessionSnapshot(
@@ -425,6 +484,75 @@ export default function RecommendPage() {
   }, []);
 
   useEffect(() => {
+    queueMicrotask(() => {
+      const params = new URLSearchParams(window.location.search);
+      setPingModeParam(params.get("mode") === "ping");
+      const q = params.get("q");
+      setPingQueryParam(q ? decodeURIComponent(q) : null);
+    });
+  }, [pathname]);
+
+  const pingModeActive = userPlan === "admin" && pingModeParam;
+  const pingAskedPrompt = form.userPrompt.trim() || pingQueryParam?.trim() || null;
+  const pingShowPromptInput =
+    pingModeActive && (!pingAskedPrompt || pingEditing) && !loading;
+
+  const pingAssistantState = useMemo(
+    () =>
+      pingAssistantStateFromUi(
+        loading,
+        games.length,
+        inspectedGameIndex,
+        pingShowPromptInput,
+        Boolean(form.userPrompt.trim())
+      ),
+    [loading, games.length, inspectedGameIndex, pingShowPromptInput, form.userPrompt]
+  );
+
+  const pingAssistantMessage = useMemo(
+    () =>
+      pingAssistantMessageFromUi(
+        pingAssistantState,
+        games,
+        inspectedGameIndex,
+        pingAskedPrompt
+      ),
+    [pingAssistantState, games, inspectedGameIndex, pingAskedPrompt]
+  );
+
+  const handleCardInspectEnter = useCallback((index: number) => {
+    if (!pingModeActive) return;
+    setInspectedGameIndex(index);
+  }, [pingModeActive]);
+
+  const handleCardInspectLeave = useCallback(() => {
+    if (!pingModeActive || !isHoverCapablePointer()) return;
+    setInspectedGameIndex(null);
+  }, [pingModeActive]);
+
+  const handleCardInspectFocus = useCallback((index: number) => {
+    if (!pingModeActive) return;
+    setInspectedGameIndex(index);
+  }, [pingModeActive]);
+
+  const handleCardInspectBlur = useCallback(
+    (e: React.FocusEvent<HTMLElement>) => {
+      if (!pingModeActive) return;
+      if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+      if (isHoverCapablePointer()) setInspectedGameIndex(null);
+    },
+    [pingModeActive]
+  );
+
+  const handleCardInspectSelect = useCallback(
+    (index: number) => {
+      if (!pingModeActive || isHoverCapablePointer()) return;
+      setInspectedGameIndex((prev) => (prev === index ? null : index));
+    },
+    [pingModeActive]
+  );
+
+  useEffect(() => {
     syncPromptTextareaOverflow();
     const el = promptTextareaRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -491,22 +619,26 @@ export default function RecommendPage() {
     }));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function runRecommendSearch(promptOverride?: string) {
     if (submitBusyRef.current || loading) return;
     if (dailyLimitReached) return;
     if (loggedUserId && !emailVerifiedForFeatures) {
       showToast({ variant: "error", message: EMAIL_NOT_VERIFIED_MESSAGE });
       return;
     }
-    if (!hasMeaningfulRecommendInput(form, filtersEnabled)) {
+
+    const effectivePrompt =
+      promptOverride !== undefined ? promptOverride : form.userPrompt;
+    const effectiveForm = { ...form, userPrompt: effectivePrompt };
+
+    if (!hasMeaningfulRecommendInput(effectiveForm, filtersEnabled)) {
       showToast({
         variant: "info",
         message: "Start with a vibe, genre, mood, or game idea first.",
       });
       return;
     }
-    if (form.userPrompt.trim().length > promptMaxForUi) {
+    if (effectivePrompt.trim().length > promptMaxForUi) {
       showToast({
         variant: "error",
         message:
@@ -517,11 +649,17 @@ export default function RecommendPage() {
       return;
     }
 
+    if (promptOverride !== undefined) {
+      setForm((prev) => ({ ...prev, userPrompt: effectivePrompt }));
+    }
+
     clearRecommendSessionState();
     setRefineUsed(false);
     setRefineInput("");
+    setPingEditing(false);
     submitBusyRef.current = true;
     setLoading(true);
+    setInspectedGameIndex(null);
     setLoadingStepIndex(0);
     setResultsReveal(false);
     setNoStrongMatchesAfterSuccess(false);
@@ -542,7 +680,7 @@ export default function RecommendPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...form, filtersEnabled }),
+        body: JSON.stringify({ ...effectiveForm, filtersEnabled }),
       });
 
       const data = (await res.json().catch(() => ({}))) as {
@@ -619,14 +757,14 @@ export default function RecommendPage() {
       const reveal = nextGames.length > 0;
       if (reveal) setResultsReveal(true);
       persistRecommendSession({
-        form: { ...form },
+        form: effectiveForm,
         filtersEnabled,
         games: nextGames,
         noStrongMatchesAfterSuccess: nextGames.length === 0,
         resultsReveal: reveal,
       });
       persistFeedbackRecommendContextFromResults({
-        prompt: form.userPrompt,
+        prompt: effectivePrompt,
         games: nextGames,
         isRefine: false,
       });
@@ -660,6 +798,24 @@ export default function RecommendPage() {
     }
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await runRecommendSearch();
+  }
+
+  useEffect(() => {
+    if (!pingModeActive || pingAutoRunRef.current) return;
+    const q = pingQueryParam?.trim();
+    if (!q) return;
+    if (userPlan !== "admin") return;
+
+    pingAutoRunRef.current = true;
+    queueMicrotask(() => {
+      void runRecommendSearch(q);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot auto-run from URL q
+  }, [pingModeActive, pingQueryParam, userPlan]);
+
   async function handleRefineSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (submitBusyRef.current || loading || refineUsed || games.length === 0) return;
@@ -687,6 +843,7 @@ export default function RecommendPage() {
 
     submitBusyRef.current = true;
     setLoading(true);
+    setInspectedGameIndex(null);
     setLoadingStepIndex(0);
     setResultsReveal(false);
     setApiDebug(null);
@@ -903,39 +1060,33 @@ export default function RecommendPage() {
     showToast({ variant: "info", message: "Results copied to your clipboard." });
   }
 
-  return (
-    <main className="min-h-screen bg-[#05060f] text-white">
-      <Navbar ctaLabel="Home" ctaHref="/" />
-
-      <section className="relative overflow-hidden px-6 py-16">
-        <div className="pointer-events-none absolute left-0 top-24 h-72 w-72 rounded-full bg-cyan-500/8 blur-3xl" />
-
-        <div className="relative z-10 mx-auto max-w-6xl">
-          <EmailVerificationNotice className="mb-8" />
-
+  function renderRecommendBody() {
+    return (
+      <>
+          {!pingModeActive && (
           <div className="grid gap-10 lg:grid-cols-[1fr_360px] lg:items-start">
             <div>
-              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-white/40">
+              <p className={`mb-4 ${APP_KICKER}`}>
                 Recommendations
               </p>
 
-              <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-tight md:text-6xl">
+              <h1 className="max-w-4xl text-4xl font-extrabold leading-tight tracking-tight text-slate-900 gp-home-display md:text-6xl">
                 Find the game you actually feel like playing.
               </h1>
 
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-white/55">
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
                 {filtersEnabled
                   ? "Use filters when you want tighter picks. Verified prices live on each game page."
                   : "Describe the kind of game you want in your own words. Turn on Advanced filters for budget, tags, or platform."}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+            <div className={`${APP_CARD} p-6`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
                 Tips
               </p>
 
-              <div className="mt-5 space-y-4 text-sm text-white/70">
+              <div className="mt-5 space-y-4 text-sm text-slate-600">
                 {filtersEnabled ? (
                   <>
                     <p>✔ Combine prompt + tags for tighter picks</p>
@@ -952,22 +1103,24 @@ export default function RecommendPage() {
               </div>
             </div>
           </div>
+          )}
 
+          {!pingModeActive && (
           <form
             onSubmit={handleSubmit}
             className="mt-12 space-y-6"
             aria-busy={loading}
           >
-            <section className="rounded-2xl border border-white/10 bg-[#0a0b14]/60 p-6 md:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/40">
+            <section className={`${APP_CARD_LG} p-6 md:p-8`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
                 Start here
               </p>
 
-              <h2 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
+              <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
                 What do you want to play?
               </h2>
 
-              <p className="mt-2 text-sm leading-6 text-white/50">
+              <p className="mt-2 text-sm leading-6 text-slate-500">
                 {filtersEnabled
                   ? "Use filters for more specific recommendations."
                   : "Describe the kind of game you want."}
@@ -982,21 +1135,25 @@ export default function RecommendPage() {
 "Like Elden Ring, but less punishing"
 "A cozy game for short evening sessions"`}
                 maxLength={promptMaxForUi}
-                className={`gp-prompt-textarea mt-6 min-h-52 w-full resize-y rounded-2xl border border-white/10 bg-black/30 p-5 text-[15px] leading-7 text-white outline-none transition placeholder:text-white/30 focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/15 ${
+                className={`gp-prompt-textarea ${APP_INPUT} mt-6 min-h-52 resize-y p-5 text-[15px] leading-7 ${
                   promptScrollable ? "overflow-y-auto" : "overflow-y-hidden"
                 }`}
                 value={form.userPrompt}
                 onChange={(e) => {
                   updateField("userPrompt", e.target.value);
-                  requestAnimationFrame(syncPromptTextareaOverflow);
+                  requestAnimationFrame(() => {
+                    const el = promptTextareaRef.current;
+                    if (!el) return;
+                    setPromptScrollable(el.scrollHeight > el.clientHeight + 1);
+                  });
                 }}
               />
 
               <p
                 className={`mt-2 text-xs tabular-nums ${
                   form.userPrompt.length > promptMaxForUi
-                    ? "text-rose-400"
-                    : "text-white/40"
+                    ? "text-rose-600"
+                    : "text-slate-400"
                 }`}
               >
                 {form.userPrompt.length} / {promptMaxForUi}
@@ -1008,18 +1165,18 @@ export default function RecommendPage() {
                   role="switch"
                   aria-checked={filtersEnabled}
                   onClick={() => setFiltersEnabled((v) => !v)}
-                  className={`flex max-w-full items-center gap-3 rounded-full border px-5 py-3 text-left text-sm font-bold transition ${
+                  className={`flex max-w-full items-center gap-3 rounded-full border px-5 py-3 text-left text-sm font-semibold transition ${
                     filtersEnabled
-                      ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100"
-                      : "border-white/10 bg-black/30 text-white/75 hover:border-white/25"
+                      ? "border-cyan-300 bg-cyan-50 text-cyan-800"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
                   <span
                     className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full px-0.5 transition-colors ${
-                      filtersEnabled ? "justify-end bg-cyan-400" : "justify-start bg-white/20"
+                      filtersEnabled ? "justify-end bg-cyan-600" : "justify-start bg-slate-300"
                     }`}
                   >
-                    <span className="inline-block h-7 w-7 rounded-full bg-black shadow" />
+                    <span className="inline-block h-7 w-7 rounded-full bg-white shadow" />
                   </span>
                   <span>Advanced filters</span>
                 </button>
@@ -1034,12 +1191,12 @@ export default function RecommendPage() {
               }`}
               aria-hidden={!filtersEnabled}
             >
-            <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 md:p-8">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
+            <section className={`${APP_CARD_LG} p-6 md:p-8`}>
+              <p className={APP_KICKER}>
                 Quick presets
               </p>
 
-              <h2 className="mt-3 text-2xl font-black">
+              <h2 className="mt-3 text-2xl font-extrabold text-slate-900">
                 Start from a preset vibe
               </h2>
 
@@ -1049,10 +1206,10 @@ export default function RecommendPage() {
                     key={preset.title}
                     type="button"
                     onClick={() => applyPreset(preset)}
-                    className="rounded-3xl border border-white/10 bg-black/30 p-5 text-left transition hover:-translate-y-1 hover:border-cyan-400/60 hover:bg-cyan-400/10"
+                    className="rounded-2xl border border-slate-200/90 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300/70 hover:shadow-md"
                   >
-                    <p className="font-black">{preset.title}</p>
-                    <p className="mt-2 text-xs leading-5 text-white/45">
+                    <p className="font-bold text-slate-900">{preset.title}</p>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
                       {preset.text}
                     </p>
                   </button>
@@ -1061,12 +1218,12 @@ export default function RecommendPage() {
             </section>
 
             <section className="grid gap-6 lg:grid-cols-2">
-              <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 md:p-8">
-                <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
+              <div className={`${APP_CARD_LG} p-6 md:p-8`}>
+                <p className={APP_KICKER}>
                   Platform
                 </p>
 
-                <h2 className="mt-3 text-2xl font-black">Where do you want to play?</h2>
+                <h2 className="mt-3 text-2xl font-extrabold text-slate-900">Where do you want to play?</h2>
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   {platforms.map((platform) => (
@@ -1074,21 +1231,21 @@ export default function RecommendPage() {
                       key={platform.name}
                       type="button"
                       onClick={() => updateField("platform", platform.name)}
-                      className={`rounded-3xl border p-5 text-left transition hover:-translate-y-1 ${
+                      className={`rounded-2xl border p-5 text-left shadow-sm transition hover:-translate-y-0.5 ${
                         form.platform === platform.name
-                          ? "border-purple-400 bg-purple-500/25 shadow-[0_0_30px_rgba(168,85,247,0.25)]"
-                          : "border-white/10 bg-black/30 hover:border-purple-400/60"
+                          ? "border-violet-300 bg-violet-50 shadow-md shadow-violet-100/50"
+                          : "border-slate-200/90 bg-white hover:border-violet-200 hover:shadow-md"
                       }`}
                     >
                       <div className="h-8 w-8">
                         <img
                           src={platform.icon}
                           alt={platform.name}
-                          className="h-full w-full object-contain opacity-80"
+                          className="h-full w-full object-contain opacity-90"
                         />
                       </div>
-                      <div className="mt-4 font-black">{platform.name}</div>
-                      <div className="mt-1 text-xs text-white/45">
+                      <div className="mt-4 font-bold text-slate-900">{platform.name}</div>
+                      <div className="mt-1 text-xs text-slate-500">
                         {platform.text}
                       </div>
                     </button>
@@ -1096,22 +1253,22 @@ export default function RecommendPage() {
                 </div>
               </div>
 
-              <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 md:p-8">
-                <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
+              <div className={`${APP_CARD_LG} p-6 md:p-8`}>
+                <p className={APP_KICKER}>
                   Budget
                 </p>
 
-                <h2 className="mt-3 text-2xl font-black">
-                  What’s your max budget?
+                <h2 className="mt-3 text-2xl font-extrabold text-slate-900">
+                  What&apos;s your max budget?
                 </h2>
 
-                <div className="mt-8 rounded-3xl border border-white/10 bg-black/30 p-5">
+                <div className="mt-8 rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-white/40">$0</span>
-                    <span className="rounded-full bg-cyan-400 px-5 py-2 text-lg font-black text-black">
+                    <span className="text-sm text-slate-500">$0</span>
+                    <span className="rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-5 py-2 text-lg font-extrabold text-white shadow-sm shadow-cyan-600/20">
                       ${form.budget || "0"}
                     </span>
-                    <span className="text-sm text-white/40">$80</span>
+                    <span className="text-sm text-slate-500">$80</span>
                   </div>
 
                   <input
@@ -1121,13 +1278,13 @@ export default function RecommendPage() {
                     step="1"
                     value={form.budget}
                     onChange={(e) => updateField("budget", e.target.value)}
-                    className="mt-6 w-full accent-cyan-400"
+                    className="mt-6 w-full accent-cyan-600"
                   />
 
                   <input
                     type="number"
                     placeholder="Es. 20"
-                    className="mt-5 w-full rounded-2xl border border-white/10 bg-black/40 p-4 outline-none transition focus:border-cyan-400"
+                    className={`${APP_INPUT} mt-5`}
                     value={form.budget}
                     onChange={(e) => updateField("budget", e.target.value)}
                   />
@@ -1135,18 +1292,18 @@ export default function RecommendPage() {
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 md:p-8">
+            <section className={`${APP_CARD_LG} p-6 md:p-8`}>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
+                  <p className={APP_KICKER}>
                     Taste builder
                   </p>
 
-                  <h2 className="mt-3 text-2xl font-black">
+                  <h2 className="mt-3 text-2xl font-extrabold text-slate-900">
                     Pick a few tags
                   </h2>
 
-                  <p className="mt-2 text-sm text-white/50">
-                    You don’t need all of them. 3–8 tags is perfect.
+                  <p className="mt-2 text-sm text-slate-500">
+                    You don&apos;t need all of them. 3–8 tags is perfect.
                   </p>
                 </div>
 
@@ -1154,8 +1311,8 @@ export default function RecommendPage() {
                 {tagGroups
                   .map((group) => (
                     <div key={group.key}>
-                      <h3 className="text-lg font-black">{group.title}</h3>
-                      <p className="mt-1 text-sm text-white/45">
+                      <h3 className="text-lg font-bold text-slate-900">{group.title}</h3>
+                      <p className="mt-1 text-sm text-slate-500">
                         {group.subtitle}
                       </p>
 
@@ -1168,10 +1325,10 @@ export default function RecommendPage() {
                               key={tag}
                               type="button"
                               onClick={() => toggleTag(group.key, tag)}
-                              className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                                 active
-                                  ? "bg-cyan-400 text-black shadow-[0_0_25px_rgba(34,211,238,0.28)]"
-                                  : "border border-white/10 bg-black/30 text-white/65 hover:border-cyan-400/60 hover:text-cyan-300"
+                                  ? "bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-sm shadow-cyan-600/20"
+                                  : "border border-slate-200 bg-white text-slate-600 hover:border-cyan-300 hover:text-cyan-800"
                               }`}
                             >
                               {tag}
@@ -1185,13 +1342,13 @@ export default function RecommendPage() {
             </section>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:p-6">
+            <div className={`${APP_CARD} p-5 md:p-6`}>
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-white/90">
+                  <p className="text-sm font-semibold text-slate-900">
                     Ready to discover your picks?
                   </p>
-                  <p className="mt-1 text-sm text-white/50">
+                  <p className="mt-1 text-sm text-slate-500">
                     Up to five curated matches with scores and clear reasons. Check deals on
                     each game page.
                   </p>
@@ -1201,7 +1358,7 @@ export default function RecommendPage() {
                   type="submit"
                   disabled={loading || dailyLimitReached}
                   aria-disabled={loading || dailyLimitReached}
-                  className="rounded-full bg-cyan-400 px-10 py-4 font-bold text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060f] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
+                  className={`shrink-0 ${APP_PRIMARY_CTA_LG} disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60`}
                 >
                   {dailyLimitReached
                     ? "Daily limit reached"
@@ -1212,11 +1369,12 @@ export default function RecommendPage() {
               </div>
             </div>
 
-            <p className="mt-6 max-w-2xl text-center text-sm leading-relaxed text-white/45 md:mx-auto">
+            <p className={`mt-6 max-w-2xl text-center md:mx-auto ${APP_MUTED}`}>
               You can try recommendations without logging in. Create a free account to save
               searches and track game deals.
             </p>
           </form>
+          )}
 
           {dailyLimitReached && (
             <PlanLimitReached
@@ -1227,7 +1385,7 @@ export default function RecommendPage() {
             />
           )}
 
-          {loading && (
+          {loading && !pingModeActive && (
             <div
               className="mt-10 md:mt-12"
               role="status"
@@ -1235,25 +1393,25 @@ export default function RecommendPage() {
               aria-busy="true"
             >
               <div className="mx-auto max-w-xl px-1">
-                <p className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
+                <p className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
                   Working on it
                 </p>
 
                 <p
                   key={loadingStepIndex}
-                  className="gp-recommend-step-animate mb-3 text-center text-[15px] font-bold leading-snug tracking-tight text-cyan-50 md:text-lg md:leading-snug"
+                  className="gp-recommend-step-animate mb-3 text-center text-[15px] font-bold leading-snug tracking-tight text-cyan-800 md:text-lg md:leading-snug"
                 >
                   {RECOMMEND_LOADING_STEPS[loadingStepIndex]}
                 </p>
 
                 <div
-                  className="mx-auto mb-6 h-1 max-w-[220px] overflow-hidden rounded-full bg-white/[0.07] ring-1 ring-white/[0.06]"
+                  className="mx-auto mb-6 h-1 max-w-[220px] overflow-hidden rounded-full bg-slate-200"
                   aria-hidden="true"
                 >
-                  <div className="h-full w-full animate-pulse rounded-full bg-cyan-400/40 motion-reduce:animate-none" />
+                  <div className="h-full w-full animate-pulse rounded-full bg-cyan-500/50 motion-reduce:animate-none" />
                 </div>
 
-                <ul className="mb-8 space-y-2.5 text-center text-[13px] leading-relaxed text-white/45 md:text-sm md:leading-relaxed">
+                <ul className="mb-8 space-y-2.5 text-center text-[13px] leading-relaxed text-slate-500 md:text-sm md:leading-relaxed">
                   {RECOMMEND_LOADING_HELPERS.map((line) => (
                     <li key={line}>{line}</li>
                   ))}
@@ -1264,7 +1422,7 @@ export default function RecommendPage() {
                 {[1, 2, 3, 4].map((item) => (
                   <div
                     key={item}
-                    className="gp-recommend-skeleton-bar relative h-72 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] animate-pulse motion-reduce:animate-none"
+                    className="gp-recommend-skeleton-bar gp-game-skeleton-bar-light relative h-72 overflow-hidden rounded-2xl border border-slate-200/90 bg-white animate-pulse motion-reduce:animate-none"
                   />
                 ))}
               </section>
@@ -1274,39 +1432,30 @@ export default function RecommendPage() {
           {!loading && noStrongMatchesAfterSuccess && games.length === 0 && (
             <div
               ref={emptyResultsRef}
-              className="mt-14 rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-[0_0_40px_rgba(34,211,238,0.06)] md:p-10"
+              className={`mt-14 ${APP_CARD_LG} p-8 md:p-10`}
               role="status"
               aria-live="polite"
             >
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
+              <p className={APP_KICKER}>
                 No picks this round
               </p>
-              <h2 className="mt-4 text-2xl font-black md:text-3xl">
+              <h2 className="mt-4 text-2xl font-extrabold text-slate-900 md:text-3xl">
                 We couldn&apos;t find strong matches for this vibe yet.
               </h2>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-white/55">
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
                 That doesn&apos;t mean your taste is wrong—sometimes the best move is a sharper
                 prompt, looser filters, or a different angle. Try describing mood, pacing, or a
                 reference game you love.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                <a
-                  href="#recommend-prompt"
-                  className="inline-flex items-center justify-center rounded-full bg-cyan-400 px-8 py-3.5 text-sm font-black text-black shadow-[0_0_28px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
-                >
+                <a href="#recommend-prompt" className={APP_PRIMARY_CTA_SM}>
                   Try another vibe
                 </a>
-                <Link
-                  href="/curated"
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.05] px-8 py-3.5 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 hover:bg-white/10"
-                >
+                <Link href="/curated" className={APP_SECONDARY_CTA}>
                   Browse curated lists
                 </Link>
-                <Link
-                  href="/games"
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.05] px-8 py-3.5 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 hover:bg-white/10"
-                >
+                <Link href="/games" className={APP_SECONDARY_CTA}>
                   Explore games A–Z
                 </Link>
               </div>
@@ -1324,10 +1473,10 @@ export default function RecommendPage() {
             >
               <div className="mt-14 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/40">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
                     Your picks
                   </p>
-                  <h2 className="mt-3 text-3xl font-black tracking-tight">
+                  <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 gp-home-display">
                     Curated for your search
                   </h2>
                 </div>
@@ -1336,7 +1485,7 @@ export default function RecommendPage() {
                   <button
                     type="button"
                     onClick={copyResults}
-                    className="text-xs font-semibold text-white/35 underline-offset-2 transition hover:text-white/55 hover:underline"
+                    className="text-xs font-semibold text-slate-400 underline-offset-2 transition hover:text-slate-600 hover:underline"
                   >
                     Copy results
                   </button>
@@ -1351,26 +1500,26 @@ export default function RecommendPage() {
               </div>
 
               {apiDebug && (
-                <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
-                  <p className="text-xs font-black uppercase tracking-[0.35em] text-white/50">
+                <div className={`mt-5 ${APP_CARD} p-4 text-sm text-slate-600`}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
                     Debug
                   </p>
                   <p className="mt-2">
                     Resolved input:{" "}
-                    <span className="font-bold text-white">
+                    <span className="font-bold text-slate-900">
                       {apiDebug.resolvedInput || "(none)"}
                     </span>
                   </p>
                   <p className="mt-2">
                     API finalResponse titles ({apiDebug.finalResponse?.count ?? "?"}
                     ):{" "}
-                    <span className="text-white/85">
+                    <span className="text-slate-700">
                       {(apiDebug.finalResponse?.titles || []).join(" • ") || "(none)"}
                     </span>
                   </p>
                   <p className="mt-2">
                     UI rendered titles ({games.length}):{" "}
-                    <span className="text-white/85">
+                    <span className="text-slate-700">
                       {games.map((g) => g.title).join(" • ")}
                     </span>
                   </p>
@@ -1381,10 +1530,24 @@ export default function RecommendPage() {
                 {games.map((game, index) => (
                   <div
                     key={`${game.title}-${index}`}
-                    className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0b14]/50 transition hover:border-white/15"
+                    className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:shadow-md ${
+                      pingModeActive && inspectedGameIndex === index
+                        ? "border-violet-400/50 ring-2 ring-violet-400/25"
+                        : "border-slate-200/90 hover:border-cyan-300/70"
+                    }`}
+                    {...(pingModeActive
+                      ? {
+                          tabIndex: 0,
+                          onMouseEnter: () => handleCardInspectEnter(index),
+                          onMouseLeave: handleCardInspectLeave,
+                          onFocus: () => handleCardInspectFocus(index),
+                          onBlur: handleCardInspectBlur,
+                          onClick: () => handleCardInspectSelect(index),
+                        }
+                      : {})}
                   >
                     {game.image ? (
-                      <div className="h-52 w-full overflow-hidden bg-black/40">
+                      <div className="h-52 w-full overflow-hidden bg-slate-100">
                         <img
                           src={game.image}
                           alt={game.title}
@@ -1392,44 +1555,44 @@ export default function RecommendPage() {
                         />
                       </div>
                     ) : (
-                      <div className="flex h-52 w-full items-center justify-center bg-black/40 text-sm text-white/40">
+                      <div className="flex h-52 w-full items-center justify-center bg-slate-100 text-sm text-slate-400">
                         No image available
                       </div>
                     )}
 
                     <div className="flex flex-1 flex-col p-6">
                       <div className="mb-3">
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold tabular-nums text-white/60">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tabular-nums text-slate-500">
                           #{index + 1}
                         </span>
                       </div>
 
-                      <h2 className="text-2xl font-bold tracking-tight">{game.title}</h2>
+                      <h2 className="text-2xl font-bold tracking-tight text-slate-900">{game.title}</h2>
 
                       {(() => {
                         const fitNote = sanitizeRecommendFitCopy(game.matchNote);
                         return fitNote ? (
-                          <p className="mt-2 text-xs leading-5 text-white/50">{fitNote}</p>
+                          <p className="mt-2 text-xs leading-5 text-slate-500">{fitNote}</p>
                         ) : null;
                       })()}
 
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         {game.matchTier === "good_alternative" && (
-                          <span className="rounded-full bg-amber-500/25 px-3 py-1 text-xs font-bold text-amber-200">
+                          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 ring-1 ring-amber-200/80">
                             Good alternative
                           </span>
                         )}
                         {game.matchTier === "partial_match" && (
-                          <span className="rounded-full bg-orange-500/25 px-3 py-1 text-xs font-bold text-orange-200">
+                          <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-800 ring-1 ring-orange-200/80">
                             Partial match
                           </span>
                         )}
                         {game.matchTier === "best_match" && (
-                          <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-bold text-emerald-200">
+                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/80">
                             Best match
                           </span>
                         )}
-                        <span className="rounded-full bg-cyan-400/12 px-3 py-1 text-sm font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20">
+                        <span className="rounded-full bg-cyan-50 px-3 py-1 text-sm font-bold tabular-nums text-cyan-800 ring-1 ring-cyan-200/80">
                           {game.match}% match
                         </span>
                       </div>
@@ -1441,27 +1604,27 @@ export default function RecommendPage() {
                           preferItalian: prefersItalianRecommendCopy(form.userPrompt),
                         });
                         return budgetLine ? (
-                          <p className="mt-3 text-xs text-white/45">{budgetLine}</p>
+                          <p className="mt-3 text-xs text-slate-500">{budgetLine}</p>
                         ) : null;
                       })()}
 
                       <div className="mt-4 flex flex-1 flex-col">
-                        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/40">
+                        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
                           Why it fits
                         </p>
-                        <p className="mt-2 text-sm leading-6 text-white/70">
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
                           {resolveRecommendFitBody(game.reason)}
                         </p>
-                        <p className="mt-2 text-xs text-white/40">
+                        <p className="mt-2 text-xs text-slate-400">
                           Based on this search — not your saved Gaming DNA yet.
                         </p>
                       </div>
 
-                      <div className="mt-auto border-t border-white/[0.08] pt-5">
+                      <div className="mt-auto border-t border-slate-200 pt-5">
                         <a
                           href={gameDetailHrefFromRecommend(game)}
                           onClick={() => persistRecommendSession()}
-                          className="inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-bold text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0b14]"
+                          className={APP_PRIMARY_CTA_SM}
                         >
                           View details
                         </a>
@@ -1472,13 +1635,13 @@ export default function RecommendPage() {
               </section>
 
               {refineUsed ? (
-                <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center">
-                  <p className="text-sm text-white/55">
+                <div className={`mt-8 ${APP_CARD} p-5 text-center`}>
+                  <p className="text-sm text-slate-600">
                     You used your one refinement for this search.
                   </p>
                   <a
                     href="#recommend-prompt"
-                    className="mt-4 inline-flex rounded-full border border-cyan-400/40 bg-cyan-400/10 px-6 py-2.5 text-sm font-bold text-cyan-200 transition hover:border-cyan-300/60 hover:bg-cyan-400/20"
+                    className={`mt-4 inline-flex ${APP_SECONDARY_CTA}`}
                   >
                     Start a new search
                   </a>
@@ -1486,12 +1649,12 @@ export default function RecommendPage() {
               ) : (
                 <form
                   onSubmit={handleRefineSubmit}
-                  className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5 md:p-6"
+                  className={`mt-8 ${APP_CARD} p-5 md:p-6`}
                 >
-                  <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-300/90">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-700">
                     Not quite right?
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-white/50">
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
                     Tell GamePing what to adjust. You get one refinement for this search.
                   </p>
                   <label className="mt-4 block">
@@ -1503,14 +1666,14 @@ export default function RecommendPage() {
                       maxLength={REFINE_MESSAGE_MAX}
                       disabled={loading}
                       placeholder="e.g. less famous, more story, not multiplayer…"
-                      className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-cyan-400/50 focus:outline-none focus:ring-1 focus:ring-cyan-400/30 disabled:opacity-50"
+                      className={`${APP_INPUT} text-sm disabled:opacity-50`}
                     />
                   </label>
                   <p
                     className={`mt-2 text-xs tabular-nums ${
                       refineInput.length > REFINE_MESSAGE_MAX
-                        ? "text-rose-400"
-                        : "text-white/40"
+                        ? "text-rose-600"
+                        : "text-slate-400"
                     }`}
                   >
                     {refineInput.length} / {REFINE_MESSAGE_MAX}
@@ -1518,7 +1681,7 @@ export default function RecommendPage() {
                   <button
                     type="submit"
                     disabled={loading || !refineInput.trim()}
-                    className="mt-4 w-full rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                    className={`mt-4 w-full sm:w-auto ${APP_PRIMARY_CTA_SM} disabled:cursor-not-allowed disabled:opacity-50`}
                   >
                     Refine picks
                   </button>
@@ -1527,34 +1690,28 @@ export default function RecommendPage() {
 
               <form
                 onSubmit={handleEmailSubmit}
-                className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-6 md:p-7"
+                className={`mt-10 ${APP_CARD_LG} p-6 md:p-7`}
               >
-                <h2 className="text-2xl font-black tracking-tight">Save these picks</h2>
+                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">Save these picks</h2>
 
-                <p className="mt-2 text-sm leading-6 text-white/55">
+                <p className="mt-2 text-sm leading-6 text-slate-600">
                   Save this search to your dashboard and revisit these picks later. Track prices
                   from each game&apos;s detail page.
                 </p>
 
                 {loggedUserEmail && (
-                  <p className="mt-4 text-sm text-white/50">
-                    Saving for: <span className="text-cyan-200/90">{loggedUserEmail}</span>
+                  <p className="mt-4 text-sm text-slate-500">
+                    Saving for: <span className="font-semibold text-cyan-700">{loggedUserEmail}</span>
                   </p>
                 )}
 
                 <div className="mt-6">
                   {loggedUserEmail ? (
-                    <button
-                      type="submit"
-                      className="rounded-full border border-white/15 bg-white/[0.06] px-8 py-3.5 text-sm font-semibold text-white/90 transition hover:border-white/25 hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
-                    >
+                    <button type="submit" className={APP_SECONDARY_CTA}>
                       Save recommendations
                     </button>
                   ) : (
-                    <a
-                      href="/login?redirect=%2Frecommend"
-                      className="inline-block rounded-full bg-cyan-400 px-8 py-4 font-bold text-black transition hover:bg-cyan-300"
-                    >
+                    <a href="/login?redirect=%2Frecommend" className={APP_PRIMARY_CTA_LG}>
                       Log in / Sign up to save
                     </a>
                   )}
@@ -1570,14 +1727,48 @@ export default function RecommendPage() {
               </form>
 
               {!emailSaved && (
-                <p className="mt-4 text-sm text-white/50">
+                <p className={`mt-4 ${APP_MUTED}`}>
                   Free: 10 recommendations/day, 3 saved runs, 5 tracked games • Premium unlocks taste memory and more
                 </p>
               )}
             </div>
           )}
+      </>
+    );
+  }
+
+  return (
+    <AppPageShell navbarCtaLabel="Home" navbarCtaHref="/">
+      <section className="relative z-10 overflow-hidden px-6 py-16">
+        <div className="mx-auto max-w-6xl">
+          <EmailVerificationNotice className="mb-8" theme="light" />
+
+          {pingModeActive ? (
+            <PingRecommendExperience
+              assistantState={pingAssistantState}
+              assistantMessage={pingAssistantMessage}
+              askedPrompt={
+                pingAskedPrompt && !pingShowPromptInput ? pingAskedPrompt : null
+              }
+              showPromptInput={pingShowPromptInput}
+              promptValue={form.userPrompt}
+              onPromptChange={(value) => updateField("userPrompt", value)}
+              onPromptSubmit={() => void runRecommendSearch()}
+              onEditPrompt={
+                pingAskedPrompt && !pingShowPromptInput && !loading
+                  ? () => setPingEditing(true)
+                  : undefined
+              }
+              promptMax={promptMaxForUi}
+              promptDisabled={loading || dailyLimitReached}
+            >
+              {renderRecommendBody()}
+            </PingRecommendExperience>
+          ) : (
+            renderRecommendBody()
+          )}
         </div>
       </section>
-    </main>
+    </AppPageShell>
   );
 }

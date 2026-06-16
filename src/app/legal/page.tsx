@@ -1,6 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
+import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import {
+  APP_CARD_INTERACTIVE_LG,
+  APP_KICKER,
+  APP_PAGE_LEAD,
+  APP_PAGE_TITLE,
+  homeCyanAccentText,
+} from "@/components/app/app-styles";
 import { legalPageMetadata } from "@/lib/seo/legal";
 
 export const metadata: Metadata = legalPageMetadata(
@@ -20,38 +27,29 @@ const LINKS = [
 ] as const;
 
 export default function LegalHubPage() {
+  const accent = homeCyanAccentText(false);
+
   return (
-    <main className="min-h-screen bg-[#05060f] text-white">
-      <Navbar />
+    <AppPageShell>
+      <AppSection>
+        <p className={APP_KICKER}>Legal</p>
+        <h1 className={APP_PAGE_TITLE}>Legal &amp; compliance</h1>
+        <p className={APP_PAGE_LEAD}>
+          Central index for GamePing AI policies and disclosures. These documents are provided for
+          transparency; they are not a substitute for professional legal advice.
+        </p>
 
-      <section className="relative overflow-hidden px-6 py-16">
-        <div className="absolute left-10 top-20 h-72 w-72 rounded-full bg-cyan-500/10 blur-3xl" />
-        <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/10 blur-3xl" />
-
-        <div className="relative z-10 mx-auto max-w-4xl">
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-purple-300">Legal</p>
-          <h1 className="mt-4 text-4xl font-black md:text-5xl">Legal &amp; compliance</h1>
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-white/60">
-            Central index for GamePing AI policies and disclosures. These documents are provided for
-            transparency; they are not a substitute for professional legal advice.
-          </p>
-
-          <div className="mt-12 grid gap-5 sm:grid-cols-2">
-            {LINKS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="group rounded-3xl border border-white/10 bg-white/[0.04] p-6 transition hover:border-cyan-400/35 hover:bg-cyan-400/[0.06]"
-              >
-                <p className="text-sm font-black text-cyan-300 transition group-hover:text-cyan-200">
-                  {item.title}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-white/55">{item.desc}</p>
-              </Link>
-            ))}
-          </div>
+        <div className="mt-12 grid gap-5 sm:grid-cols-2">
+          {LINKS.map((item) => (
+            <Link key={item.href} href={item.href} className={`group block ${APP_CARD_INTERACTIVE_LG}`}>
+              <p className={`text-sm font-bold transition group-hover:text-cyan-800 ${accent}`}>
+                {item.title}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{item.desc}</p>
+            </Link>
+          ))}
         </div>
-      </section>
-    </main>
+      </AppSection>
+    </AppPageShell>
   );
 }

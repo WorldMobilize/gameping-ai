@@ -2490,7 +2490,7 @@ export async function POST(req: Request) {
         intentSignals
       );
       const verifiedBySuggested = buildVerifiedBySuggestedTitle(verified);
-      let candidatesById = buildFastPickCandidateById(verified);
+      const candidatesById = buildFastPickCandidateById(verified);
 
       const picked: PreEnrichPick[] = [];
       for (const fp of fastPicks) {

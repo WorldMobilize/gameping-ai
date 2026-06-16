@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react"
 import { flushSync } from "react-dom"
+import { APP_INPUT } from "@/components/app/app-styles"
 import { useToast } from "@/components/ToastProvider"
 import SocialExportDeck from "@/components/social/SocialExportDeck"
 import {
@@ -27,10 +28,10 @@ type ExportSocialCardsButtonProps = {
 }
 
 const BUTTON_CLASS =
-  "rounded-full border border-cyan-400/40 bg-cyan-400/10 px-5 py-2.5 text-xs font-bold text-cyan-200 transition hover:border-cyan-300/60 hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+  "rounded-full border border-cyan-200 bg-cyan-50 px-5 py-2.5 text-xs font-semibold text-cyan-800 transition hover:border-cyan-300 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
 
 const AI_BUTTON_CLASS =
-  "rounded-full border border-purple-400/40 bg-purple-400/10 px-5 py-2.5 text-xs font-bold text-purple-200 transition hover:border-purple-300/60 hover:bg-purple-400/20 disabled:cursor-not-allowed disabled:opacity-50"
+  "rounded-full border border-violet-200 bg-violet-50 px-5 py-2.5 text-xs font-semibold text-violet-800 transition hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
 
 export default function ExportSocialCardsButton({
   prompt,
@@ -173,7 +174,7 @@ export default function ExportSocialCardsButton({
               const n = Number.parseInt(e.target.value, 10)
               setEpisodeNumber(normalizeAiGameRequestEpisode(Number.isFinite(n) ? n : 1))
             }}
-            className="w-14 rounded-full border border-purple-400/30 bg-purple-400/5 px-2 py-2.5 text-center text-xs font-bold text-purple-100 focus:border-purple-300/50 focus:outline-none focus:ring-2 focus:ring-purple-400/25 disabled:opacity-50"
+            className={`${APP_INPUT} w-14 rounded-full px-2 py-2.5 text-center text-xs font-bold`}
             title="Episode number"
           />
           <button

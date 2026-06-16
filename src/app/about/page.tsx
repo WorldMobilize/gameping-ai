@@ -1,6 +1,18 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import Navbar from "@/components/Navbar";
+import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import {
+  APP_BODY_SM,
+  APP_CALLOUT,
+  APP_CARD,
+  APP_CARD_LG,
+  APP_CTA_PANEL,
+  APP_KICKER,
+  APP_PAGE_LEAD,
+  APP_PAGE_TITLE,
+  APP_PRIMARY_CTA_SM,
+  homeCyanAccentText,
+} from "@/components/app/app-styles";
 import { legalPageMetadata } from "@/lib/seo/legal";
 
 export const metadata: Metadata = legalPageMetadata(
@@ -10,95 +22,82 @@ export const metadata: Metadata = legalPageMetadata(
 );
 
 export default function AboutPage() {
+  const accent = homeCyanAccentText(false);
+
   return (
-    <main className="min-h-screen bg-[#05060f] text-white">
-      <Navbar />
+    <AppPageShell>
+      <AppSection maxWidth="max-w-4xl">
+        <p className={APP_KICKER}>About</p>
+        <h1 className={APP_PAGE_TITLE}>
+          What is <span className={accent}>GamePing AI</span>?
+        </h1>
 
-      <section className="relative overflow-hidden px-6 py-16">
-        <div className="absolute left-10 top-20 h-72 w-72 rounded-full bg-cyan-500/12 blur-3xl" />
-        <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/12 blur-3xl" />
+        <p className={APP_PAGE_LEAD}>
+          GamePing AI is an AI-powered game recommendation assistant. You describe what you feel
+          like playing, and GamePing responds with a small set of verified games—with metadata and
+          best-effort deal-aware price lookups.
+        </p>
 
-        <div className="relative z-10 mx-auto max-w-4xl">
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
-            About
-          </p>
-          <h1 className="mt-4 text-4xl font-black md:text-6xl">
-            What is <span className="text-cyan-300">GamePing AI</span>?
-          </h1>
-
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-white/60">
-            GamePing AI is an AI-powered game recommendation assistant. You describe what you feel
-            like playing, and GamePing responds with a small set of verified games—with metadata and
-            best-effort deal-aware price lookups.
-          </p>
-
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-purple-300">
-                Discover
-              </p>
-              <h2 className="mt-3 text-xl font-black">Find games that fit your intent</h2>
-              <p className="mt-3 text-sm leading-6 text-white/60">
-                The goal is coherence over noise. Recommendations are generated automatically and
-                may not always be perfect.
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-purple-300">
-                Track
-              </p>
-              <h2 className="mt-3 text-xl font-black">Save searches for later</h2>
-              <p className="mt-3 text-sm leading-6 text-white/60">
-                Save your preferences and results so you can revisit them from your dashboard.
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-purple-300">
-                Alerts
-              </p>
-              <h2 className="mt-3 text-xl font-black">Future deal alerts</h2>
-              <p className="mt-3 text-sm leading-6 text-white/60">
-                The roadmap includes periodic price checks and notifications when tracked games hit
-                your budget.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-12 rounded-3xl border border-white/10 bg-white/[0.04] p-8">
-            <h2 className="text-2xl font-black">Data sources and disclaimers</h2>
-            <p className="mt-3 text-white/60 leading-7">
-              Game metadata and prices are sourced from third-party providers (as configured) such
-              as RAWG and CheapShark. Prices and availability may change. Always verify final prices
-              and purchase details on the store before buying.
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <div className={APP_CARD_LG}>
+            <p className={`text-xs font-semibold uppercase tracking-[0.35em] ${accent}`}>
+              Discover
+            </p>
+            <h2 className="mt-3 text-xl font-bold text-slate-900">Find games that fit your intent</h2>
+            <p className={`mt-3 ${APP_BODY_SM}`}>
+              The goal is coherence over noise. Recommendations are generated automatically and
+              may not always be perfect.
             </p>
           </div>
 
-          <div className="mt-10 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-white/60">
-            This page is provided for general informational purposes and does not constitute legal
-            advice.
+          <div className={APP_CARD_LG}>
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">
+              Track
+            </p>
+            <h2 className="mt-3 text-xl font-bold text-slate-900">Save searches for later</h2>
+            <p className={`mt-3 ${APP_BODY_SM}`}>
+              Save your preferences and results so you can revisit them from your dashboard.
+            </p>
           </div>
 
-          <div className="mt-14 rounded-[2rem] border border-cyan-400/20 bg-gradient-to-r from-cyan-400/10 to-purple-500/10 p-8 md:flex md:items-center md:justify-between md:gap-8">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
-                Next step
-              </p>
-              <p className="mt-2 text-xl font-black md:text-2xl">
-                Ready to discover your next game?
-              </p>
-            </div>
-            <Link
-              href="/recommend"
-              className="mt-6 inline-flex rounded-full bg-cyan-400 px-8 py-3.5 text-sm font-black text-black shadow-[0_0_28px_rgba(34,211,238,0.2)] transition hover:bg-cyan-300 md:mt-0"
-            >
-              Open GamePing AI
-            </Link>
+          <div className={APP_CARD_LG}>
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">
+              Alerts
+            </p>
+            <h2 className="mt-3 text-xl font-bold text-slate-900">Future deal alerts</h2>
+            <p className={`mt-3 ${APP_BODY_SM}`}>
+              The roadmap includes periodic price checks and notifications when tracked games hit
+              your budget.
+            </p>
           </div>
         </div>
-      </section>
-    </main>
+
+        <div className={`mt-12 ${APP_CARD_LG} p-8`}>
+          <h2 className="text-2xl font-bold text-slate-900">Data sources and disclaimers</h2>
+          <p className={`mt-3 ${APP_BODY_SM} leading-7`}>
+            Game metadata and prices are sourced from third-party providers (as configured) such
+            as RAWG and CheapShark. Prices and availability may change. Always verify final prices
+            and purchase details on the store before buying.
+          </p>
+        </div>
+
+        <div className={`mt-10 ${APP_CALLOUT}`}>
+          This page is provided for general informational purposes and does not constitute legal
+          advice.
+        </div>
+
+        <div className={`mt-14 ${APP_CTA_PANEL} md:flex md:items-center md:justify-between md:gap-8`}>
+          <div>
+            <p className={APP_KICKER}>Next step</p>
+            <p className="mt-2 text-xl font-bold text-slate-900 md:text-2xl">
+              Ready to discover your next game?
+            </p>
+          </div>
+          <Link href="/recommend" className={`mt-6 md:mt-0 ${APP_PRIMARY_CTA_SM}`}>
+            Open GamePing AI
+          </Link>
+        </div>
+      </AppSection>
+    </AppPageShell>
   );
 }
-

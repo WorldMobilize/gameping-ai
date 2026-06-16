@@ -1,86 +1,62 @@
-import { HOME_FLOW_STEPS, HOME_TRUST_PILLARS } from "@/components/home/home-demo-data";
-import { HomeStepIcon, HomeTrustPillarIcon } from "@/components/home/HomeStepIcons";
-import HomePageAtmosphere from "@/components/home/HomePageAtmosphere";
-import PingOrb from "@/components/home/PingOrb";
+"use client";
 
-const STEP_TONES = ["mint", "violet", "coral"] as const;
+import Link from "next/link";
+import { HOME_HOW_CARDS } from "@/components/home/home-demo-data";
+import HomeHeroTasteVisual from "@/components/home/HomeHeroTasteVisual";
+import { useHomeTheme } from "@/components/home/HomeThemeProvider";
+import {
+  HOME_BLOCK_BODY,
+  HOME_BLOCK_TITLE,
+  HOME_PRIMARY_CTA_SM,
+  HOME_SECTION_TITLE,
+  homeCyanAccentText,
+} from "@/components/home/home-styles";
+import { HomeSectionShell } from "@/components/home/HomeVisualPrimitives";
 
 export default function HomeHowItWorks() {
+  const { theme } = useHomeTheme();
+  const isDark = theme === "dark";
+
+  const text = isDark ? "text-slate-50" : "text-slate-900";
+  const body = isDark ? "text-slate-400" : "text-slate-600";
+  const accent = homeCyanAccentText(isDark);
+
   return (
-    <section
+    <HomeSectionShell
+      tone="how-it-works"
       id="how-it-works"
-      className="gp-landing-section scroll-mt-24"
-      aria-labelledby="home-how-heading"
+      ariaLabelledby="how-it-works-title"
+      className="scroll-mt-0"
     >
-      <HomePageAtmosphere variant="section" />
+      <header className="mx-auto max-w-2xl text-center">
+        <h2 id="how-it-works-title" className={`${HOME_SECTION_TITLE} ${text}`}>
+          How GamePing <span className={accent}>works</span>
+        </h2>
+      </header>
 
-      <div className="gp-landing-wrap relative z-10">
-        <div className="gp-landing-shell">
-          <div className="flex flex-col gap-6 min-[960px]:flex-row min-[960px]:items-start min-[960px]:justify-between">
-            <div className="max-w-lg">
-              <p className="gp-landing-kicker">How it works</p>
-              <h2 id="home-how-heading" className="gp-landing-h2 mt-3">
-                Ping helps you find your next{" "}
-                <span className="gp-landing-accent">favorite</span> game
-              </h2>
-            </div>
-
-            <div className="flex max-w-md items-start gap-3 min-[960px]:pt-1">
-              <PingOrb size={48} variant="compact" bars={3} className="shrink-0" />
-              <p className="gp-landing-speech text-sm leading-relaxed text-white/75">
-                Tell me what you feel like playing — I&apos;ll help you find games worth
-                your time.
-              </p>
-            </div>
-          </div>
-
-          <ol className="gp-landing-steps">
-            {HOME_FLOW_STEPS.map((step, i) => {
-              const tone = STEP_TONES[i % 3];
-              return (
-                <li key={step.step} className="gp-landing-step-wrap">
-                  <div className={`gp-landing-step gp-landing-step-${tone}`}>
-                    <span className={`gp-landing-step-num gp-landing-step-num-${tone}`}>
-                      {step.step}
-                    </span>
-                    <span className={`gp-landing-step-icon gp-landing-step-icon-${tone}`}>
-                      <HomeStepIcon id={step.icon} />
-                    </span>
-                    <h3 className="mt-4 text-base font-semibold leading-snug text-white/95">
-                      {step.title}
-                    </h3>
-                    <p className="mt-2 text-sm leading-6 text-white/52">{step.text}</p>
-                  </div>
-                  {i < HOME_FLOW_STEPS.length - 1 ? (
-                    <span className="gp-landing-step-arrow" aria-hidden>
-                      <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
-                        <path
-                          d="M0 8h20m0 0-5-5m5 5-5 5"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </span>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ol>
-
-          <ul className="gp-landing-pillars">
-            {HOME_TRUST_PILLARS.map((pillar) => (
-              <li key={pillar.id} className="gp-landing-pillar">
-                <span className="gp-landing-pillar-icon">
-                  <HomeTrustPillarIcon id={pillar.icon} />
-                </span>
-                {pillar.label}
-              </li>
-            ))}
-          </ul>
-        </div>
+      <div className="mx-auto mt-10 max-w-5xl sm:mt-12">
+        <HomeHeroTasteVisual />
       </div>
-    </section>
+
+      <h3
+        className={`${HOME_SECTION_TITLE} mx-auto mt-12 max-w-3xl text-center leading-snug sm:mt-14 ${text}`}
+      >
+        Three steps from your taste to your next favorite game.
+      </h3>
+
+      <ol className="mt-10 grid gap-12 sm:gap-14 lg:mt-12 lg:grid-cols-3 lg:items-stretch lg:gap-10 xl:gap-14">
+        {HOME_HOW_CARDS.map((item) => (
+          <li key={item.id} className="flex">
+            <article className="flex w-full flex-col items-center text-center">
+              <h4 className={`${HOME_BLOCK_TITLE} ${text}`}>{item.title}</h4>
+              <p className={`${HOME_BLOCK_BODY} max-w-sm flex-1 ${body}`}>{item.summary}</p>
+              <Link href={item.href} className={`mt-8 ${HOME_PRIMARY_CTA_SM}`}>
+                Learn more
+              </Link>
+            </article>
+          </li>
+        ))}
+      </ol>
+    </HomeSectionShell>
   );
 }

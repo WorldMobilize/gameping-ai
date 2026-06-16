@@ -1,15 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { formatDisplayDate } from "@/lib/format-display-date";
-import { supabase } from "@/lib/supabase";
-import EmailVerificationNotice from "@/components/EmailVerificationNotice";
-import Navbar from "@/components/Navbar";
-import { useToast } from "@/components/ToastProvider";
 import Link from "next/link";
+import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import {
+  APP_CARD,
+  APP_CARD_LG,
+  APP_CTA_PANEL,
+  APP_INLINE_LINK,
+  APP_KICKER,
+  APP_MUTED,
+  APP_PAGE_LEAD,
+  APP_PAGE_TITLE,
+  APP_PRIMARY_CTA_LG,
+  APP_PRIMARY_CTA_SM,
+  APP_SECONDARY_CTA,
+  homeCyanChip,
+} from "@/components/app/app-styles";
+import EmailVerificationNotice from "@/components/EmailVerificationNotice";
+import { useToast } from "@/components/ToastProvider";
 import { gameDetailPath } from "@/lib/curated/game-links";
+import { formatDisplayDate } from "@/lib/format-display-date";
 import { EMAIL_NOT_VERIFIED_MESSAGE } from "@/lib/auth-email-verification";
 import { PLAN_QUOTAS } from "@/lib/plan-quotas";
+import { supabase } from "@/lib/supabase";
 
 type Game = {
   title: string;
@@ -65,15 +79,15 @@ function DeleteConfirmCard({
 }) {
   return (
     <div
-      className="w-full max-w-sm rounded-2xl border border-rose-400/30 bg-rose-500/10 p-4"
+      className="w-full max-w-sm rounded-2xl border border-rose-200/90 bg-rose-50/80 p-4 shadow-sm"
       role="alertdialog"
       aria-labelledby="delete-confirm-title"
       aria-describedby="delete-confirm-desc"
     >
-      <p id="delete-confirm-title" className="text-sm font-bold text-white">
+      <p id="delete-confirm-title" className="text-sm font-bold text-rose-950">
         Delete this item?
       </p>
-      <p id="delete-confirm-desc" className="mt-1 text-xs leading-relaxed text-white/55">
+      <p id="delete-confirm-desc" className="mt-1 text-xs leading-relaxed text-rose-800/70">
         This action can&apos;t be undone.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -81,7 +95,7 @@ function DeleteConfirmCard({
           type="button"
           onClick={onCancel}
           disabled={busy}
-          className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white/75 transition hover:border-white/30 disabled:opacity-50"
+          className={`${APP_SECONDARY_CTA} disabled:opacity-50`}
         >
           Cancel
         </button>
@@ -89,7 +103,7 @@ function DeleteConfirmCard({
           type="button"
           onClick={onConfirm}
           disabled={busy}
-          className="rounded-full border border-purple-400/45 bg-purple-500/12 px-4 py-2 text-sm font-bold text-purple-100 transition hover:border-purple-400/60 hover:bg-purple-500/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/40 disabled:opacity-50"
+          className="rounded-full border border-rose-300 bg-rose-100 px-4 py-2 text-sm font-semibold text-rose-900 transition hover:border-rose-400 hover:bg-rose-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 disabled:opacity-50"
         >
           {confirmLabel}
         </button>
@@ -361,70 +375,50 @@ export default function Dashboard() {
       trackedGames.some((g) => !g.is_active));
 
   return (
-    <main className="min-h-screen bg-[#05060f] text-white">
-      <Navbar />
+    <AppPageShell>
+      <AppSection maxWidth="max-w-6xl">
+        <EmailVerificationNotice className="mb-8" theme="light" />
 
-      <section className="relative overflow-hidden px-6 py-16">
-        <div className="absolute left-10 top-20 h-72 w-72 rounded-full bg-cyan-500/8 blur-3xl" />
-        <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-cyan-600/5 blur-3xl" />
+        <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-2xl">
+            <p className={APP_KICKER}>Dashboard</p>
 
-        <div className="relative z-10 mx-auto max-w-6xl">
-          <EmailVerificationNotice className="mb-8" />
+            <h1 className={APP_PAGE_TITLE}>Your dashboard</h1>
 
-          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-2xl">
-              <p className="mb-4 text-sm uppercase tracking-[0.4em] text-cyan-300">
-                Dashboard
-              </p>
+            <p className={APP_PAGE_LEAD}>
+              Saved recommendation runs are complete searches you can revisit. Tracked games are
+              individual titles you&apos;re monitoring for verified price drops.
+            </p>
 
-              <h1 className="text-4xl font-black md:text-6xl">Your dashboard</h1>
-
-              <p className="mt-4 text-white/60">
-                Saved recommendation runs are complete searches you can revisit. Tracked games are
-                individual titles you&apos;re monitoring for verified price drops.
-              </p>
-
-              <p className="mt-4 text-sm leading-relaxed text-white/50">
-                Free: 10 recommendations/day, 3 saved runs, 5 tracked games. Premium: 50/day, 25 saved
-                runs, 50 tracked games.{" "}
-                <Link
-                  href="/upgrade"
-                  className="font-semibold text-cyan-300 underline-offset-4 hover:underline"
-                >
-                  Upgrade
-                </Link>
-                {" · "}
-                <Link
-                  href="/settings/account"
-                  className="font-semibold text-cyan-300 underline-offset-4 hover:underline"
-                >
-                  Account &amp; deletion
-                </Link>
-              </p>
-            </div>
-
-            <Link
-              href="/recommend"
-              className="inline-flex shrink-0 items-center justify-center rounded-full bg-cyan-400 px-8 py-4 text-sm font-bold text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-            >
-              New recommendation
-            </Link>
+            <p className={`mt-4 ${APP_MUTED}`}>
+              Free: 10 recommendations/day, 3 saved runs, 5 tracked games. Premium: 50/day, 25 saved
+              runs, 50 tracked games.{" "}
+              <Link href="/upgrade" className={APP_INLINE_LINK}>
+                Upgrade
+              </Link>
+              {" · "}
+              <Link href="/settings/account" className={APP_INLINE_LINK}>
+                Account &amp; deletion
+              </Link>
+            </p>
           </div>
 
-          {showLegacyPlanNotice && (
-            <p className="mt-6 max-w-3xl rounded-2xl border border-amber-400/25 bg-amber-500/10 px-5 py-4 text-sm leading-relaxed text-amber-100/90">
-              Some items were paused because your plan changed. Free users can keep{" "}
-              {PLAN_QUOTAS.freeSavedSearches} saved runs and {PLAN_QUOTAS.freeTrackedGames}{" "}
-              tracked games active. Pause one to activate another, or{" "}
-              <Link
-                href="/upgrade"
-                className="font-bold text-cyan-200 underline-offset-2 hover:underline"
-              >
-                upgrade to Premium
-              </Link>
-              .
-            </p>
-          )}
+          <Link href="/recommend" className={`${APP_PRIMARY_CTA_LG} shrink-0`}>
+            New recommendation
+          </Link>
+        </div>
+
+        {showLegacyPlanNotice && (
+          <p className="mt-6 max-w-3xl rounded-2xl border border-amber-200/90 bg-amber-50 px-5 py-4 text-sm leading-relaxed text-amber-950">
+            Some items were paused because your plan changed. Free users can keep{" "}
+            {PLAN_QUOTAS.freeSavedSearches} saved runs and {PLAN_QUOTAS.freeTrackedGames}{" "}
+            tracked games active. Pause one to activate another, or{" "}
+            <Link href="/upgrade" className="font-semibold text-cyan-700 underline-offset-2 hover:underline">
+              upgrade to Premium
+            </Link>
+            .
+          </p>
+        )}
 
           {loading && (
             <div
@@ -433,15 +427,12 @@ export default function Dashboard() {
               aria-live="polite"
             >
               {[1, 2, 3].map((row) => (
-                <div
-                  key={row}
-                  className="rounded-3xl border border-white/10 bg-white/[0.04] p-6"
-                >
-                  <div className="gp-recommend-skeleton-bar relative mb-5 h-9 max-w-[min(100%,280px)] animate-pulse overflow-hidden rounded-xl bg-white/[0.06] motion-reduce:animate-none" />
-                  <div className="gp-recommend-skeleton-bar relative mb-4 h-4 max-w-md animate-pulse overflow-hidden rounded-lg bg-white/[0.05] motion-reduce:animate-none" />
+                <div key={row} className={`${APP_CARD_LG} p-6`}>
+                  <div className="gp-game-skeleton-bar-light relative mb-5 h-9 max-w-[min(100%,280px)] animate-pulse overflow-hidden rounded-xl bg-slate-100 motion-reduce:animate-none" />
+                  <div className="gp-game-skeleton-bar-light relative mb-4 h-4 max-w-md animate-pulse overflow-hidden rounded-lg bg-slate-100 motion-reduce:animate-none" />
                   <div className="mt-6 grid gap-4 md:grid-cols-2">
-                    <div className="gp-recommend-skeleton-bar relative h-32 animate-pulse overflow-hidden rounded-2xl border border-white/10 bg-black/25 motion-reduce:animate-none" />
-                    <div className="gp-recommend-skeleton-bar relative h-32 animate-pulse overflow-hidden rounded-2xl border border-white/10 bg-black/25 motion-reduce:animate-none" />
+                    <div className="gp-game-skeleton-bar-light relative h-32 animate-pulse overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50 motion-reduce:animate-none" />
+                    <div className="gp-game-skeleton-bar-light relative h-32 animate-pulse overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-50 motion-reduce:animate-none" />
                   </div>
                 </div>
               ))}
@@ -449,14 +440,14 @@ export default function Dashboard() {
           )}
 
           {!loading && loadError && (
-            <div className="mt-10 rounded-3xl border border-rose-400/25 bg-rose-500/[0.08] p-8">
-              <p className="text-xs font-black uppercase tracking-[0.35em] text-rose-200/90">
+            <div className="mt-10 rounded-3xl border border-rose-200/90 bg-rose-50/80 p-8 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-rose-700">
                 Couldn&apos;t load
               </p>
-              <h2 className="mt-3 text-2xl font-black">
+              <h2 className="mt-3 text-2xl font-extrabold text-slate-900">
                 We couldn&apos;t load your saved recommendation runs
               </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-white/55">
+              <p className={`mt-3 max-w-2xl ${APP_MUTED}`}>
                 Check your connection and try again. If this keeps happening, start fresh from
                 recommendations—your account is still safe.
               </p>
@@ -464,14 +455,11 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => loadSearches()}
-                  className="inline-flex items-center justify-center rounded-full bg-cyan-400 px-8 py-3.5 text-sm font-bold text-black transition hover:bg-cyan-300"
+                  className={APP_PRIMARY_CTA_SM}
                 >
                   Retry
                 </button>
-                <Link
-                  href="/recommend"
-                  className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.05] px-8 py-3.5 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 hover:bg-white/10"
-                >
+                <Link href="/recommend" className={APP_SECONDARY_CTA}>
                   New recommendation
                 </Link>
               </div>
@@ -479,30 +467,30 @@ export default function Dashboard() {
           )}
 
           <section
-            className="mt-14 rounded-3xl border border-white/10 bg-white/[0.02] p-6 md:p-8"
+            className={`mt-14 ${APP_CARD_LG} p-6 md:p-8`}
             aria-labelledby="dashboard-saved-runs-heading"
           >
-            <div className="mb-6 border-b border-white/10 pb-5">
+            <div className="mb-6 border-b border-slate-200/90 pb-5">
               <h2
                 id="dashboard-saved-runs-heading"
-                className="text-2xl font-black md:text-3xl"
+                className="text-2xl font-extrabold text-slate-900 md:text-3xl"
               >
                 Saved recommendation runs
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-white/50">
+              <p className={`mt-2 ${APP_MUTED}`}>
                 Saved searches you can revisit later.
               </p>
             </div>
 
           {!loading && !loadError && searches.length === 0 && (
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
-              <p className="text-lg font-black">No saved recommendation runs yet</p>
-              <p className="mt-3 text-white/60">
+            <div className={`${APP_CARD} p-8 text-center`}>
+              <p className="text-lg font-extrabold text-slate-900">No saved recommendation runs yet</p>
+              <p className={`mt-3 ${APP_MUTED}`}>
                 Run a recommendation, then save it from the results page.
               </p>
               <Link
                 href="/recommend"
-                className="mt-6 flex w-full items-center justify-center rounded-full bg-cyan-400 px-6 py-3.5 text-center text-sm font-bold text-black transition hover:bg-cyan-300 sm:mx-auto sm:inline-flex sm:w-auto sm:px-8 sm:py-4 sm:text-base"
+                className={`mt-6 ${APP_PRIMARY_CTA_LG} w-full sm:mx-auto sm:inline-flex sm:w-auto`}
               >
                 Create your first search
               </Link>
@@ -520,16 +508,16 @@ export default function Dashboard() {
                   key={search.id}
                   className={`rounded-3xl border p-6 transition ${
                     runActive
-                      ? "border-white/10 bg-white/5"
-                      : "border-white/5 bg-white/[0.02] opacity-55 saturate-[0.7]"
+                      ? "border-slate-200/90 bg-white shadow-sm"
+                      : "border-slate-200/60 bg-slate-50/80 opacity-70 saturate-[0.85]"
                   }`}
                 >
                   <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-2xl font-black">{search.name}</h2>
+                        <h2 className="text-2xl font-extrabold text-slate-900">{search.name}</h2>
                         {!runActive && (
-                          <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/55">
+                          <span className="rounded-full bg-slate-200/80 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
                             Paused
                           </span>
                         )}
@@ -537,25 +525,25 @@ export default function Dashboard() {
 
                       <div className="mt-3 flex flex-wrap gap-2">
                         {search.preferences?.genres && (
-                          <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-xs font-bold text-cyan-300">
+                          <span className={homeCyanChip(false)}>
                             {search.preferences.genres}
                           </span>
                         )}
 
                         {search.preferences?.platform && (
-                          <span className="rounded-full bg-cyan-400/12 px-3 py-1 text-xs font-semibold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20">
+                          <span className="rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold tabular-nums text-cyan-800">
                             {search.preferences.platform}
                           </span>
                         )}
 
                         {search.preferences?.mood && (
-                          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/70">
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                             {search.preferences.mood}
                           </span>
                         )}
 
                         {search.preferences?.budget && (
-                          <span className="rounded-full bg-green-400/10 px-3 py-1 text-xs font-bold text-green-300">
+                          <span className="rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
                             Max €{search.preferences.budget}
                           </span>
                         )}
@@ -563,7 +551,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="flex flex-col items-start gap-3 md:items-end">
-                      <p className="text-sm text-white/40">
+                      <p className={APP_MUTED}>
                         {formatDisplayDate(search.created_at) ?? "—"}
                       </p>
 
@@ -573,7 +561,7 @@ export default function Dashboard() {
                             type="button"
                             disabled={runBusy}
                             onClick={() => void setSavedRunActive(search.id, false)}
-                            className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white/75 transition hover:border-white/30 disabled:opacity-50"
+                            className={`${APP_SECONDARY_CTA} disabled:opacity-50`}
                           >
                             Pause
                           </button>
@@ -582,7 +570,7 @@ export default function Dashboard() {
                             type="button"
                             disabled={runBusy}
                             onClick={() => void setSavedRunActive(search.id, true)}
-                            className="rounded-full border border-cyan-400/40 px-4 py-2 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50"
+                            className="rounded-full border border-cyan-300 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-800 transition hover:border-cyan-400 hover:bg-cyan-100 disabled:opacity-50"
                           >
                             Activate
                           </button>
@@ -602,7 +590,7 @@ export default function Dashboard() {
                             onClick={() =>
                               setPendingDelete({ kind: "search", id: search.id })
                             }
-                            className="rounded-full border border-purple-400/35 px-4 py-2 text-sm font-bold text-purple-200 transition hover:border-purple-400/50 hover:bg-purple-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/35 disabled:opacity-50"
+                            className="rounded-full border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-800 transition hover:border-rose-400 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 disabled:opacity-50"
                           >
                             Delete
                           </button>
@@ -622,15 +610,15 @@ export default function Dashboard() {
                       return (
                         <div
                           key={`${search.id}-${game.title}`}
-                          className="rounded-2xl border border-white/10 bg-black/30 p-4"
+                          className={`${APP_CARD} p-4`}
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <h3 className="font-black leading-snug">
-                              <span className="text-white/45">#{index + 1}</span>{" "}
+                            <h3 className="font-extrabold leading-snug text-slate-900">
+                              <span className="text-slate-400">#{index + 1}</span>{" "}
                               {detailHref ? (
                                 <Link
                                   href={detailHref}
-                                  className="text-white transition hover:text-cyan-300"
+                                  className="text-slate-900 transition hover:text-cyan-700"
                                 >
                                   {game.title}
                                 </Link>
@@ -639,23 +627,23 @@ export default function Dashboard() {
                               )}
                             </h3>
 
-                            <span className="shrink-0 rounded-full bg-cyan-400/12 px-3 py-1 text-xs font-semibold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20">
+                            <span className="shrink-0 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold tabular-nums text-cyan-800">
                               {game.match}% match
                             </span>
                           </div>
 
-                          <p className="mt-3 text-sm italic text-white/60">
+                          <p className={`mt-3 text-sm italic ${APP_MUTED}`}>
                             💡 {game.reason}
                           </p>
 
-                          <p className="mt-4 font-bold text-cyan-300">
+                          <p className="mt-4 font-semibold text-cyan-700">
                             {game.price}
                           </p>
 
                           {detailHref ? (
                             <Link
                               href={detailHref}
-                              className="mt-3 inline-flex text-sm font-bold text-cyan-300 underline-offset-4 transition hover:underline"
+                              className={`mt-3 inline-flex ${APP_INLINE_LINK}`}
                             >
                               View details
                             </Link>
@@ -672,35 +660,35 @@ export default function Dashboard() {
           </section>
 
           <section
-            className="mt-10 rounded-3xl border border-cyan-500/20 bg-cyan-500/[0.03] p-6 md:p-8"
+            className={`mt-10 ${APP_CTA_PANEL} p-6 md:p-8`}
             aria-labelledby="dashboard-tracked-games-heading"
           >
-            <div className="mb-6 border-b border-white/10 pb-5">
+            <div className="mb-6 border-b border-cyan-200/60 pb-5">
               <h2
                 id="dashboard-tracked-games-heading"
-                className="text-2xl font-black md:text-3xl"
+                className="text-2xl font-extrabold text-slate-900 md:text-3xl"
               >
                 Tracked games
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-white/50">
+              <p className={`mt-2 ${APP_MUTED}`}>
                 Games you&apos;re monitoring for price drops.
               </p>
             </div>
 
             {trackedLoading && (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                <div className="gp-recommend-skeleton-bar relative h-8 max-w-xs animate-pulse overflow-hidden rounded-lg bg-white/[0.06] motion-reduce:animate-none" />
+              <div className={`${APP_CARD} p-6`}>
+                <div className="gp-game-skeleton-bar-light relative h-8 max-w-xs animate-pulse overflow-hidden rounded-lg bg-slate-100 motion-reduce:animate-none" />
               </div>
             )}
 
             {!trackedLoading && trackedLoadError && (
-              <div className="rounded-3xl border border-rose-400/25 bg-rose-500/[0.08] p-6">
-                <p className="text-sm text-white/70">
+              <div className="rounded-2xl border border-rose-200/90 bg-rose-50/80 p-6">
+                <p className="text-sm text-rose-900">
                   Couldn&apos;t load tracked games.{" "}
                   <button
                     type="button"
                     onClick={() => void loadTrackedGames()}
-                    className="font-bold text-cyan-300 underline-offset-2 hover:underline"
+                    className="font-semibold text-cyan-700 underline-offset-2 hover:underline"
                   >
                     Retry
                   </button>
@@ -709,16 +697,13 @@ export default function Dashboard() {
             )}
 
             {!trackedLoading && !trackedLoadError && trackedGames.length === 0 && (
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
-                <p className="text-lg font-black">No tracked games yet</p>
-                <p className="mt-3 text-sm text-white/60">
+              <div className={`${APP_CARD} p-8`}>
+                <p className="text-lg font-extrabold text-slate-900">No tracked games yet</p>
+                <p className={`mt-3 ${APP_MUTED}`}>
                   Open a game page and use Track price to get email alerts when we detect a
                   verified drop.
                 </p>
-                <Link
-                  href="/games"
-                  className="mt-6 inline-block rounded-full border border-cyan-400/40 px-6 py-3 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400/10"
-                >
+                <Link href="/games" className={`mt-6 ${APP_SECONDARY_CTA}`}>
                   Browse games
                 </Link>
               </div>
@@ -742,35 +727,35 @@ export default function Dashboard() {
                       key={row.id}
                       className={`flex flex-col gap-4 rounded-2xl border p-5 transition md:flex-row md:items-center md:justify-between ${
                       row.is_active
-                        ? "border-white/10 bg-black/20"
-                        : "border-white/5 bg-black/10 opacity-55 saturate-[0.7]"
+                        ? "border-slate-200/90 bg-white shadow-sm"
+                        : "border-slate-200/60 bg-slate-50/80 opacity-70 saturate-[0.85]"
                     }`}
                     >
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-black">
+                          <h3 className="text-lg font-extrabold text-slate-900">
                             <Link
                               href={detailHref}
-                              className="text-white transition hover:text-cyan-300"
+                              className="transition hover:text-cyan-700"
                             >
                               {row.title}
                             </Link>
                           </h3>
                           {!row.is_active && (
-                            <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-bold text-white/55">
+                            <span className="rounded-full bg-slate-200/80 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
                               Alerts paused
                             </span>
                           )}
                         </div>
                         {priceLabel ? (
-                          <p className="mt-1 text-sm text-cyan-300/90">{priceLabel}</p>
+                          <p className="mt-1 text-sm font-medium text-cyan-700">{priceLabel}</p>
                         ) : (
-                          <p className="mt-1 text-sm text-white/45">
+                          <p className={`mt-1 text-sm ${APP_MUTED}`}>
                             Baseline set on first price check
                           </p>
                         )}
                         {row.last_checked_at ? (
-                          <p className="mt-1 text-xs text-white/35">
+                          <p className="mt-1 text-xs text-slate-400">
                             Last checked{" "}
                             {formatDisplayDate(row.last_checked_at) ?? "—"}
                           </p>
@@ -792,7 +777,7 @@ export default function Dashboard() {
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void setTrackedGameActive(row.id, false)}
-                                className="rounded-full border border-white/15 px-4 py-2 text-sm font-bold text-white/75 transition hover:border-white/30 disabled:opacity-50"
+                                className={`${APP_SECONDARY_CTA} disabled:opacity-50`}
                               >
                                 Pause alerts
                               </button>
@@ -801,7 +786,7 @@ export default function Dashboard() {
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void setTrackedGameActive(row.id, true)}
-                                className="rounded-full border border-cyan-400/40 px-4 py-2 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400/10 disabled:opacity-50"
+                                className="rounded-full border border-cyan-300 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-800 transition hover:border-cyan-400 hover:bg-cyan-100 disabled:opacity-50"
                               >
                                 Resume alerts
                               </button>
@@ -812,7 +797,7 @@ export default function Dashboard() {
                               onClick={() =>
                                 setPendingDelete({ kind: "tracked", id: row.id })
                               }
-                              className="rounded-full border border-purple-400/35 px-4 py-2 text-sm font-bold text-purple-200 transition hover:border-purple-400/50 hover:bg-purple-400/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/35 disabled:opacity-50"
+                              className="rounded-full border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-800 transition hover:border-rose-400 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 disabled:opacity-50"
                             >
                               Delete tracking
                             </button>
@@ -825,8 +810,7 @@ export default function Dashboard() {
               </div>
             )}
           </section>
-        </div>
-      </section>
-    </main>
+      </AppSection>
+    </AppPageShell>
   );
 }

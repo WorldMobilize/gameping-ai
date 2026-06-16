@@ -1,15 +1,6 @@
 import type { Metadata } from "next";
-import HomeGameCarousel from "@/components/HomeGameCarousel";
-import HomeLoggedInStrip from "@/components/HomeLoggedInStrip";
-import HomeDealsSection from "@/components/home/HomeDealsSection";
-import HomeFeatureCards from "@/components/home/HomeFeatureCards";
-import HomeFinalCta from "@/components/home/HomeFinalCta";
-import HomeGamingDnaTeaser from "@/components/home/HomeGamingDnaTeaser";
-import HomeHero from "@/components/home/HomeHero";
-import HomeHowItWorks from "@/components/home/HomeHowItWorks";
-import HomePersonalFit from "@/components/home/HomePersonalFit";
-import HomeTasteNotTags from "@/components/home/HomeTasteNotTags";
-import Navbar from "@/components/Navbar";
+import HomePageShell from "@/components/home/HomePageShell";
+import { HomeThemeProvider } from "@/components/home/HomeThemeProvider";
 import { buildPublicPageMetadata, DEFAULT_SITE_DESCRIPTION } from "@/lib/seo/site";
 
 export const metadata: Metadata = buildPublicPageMetadata({
@@ -20,18 +11,8 @@ export const metadata: Metadata = buildPublicPageMetadata({
 
 export default function Home() {
   return (
-    <main className="gp-landing min-h-screen overflow-x-hidden text-white">
-      <Navbar />
-      <HomeLoggedInStrip />
-      <HomeHero />
-      <HomeFeatureCards />
-      <HomeHowItWorks />
-      <HomeTasteNotTags />
-      <HomeGameCarousel />
-      <HomeGamingDnaTeaser />
-      <HomePersonalFit />
-      <HomeDealsSection />
-      <HomeFinalCta />
-    </main>
+    <HomeThemeProvider>
+      <HomePageShell />
+    </HomeThemeProvider>
   );
 }

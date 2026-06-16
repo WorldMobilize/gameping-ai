@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { APP_SECONDARY_CTA } from "@/components/app/app-styles";
 import { useToast } from "@/components/ToastProvider";
 
 type ManageBillingButtonProps = {
@@ -10,7 +11,7 @@ type ManageBillingButtonProps = {
 };
 
 export default function ManageBillingButton({
-  className = "inline-flex rounded-full border border-white/15 bg-white/[0.06] px-6 py-3 text-sm font-bold text-white/85 transition hover:border-cyan-400/40 disabled:cursor-not-allowed disabled:opacity-60",
+  className = APP_SECONDARY_CTA,
   label = "Manage billing",
   loadingLabel = "Opening…",
 }: ManageBillingButtonProps) {
@@ -66,7 +67,7 @@ export default function ManageBillingButton({
       type="button"
       disabled={loading}
       onClick={() => void openBillingPortal()}
-      className={className}
+      className={`${className} disabled:cursor-not-allowed disabled:opacity-60`}
     >
       {loading ? loadingLabel : label}
     </button>

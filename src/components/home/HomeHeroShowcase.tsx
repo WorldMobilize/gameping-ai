@@ -1,86 +1,71 @@
 import Image from "next/image";
-import PingOrb from "@/components/home/PingOrb";
 import { HOME_HERO_DASHBOARD } from "@/components/home/home-demo-data";
 
-/** Floating product showcase — static mock, no API. */
+/** Floating discovery card — games-first, no dashboard panels. */
 export default function HomeHeroShowcase() {
-  const { tasteScore, traits, playStyle, picks, whySummary } = HOME_HERO_DASHBOARD;
+  const { picks, whySummary, traits } = HOME_HERO_DASHBOARD;
 
   return (
-    <div className="gp-landing-showcase w-full min-w-0">
-      <span className="gp-landing-showcase-glow gp-landing-showcase-glow-mint" />
-      <span className="gp-landing-showcase-glow gp-landing-showcase-glow-violet" />
-      <span className="gp-landing-showcase-glow gp-landing-showcase-glow-coral" />
+    <div className="gp-discovery-scene" aria-hidden>
+      <span className="gp-discovery-blob gp-discovery-blob-mint" />
+      <span className="gp-discovery-blob gp-discovery-blob-violet" />
+      <span className="gp-discovery-blob gp-discovery-blob-coral" />
+      <span className="gp-discovery-blob gp-discovery-blob-amber" />
 
-      <div className="gp-landing-card gp-landing-showcase-card" aria-hidden>
-        <div className="flex items-start gap-3">
-          <PingOrb size={48} variant="compact" bars={3} className="shrink-0" />
-          <div className="gp-landing-speech min-w-0 flex-1">
-            <p className="text-sm font-semibold text-white/90">Ping found these for you</p>
-            <p className="mt-1 text-xs leading-relaxed text-white/50">
-              Based on exploration, atmosphere, and meaningful progression.
-            </p>
-          </div>
-        </div>
+      <span className="gp-discovery-spark gp-discovery-spark-a" />
+      <span className="gp-discovery-spark gp-discovery-spark-b" />
 
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          <div className="gp-landing-stat gp-landing-stat-mint text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/42">
-              Taste match
+      <div className="gp-discovery-float">
+        <div className="gp-discovery-card">
+          <header className="gp-discovery-header">
+            <p className="text-lg font-semibold tracking-tight text-white/92">
+              Ping found these for you
             </p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-teal-100">{tasteScore}%</p>
-          </div>
-          <div className="gp-landing-stat">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/42">
-              Favorite traits
-            </p>
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {traits.map((trait, i) => {
                 const tone = [
-                  "bg-teal-400/18 text-teal-100",
+                  "bg-teal-400/20 text-teal-100",
                   "bg-violet-400/18 text-violet-100",
                   "bg-rose-400/18 text-rose-100",
                 ][i % 3];
                 return (
-                  <span key={trait} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tone}`}>
+                  <span key={trait} className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${tone}`}>
                     {trait}
                   </span>
                 );
               })}
             </div>
-          </div>
-          <div className="gp-landing-stat">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/42">
-              Play style
-            </p>
-            <p className="mt-2 text-sm font-semibold leading-snug text-white/85">{playStyle}</p>
-          </div>
-        </div>
+          </header>
 
-        <div className="mt-4 grid grid-cols-4 gap-2">
-          {picks.map((pick) => (
-            <article key={pick.title} className="gp-landing-cover group">
-              <div className="relative aspect-[3/4] w-full bg-[#12182a]">
-                <Image
-                  src={pick.image}
-                  alt=""
-                  aria-hidden
-                  fill
-                  sizes="120px"
-                  className="object-cover transition duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/88 via-black/45 to-transparent p-2 pt-10">
-                  <p className="truncate text-[10px] font-semibold text-white/95">{pick.title}</p>
-                  <span className="gp-landing-match-badge mt-1">{pick.match}% match</span>
+          <div className="gp-discovery-covers mt-6">
+            {picks.map((pick, i) => (
+              <article
+                key={pick.title}
+                className="gp-discovery-cover group"
+                style={{ ["--cover-i" as string]: i }}
+              >
+                <div className="relative aspect-[3/4] w-[132px] shrink-0 sm:w-[148px]">
+                  <Image
+                    src={pick.image}
+                    alt=""
+                    fill
+                    sizes="148px"
+                    className="rounded-[1.125rem] object-cover shadow-[0_16px_40px_-16px_rgba(0,0,0,0.7)] transition duration-300 group-hover:scale-[1.03] group-hover:-translate-y-1"
+                    priority={i < 2}
+                  />
+                  <span className="gp-discovery-match">{pick.match}% match</span>
                 </div>
-              </div>
-            </article>
-          ))}
-        </div>
+                <p className="mt-2 max-w-[132px] truncate text-center text-xs font-medium text-white/78 sm:max-w-[148px]">
+                  {pick.title}
+                </p>
+              </article>
+            ))}
+          </div>
 
-        <div className="gp-landing-why mt-4">
-          <p className="text-xs font-semibold text-white/72">Why you&apos;ll like these</p>
-          <p className="mt-2 text-sm leading-relaxed text-white/55">{whySummary}</p>
+          <p className="gp-discovery-why mt-7 text-sm leading-relaxed text-white/52">
+            <span className="font-medium text-white/72">Why we recommend this — </span>
+            {whySummary}
+          </p>
         </div>
       </div>
     </div>

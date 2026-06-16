@@ -3,12 +3,13 @@
 import { usePathname } from "next/navigation";
 import Footer from "@/components/Footer";
 
-const STANDALONE_PATHS = new Set(["/verify-success"]);
+/** Routes that render their own footer (or none). */
+const FOOTERLESS_PATHS = new Set(["/", "/verify-success"]);
 
 export default function ConditionalFooter() {
   const pathname = usePathname();
-  if (pathname && STANDALONE_PATHS.has(pathname)) {
+  if (pathname && FOOTERLESS_PATHS.has(pathname)) {
     return null;
   }
-  return <Footer />;
+  return <Footer theme="light" />;
 }

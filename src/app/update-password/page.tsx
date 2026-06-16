@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Navbar from "@/components/Navbar";
+import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import {
+  APP_AUTH_CARD,
+  APP_INLINE_LINK,
+  APP_INPUT,
+  APP_PRIMARY_CTA_SM,
+  homeCyanAccentText,
+} from "@/components/app/app-styles";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -26,6 +33,7 @@ export default function UpdatePasswordPage() {
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<Phase>("checking");
   const [clientError, setClientError] = useState<string | null>(null);
+  const accent = homeCyanAccentText(false);
 
   const recoveryHintRef = useRef(false);
   const phaseRef = useRef<Phase>("checking");
@@ -116,62 +124,57 @@ export default function UpdatePasswordPage() {
 
   if (phase === "checking") {
     return (
-      <main className="min-h-screen bg-[#05060f] text-white">
-        <Navbar />
-        <div className="flex min-h-[50vh] items-center justify-center px-6 text-sm text-white/50">
-          Verifying reset link…
-        </div>
-      </main>
+      <AppPageShell>
+        <AppSection className="flex min-h-[50vh] items-center justify-center">
+          <p className="text-sm text-slate-500">Verifying reset link…</p>
+        </AppSection>
+      </AppPageShell>
     );
   }
 
   if (phase === "invalid") {
     return (
-      <main className="min-h-screen bg-[#05060f] text-white">
-        <Navbar />
-
-        <div className="relative flex items-center justify-center px-6 py-24">
-          <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
-          <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/20 blur-3xl" />
-
-          <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 text-center backdrop-blur-xl">
-            <h1 className="text-2xl font-black text-white">
-              Link <span className="text-cyan-300">invalid</span>
+      <AppPageShell>
+        <AppSection
+          maxWidth="max-w-md"
+          className="flex flex-1 items-center justify-center py-12"
+        >
+          <div className={`${APP_AUTH_CARD} text-center`}>
+            <h1 className="text-2xl font-black text-slate-900 gp-home-display">
+              Link <span className={accent}>invalid</span>
             </h1>
-            <p className="mt-4 text-sm leading-relaxed text-white/65">
+            <p className="mt-4 text-sm leading-relaxed text-slate-600">
               This reset link is invalid or expired. Please request a new one.
             </p>
             <Link
               href="/reset-password"
-              className="mt-8 inline-flex rounded-full bg-cyan-400 px-8 py-3 font-bold text-black transition hover:bg-cyan-300"
+              className={`mt-8 inline-flex ${APP_PRIMARY_CTA_SM}`}
             >
               Request new link
             </Link>
-            <p className="mt-6 text-sm text-white/50">
-              <Link href="/login" className="font-semibold text-cyan-300 underline-offset-4 hover:underline">
+            <p className="mt-6 text-sm text-slate-500">
+              <Link href="/login" className={APP_INLINE_LINK}>
                 Back to login
               </Link>
             </p>
           </div>
-        </div>
-      </main>
+        </AppSection>
+      </AppPageShell>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#05060f] text-white">
-      <Navbar />
-
-      <div className="relative flex items-center justify-center px-6 py-24">
-        <div className="absolute top-20 left-10 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/20 blur-3xl" />
-
-        <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl">
-          <h1 className="text-center text-3xl font-black">
-            New <span className="text-cyan-300">password</span>
+    <AppPageShell>
+      <AppSection
+        maxWidth="max-w-md"
+        className="flex flex-1 items-center justify-center py-12"
+      >
+        <div className={APP_AUTH_CARD}>
+          <h1 className="text-center text-3xl font-black text-slate-900 gp-home-display">
+            New <span className={accent}>password</span>
           </h1>
 
-          <p className="mt-3 text-center text-sm text-white/60">
+          <p className="mt-3 text-center text-sm text-slate-600">
             Choose a new password for your account (at least 8 characters).
           </p>
 
@@ -183,7 +186,7 @@ export default function UpdatePasswordPage() {
               id="new-password"
               type="password"
               autoComplete="new-password"
-              className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 outline-none focus:border-cyan-400"
+              className={APP_INPUT}
               placeholder="New password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -197,7 +200,7 @@ export default function UpdatePasswordPage() {
               id="confirm-password"
               type="password"
               autoComplete="new-password"
-              className="mt-4 w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 outline-none focus:border-cyan-400"
+              className={`mt-4 ${APP_INPUT}`}
               placeholder="Confirm password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -205,7 +208,7 @@ export default function UpdatePasswordPage() {
             />
 
             {clientError ? (
-              <p className="mt-3 text-sm text-red-300/95" role="alert">
+              <p className="mt-3 text-sm text-red-600" role="alert">
                 {clientError}
               </p>
             ) : null}
@@ -213,19 +216,19 @@ export default function UpdatePasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-6 w-full rounded-full bg-cyan-400 py-3 font-bold text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`mt-6 ${APP_PRIMARY_CTA_SM} w-full disabled:cursor-not-allowed disabled:opacity-60`}
             >
               {loading ? "Updating…" : "Update password"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-white/50">
-            <Link href="/login" className="font-semibold text-cyan-300 underline-offset-4 hover:underline">
+          <p className="mt-6 text-center text-sm text-slate-500">
+            <Link href="/login" className={APP_INLINE_LINK}>
               Back to login
             </Link>
           </p>
         </div>
-      </div>
-    </main>
+      </AppSection>
+    </AppPageShell>
   );
 }

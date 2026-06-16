@@ -1,5 +1,14 @@
 import Link from "next/link";
-import Navbar from "@/components/Navbar";
+import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import {
+  APP_CARD_INTERACTIVE_LG,
+  APP_INLINE_LINK,
+  APP_KICKER,
+  APP_PAGE_LEAD,
+  APP_PAGE_TITLE,
+  APP_PRIMARY_CTA_SM,
+  homeCyanAccentText,
+} from "@/components/app/app-styles";
 import { CURATED_COLLECTIONS } from "@/lib/curated/collections";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 import type { Metadata } from "next";
@@ -12,62 +21,52 @@ export const metadata: Metadata = buildPublicPageMetadata({
 });
 
 export default function CuratedIndexPage() {
+  const accent = homeCyanAccentText(false);
+
   return (
-    <main className="min-h-screen bg-[#05060f] text-white">
-      <Navbar />
+    <AppPageShell>
+      <AppSection>
+        <p className={APP_KICKER}>SEO collections</p>
+        <h1 className={APP_PAGE_TITLE}>
+          Curated <span className={accent}>game lists</span>
+        </h1>
+        <p className={APP_PAGE_LEAD}>
+          Starting points for common searches—each page has context, examples, and links to dive
+          deeper. When you are ready,{" "}
+          <Link href="/recommend" className={APP_INLINE_LINK}>
+            run your own recommendation
+          </Link>{" "}
+          with GamePing AI.
+        </p>
 
-      <section className="relative overflow-hidden px-6 py-16 md:py-20">
-        <div className="absolute left-10 top-20 h-72 w-72 rounded-full bg-cyan-500/12 blur-3xl" />
-        <div className="absolute bottom-20 right-10 h-72 w-72 rounded-full bg-purple-600/12 blur-3xl" />
+        <ul className="mt-12 space-y-4">
+          {CURATED_COLLECTIONS.map((c) => (
+            <li key={c.slug}>
+              <Link
+                href={`/curated/${c.slug}`}
+                className={`group flex flex-col md:flex-row md:items-center md:justify-between md:gap-6 ${APP_CARD_INTERACTIVE_LG}`}
+              >
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 group-hover:text-cyan-800">
+                    {c.h1}
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{c.intro}</p>
+                </div>
+                <span className={`mt-4 shrink-0 text-sm font-bold md:mt-0 ${accent}`}>Read</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
 
-        <div className="relative z-10 mx-auto max-w-4xl">
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-cyan-300">
-            SEO collections
+        <div className="mt-12 rounded-3xl border border-cyan-200/80 bg-cyan-50/60 p-6">
+          <p className="text-sm font-bold text-slate-800">
+            Want picks tailored to you—not a static list?
           </p>
-          <h1 className="mt-4 text-4xl font-black md:text-5xl">
-            Curated <span className="text-cyan-300">game lists</span>
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-white/60">
-            Starting points for common searches—each page has context, examples, and links to dive
-            deeper. When you are ready,{" "}
-            <Link href="/recommend" className="font-bold text-cyan-300 underline-offset-4 hover:underline">
-              run your own recommendation
-            </Link>{" "}
-            with GamePing AI.
-          </p>
-
-          <ul className="mt-12 space-y-4">
-            {CURATED_COLLECTIONS.map((c) => (
-              <li key={c.slug}>
-                <Link
-                  href={`/curated/${c.slug}`}
-                  className="group flex flex-col rounded-3xl border border-white/10 bg-white/[0.04] p-6 transition hover:border-cyan-400/40 hover:bg-cyan-400/[0.06] md:flex-row md:items-center md:justify-between md:gap-6"
-                >
-                  <div>
-                    <h2 className="text-xl font-black group-hover:text-cyan-200">{c.h1}</h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">{c.intro}</p>
-                  </div>
-                  <span className="mt-4 shrink-0 text-sm font-black text-cyan-300 md:mt-0">
-                    Read
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-
-          <div className="mt-12 rounded-3xl border border-cyan-400/25 bg-cyan-400/10 p-6">
-            <p className="text-sm font-bold text-cyan-100">
-              Want picks tailored to you—not a static list?
-            </p>
-            <Link
-              href="/recommend"
-              className="mt-3 inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-black text-black shadow-[0_0_24px_rgba(34,211,238,0.25)] transition hover:bg-cyan-300"
-            >
-              Try your own recommendation
-            </Link>
-          </div>
+          <Link href="/recommend" className={`mt-3 inline-flex ${APP_PRIMARY_CTA_SM}`}>
+            Try your own recommendation
+          </Link>
         </div>
-      </section>
-    </main>
+      </AppSection>
+    </AppPageShell>
   );
 }

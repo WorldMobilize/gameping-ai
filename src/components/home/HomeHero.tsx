@@ -1,58 +1,78 @@
+"use client";
+
 import Link from "next/link";
-import HomeHeroShowcase from "@/components/home/HomeHeroShowcase";
-import HomePageAtmosphere from "@/components/home/HomePageAtmosphere";
+import HomeHeroPartnerMarquee from "@/components/home/HomeHeroPartnerMarquee";
+import { useHomeTheme } from "@/components/home/HomeThemeProvider";
+import {
+  HOME_HERO_DISPLAY_FONT,
+  HOME_PRIMARY_CTA_LG,
+  homeCyanAccentText,
+  homeSecondaryCta,
+} from "@/components/home/home-styles";
+import { HomeSectionShell } from "@/components/home/HomeVisualPrimitives";
+
+const HERO_TRUST_POINTS = ["No login required", "Under a minute", "No credit card"] as const;
 
 export default function HomeHero() {
+  const { theme } = useHomeTheme();
+  const isDark = theme === "dark";
+  const accent = homeCyanAccentText(isDark);
+
   return (
-    <section className="gp-landing-hero relative overflow-hidden">
-      <HomePageAtmosphere variant="hero" />
+    <HomeSectionShell
+      tone="hero"
+      className="scroll-mt-0 flex min-h-[calc(100svh-4rem)] flex-col justify-center border-b border-transparent !py-12 sm:!py-14 lg:!py-16"
+    >
+      <div className="mx-auto flex w-full max-w-4xl flex-col items-center text-center">
+        <p
+          className={`inline-flex items-center rounded-full border px-3.5 py-1 text-xs font-bold uppercase tracking-[0.18em] ${
+            isDark
+              ? "border-cyan-500/30 bg-cyan-950/40 text-cyan-300"
+              : "border-cyan-200/80 bg-cyan-50/80 text-cyan-700"
+          }`}
+        >
+          AI game discovery
+        </p>
 
-      <div className="gp-landing-wrap relative z-10">
-        <div className="gp-landing-hero-grid">
-          <div className="min-w-0">
-            <h1 className="gp-landing-h1">
-              Find the next game you&apos;ll actually{" "}
-              <span className="gp-landing-accent">love.</span>
-            </h1>
+        <h1
+          className={`${HOME_HERO_DISPLAY_FONT} mt-6 text-[2.35rem] leading-[1.06] tracking-tight sm:text-5xl lg:text-[3.65rem] ${
+            isDark ? "text-slate-50" : "text-slate-900"
+          }`}
+        >
+          <span className="block">Your personal game</span>
+          <span className={`block ${accent}`}>Discovery assistant</span>
+        </h1>
 
-            <p className="gp-landing-lead mt-6 max-w-xl">
-              GamePing learns your taste, explains every recommendation, and helps you
-              discover games worth your time.
-            </p>
+        <p
+          className={`mt-5 max-w-2xl text-lg leading-relaxed sm:mt-6 sm:text-xl ${
+            isDark ? "text-slate-300" : "text-slate-600"
+          }`}
+        >
+          Describe your mood, favorite games, or what you&apos;re looking for. GamePing gives you
+          personalized picks with clear reasons and prices when available.
+        </p>
 
-            <div className="mt-9 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center">
-              <Link href="/recommend" className="gp-landing-btn-primary">
-                Try GamePing
-                <span aria-hidden>→</span>
-              </Link>
-              <a href="#how-it-works" className="gp-landing-btn-secondary">
-                <svg className="h-4 w-4 shrink-0 opacity-80" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                  <path d="M10 8.5v7l6.5-3.5L10 8.5z" />
-                </svg>
-                See how it works
-              </a>
-            </div>
-
-            <p className="gp-landing-trust mt-6">
-              <span>No login required</span>
-              <span aria-hidden>·</span>
-              <span>Under a minute</span>
-              <span aria-hidden>·</span>
-              <span>Prices on every game page</span>
-            </p>
-
-            <nav aria-label="Explore GamePing" className="gp-landing-links">
-              <Link href="/recommend">Personal recommendations</Link>
-              <Link href="/games">Games A–Z</Link>
-              <Link href="/curated">Curated lists</Link>
-            </nav>
-          </div>
-
-          <div className="min-w-0 w-full">
-            <HomeHeroShowcase />
-          </div>
+        <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
+          <Link href="/recommend" className={HOME_PRIMARY_CTA_LG}>
+            Try GamePing
+          </Link>
+          <a href="#how-it-works" className={homeSecondaryCta(isDark)}>
+            See how it works
+          </a>
         </div>
+
+        <p
+          className={`mt-6 text-sm font-medium sm:text-base ${
+            isDark ? "text-slate-500" : "text-slate-500"
+          }`}
+        >
+          {HERO_TRUST_POINTS.join(" · ")}
+        </p>
       </div>
-    </section>
+
+      <div className="mx-auto mt-12 w-full max-w-3xl sm:mt-14">
+        <HomeHeroPartnerMarquee />
+      </div>
+    </HomeSectionShell>
   );
 }

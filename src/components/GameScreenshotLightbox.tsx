@@ -10,12 +10,15 @@ export type GameScreenshotItem = {
 type GameScreenshotLightboxProps = {
   screenshots: GameScreenshotItem[];
   gameTitle: string;
+  theme?: "dark" | "light";
 };
 
 export default function GameScreenshotLightbox({
   screenshots,
   gameTitle,
+  theme = "dark",
 }: GameScreenshotLightboxProps) {
+  const isLight = theme === "light";
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const openTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -85,6 +88,18 @@ export default function GameScreenshotLightbox({
 
   const active = activeIndex !== null ? screenshots[activeIndex] : null;
 
+  const thumbClass = isLight
+    ? "group cursor-pointer overflow-hidden rounded-2xl border border-slate-200/90 bg-white text-left shadow-sm transition hover:border-cyan-300/70 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+    : "group cursor-pointer overflow-hidden rounded-3xl border border-white/10 bg-black/20 text-left transition hover:border-cyan-400/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60";
+
+  const overlayBtnClass = isLight
+    ? "absolute right-4 top-4 z-[102] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-2xl font-light text-slate-700 shadow-md transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40 sm:right-6 sm:top-6"
+    : "absolute right-4 top-4 z-[102] flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 text-2xl font-light text-white transition hover:border-white/40 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 sm:right-6 sm:top-6";
+
+  const navBtnClass = isLight
+    ? "absolute top-1/2 z-[102] flex -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-md transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+    : "absolute top-1/2 z-[102] flex -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white transition hover:border-white/40 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60";
+
   return (
     <>
       <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
@@ -94,9 +109,7 @@ export default function GameScreenshotLightbox({
             type="button"
             onClick={(e) => openAt(index, e.currentTarget)}
             aria-label={`Open screenshot ${index + 1} of ${count}`}
-            className={`group cursor-pointer overflow-hidden rounded-3xl border border-white/10 bg-black/20 text-left transition hover:border-cyan-400/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 ${
-              index === 0 ? "md:col-span-2 lg:col-span-2" : ""
-            }`}
+            className={`${thumbClass} ${index === 0 ? "md:col-span-2 lg:col-span-2" : ""}`}
           >
             <img
               src={shot.image}
@@ -116,7 +129,7 @@ export default function GameScreenshotLightbox({
         >
           <button
             type="button"
-            className="absolute inset-0 bg-black/85 backdrop-blur-sm"
+            className={`absolute inset-0 backdrop-blur-sm ${isLight ? "bg-slate-900/50" : "bg-black/85"}`}
             onClick={close}
             aria-label="Close gallery"
           />
@@ -125,7 +138,7 @@ export default function GameScreenshotLightbox({
             ref={closeButtonRef}
             type="button"
             onClick={close}
-            className="absolute right-4 top-4 z-[102] flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 text-2xl font-light text-white transition hover:border-white/40 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 sm:right-6 sm:top-6"
+            className={overlayBtnClass}
             aria-label="Close gallery"
           >
             <span aria-hidden="true">×</span>
@@ -134,7 +147,7 @@ export default function GameScreenshotLightbox({
           <button
             type="button"
             onClick={goPrev}
-            className="absolute left-2 top-1/2 z-[102] flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white transition hover:border-white/40 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 sm:left-4 sm:h-14 sm:w-14"
+            className={`${navBtnClass} left-2 h-12 w-12 sm:left-4 sm:h-14 sm:w-14`}
             aria-label="Previous screenshot"
           >
             <span aria-hidden="true" className="text-2xl leading-none">
@@ -145,7 +158,7 @@ export default function GameScreenshotLightbox({
           <button
             type="button"
             onClick={goNext}
-            className="absolute right-2 top-1/2 z-[102] flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white transition hover:border-white/40 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 sm:right-4 sm:h-14 sm:w-14"
+            className={`${navBtnClass} right-2 h-12 w-12 sm:right-4 sm:h-14 sm:w-14`}
             aria-label="Next screenshot"
           >
             <span aria-hidden="true" className="text-2xl leading-none">
@@ -159,7 +172,7 @@ export default function GameScreenshotLightbox({
               alt={`${gameTitle} screenshot ${activeIndex + 1} of ${count}`}
               className="max-h-[min(78vh,820px)] w-full object-contain"
             />
-            <p className="mt-4 text-sm font-semibold text-white/55">
+            <p className={`mt-4 text-sm font-semibold ${isLight ? "text-slate-500" : "text-white/55"}`}>
               {activeIndex + 1} / {count}
             </p>
           </div>

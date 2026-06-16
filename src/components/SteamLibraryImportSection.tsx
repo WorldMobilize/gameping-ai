@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { APP_CARD, APP_INPUT, APP_SECONDARY_CTA } from "@/components/app/app-styles";
 import { useToast } from "@/components/ToastProvider";
 
 type TopGame = {
@@ -28,6 +29,9 @@ function formatPlaytime(minutes: number): string {
   if (mins === 0) return `${hours}h`;
   return `${hours}h ${mins}m`;
 }
+
+const STEAM_IMPORT_CTA =
+  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-emerald-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function SteamLibraryImportSection() {
   const { showToast } = useToast();
@@ -74,7 +78,9 @@ export default function SteamLibraryImportSection() {
   }, []);
 
   useEffect(() => {
-    void loadState();
+    queueMicrotask(() => {
+      void loadState();
+    });
   }, [loadState]);
 
   async function onImport() {
@@ -158,23 +164,23 @@ export default function SteamLibraryImportSection() {
   return (
     <section
       id="steam-library-import"
-      className="rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.06] p-8"
+      className={`${APP_CARD} border-emerald-200/80 bg-gradient-to-br from-emerald-50/60 via-white to-white p-8`}
     >
-      <p className="text-xs font-black uppercase tracking-[0.35em] text-emerald-200/90">
+      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700">
         Steam Library Import
       </p>
-      <p className="mt-3 text-sm leading-7 text-white/65">
+      <p className="mt-3 text-sm leading-7 text-slate-600">
         Import your public Steam library so GamePing can learn your taste. Taste-based
         recommendations are coming next.
       </p>
-      <p className="mt-3 text-xs leading-relaxed text-white/45">
+      <p className="mt-3 text-xs leading-relaxed text-slate-500">
         We only read game names and playtime. We never access friends, chat, inventory,
         payments, or your Steam account.
       </p>
 
       {!connected ? (
         <div className="mt-6 space-y-4">
-          <label className="block text-xs font-bold uppercase tracking-wider text-white/50">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
             Steam profile URL or Steam ID
           </label>
           <input
@@ -182,37 +188,37 @@ export default function SteamLibraryImportSection() {
             value={profileInput}
             onChange={(e) => setProfileInput(e.target.value)}
             placeholder="https://steamcommunity.com/id/yourname"
-            className="w-full rounded-xl border border-white/15 bg-black/40 px-4 py-3 text-sm outline-none focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/25"
+            className={APP_INPUT}
             disabled={importing}
           />
           <button
             type="button"
             disabled={importing}
             onClick={() => void onImport()}
-            className="rounded-full bg-emerald-400 px-6 py-3 text-sm font-black text-black transition hover:bg-emerald-300 disabled:opacity-50"
+            className={STEAM_IMPORT_CTA}
           >
             {importing ? "Importing…" : "Import library"}
           </button>
         </div>
       ) : (
         <div className="mt-6 space-y-5">
-          <div className="rounded-2xl border border-white/10 bg-black/25 p-5">
-            <p className="text-sm font-bold text-emerald-200">Connected</p>
-            <dl className="mt-4 space-y-2 text-sm text-white/75">
+          <div className="rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5">
+            <p className="text-sm font-semibold text-emerald-700">Connected</p>
+            <dl className="mt-4 space-y-2 text-sm text-slate-700">
               <div className="flex justify-between gap-4">
-                <dt className="text-white/45">Games imported</dt>
-                <dd className="font-bold">{summary.gameCount ?? 0}</dd>
+                <dt className="text-slate-500">Games imported</dt>
+                <dd className="font-semibold">{summary.gameCount ?? 0}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-white/45">Total playtime</dt>
-                <dd className="font-bold">
+                <dt className="text-slate-500">Total playtime</dt>
+                <dd className="font-semibold">
                   {formatPlaytime(summary.totalPlaytimeMin ?? 0)}
                 </dd>
               </div>
               {summary.profileUrl ? (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-white/45">Profile</dt>
-                  <dd className="truncate font-bold text-cyan-200">
+                  <dt className="text-slate-500">Profile</dt>
+                  <dd className="truncate font-semibold text-cyan-700">
                     <a
                       href={summary.profileUrl}
                       target="_blank"
@@ -229,17 +235,17 @@ export default function SteamLibraryImportSection() {
 
           {summary.topGames && summary.topGames.length > 0 ? (
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.25em] text-white/40">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
                 Top played
               </p>
               <ol className="mt-3 space-y-2">
                 {summary.topGames.map((game) => (
                   <li
                     key={game.steamAppId}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white px-4 py-3 text-sm shadow-sm"
                   >
-                    <span className="font-semibold text-white/90">{game.title}</span>
-                    <span className="shrink-0 text-white/50">
+                    <span className="font-semibold text-slate-800">{game.title}</span>
+                    <span className="shrink-0 text-slate-500">
                       {formatPlaytime(game.playtimeForever)}
                     </span>
                   </li>
@@ -252,7 +258,7 @@ export default function SteamLibraryImportSection() {
             type="button"
             disabled={disconnecting}
             onClick={() => void onDisconnect()}
-            className="rounded-full border border-white/20 px-6 py-3 text-sm font-bold text-white/75 transition hover:border-rose-400/40 hover:text-rose-200 disabled:opacity-50"
+            className={`${APP_SECONDARY_CTA} border-rose-200 text-rose-700 hover:border-rose-300 hover:bg-rose-50 disabled:opacity-50`}
           >
             {disconnecting ? "Disconnecting…" : "Disconnect Steam library"}
           </button>
