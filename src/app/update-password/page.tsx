@@ -5,11 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
+  APP_ACCENT,
   APP_AUTH_CARD,
   APP_INLINE_LINK,
   APP_INPUT,
   APP_PRIMARY_CTA_SM,
-  homeCyanAccentText,
 } from "@/components/app/app-styles";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
@@ -33,8 +33,6 @@ export default function UpdatePasswordPage() {
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<Phase>("checking");
   const [clientError, setClientError] = useState<string | null>(null);
-  const accent = homeCyanAccentText(false);
-
   const recoveryHintRef = useRef(false);
   const phaseRef = useRef<Phase>("checking");
 
@@ -140,8 +138,8 @@ export default function UpdatePasswordPage() {
           className="flex flex-1 items-center justify-center py-12"
         >
           <div className={`${APP_AUTH_CARD} text-center`}>
-            <h1 className="text-2xl font-black text-slate-900 gp-home-display">
-              Link <span className={accent}>invalid</span>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white gp-home-display">
+              Link <span className={APP_ACCENT}>invalid</span>
             </h1>
             <p className="mt-4 text-sm leading-relaxed text-slate-600">
               This reset link is invalid or expired. Please request a new one.
@@ -170,8 +168,8 @@ export default function UpdatePasswordPage() {
         className="flex flex-1 items-center justify-center py-12"
       >
         <div className={APP_AUTH_CARD}>
-          <h1 className="text-center text-3xl font-black text-slate-900 gp-home-display">
-            New <span className={accent}>password</span>
+          <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
+            New <span className={APP_ACCENT}>password</span>
           </h1>
 
           <p className="mt-3 text-center text-sm text-slate-600">

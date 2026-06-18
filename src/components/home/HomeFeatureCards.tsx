@@ -14,6 +14,10 @@ import {
 } from "@/components/home/home-styles";
 import { HomeSectionShell } from "@/components/home/HomeVisualPrimitives";
 
+function WhyMiniVisual({ id, isDark }: { id: string; isDark: boolean }) {
+  return <HomeWhyMiniVisual id={id} isDark={isDark} />;
+}
+
 function TasteInline({ isDark }: { isDark: boolean }) {
   const muted = isDark ? "text-slate-500" : "text-slate-500";
   const tagChip = isDark ? "text-sm text-slate-500 line-through" : "text-sm text-slate-400 line-through";
@@ -99,10 +103,6 @@ function whyCardTitle(id: (typeof HOME_WHY_SIMPLE)[number]["id"], isDark: boolea
   );
 }
 
-function WhyMiniVisual({ id, isDark }: { id: string; isDark: boolean }) {
-  return <HomeWhyMiniVisual id={id} isDark={isDark} />;
-}
-
 export default function HomeFeatureCards() {
   const { theme } = useHomeTheme();
   const isDark = theme === "dark";
@@ -113,7 +113,7 @@ export default function HomeFeatureCards() {
 
   return (
     <HomeSectionShell tone="why-gameping" ariaLabelledby="why-gameping-heading">
-      <header className="mx-auto max-w-2xl text-center">
+      <header className="mx-auto flex max-w-2xl flex-col items-center text-center">
         <h2 id="why-gameping-heading" className={`${HOME_SECTION_TITLE} ${text}`}>
           <span className={accent}>Why</span> GamePing
         </h2>
@@ -122,7 +122,7 @@ export default function HomeFeatureCards() {
         </p>
       </header>
 
-      <ul className="mt-14 grid gap-12 sm:gap-14 lg:grid-cols-3 lg:items-start lg:gap-10 xl:gap-14">
+      <ul className="mt-14 grid gap-12 sm:gap-14 lg:grid-cols-3 lg:items-stretch lg:gap-10 xl:gap-14">
         {HOME_WHY_SIMPLE.map((prop, i) => {
           const Inline = INLINES[i];
 

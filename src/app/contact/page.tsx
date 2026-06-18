@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
+  APP_ACCENT,
   APP_BODY_SM,
   APP_CALLOUT,
   APP_CARD_LG,
@@ -11,7 +12,6 @@ import {
   APP_PAGE_LEAD,
   APP_PAGE_TITLE,
   APP_PRIMARY_CTA_SM,
-  homeCyanAccentText,
 } from "@/components/app/app-styles";
 import { legalPageMetadata } from "@/lib/seo/legal";
 
@@ -22,8 +22,6 @@ export const metadata: Metadata = legalPageMetadata(
 );
 
 export default function ContactPage() {
-  const accent = homeCyanAccentText(false);
-
   return (
     <AppPageShell>
       <AppSection maxWidth="max-w-3xl">
@@ -37,10 +35,10 @@ export default function ContactPage() {
 
         <div className="mt-10 space-y-6">
           <div className={APP_CARD_LG}>
-            <p className={`text-xs font-semibold uppercase tracking-[0.35em] ${accent}`}>
+            <p className={`text-xs font-semibold uppercase tracking-[0.35em] ${APP_ACCENT}`}>
               General support &amp; bugs
             </p>
-            <p className={`mt-2 break-all text-lg font-bold ${accent}`}>support@gamepingai.com</p>
+            <p className={`mt-2 break-all text-lg font-bold ${APP_ACCENT}`}>support@gamepingai.com</p>
             <p className={`mt-2 ${APP_BODY_SM}`}>
               Product questions, troubleshooting, saved searches, recommendations, and technical bug
               reports.
@@ -66,18 +64,18 @@ export default function ContactPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
               Legal &amp; compliance notices
             </p>
-            <p className="mt-2 break-all text-lg font-bold text-slate-900">legal@gamepingai.com</p>
+            <p className="mt-2 break-all text-lg font-bold text-slate-900 dark:text-white">legal@gamepingai.com</p>
             <p className={`mt-2 ${APP_BODY_SM}`}>
               Formal legal notices and compliance correspondence (not for routine support).
             </p>
           </div>
 
           <div className="rounded-3xl border border-cyan-200/80 bg-cyan-50/60 p-6">
-            <p className={`text-xs font-semibold uppercase tracking-[0.35em] ${accent}`}>
+            <p className={`text-xs font-semibold uppercase tracking-[0.35em] ${APP_ACCENT}`}>
               Billing &amp; refunds
             </p>
             <p className={`mt-2 ${APP_BODY_SM}`}>
-              Start with <span className="font-semibold text-slate-900">support@gamepingai.com</span>{" "}
+              Start with <span className="font-semibold text-slate-900 dark:text-white">support@gamepingai.com</span>{" "}
               and include your billing email and approximate charge date. Premium is billed through
               Stripe; many billing actions are also available from Stripe&apos;s customer emails after
               purchase. See the{" "}
@@ -98,7 +96,7 @@ export default function ContactPage() {
                 /settings/account
               </Link>{" "}
               for a self-serve, authenticated workflow. If you are locked out, email{" "}
-              <span className="font-semibold text-slate-900">privacy@gamepingai.com</span> from the
+              <span className="font-semibold text-slate-900 dark:text-white">privacy@gamepingai.com</span> from the
               address associated with your account.
             </p>
           </div>
@@ -123,7 +121,7 @@ export default function ContactPage() {
         <div className={`mt-14 ${APP_CTA_PANEL} md:flex md:items-center md:justify-between md:gap-8`}>
           <div>
             <p className={APP_KICKER}>Next step</p>
-            <p className="mt-2 text-xl font-bold text-slate-900 md:text-2xl">
+            <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white md:text-2xl">
               Ready to discover your next game?
             </p>
           </div>

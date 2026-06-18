@@ -79,12 +79,14 @@ function DemoResultsGrid({
   viewDetailsRefIndex,
   viewDetailsRef,
   highlightViewDetailsIndex,
+  theme,
 }: {
   games: readonly RecommendResultCardGame[];
   gridRef?: RefObject<HTMLElement | null>;
   viewDetailsRefIndex?: number;
   viewDetailsRef?: RefObject<HTMLButtonElement | null>;
   highlightViewDetailsIndex?: number;
+  theme: "dark" | "light";
 }) {
   return (
     <section ref={gridRef} className="mt-5 grid items-stretch gap-4 md:grid-cols-2 md:gap-5">
@@ -93,7 +95,7 @@ function DemoResultsGrid({
           <RecommendResultCardView
             rank={index + 1}
             game={game}
-            theme="light"
+            theme={theme}
             density="page"
             showViewDetails
             fitMetaLine={HOME_HERO_DEMO_FIT_META}
@@ -111,10 +113,12 @@ function FakeCursor({
   x,
   y,
   clicking,
+  isDark,
 }: {
   x: number;
   y: number;
   clicking: boolean;
+  isDark: boolean;
 }) {
   return (
     <div
@@ -130,8 +134,8 @@ function FakeCursor({
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="drop-shadow">
         <path
           d="M5 3L5 19L9.5 14.5L13.5 21L16 19.5L12 13L18 13L5 3Z"
-          fill="white"
-          stroke="#334155"
+          fill={isDark ? "white" : "#0f172a"}
+          stroke={isDark ? "#334155" : "#94a3b8"}
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
@@ -140,14 +144,20 @@ function FakeCursor({
   );
 }
 
-function StaticWalkthrough({ panelClass }: { panelClass: string }) {
+function StaticWalkthrough({
+  panelClass,
+  demoTheme,
+}: {
+  panelClass: string;
+  demoTheme: "dark" | "light";
+}) {
   return (
     <div className={`gp-home-card overflow-hidden rounded-[24px] border ${panelClass}`}>
       <div className="p-5 sm:p-6 lg:p-8">
         <div className={`${STAGE_CLASS} overflow-hidden`} style={{ contain: "layout" }}>
           <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
             <RecommendPromptSection
-              theme="light"
+              theme={demoTheme}
               density="page"
               value={HOME_HERO_DEMO_PROMPT}
               maxLength={PROMPT_MAX_DEFAULT}
@@ -156,7 +166,7 @@ function StaticWalkthrough({ panelClass }: { panelClass: string }) {
               filtersEnabled={false}
               onToggleFilters={() => undefined}
             />
-            <RecommendSearchCta theme="light" />
+            <RecommendSearchCta theme={demoTheme} />
           </form>
         </div>
       </div>
@@ -171,7 +181,9 @@ function applyTapeScroll(tape: HTMLElement | null, scrollY: number) {
 
 export default function HomeHeroTasteVisual() {
   const { theme } = useHomeTheme();
-  const panelClass = theme === "dark" ? "gp-home-card-dark" : "gp-home-card-light";
+  const demoTheme = theme;
+  const isDarkDemo = theme === "dark";
+  const panelClass = isDarkDemo ? "gp-home-card-dark" : "gp-home-card-light";
 
   const [reducedMotion, setReducedMotion] = useState(false);
   const [layoutReady, setLayoutReady] = useState(false);
@@ -498,7 +510,7 @@ export default function HomeHeroTasteVisual() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [layoutReady, reducedMotion, measureLiveCursor, measureScrollMetrics, syncTapeScroll]);
 
-  if (reducedMotion) return <StaticWalkthrough panelClass={panelClass} />;
+  if (reducedMotion) return <StaticWalkthrough panelClass={panelClass} demoTheme={demoTheme} />;
 
   const { phase } = frame;
 
@@ -543,7 +555,7 @@ export default function HomeHeroTasteVisual() {
             <div ref={tapeRef} style={{ transform: `translateY(-${frame.scrollY}px)` }}>
               <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
                 <RecommendPromptSection
-                  theme="light"
+                  theme={demoTheme}
                   density="page"
                   value={promptValue}
                   maxLength={PROMPT_MAX_DEFAULT}
@@ -557,7 +569,7 @@ export default function HomeHeroTasteVisual() {
                   togglePulse={false}
                 />
                 <RecommendSearchCta
-                  theme="light"
+                  theme={demoTheme}
                   loading={searchCtaLoading}
                   buttonRef={getMyPicksRef}
                   highlightButton={phase === "search-cursor-click"}
@@ -572,9 +584,10 @@ export default function HomeHeroTasteVisual() {
                 }`}
                 aria-hidden={!frame.resultsRevealed}
               >
-                <RecommendResultsHeader theme="light" />
+                <RecommendResultsHeader theme={demoTheme} />
                 <DemoResultsGrid
                   games={activeResults}
+                  theme={demoTheme}
                   gridRef={resultsGridRef}
                   viewDetailsRefIndex={
                     frame.showRefinedResults ? HERO_DEMO_REFINED_VIEW_DETAILS_CARD_INDEX : undefined
@@ -596,7 +609,7 @@ export default function HomeHeroTasteVisual() {
                 aria-hidden={!frame.resultsRevealed || frame.hideRefinePanel}
               >
                 <RecommendRefinePanel
-                  theme="light"
+                  theme={demoTheme}
                   density="page"
                   value={refineValue}
                   readOnly
@@ -615,6 +628,7 @@ export default function HomeHeroTasteVisual() {
                 x={frame.cursor.x}
                 y={frame.cursor.y}
                 clicking={frame.cursor.clicking}
+                isDark={isDarkDemo}
               />
             ) : null}
           </div>

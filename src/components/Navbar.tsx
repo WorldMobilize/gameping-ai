@@ -1,19 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import EmailVerificationNotice from "@/components/EmailVerificationNotice";
+import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import NavDrawer from "@/components/NavDrawer";
+import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
 type NavbarProps = {
   ctaLabel?: string;
   ctaHref?: string;
-  theme?: "dark" | "light";
-  showHomeThemeToggle?: boolean;
-  onHomeThemeToggle?: () => void;
 };
 
 function displayNameFromMetadata(
@@ -62,25 +62,26 @@ const HOME_NAV_DISCOVERY_LINKS = [
   { label: "Games of the week", href: "/games-of-the-week" },
 ] as const;
 
-/** Admin-only preview links — desktop nav shows these only when plan === "admin". */
-const HOME_NAV_ADMIN_LINKS = [
+/** Premium discovery links — desktop nav shows these only when plan is premium or admin. */
+const HOME_NAV_PREMIUM_LINKS = [
   { label: "Weekly picks", href: "/weekly-picks" },
   { label: "Deals for you", href: "/deals-for-you" },
+  { label: "Monthly recap", href: "/monthly-recap" },
 ] as const;
 
 export default function Navbar({
   ctaLabel = "Try GamePing",
   ctaHref = "/recommend",
-  theme = "light",
-  showHomeThemeToggle = false,
-  onHomeThemeToggle,
 }: NavbarProps) {
+  const pathname = usePathname();
+  const isHomePage = pathname === "/";
+  const { theme, toggleTheme } = useHomeTheme();
   const isLight = theme === "light";
   const { showToast } = useToast();
   const homeNavLinkClass = `${isLight ? "text-slate-600 hover:text-cyan-700" : "text-slate-400 hover:text-cyan-300"} shrink-0 items-center whitespace-nowrap text-sm font-semibold transition`;
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [hasPremiumDiscovery, setHasPremiumDiscovery] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
@@ -112,12 +113,12 @@ export default function Navbar({
   useEffect(() => {
     let cancelled = false;
 
-    async function loadAdmin() {
+    async function loadPremiumDiscovery() {
       const { data } = await supabase.auth.getUser();
       if (cancelled) return;
 
       if (!data.user) {
-        setIsAdmin(false);
+        setHasPremiumDiscovery(false);
         return;
       }
 
@@ -127,13 +128,13 @@ export default function Navbar({
         .eq("user_id", data.user.id)
         .maybeSingle();
 
-      if (!cancelled) setIsAdmin(profile?.plan === "admin");
+      if (!cancelled) setHasPremiumDiscovery(hasPremiumDiscoveryAccess(profile?.plan));
     }
 
-    void loadAdmin();
+    void loadPremiumDiscovery();
 
     const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      void loadAdmin();
+      void loadPremiumDiscovery();
     });
 
     return () => {
@@ -319,14 +320,12 @@ export default function Navbar({
       className={`gp-nav-bar relative z-30 w-full border-b backdrop-blur-xl ${
         isLight
           ? "border-slate-200/80 bg-white/85 shadow-sm shadow-slate-200/40"
-          : showHomeThemeToggle
-            ? "border-slate-800/80 bg-[#0b0f1a]/90"
-            : "border-white/10 bg-[#05060f]/80"
+          : "border-slate-800/80 bg-[#0b0f1a]/90"
       }`}
     >
       <div
         className={`gp-nav-inner flex w-full items-center py-4 sm:py-5 ${
-          showHomeThemeToggle ? "gp-nav-home-layout" : "justify-between gap-4"
+          isHomePage ? "gp-nav-home-layout" : "justify-between gap-4"
         }`}
       >
         <div className="gp-nav-brand relative z-0 flex shrink-0 items-center gap-3">
@@ -384,7 +383,7 @@ export default function Navbar({
           </Link>
         </div>
 
-        {showHomeThemeToggle ? (
+        {isHomePage ? (
           <nav className="gp-nav-home-links" aria-label="Primary navigation">
             {HOME_NAV_CORE_LINKS.map((item) =>
               item.href.startsWith("#") ? (
@@ -418,7 +417,7 @@ export default function Navbar({
               ))}
             </span>
 
-            {isAdmin ? (
+            {hasPremiumDiscovery ? (
               <span className="hidden items-center gap-7 2xl:flex">
                 <span
                   className={`h-5 w-px shrink-0 ${isLight ? "bg-slate-200" : "bg-white/15"}`}
@@ -426,12 +425,12 @@ export default function Navbar({
                 />
                 <span
                   className={`shrink-0 text-[10px] font-black uppercase tracking-[0.22em] ${
-                    isLight ? "text-amber-700" : "text-amber-300/90"
+                    isLight ? "text-violet-700" : "text-violet-300/90"
                   }`}
                 >
-                  Admin
+                  Premium
                 </span>
-                {HOME_NAV_ADMIN_LINKS.map((item) => (
+                {HOME_NAV_PREMIUM_LINKS.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
@@ -447,41 +446,37 @@ export default function Navbar({
 
         <div
           className={`gp-nav-actions relative z-0 flex shrink-0 items-center gap-3 ${
-            showHomeThemeToggle ? "ml-auto" : ""
+            isHomePage ? "ml-auto" : ""
           }`}
         >
-          {showHomeThemeToggle && onHomeThemeToggle ? (
-            <button
-              type="button"
-              onClick={onHomeThemeToggle}
-              className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border p-0 transition focus-visible:outline-none focus-visible:ring-2 ${
-                isLight
-                  ? "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-cyan-500/40"
-                  : "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800 focus-visible:ring-cyan-400/40"
-              }`}
-              aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
-            >
-              {isLight ? (
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              ) : (
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" strokeLinecap="round" />
-                </svg>
-              )}
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border p-0 transition focus-visible:outline-none focus-visible:ring-2 ${
+              isLight
+                ? "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-cyan-500/40"
+                : "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800 focus-visible:ring-cyan-400/40"
+            }`}
+            aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
+          >
+            {isLight ? (
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
 
           <Link
             href="/upgrade"
             className={`relative z-0 hidden shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition sm:inline-flex sm:items-center sm:px-4 sm:py-2 ${
               isLight
                 ? "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                : showHomeThemeToggle
-                  ? "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800"
-                  : "border-white/15 bg-white/[0.04] text-white/70 hover:border-cyan-400/40 hover:text-cyan-200"
+                : "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800"
             }`}
           >
             Premium
@@ -492,12 +487,12 @@ export default function Navbar({
               <Link
                 href={ctaHref}
                 className={`relative z-0 shrink-0 rounded-full px-3.5 py-2 text-sm font-semibold shadow-md transition sm:px-5 sm:py-2.5 xl:px-6 xl:py-3 xl:text-base ${
-                  isLight || showHomeThemeToggle
+                  isLight
                     ? "bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-cyan-600/25 hover:-translate-y-0.5 hover:from-cyan-700 hover:to-cyan-600 hover:shadow-lg hover:shadow-cyan-600/30"
-                    : "bg-white/10 shadow-none hover:bg-white/20"
+                    : "bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-cyan-600/20 hover:-translate-y-0.5 hover:from-cyan-500 hover:to-cyan-400"
                 }`}
               >
-                {showHomeThemeToggle ? (
+                {isHomePage ? (
                   <>
                     <span className="hidden xl:inline">{ctaLabel}</span>
                     <span className="xl:hidden">Try GamePing</span>
@@ -512,9 +507,7 @@ export default function Navbar({
                 className={`relative z-0 inline-flex shrink-0 items-center rounded-full border px-3.5 py-2 text-sm font-semibold transition sm:px-4 sm:py-2.5 md:px-5 md:py-3 md:text-base ${
                   isLight
                     ? "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                    : showHomeThemeToggle
-                      ? "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800"
-                      : "border-white/20 hover:bg-white/10"
+                    : "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800"
                 }`}
               >
                 Login

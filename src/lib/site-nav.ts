@@ -25,14 +25,19 @@ export const SITE_NAV_ITEMS: SiteNavItem[] = [
   },
 ];
 
-/** Admin-only discovery previews — never shown publicly or in desktop nav/footer. */
-export const ADMIN_NAV_ITEMS: SiteNavItem[] = [
+/** Premium discovery — shown in nav only when plan is premium or admin. */
+export const PREMIUM_DISCOVERY_NAV_ITEMS: SiteNavItem[] = [
   {
     label: "Your weekly picks",
     href: "/weekly-picks",
     matchPrefix: "/weekly-picks",
   },
   { label: "Deals for you", href: "/deals-for-you", matchPrefix: "/deals-for-you" },
+  {
+    label: "Monthly recap",
+    href: "/monthly-recap",
+    matchPrefix: "/monthly-recap",
+  },
 ];
 
 export function isSiteNavItemActive(

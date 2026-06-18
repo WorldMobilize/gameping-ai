@@ -35,19 +35,19 @@ const SECTION_BG: Record<HomeSectionTone, SectionBg> = {
     blobDarkB: "bg-violet-500/6 gp-home-blob-drift-alt",
   },
   "how-it-works": {
-    light: "bg-[#FAFBFF]",
+    light: "bg-white",
     dark: "bg-[#0a0e18]",
-    blobLightA: "bg-cyan-200/12 gp-home-blob-drift",
+    blobLightA: "opacity-0",
     blobLightB: "opacity-0",
-    blobDarkA: "bg-cyan-500/6 gp-home-blob-drift",
+    blobDarkA: "opacity-0",
     blobDarkB: "opacity-0",
   },
   "why-gameping": {
     light: "bg-white",
     dark: "bg-[#0b0f1a]",
-    blobLightA: "bg-violet-200/12 gp-home-blob-drift-alt",
+    blobLightA: "opacity-0",
     blobLightB: "opacity-0",
-    blobDarkA: "bg-violet-500/6 gp-home-blob-drift-alt",
+    blobDarkA: "opacity-0",
     blobDarkB: "opacity-0",
   },
   taste: {
@@ -83,11 +83,11 @@ const SECTION_BG: Record<HomeSectionTone, SectionBg> = {
     blobDarkB: "opacity-0",
   },
   "coming-soon": {
-    light: "bg-[#FAFBFF]",
+    light: "bg-white",
     dark: "bg-[#0a0e18]",
-    blobLightA: "bg-cyan-200/10 gp-home-blob-drift",
+    blobLightA: "opacity-0",
     blobLightB: "opacity-0",
-    blobDarkA: "bg-cyan-500/5 gp-home-blob-drift",
+    blobDarkA: "opacity-0",
     blobDarkB: "opacity-0",
   },
   cta: {
@@ -143,10 +143,10 @@ export function HomeSectionShell({
     <section
       id={id}
       aria-labelledby={ariaLabelledby}
-      className={`relative overflow-hidden py-14 sm:py-16 lg:py-20 ${isDark ? bg.dark : bg.light} ${className}`}
+      className={`relative isolate overflow-hidden py-14 sm:py-16 lg:py-20 ${isDark ? bg.dark : bg.light} ${className}`}
     >
       <SectionBlobs bg={bg} isDark={isDark} />
-      <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">{children}</div>
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">{children}</div>
     </section>
   );
 }

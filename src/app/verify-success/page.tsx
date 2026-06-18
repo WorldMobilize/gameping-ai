@@ -1,10 +1,10 @@
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
-import { homeCyanAccentText } from "@/components/app/app-styles";
+import { APP_ACCENT, APP_AUTH_CARD } from "@/components/app/app-styles";
 
 function SuccessCheckIcon() {
   return (
     <svg
-      className="h-7 w-7 text-cyan-600"
+      className="h-7 w-7 text-cyan-600 dark:text-cyan-400"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -18,31 +18,26 @@ function SuccessCheckIcon() {
 }
 
 export default function VerifySuccessPage() {
-  const accent = homeCyanAccentText(false);
-
   return (
     <AppPageShell bare>
       <AppSection maxWidth="max-w-md" className="flex min-h-screen items-center justify-center py-12">
-        <div
-          className="w-full rounded-3xl border border-slate-200/90 bg-white px-10 py-11 text-center shadow-lg shadow-slate-200/50"
-          role="status"
-        >
+        <div className={`w-full text-center ${APP_AUTH_CARD}`} role="status">
           <div
-            className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200/80 bg-gradient-to-br from-cyan-50 via-white to-violet-50 shadow-sm"
+            className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200/80 bg-gradient-to-br from-cyan-50 via-white to-violet-50 shadow-sm dark:border-cyan-800/60 dark:from-cyan-950/40 dark:via-slate-900 dark:to-violet-950/30"
             aria-hidden
           >
             <SuccessCheckIcon />
           </div>
 
-          <p className={`mt-6 text-[10px] font-bold uppercase tracking-[0.32em] ${accent}`}>
+          <p className={`mt-6 text-[10px] font-bold uppercase tracking-[0.32em] ${APP_ACCENT}`}>
             GamePing AI
           </p>
 
-          <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 gp-home-display md:text-[1.65rem]">
+          <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white gp-home-display md:text-[1.65rem]">
             Email verified
           </h1>
 
-          <p className="mx-auto mt-4 max-w-[18rem] text-pretty text-sm leading-6 text-slate-600">
+          <p className="mx-auto mt-4 max-w-[18rem] text-pretty text-sm leading-6 text-slate-700 dark:text-slate-300">
             You can close this page and return to GamePing AI to{" "}
             <span className="whitespace-nowrap">log in.</span>
           </p>

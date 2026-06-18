@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  applyHomeThemeToDocument,
   readStoredHomeTheme,
   storeHomeTheme,
   type HomeTheme,
@@ -24,13 +25,20 @@ type HomeThemeContextValue = {
 const HomeThemeContext = createContext<HomeThemeContextValue | null>(null);
 
 export function HomeThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<HomeTheme>("light");
+  const [theme, setTheme] = useState<HomeTheme>("dark");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setTheme(readStoredHomeTheme());
+    const stored = readStoredHomeTheme();
+    setTheme(stored);
+    applyHomeThemeToDocument(stored);
     setReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    applyHomeThemeToDocument(theme);
+  }, [theme, ready]);
 
   const toggleTheme = useCallback(() => {
     setTheme((current) => {

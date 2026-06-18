@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { APP_CARD, APP_MUTED } from "@/components/app/app-styles";
+import { APP_CARD, APP_CARD_TITLE, APP_MUTED } from "@/components/app/app-styles";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import type { DealForYouPick } from "@/lib/discovery/placeholder-data";
 
@@ -19,7 +19,7 @@ export default function DealForYouCard({ pick }: { pick: DealForYouPick }) {
         />
       </Link>
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="text-lg font-extrabold text-slate-900">
+        <h3 className={APP_CARD_TITLE}>
           <Link href={href} className="transition hover:text-cyan-700">
             {pick.title}
           </Link>

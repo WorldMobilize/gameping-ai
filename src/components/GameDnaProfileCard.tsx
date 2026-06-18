@@ -25,11 +25,11 @@ function BuildGameDnaCard() {
   return (
     <div className={`${APP_CARD} p-7`}>
       <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">Taste DNA</p>
-      <h2 className="mt-4 text-3xl font-extrabold text-slate-900 gp-home-display">Build your Game DNA</h2>
-      <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+      <h2 className="mt-4 text-3xl font-extrabold text-slate-900 dark:text-white gp-home-display">Build your Game DNA</h2>
+      <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-700 dark:text-slate-300">
         Connect your Steam library and let GamePing understand your gaming taste.
       </p>
-      <p className="mt-4 text-sm text-slate-500">
+      <p className="mt-4 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
         Taste-based recommendations are coming next. This preview only analyzes your imported
         Steam playtime.
       </p>
@@ -53,27 +53,27 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
     return (
       <div className={`${APP_CARD} p-7`}>
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">Taste DNA</p>
-        <h2 className="mt-4 text-3xl font-extrabold text-slate-900 gp-home-display">Your Game DNA 🧬</h2>
+        <h2 className="mt-4 text-3xl font-extrabold text-slate-900 dark:text-white gp-home-display">Your Game DNA 🧬</h2>
         <p className="mt-3 text-sm font-semibold text-cyan-700">{tasteDna.playerArchetype}</p>
 
-        <p className="mt-5 text-lg leading-8 text-slate-600">{tasteDna.summary}</p>
+        <p className="mt-5 text-lg leading-8 text-slate-700 dark:text-slate-300">{tasteDna.summary}</p>
 
-        <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+        <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 dark:text-slate-500">
           Based on
         </p>
-        <p className="mt-2 text-lg text-slate-800">
+        <p className="mt-2 text-lg text-slate-800 dark:text-slate-200">
           {tasteDna.stats.ownedCount} games · {hours} hours analyzed
         </p>
 
         {motivations.length > 0 ? (
           <div className="mt-8">
-            <p className="text-sm font-semibold text-slate-900">Core motivations:</p>
-            <ul className="mt-3 space-y-4 text-base leading-7 text-slate-600">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Core motivations:</p>
+            <ul className="mt-3 space-y-4 text-base leading-7 text-slate-700 dark:text-slate-300">
               {motivations.map((motivation) => (
                 <li key={motivation.trait}>
-                  <span className="font-semibold text-slate-900">{motivation.trait}</span>
-                  <span className="text-slate-500"> · {Math.round(motivation.confidence * 100)}%</span>
-                  <p className="mt-1 text-sm leading-6 text-slate-500">{motivation.reason}</p>
+                  <span className="font-semibold text-slate-900 dark:text-white">{motivation.trait}</span>
+                  <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500"> · {Math.round(motivation.confidence * 100)}%</span>
+                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400 dark:text-slate-500">{motivation.reason}</p>
                 </li>
               ))}
             </ul>
@@ -82,8 +82,8 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
 
         {likes.length > 0 ? (
           <div className="mt-8">
-            <p className="text-sm font-semibold text-slate-900">You gravitate toward:</p>
-            <ul className="mt-3 space-y-2 text-lg leading-8 text-slate-600">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">You gravitate toward:</p>
+            <ul className="mt-3 space-y-2 text-lg leading-8 text-slate-700 dark:text-slate-300">
               {likes.map((like) => (
                 <li key={like}>- {formatLikeForDisplay(like)}</li>
               ))}
@@ -93,8 +93,8 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
 
         {signals.length > 0 ? (
           <div className="mt-8">
-            <p className="text-sm font-semibold text-slate-900">Strongest signals:</p>
-            <ul className="mt-3 space-y-2 text-lg leading-8 text-slate-600">
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">Strongest signals:</p>
+            <ul className="mt-3 space-y-2 text-lg leading-8 text-slate-700 dark:text-slate-300">
               {signals.map((title) => (
                 <li key={title}>- {title}</li>
               ))}
@@ -102,7 +102,7 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
           </div>
         ) : null}
 
-        <p className="mt-8 text-xs leading-relaxed text-slate-400">
+        <p className="mt-8 text-xs leading-relaxed text-slate-400 dark:text-slate-500">
           Recommendations do not use Taste DNA yet. Personal recommendations are coming next.
         </p>
       </div>
@@ -115,19 +115,19 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
   return (
     <div className={`${APP_CARD} p-7`}>
       <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">Taste DNA</p>
-      <h2 className="mt-4 text-3xl font-extrabold text-slate-900 gp-home-display">Your Game DNA 🧬</h2>
+      <h2 className="mt-4 text-3xl font-extrabold text-slate-900 dark:text-white gp-home-display">Your Game DNA 🧬</h2>
 
-      <p className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+      <p className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 dark:text-slate-500">
         Based on
       </p>
-      <p className="mt-2 text-lg text-slate-800">
+      <p className="mt-2 text-lg text-slate-800 dark:text-slate-200">
         {tasteDna.stats.ownedCount} games · {hours} hours analyzed
       </p>
 
       {likes.length > 0 ? (
         <div className="mt-8">
-          <p className="text-sm font-semibold text-slate-900">You love:</p>
-          <ul className="mt-3 space-y-2 text-lg leading-8 text-slate-600">
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">You love:</p>
+          <ul className="mt-3 space-y-2 text-lg leading-8 text-slate-700 dark:text-slate-300">
             {likes.map((like) => (
               <li key={like}>- {formatLikeForDisplay(like)}</li>
             ))}
@@ -137,8 +137,8 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
 
       {signals.length > 0 ? (
         <div className="mt-8">
-          <p className="text-sm font-semibold text-slate-900">Strongest signals:</p>
-          <ul className="mt-3 space-y-2 text-lg leading-8 text-slate-600">
+          <p className="text-sm font-semibold text-slate-900 dark:text-white">Strongest signals:</p>
+          <ul className="mt-3 space-y-2 text-lg leading-8 text-slate-700 dark:text-slate-300">
             {signals.map((title) => (
               <li key={title}>- {title}</li>
             ))}
@@ -146,7 +146,7 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
         </div>
       ) : null}
 
-      <p className="mt-8 text-xs leading-relaxed text-slate-400">
+      <p className="mt-8 text-xs leading-relaxed text-slate-400 dark:text-slate-500">
         Recommendations do not use Taste DNA yet. Personal recommendations are coming next.
       </p>
     </div>

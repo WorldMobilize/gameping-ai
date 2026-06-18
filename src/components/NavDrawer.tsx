@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import {
-  ADMIN_NAV_ITEMS,
   isSiteNavItemActive,
+  PREMIUM_DISCOVERY_NAV_ITEMS,
   SITE_NAV_ITEMS,
   type SiteNavItem,
 } from "@/lib/site-nav";
+import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
 import { supabase } from "@/lib/supabase";
 
 type Props = {
@@ -21,17 +22,17 @@ type Props = {
 export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
   const isLight = theme === "light";
   const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [hasPremiumDiscovery, setHasPremiumDiscovery] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadAdmin() {
+    async function loadPremiumDiscovery() {
       const { data } = await supabase.auth.getUser();
       if (cancelled) return;
 
       if (!data.user) {
-        setIsAdmin(false);
+        setHasPremiumDiscovery(false);
         return;
       }
 
@@ -41,13 +42,13 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
         .eq("user_id", data.user.id)
         .maybeSingle();
 
-      if (!cancelled) setIsAdmin(profile?.plan === "admin");
+      if (!cancelled) setHasPremiumDiscovery(hasPremiumDiscoveryAccess(profile?.plan));
     }
 
-    void loadAdmin();
+    void loadPremiumDiscovery();
 
     const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      void loadAdmin();
+      void loadPremiumDiscovery();
     });
 
     return () => {
@@ -155,20 +156,20 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
         <nav className="relative flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
           {SITE_NAV_ITEMS.map(renderNavItem)}
 
-          {isAdmin ? (
+          {hasPremiumDiscovery ? (
             <div
               className={`mt-4 flex flex-col gap-1 border-t border-dashed pt-4 ${
-                isLight ? "border-amber-300/70" : "border-amber-400/25"
+                isLight ? "border-violet-300/70" : "border-violet-400/25"
               }`}
             >
               <p
                 className={`px-4 pb-2 text-[10px] font-black uppercase tracking-[0.28em] ${
-                  isLight ? "text-amber-700" : "text-amber-300/90"
+                  isLight ? "text-violet-700" : "text-violet-300/90"
                 }`}
               >
-                Admin preview
+                Premium discovery
               </p>
-              {ADMIN_NAV_ITEMS.map(renderNavItem)}
+              {PREMIUM_DISCOVERY_NAV_ITEMS.map(renderNavItem)}
             </div>
           ) : null}
         </nav>

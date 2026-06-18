@@ -10,12 +10,12 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
+  APP_ACCENT,
   APP_AUTH_CARD,
   APP_INLINE_LINK,
   APP_INPUT,
   APP_PRIMARY_CTA_SM,
   APP_SECONDARY_CTA,
-  homeCyanAccentText,
 } from "@/components/app/app-styles";
 import { useToast } from "@/components/ToastProvider";
 import { validateSignupPassword } from "@/lib/auth-email-verification";
@@ -63,8 +63,6 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const accent = homeCyanAccentText(false);
-
   useEffect(() => {
     if (authCode && !emailVerified) {
       const next = encodeURIComponent(VERIFY_SUCCESS_PATH);
@@ -187,8 +185,8 @@ function LoginForm() {
         className="flex flex-1 items-center justify-center py-12"
       >
         <div className={APP_AUTH_CARD}>
-          <h1 className="text-center text-3xl font-black text-slate-900 gp-home-display">
-            Welcome to <span className={accent}>GamePing AI</span>
+          <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
+            Welcome to <span className={APP_ACCENT}>GamePing AI</span>
           </h1>
 
           <p className="mt-3 text-center text-sm text-slate-600">

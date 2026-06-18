@@ -28,7 +28,7 @@ export default function HomeHowItWorks() {
       ariaLabelledby="how-it-works-title"
       className="scroll-mt-0"
     >
-      <header className="mx-auto max-w-2xl text-center">
+      <header className="mx-auto flex max-w-2xl flex-col items-center text-center">
         <h2 id="how-it-works-title" className={`${HOME_SECTION_TITLE} ${text}`}>
           How GamePing <span className={accent}>works</span>
         </h2>

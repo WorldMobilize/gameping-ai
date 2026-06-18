@@ -1,9 +1,23 @@
 @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&display=swap");
 @import "tailwindcss";
+
+@custom-variant dark (&:where(html[data-home-theme="dark"], html[data-home-theme="dark"] *));
+
 @import "../styles/home-light.css";
+@import "../styles/upgrade-page.css";
 @import "../styles/ping-assistant.css";
 
 :root {
+  --background: #ffffff;
+  --foreground: #0f172a;
+}
+
+html[data-home-theme="dark"] {
+  --background: #0b0f1a;
+  --foreground: #f1f5f9;
+}
+
+html[data-home-theme="light"] {
   --background: #ffffff;
   --foreground: #0f172a;
 }
@@ -620,6 +634,93 @@ body {
 }
 .gp-mini-title-amber {
   color: #fcd34d;
+}
+
+/* Light theme — showcase / mini-card icons readable on pastel panels */
+html[data-home-theme="light"] .gp-home-showcase-inner {
+  border-color: rgb(226 232 240 / 0.9);
+  background: linear-gradient(
+    168deg,
+    rgb(255 255 255 / 0.98) 0%,
+    rgb(248 250 252 / 0.96) 45%,
+    rgb(241 245 249 / 0.94) 100%
+  );
+  box-shadow:
+    0 24px 60px -20px rgb(100 116 139 / 0.18),
+    0 0 0 1px rgb(226 232 240 / 0.6) inset;
+}
+
+html[data-home-theme="light"] .gp-home-mini-card {
+  border-color: rgb(226 232 240 / 0.85);
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 0.92) 0%,
+    rgb(248 250 252 / 0.88) 100%
+  );
+}
+
+html[data-home-theme="light"] .gp-home-mini-card:hover {
+  border-color: rgb(203 213 225 / 0.95);
+}
+
+html[data-home-theme="light"] .gp-mini-violet .gp-home-mini-icon {
+  color: #6d28d9;
+  background: linear-gradient(145deg, rgb(237 233 254 / 0.95), rgb(221 214 254 / 0.55));
+  border-color: rgb(196 181 253 / 0.65);
+  box-shadow: 0 6px 24px -8px rgb(139 92 246 / 0.25);
+}
+
+html[data-home-theme="light"] .gp-mini-title-violet {
+  color: #5b21b6;
+}
+
+html[data-home-theme="light"] .gp-mini-mint .gp-home-mini-icon {
+  color: #0f766e;
+  background: linear-gradient(145deg, rgb(204 251 241 / 0.95), rgb(153 246 228 / 0.45));
+  border-color: rgb(94 234 212 / 0.55);
+  box-shadow: 0 6px 24px -8px rgb(45 212 191 / 0.22);
+}
+
+html[data-home-theme="light"] .gp-mini-title-mint {
+  color: #0f766e;
+}
+
+html[data-home-theme="light"] .gp-mini-coral .gp-home-mini-icon {
+  color: #be123c;
+  background: linear-gradient(145deg, rgb(255 228 230 / 0.95), rgb(254 205 211 / 0.5));
+  border-color: rgb(253 164 175 / 0.6);
+  box-shadow: 0 6px 24px -8px rgb(251 113 133 / 0.2);
+}
+
+html[data-home-theme="light"] .gp-mini-title-coral {
+  color: #be123c;
+}
+
+html[data-home-theme="light"] .gp-mini-amber .gp-home-mini-icon {
+  color: #b45309;
+  background: linear-gradient(145deg, rgb(254 243 199 / 0.95), rgb(253 230 138 / 0.45));
+  border-color: rgb(252 211 77 / 0.55);
+  box-shadow: 0 6px 24px -8px rgb(251 191 36 / 0.2);
+}
+
+html[data-home-theme="light"] .gp-mini-title-amber {
+  color: #b45309;
+}
+
+html[data-home-theme="light"] .gp-tone-cyan .gp-home-value-icon {
+  color: #0f766e;
+}
+
+html[data-home-theme="light"] .gp-tone-violet .gp-home-value-icon {
+  color: #6d28d9;
+}
+
+html[data-home-theme="light"] .gp-tone-amber .gp-home-value-icon {
+  color: #b45309;
+}
+
+html[data-home-theme="light"] .gp-tone-rose .gp-home-value-icon {
+  color: #be123c;
 }
 
 /* ---- Ping showcase orb (horizontal waveform) ---- */

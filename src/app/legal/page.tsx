@@ -2,11 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
+  APP_ACCENT,
   APP_CARD_INTERACTIVE_LG,
   APP_KICKER,
   APP_PAGE_LEAD,
   APP_PAGE_TITLE,
-  homeCyanAccentText,
 } from "@/components/app/app-styles";
 import { legalPageMetadata } from "@/lib/seo/legal";
 
@@ -27,8 +27,6 @@ const LINKS = [
 ] as const;
 
 export default function LegalHubPage() {
-  const accent = homeCyanAccentText(false);
-
   return (
     <AppPageShell>
       <AppSection>
@@ -42,10 +40,10 @@ export default function LegalHubPage() {
         <div className="mt-12 grid gap-5 sm:grid-cols-2">
           {LINKS.map((item) => (
             <Link key={item.href} href={item.href} className={`group block ${APP_CARD_INTERACTIVE_LG}`}>
-              <p className={`text-sm font-bold transition group-hover:text-cyan-800 ${accent}`}>
+              <p className={`text-sm font-bold transition group-hover:text-cyan-800 dark:group-hover:text-cyan-400 ${APP_ACCENT}`}>
                 {item.title}
               </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{item.desc}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">{item.desc}</p>
             </Link>
           ))}
         </div>

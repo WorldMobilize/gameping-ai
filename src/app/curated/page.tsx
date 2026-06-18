@@ -1,13 +1,13 @@
 import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
+  APP_ACCENT,
   APP_CARD_INTERACTIVE_LG,
   APP_INLINE_LINK,
   APP_KICKER,
   APP_PAGE_LEAD,
   APP_PAGE_TITLE,
   APP_PRIMARY_CTA_SM,
-  homeCyanAccentText,
 } from "@/components/app/app-styles";
 import { CURATED_COLLECTIONS } from "@/lib/curated/collections";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
@@ -21,14 +21,12 @@ export const metadata: Metadata = buildPublicPageMetadata({
 });
 
 export default function CuratedIndexPage() {
-  const accent = homeCyanAccentText(false);
-
   return (
     <AppPageShell>
       <AppSection>
         <p className={APP_KICKER}>SEO collections</p>
         <h1 className={APP_PAGE_TITLE}>
-          Curated <span className={accent}>game lists</span>
+          Curated <span className={APP_ACCENT}>game lists</span>
         </h1>
         <p className={APP_PAGE_LEAD}>
           Starting points for common searches—each page has context, examples, and links to dive
@@ -47,19 +45,19 @@ export default function CuratedIndexPage() {
                 className={`group flex flex-col md:flex-row md:items-center md:justify-between md:gap-6 ${APP_CARD_INTERACTIVE_LG}`}
               >
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900 group-hover:text-cyan-800">
+                  <h2 className="text-xl font-bold text-slate-900 group-hover:text-cyan-800 dark:text-white dark:group-hover:text-cyan-400">
                     {c.h1}
                   </h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{c.intro}</p>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-700 dark:text-slate-300">{c.intro}</p>
                 </div>
-                <span className={`mt-4 shrink-0 text-sm font-bold md:mt-0 ${accent}`}>Read</span>
+                <span className={`mt-4 shrink-0 text-sm font-bold md:mt-0 ${APP_ACCENT}`}>Read</span>
               </Link>
             </li>
           ))}
         </ul>
 
-        <div className="mt-12 rounded-3xl border border-cyan-200/80 bg-cyan-50/60 p-6">
-          <p className="text-sm font-bold text-slate-800">
+        <div className="mt-12 rounded-3xl border border-cyan-200/80 bg-cyan-50/60 p-6 dark:border-cyan-900/50 dark:bg-cyan-950/30">
+          <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
             Want picks tailored to you—not a static list?
           </p>
           <Link href="/recommend" className={`mt-3 inline-flex ${APP_PRIMARY_CTA_SM}`}>

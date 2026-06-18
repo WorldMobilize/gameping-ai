@@ -29,7 +29,7 @@ import {
 } from "@/lib/pricing/price-service";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import PersonalGameFitCard from "@/components/PersonalGameFitCard";
-import GameDetailView from "@/components/game/GameDetailView";
+import GameDetailWithTheme from "@/components/game/GameDetailWithTheme";
 import { buildGameDetailViewData } from "@/components/game/build-game-detail-view-data";
 
 type RawgGame = {
@@ -479,9 +479,8 @@ export default async function GameDetailPage({
         <GamePageAnalytics title={displayTitle} rawgId={gameId} />
       ) : null}
       <div className="gp-game-page-enter relative z-10">
-      <GameDetailView
+      <GameDetailWithTheme
         data={viewData}
-        theme="light"
         fitSlot={
           recommendFitContext ? undefined : (
             <PersonalGameFitCard gameSlug={title} rawgId={gameId} />

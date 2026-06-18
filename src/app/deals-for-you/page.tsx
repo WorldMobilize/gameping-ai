@@ -1,44 +1,41 @@
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
+  APP_ACCENT,
   APP_KICKER,
+  APP_MUTED,
   APP_PAGE_LEAD,
   APP_PAGE_TITLE,
-  homeCyanAccentText,
+  APP_SECTION_TITLE,
 } from "@/components/app/app-styles";
-import AdminOnlyNotice from "@/components/discovery/AdminOnlyNotice";
-import AdminOnlyPageGate from "@/components/discovery/AdminOnlyPageGate";
-import DealForYouCard from "@/components/discovery/DealForYouCard";
 import DiscoveryComingSoonBadge from "@/components/discovery/DiscoveryComingSoonBadge";
 import DiscoveryFutureCard from "@/components/discovery/DiscoveryFutureCard";
+import DealForYouCard from "@/components/discovery/DealForYouCard";
+import PremiumDiscoveryPageGate from "@/components/discovery/PremiumDiscoveryPageGate";
 import { DEALS_FOR_YOU_DEMO } from "@/lib/discovery/placeholder-data";
 
 export default function DealsForYouPage() {
-  const accent = homeCyanAccentText(false);
-
   return (
     <AppPageShell>
       <AppSection maxWidth="max-w-6xl">
-        <AdminOnlyPageGate>
+        <PremiumDiscoveryPageGate>
           <div className="flex flex-wrap items-center gap-3">
-            <p className={APP_KICKER}>Personal deals</p>
-            <DiscoveryComingSoonBadge />
+            <p className={APP_KICKER}>Premium discovery</p>
+            <DiscoveryComingSoonBadge variant="premium" />
           </div>
 
           <h1 className={APP_PAGE_TITLE}>
-            Deals for <span className={accent}>you</span>
+            Deals for <span className={APP_ACCENT}>you</span>
           </h1>
 
           <p className={APP_PAGE_LEAD}>
             Games matching your taste — highlighted when the timing and price feel right.
           </p>
 
-          <AdminOnlyNotice />
-
           <section className="mt-12" aria-labelledby="deals-for-you-grid-heading">
-            <h2 id="deals-for-you-grid-heading" className="text-2xl font-extrabold text-slate-900">
+            <h2 id="deals-for-you-grid-heading" className={APP_SECTION_TITLE}>
               Taste-matched deals
             </h2>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className={`mt-2 ${APP_MUTED}`}>
               Demo prices only — no live store or ITAD lookups on this page.
             </p>
 
@@ -61,7 +58,7 @@ export default function DealsForYouPage() {
               ]}
             />
           </div>
-        </AdminOnlyPageGate>
+        </PremiumDiscoveryPageGate>
       </AppSection>
     </AppPageShell>
   );

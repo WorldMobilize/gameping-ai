@@ -1,12 +1,12 @@
 import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
+  APP_ACCENT,
   APP_INLINE_LINK,
   APP_KICKER,
   APP_LIST_ROW,
   APP_PAGE_LEAD,
   APP_PAGE_TITLE,
-  homeCyanAccentText,
 } from "@/components/app/app-styles";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import { DIRECTORY_GAMES } from "@/lib/curated/home-picks";
@@ -29,14 +29,13 @@ export default function GamesDirectoryPage() {
   })).filter((g) => g.games.length > 0);
 
   const letterSet = new Set(byLetter.map((b) => b.letter));
-  const accent = homeCyanAccentText(false);
 
   return (
     <AppPageShell>
       <AppSection>
         <p className={APP_KICKER}>Directory</p>
         <h1 className={APP_PAGE_TITLE}>
-          Games <span className={accent}>A–Z</span>
+          Games <span className={APP_ACCENT}>A–Z</span>
         </h1>
         <p className={APP_PAGE_LEAD}>
           A compact, curated slice of well-known titles—each links to our game detail page. This
@@ -52,7 +51,7 @@ export default function GamesDirectoryPage() {
         </p>
 
         <nav
-          className="mt-10 flex flex-wrap gap-2 border-b border-slate-200/90 pb-8"
+          className="mt-10 flex flex-wrap gap-2 border-b border-slate-200/90 pb-8 dark:border-slate-800/80"
           aria-label="Jump to letter"
         >
           {LETTERS.map((L) => (
@@ -76,12 +75,12 @@ export default function GamesDirectoryPage() {
         <div className="mt-10 space-y-14">
           {byLetter.map(({ letter, games }) => (
             <section key={letter} id={`letter-${letter}`} className="scroll-mt-28">
-              <h2 className={`text-2xl font-bold ${accent}`}>{letter}</h2>
+              <h2 className={`text-2xl font-bold ${APP_ACCENT}`}>{letter}</h2>
               <ul className="mt-4 space-y-3">
                 {games.map((game) => (
                   <li key={game.title}>
                     <Link href={gameDetailPath(game.title)} className={APP_LIST_ROW}>
-                      <span className="font-bold text-slate-900">{game.title}</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{game.title}</span>
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-400 group-hover:text-cyan-700">
                         Details
                       </span>

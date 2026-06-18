@@ -100,9 +100,13 @@ export function DealAwareIcon({ className = "h-6 w-6" }: IconProps) {
   return <BetterDecisionsIcon className={className} />;
 }
 
-export function HomeValuePropIcon({ id }: { id: string }) {
-  const className = "h-9 w-9 shrink-0";
-
+export function HomeValuePropIcon({
+  id,
+  className = "h-9 w-9 shrink-0 text-slate-800 dark:text-slate-100",
+}: {
+  id: string;
+  className?: string;
+}) {
   switch (id) {
     case "beyond-genres":
       return <BeyondGenresIcon className={className} />;

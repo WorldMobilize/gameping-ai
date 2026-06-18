@@ -1,12 +1,14 @@
 import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
+  APP_ACCENT,
   APP_INLINE_LINK,
   APP_KICKER,
+  APP_MUTED,
   APP_PAGE_LEAD,
   APP_PAGE_TITLE,
   APP_PRIMARY_CTA_SM,
-  homeCyanAccentText,
+  APP_SECTION_TITLE,
 } from "@/components/app/app-styles";
 import DiscoveryComingSoonBadge from "@/components/discovery/DiscoveryComingSoonBadge";
 import DiscoveryFutureCard from "@/components/discovery/DiscoveryFutureCard";
@@ -23,8 +25,6 @@ export const metadata: Metadata = buildPublicPageMetadata({
 });
 
 export default function HiddenGemsPage() {
-  const accent = homeCyanAccentText(false);
-
   return (
     <AppPageShell>
       <AppSection maxWidth="max-w-6xl">
@@ -34,7 +34,7 @@ export default function HiddenGemsPage() {
         </div>
 
         <h1 className={APP_PAGE_TITLE}>
-          Hidden <span className={accent}>gems</span>
+          Hidden <span className={APP_ACCENT}>gems</span>
         </h1>
 
         <p className={APP_PAGE_LEAD}>
@@ -43,10 +43,10 @@ export default function HiddenGemsPage() {
         </p>
 
         <section className="mt-12" aria-labelledby="hidden-gems-grid-heading">
-          <h2 id="hidden-gems-grid-heading" className="text-2xl font-extrabold text-slate-900">
+          <h2 id="hidden-gems-grid-heading" className={APP_SECTION_TITLE}>
             Featured hidden gems
           </h2>
-          <p className="mt-2 text-sm text-slate-500">Static demo grid — not live discovery yet.</p>
+          <p className={`mt-2 ${APP_MUTED}`}>Static demo grid — not live discovery yet.</p>
 
           <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {HIDDEN_GEMS_DEMO.map((pick) => (
@@ -68,8 +68,8 @@ export default function HiddenGemsPage() {
           />
         </div>
 
-        <div className="mt-10 rounded-3xl border border-cyan-200/80 bg-cyan-50/60 p-6">
-          <p className="text-sm font-bold text-slate-800">
+        <div className="mt-10 rounded-3xl border border-cyan-200/80 bg-cyan-50/60 p-6 dark:border-cyan-900/50 dark:bg-cyan-950/30">
+          <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
             Want personalized picks today?
           </p>
           <Link href="/recommend" className={`mt-3 inline-flex ${APP_PRIMARY_CTA_SM}`}>

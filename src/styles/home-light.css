@@ -19,11 +19,44 @@
 }
 
 .gp-home-why-radar-sweep {
-  animation: gp-home-why-radar-spin 4.5s linear infinite;
+  animation: gp-home-why-radar-spin 5s linear infinite;
 }
 
 .gp-home-why-radar-pulse {
   animation: gp-home-why-radar-ping 2.8s ease-out infinite;
+}
+
+.gp-home-why-radar-dot-hit {
+  animation: gp-home-why-radar-dot-hit 5s linear infinite;
+}
+
+.gp-home-why-radar-dot {
+  opacity: 0;
+}
+
+.gp-home-why-radar-dot-delay-0 {
+  /* upper-left (outer) ~313° */
+  animation-delay: 4.25s;
+}
+
+.gp-home-why-radar-dot-delay-1 {
+  /* upper-right (edge) ~67° */
+  animation-delay: 0.83s;
+}
+
+.gp-home-why-radar-dot-delay-2 {
+  /* lower-right (mid) ~130° */
+  animation-delay: 1.71s;
+}
+
+.gp-home-why-radar-dot-delay-3 {
+  /* lower-middle (outer) ~174° */
+  animation-delay: 2.32s;
+}
+
+.gp-home-why-radar-dot-delay-4 {
+  /* lower-left (mid) ~228° */
+  animation-delay: 3.07s;
 }
 
 @keyframes gp-home-why-radar-spin {
@@ -43,19 +76,42 @@
   }
 
   70% {
-    transform: translate(-50%, -50%) scale(2.4);
+    transform: translate(-50%, -50%) scale(2.2);
     opacity: 0;
   }
 
   100% {
-    transform: translate(-50%, -50%) scale(2.4);
+    transform: translate(-50%, -50%) scale(2.2);
     opacity: 0;
+  }
+}
+
+@keyframes gp-home-why-radar-dot-hit {
+  0%,
+  92%,
+  100% {
+    opacity: 0;
+    transform: scale(0.92);
+    box-shadow: 0 0 0 transparent;
+  }
+
+  2% {
+    opacity: 0.95;
+    transform: scale(1.35);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.55);
+  }
+
+  4.8% {
+    opacity: 0;
+    transform: scale(1.85);
+    box-shadow: 0 0 0 transparent;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .gp-home-why-radar-sweep,
-  .gp-home-why-radar-pulse {
+  .gp-home-why-radar-pulse,
+  .gp-home-why-radar-dot-hit {
     animation: none;
   }
 }

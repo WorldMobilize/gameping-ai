@@ -8,6 +8,7 @@ import {
   APP_CARD_LG,
   APP_CTA_PANEL,
   APP_INLINE_LINK,
+  APP_CARD_TITLE,
   APP_KICKER,
   APP_MUTED,
   APP_PAGE_LEAD,
@@ -15,6 +16,8 @@ import {
   APP_PRIMARY_CTA_LG,
   APP_PRIMARY_CTA_SM,
   APP_SECONDARY_CTA,
+  APP_SECTION_TITLE,
+  APP_SECTION_TITLE_LG,
   homeCyanChip,
 } from "@/components/app/app-styles";
 import EmailVerificationNotice from "@/components/EmailVerificationNotice";
@@ -444,7 +447,7 @@ export default function Dashboard() {
               <p className="text-xs font-semibold uppercase tracking-[0.35em] text-rose-700">
                 Couldn&apos;t load
               </p>
-              <h2 className="mt-3 text-2xl font-extrabold text-slate-900">
+              <h2 className={`mt-3 ${APP_SECTION_TITLE}`}>
                 We couldn&apos;t load your saved recommendation runs
               </h2>
               <p className={`mt-3 max-w-2xl ${APP_MUTED}`}>
@@ -473,7 +476,7 @@ export default function Dashboard() {
             <div className="mb-6 border-b border-slate-200/90 pb-5">
               <h2
                 id="dashboard-saved-runs-heading"
-                className="text-2xl font-extrabold text-slate-900 md:text-3xl"
+                className={APP_SECTION_TITLE_LG}
               >
                 Saved recommendation runs
               </h2>
@@ -484,7 +487,7 @@ export default function Dashboard() {
 
           {!loading && !loadError && searches.length === 0 && (
             <div className={`${APP_CARD} p-8 text-center`}>
-              <p className="text-lg font-extrabold text-slate-900">No saved recommendation runs yet</p>
+              <p className={`text-lg font-extrabold text-slate-900 dark:text-white`}>No saved recommendation runs yet</p>
               <p className={`mt-3 ${APP_MUTED}`}>
                 Run a recommendation, then save it from the results page.
               </p>
@@ -515,7 +518,7 @@ export default function Dashboard() {
                   <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-2xl font-extrabold text-slate-900">{search.name}</h2>
+                        <h2 className={APP_SECTION_TITLE}>{search.name}</h2>
                         {!runActive && (
                           <span className="rounded-full bg-slate-200/80 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
                             Paused
@@ -666,7 +669,7 @@ export default function Dashboard() {
             <div className="mb-6 border-b border-cyan-200/60 pb-5">
               <h2
                 id="dashboard-tracked-games-heading"
-                className="text-2xl font-extrabold text-slate-900 md:text-3xl"
+                className={APP_SECTION_TITLE_LG}
               >
                 Tracked games
               </h2>
@@ -698,7 +701,7 @@ export default function Dashboard() {
 
             {!trackedLoading && !trackedLoadError && trackedGames.length === 0 && (
               <div className={`${APP_CARD} p-8`}>
-                <p className="text-lg font-extrabold text-slate-900">No tracked games yet</p>
+                <p className="text-lg font-extrabold text-slate-900 dark:text-white">No tracked games yet</p>
                 <p className={`mt-3 ${APP_MUTED}`}>
                   Open a game page and use Track price to get email alerts when we detect a
                   verified drop.
@@ -733,7 +736,7 @@ export default function Dashboard() {
                     >
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-lg font-extrabold text-slate-900">
+                          <h3 className={APP_CARD_TITLE}>
                             <Link
                               href={detailHref}
                               className="transition hover:text-cyan-700"

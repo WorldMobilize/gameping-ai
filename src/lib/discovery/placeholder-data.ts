@@ -173,3 +173,38 @@ export const DEALS_FOR_YOU_DEMO: DealForYouPick[] = [
     whyItMatches: "Emotional narrative management — story-first, low combat friction.",
   },
 ];
+
+export type MonthlyRecapGame = {
+  title: string;
+  image: string;
+  hours: string;
+};
+
+export const MONTHLY_RECAP_DEMO = {
+  vibe: "Story-rich explorers who love open worlds",
+  topGames: [
+    {
+      title: "Baldur's Gate 3",
+      image: steamHeaderImage(1086940),
+      hours: "42h",
+    },
+    {
+      title: "Hollow Knight",
+      image: steamHeaderImage(367520),
+      hours: "28h",
+    },
+    {
+      title: "Disco Elysium",
+      image: steamHeaderImage(632470),
+      hours: "19h",
+    },
+  ] satisfies MonthlyRecapGame[],
+  favoriteTags: ["Open World", "Story Rich", "RPG"] as const,
+  stats: {
+    gamesExplored: 12,
+    savedPicks: 4,
+    trackedDeals: 3,
+  },
+  tasteEvolution:
+    "Your taste leaned harder into narrative RPGs this month, with more exploration picks and fewer pure action titles.",
+} as const;

@@ -4,11 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
+  APP_ACCENT,
   APP_AUTH_CARD,
   APP_INLINE_LINK,
   APP_INPUT,
   APP_PRIMARY_CTA_SM,
-  homeCyanAccentText,
 } from "@/components/app/app-styles";
 import { supabase } from "@/lib/supabase";
 
@@ -17,7 +17,6 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const accent = homeCyanAccentText(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +53,11 @@ export default function ResetPasswordPage() {
         className="flex flex-1 items-center justify-center py-12"
       >
         <div className={APP_AUTH_CARD}>
-          <h1 className="text-center text-3xl font-black text-slate-900 gp-home-display">
-            Reset <span className={accent}>password</span>
+          <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
+            Reset <span className={APP_ACCENT}>password</span>
           </h1>
 
-          <p className="mt-3 text-center text-sm text-slate-600">
+          <p className="mt-3 text-center text-sm text-slate-700 dark:text-slate-300">
             Enter the email for your GamePing account. We will send a reset link if it matches an
             account.
           </p>

@@ -173,7 +173,7 @@ export default function AccountSettingsPage() {
             <dl className="mt-5 space-y-4">
               <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-6">
                 <dt className="text-sm text-slate-500">Email</dt>
-                <dd className="text-sm font-semibold text-slate-900">{userEmail ?? "—"}</dd>
+                <dd className="text-sm font-semibold text-slate-900 dark:text-white">{userEmail ?? "—"}</dd>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-6">
                 <dt className="text-sm text-slate-500">Current plan</dt>
@@ -237,7 +237,7 @@ export default function AccountSettingsPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-rose-700">
               Danger zone
             </p>
-            <h2 className="mt-3 text-2xl font-extrabold text-slate-900">Delete account</h2>
+            <h2 className="mt-3 text-2xl font-extrabold text-slate-900 dark:text-white">Delete account</h2>
             <p className="mt-4 text-sm leading-7 text-slate-600">
               Permanently delete your GamePing account, saved recommendation runs, tracked games,
               imported Steam library data, alert history tied to those games, profile row, and
@@ -282,7 +282,7 @@ export default function AccountSettingsPage() {
             className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200/90 bg-white p-8 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="delete-account-title" className="text-xl font-extrabold text-slate-900">
+            <h2 id="delete-account-title" className="text-xl font-extrabold text-slate-900 dark:text-white">
               Confirm account deletion
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
@@ -320,7 +320,7 @@ export default function AccountSettingsPage() {
               <>
                 <p className="mt-5 text-sm text-slate-600">
                   You signed in with a social provider. Enter your full GamePing account email (
-                  <span className="font-semibold text-slate-900">{userEmail ?? "—"}</span>) to confirm.
+                  <span className="font-semibold text-slate-900 dark:text-white">{userEmail ?? "—"}</span>) to confirm.
                 </p>
                 <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Email confirmation

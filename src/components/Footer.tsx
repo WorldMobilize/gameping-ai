@@ -50,7 +50,7 @@ export default function Footer({ theme = "dark" }: FooterProps) {
             <div className="mt-5">
               <p
                 className={`text-xs font-black uppercase tracking-[0.35em] ${
-                  isLight ? "text-slate-500" : "text-slate-300/70"
+                  isLight ? "text-slate-900" : "text-slate-100"
                 }`}
               >
                 Follow us
@@ -77,7 +77,7 @@ export default function Footer({ theme = "dark" }: FooterProps) {
             <div className="space-y-3">
               <p
                 className={`text-xs font-black uppercase tracking-[0.35em] ${
-                  isLight ? "text-slate-500" : "text-slate-300/70"
+                  isLight ? "text-slate-900" : "text-slate-100"
                 }`}
               >
                 Product
@@ -112,7 +112,7 @@ export default function Footer({ theme = "dark" }: FooterProps) {
             <div className="space-y-3">
               <p
                 className={`text-xs font-black uppercase tracking-[0.35em] ${
-                  isLight ? "text-slate-500" : "text-slate-300/70"
+                  isLight ? "text-slate-900" : "text-slate-100"
                 }`}
               >
                 Company
@@ -135,7 +135,7 @@ export default function Footer({ theme = "dark" }: FooterProps) {
             <div className="space-y-3">
               <p
                 className={`text-xs font-black uppercase tracking-[0.35em] ${
-                  isLight ? "text-slate-500" : "text-slate-300/70"
+                  isLight ? "text-slate-900" : "text-slate-100"
                 }`}
               >
                 Legal

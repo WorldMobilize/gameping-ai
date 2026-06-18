@@ -13,6 +13,20 @@ import {
   APP_PRIMARY_CTA_SM,
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
+import {
+  RECOMMEND_FILTER_BUDGET_PANEL,
+  RECOMMEND_FILTER_OPTION_BASE,
+  RECOMMEND_FILTER_PLATFORM_SELECTED,
+  RECOMMEND_FILTER_PLATFORM_UNSELECTED,
+  RECOMMEND_FILTER_PRESET_CARD,
+  RECOMMEND_FILTER_TAG_ACTIVE,
+  RECOMMEND_FILTER_TAG_INACTIVE,
+  RECOMMEND_FILTER_TOGGLE_OFF,
+  RECOMMEND_FILTER_TOGGLE_ON,
+  RECOMMEND_FILTER_TOGGLE_TRACK_OFF,
+  RECOMMEND_FILTER_TOGGLE_TRACK_ON,
+} from "@/components/recommend/recommend-filter-styles";
+import PlatformBrandIcon from "@/components/recommend/PlatformBrandIcon";
 import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import PlanLimitReached from "@/components/PlanLimitReached";
 import { useToast } from "@/components/ToastProvider";
@@ -1070,11 +1084,11 @@ export default function RecommendPage() {
                 Recommendations
               </p>
 
-              <h1 className="max-w-4xl text-4xl font-extrabold leading-tight tracking-tight text-slate-900 gp-home-display md:text-6xl">
+              <h1 className="max-w-4xl text-4xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white gp-home-display md:text-6xl">
                 Find the game you actually feel like playing.
               </h1>
 
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-700 dark:text-slate-300">
                 {filtersEnabled
                   ? "Use filters when you want tighter picks. Verified prices live on each game page."
                   : "Describe the kind of game you want in your own words. Turn on Advanced filters for budget, tags, or platform."}
@@ -1082,11 +1096,11 @@ export default function RecommendPage() {
             </div>
 
             <div className={`${APP_CARD} p-6`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
                 Tips
               </p>
 
-              <div className="mt-5 space-y-4 text-sm text-slate-600">
+              <div className="mt-5 space-y-4 text-sm text-slate-700 dark:text-slate-300">
                 {filtersEnabled ? (
                   <>
                     <p>✔ Combine prompt + tags for tighter picks</p>
@@ -1112,15 +1126,15 @@ export default function RecommendPage() {
             aria-busy={loading}
           >
             <section className={`${APP_CARD_LG} p-6 md:p-8`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
                 Start here
               </p>
 
-              <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">
+              <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white md:text-3xl">
                 What do you want to play?
               </h2>
 
-              <p className="mt-2 text-sm leading-6 text-slate-500">
+              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                 {filtersEnabled
                   ? "Use filters for more specific recommendations."
                   : "Describe the kind of game you want."}
@@ -1152,8 +1166,8 @@ export default function RecommendPage() {
               <p
                 className={`mt-2 text-xs tabular-nums ${
                   form.userPrompt.length > promptMaxForUi
-                    ? "text-rose-600"
-                    : "text-slate-400"
+                    ? "text-rose-600 dark:text-rose-400"
+                    : "text-slate-500 dark:text-slate-400"
                 }`}
               >
                 {form.userPrompt.length} / {promptMaxForUi}
@@ -1166,14 +1180,14 @@ export default function RecommendPage() {
                   aria-checked={filtersEnabled}
                   onClick={() => setFiltersEnabled((v) => !v)}
                   className={`flex max-w-full items-center gap-3 rounded-full border px-5 py-3 text-left text-sm font-semibold transition ${
-                    filtersEnabled
-                      ? "border-cyan-300 bg-cyan-50 text-cyan-800"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                    filtersEnabled ? RECOMMEND_FILTER_TOGGLE_ON : RECOMMEND_FILTER_TOGGLE_OFF
                   }`}
                 >
                   <span
                     className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full px-0.5 transition-colors ${
-                      filtersEnabled ? "justify-end bg-cyan-600" : "justify-start bg-slate-300"
+                      filtersEnabled
+                        ? RECOMMEND_FILTER_TOGGLE_TRACK_ON
+                        : RECOMMEND_FILTER_TOGGLE_TRACK_OFF
                     }`}
                   >
                     <span className="inline-block h-7 w-7 rounded-full bg-white shadow" />
@@ -1196,7 +1210,7 @@ export default function RecommendPage() {
                 Quick presets
               </p>
 
-              <h2 className="mt-3 text-2xl font-extrabold text-slate-900">
+              <h2 className="mt-3 text-2xl font-extrabold text-slate-900 dark:text-white">
                 Start from a preset vibe
               </h2>
 
@@ -1206,10 +1220,10 @@ export default function RecommendPage() {
                     key={preset.title}
                     type="button"
                     onClick={() => applyPreset(preset)}
-                    className="rounded-2xl border border-slate-200/90 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300/70 hover:shadow-md"
+                    className={RECOMMEND_FILTER_PRESET_CARD}
                   >
-                    <p className="font-bold text-slate-900">{preset.title}</p>
-                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                    <p className="font-bold text-slate-900 dark:text-white">{preset.title}</p>
+                    <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
                       {preset.text}
                     </p>
                   </button>
@@ -1223,7 +1237,7 @@ export default function RecommendPage() {
                   Platform
                 </p>
 
-                <h2 className="mt-3 text-2xl font-extrabold text-slate-900">Where do you want to play?</h2>
+                <h2 className="mt-3 text-2xl font-extrabold text-slate-900 dark:text-white">Where do you want to play?</h2>
 
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   {platforms.map((platform) => (
@@ -1231,21 +1245,17 @@ export default function RecommendPage() {
                       key={platform.name}
                       type="button"
                       onClick={() => updateField("platform", platform.name)}
-                      className={`rounded-2xl border p-5 text-left shadow-sm transition hover:-translate-y-0.5 ${
+                      className={`${RECOMMEND_FILTER_OPTION_BASE} ${
                         form.platform === platform.name
-                          ? "border-violet-300 bg-violet-50 shadow-md shadow-violet-100/50"
-                          : "border-slate-200/90 bg-white hover:border-violet-200 hover:shadow-md"
+                          ? RECOMMEND_FILTER_PLATFORM_SELECTED
+                          : RECOMMEND_FILTER_PLATFORM_UNSELECTED
                       }`}
                     >
                       <div className="h-8 w-8">
-                        <img
-                          src={platform.icon}
-                          alt={platform.name}
-                          className="h-full w-full object-contain opacity-90"
-                        />
+                        <PlatformBrandIcon src={platform.icon} alt={platform.name} />
                       </div>
-                      <div className="mt-4 font-bold text-slate-900">{platform.name}</div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-4 font-bold text-slate-900 dark:text-white">{platform.name}</div>
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         {platform.text}
                       </div>
                     </button>
@@ -1258,17 +1268,17 @@ export default function RecommendPage() {
                   Budget
                 </p>
 
-                <h2 className="mt-3 text-2xl font-extrabold text-slate-900">
+                <h2 className="mt-3 text-2xl font-extrabold text-slate-900 dark:text-white">
                   What&apos;s your max budget?
                 </h2>
 
-                <div className="mt-8 rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5">
+                <div className={`mt-8 ${RECOMMEND_FILTER_BUDGET_PANEL}`}>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-500">$0</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">$0</span>
                     <span className="rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-5 py-2 text-lg font-extrabold text-white shadow-sm shadow-cyan-600/20">
                       ${form.budget || "0"}
                     </span>
-                    <span className="text-sm text-slate-500">$80</span>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">$80</span>
                   </div>
 
                   <input
@@ -1298,11 +1308,11 @@ export default function RecommendPage() {
                     Taste builder
                   </p>
 
-                  <h2 className="mt-3 text-2xl font-extrabold text-slate-900">
+                  <h2 className="mt-3 text-2xl font-extrabold text-slate-900 dark:text-white">
                     Pick a few tags
                   </h2>
 
-                  <p className="mt-2 text-sm text-slate-500">
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                     You don&apos;t need all of them. 3–8 tags is perfect.
                   </p>
                 </div>
@@ -1311,8 +1321,8 @@ export default function RecommendPage() {
                 {tagGroups
                   .map((group) => (
                     <div key={group.key}>
-                      <h3 className="text-lg font-bold text-slate-900">{group.title}</h3>
-                      <p className="mt-1 text-sm text-slate-500">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">{group.title}</h3>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                         {group.subtitle}
                       </p>
 
@@ -1327,8 +1337,8 @@ export default function RecommendPage() {
                               onClick={() => toggleTag(group.key, tag)}
                               className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                                 active
-                                  ? "bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-sm shadow-cyan-600/20"
-                                  : "border border-slate-200 bg-white text-slate-600 hover:border-cyan-300 hover:text-cyan-800"
+                                  ? RECOMMEND_FILTER_TAG_ACTIVE
+                                  : RECOMMEND_FILTER_TAG_INACTIVE
                               }`}
                             >
                               {tag}
@@ -1345,10 +1355,10 @@ export default function RecommendPage() {
             <div className={`${APP_CARD} p-5 md:p-6`}>
               <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-900">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
                     Ready to discover your picks?
                   </p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     Up to five curated matches with scores and clear reasons. Check deals on
                     each game page.
                   </p>
@@ -1411,7 +1421,7 @@ export default function RecommendPage() {
                   <div className="h-full w-full animate-pulse rounded-full bg-cyan-500/50 motion-reduce:animate-none" />
                 </div>
 
-                <ul className="mb-8 space-y-2.5 text-center text-[13px] leading-relaxed text-slate-500 md:text-sm md:leading-relaxed">
+                <ul className="mb-8 space-y-2.5 text-center text-[13px] leading-relaxed text-slate-500 dark:text-slate-400 md:text-sm md:leading-relaxed">
                   {RECOMMEND_LOADING_HELPERS.map((line) => (
                     <li key={line}>{line}</li>
                   ))}
@@ -1439,10 +1449,10 @@ export default function RecommendPage() {
               <p className={APP_KICKER}>
                 No picks this round
               </p>
-              <h2 className="mt-4 text-2xl font-extrabold text-slate-900 md:text-3xl">
+              <h2 className="mt-4 text-2xl font-extrabold text-slate-900 dark:text-white md:text-3xl">
                 We couldn&apos;t find strong matches for this vibe yet.
               </h2>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600">
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-700 dark:text-slate-300">
                 That doesn&apos;t mean your taste is wrong—sometimes the best move is a sharper
                 prompt, looser filters, or a different angle. Try describing mood, pacing, or a
                 reference game you love.
@@ -1473,10 +1483,10 @@ export default function RecommendPage() {
             >
               <div className="mt-14 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
                     Your picks
                   </p>
-                  <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 gp-home-display">
+                  <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white gp-home-display">
                     Curated for your search
                   </h2>
                 </div>
@@ -1485,7 +1495,7 @@ export default function RecommendPage() {
                   <button
                     type="button"
                     onClick={copyResults}
-                    className="text-xs font-semibold text-slate-400 underline-offset-2 transition hover:text-slate-600 hover:underline"
+                    className="text-xs font-semibold text-slate-400 underline-offset-2 transition hover:text-slate-700 dark:text-slate-300 hover:underline"
                   >
                     Copy results
                   </button>
@@ -1500,13 +1510,13 @@ export default function RecommendPage() {
               </div>
 
               {apiDebug && (
-                <div className={`mt-5 ${APP_CARD} p-4 text-sm text-slate-600`}>
-                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
+                <div className={`mt-5 ${APP_CARD} p-4 text-sm text-slate-700 dark:text-slate-300`}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500 dark:text-slate-400">
                     Debug
                   </p>
                   <p className="mt-2">
                     Resolved input:{" "}
-                    <span className="font-bold text-slate-900">
+                    <span className="font-bold text-slate-900 dark:text-white">
                       {apiDebug.resolvedInput || "(none)"}
                     </span>
                   </p>
@@ -1562,17 +1572,17 @@ export default function RecommendPage() {
 
                     <div className="flex flex-1 flex-col p-6">
                       <div className="mb-3">
-                        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tabular-nums text-slate-500">
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">
                           #{index + 1}
                         </span>
                       </div>
 
-                      <h2 className="text-2xl font-bold tracking-tight text-slate-900">{game.title}</h2>
+                      <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">{game.title}</h2>
 
                       {(() => {
                         const fitNote = sanitizeRecommendFitCopy(game.matchNote);
                         return fitNote ? (
-                          <p className="mt-2 text-xs leading-5 text-slate-500">{fitNote}</p>
+                          <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{fitNote}</p>
                         ) : null;
                       })()}
 
@@ -1604,15 +1614,15 @@ export default function RecommendPage() {
                           preferItalian: prefersItalianRecommendCopy(form.userPrompt),
                         });
                         return budgetLine ? (
-                          <p className="mt-3 text-xs text-slate-500">{budgetLine}</p>
+                          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{budgetLine}</p>
                         ) : null;
                       })()}
 
                       <div className="mt-4 flex flex-1 flex-col">
-                        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
+                        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500 dark:text-slate-400">
                           Why it fits
                         </p>
-                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                        <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">
                           {resolveRecommendFitBody(game.reason)}
                         </p>
                         <p className="mt-2 text-xs text-slate-400">
@@ -1636,7 +1646,7 @@ export default function RecommendPage() {
 
               {refineUsed ? (
                 <div className={`mt-8 ${APP_CARD} p-5 text-center`}>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-700 dark:text-slate-300">
                     You used your one refinement for this search.
                   </p>
                   <a
@@ -1654,7 +1664,7 @@ export default function RecommendPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.3em] text-cyan-700">
                     Not quite right?
                   </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                  <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
                     Tell GamePing what to adjust. You get one refinement for this search.
                   </p>
                   <label className="mt-4 block">
@@ -1692,15 +1702,15 @@ export default function RecommendPage() {
                 onSubmit={handleEmailSubmit}
                 className={`mt-10 ${APP_CARD_LG} p-6 md:p-7`}
               >
-                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900">Save these picks</h2>
+                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Save these picks</h2>
 
-                <p className="mt-2 text-sm leading-6 text-slate-600">
+                <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">
                   Save this search to your dashboard and revisit these picks later. Track prices
                   from each game&apos;s detail page.
                 </p>
 
                 {loggedUserEmail && (
-                  <p className="mt-4 text-sm text-slate-500">
+                  <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">
                     Saving for: <span className="font-semibold text-cyan-700">{loggedUserEmail}</span>
                   </p>
                 )}
