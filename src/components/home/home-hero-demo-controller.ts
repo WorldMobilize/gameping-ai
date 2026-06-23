@@ -14,8 +14,11 @@ export const HERO_DEMO_RESULTS_ROW_SCROLL_MS = 2000;
 export const HERO_DEMO_RESULTS_SCROLL_MS = HERO_DEMO_RESULTS_ROW_SCROLL_MS * 2;
 export const HERO_DEMO_REFINED_SCROLL_MS = HERO_DEMO_RESULTS_ROW_SCROLL_MS;
 export const HERO_DEMO_SCROLL_TO_REFINE_MS = 2200;
-export const HERO_DEMO_REFINE_UPDATING_MS = 1800;
+// Scroll-to-top takes HERO_DEMO_REFINE_SCROLL_UP_MS; keep this only slightly
+// longer so the refined cards reveal almost immediately after reaching the top
+// (was 1800 → ~600ms idle gap at the top before the cards appeared).
 export const HERO_DEMO_REFINE_SCROLL_UP_MS = 1200;
+export const HERO_DEMO_REFINE_UPDATING_MS = HERO_DEMO_REFINE_SCROLL_UP_MS + 150;
 export const HERO_DEMO_REFINED_ROW_MIN_GAP_PX = 180;
 export const HERO_DEMO_REFINED_ROW1_HOLD_MS = 1500;
 export const HERO_DEMO_REFINED_ROW2_HOLD_MS = 1400;
@@ -24,6 +27,12 @@ export const HERO_DEMO_CURSOR_HOLD_MS = 300;
 export const HERO_DEMO_CURSOR_CLICK_MS = 400;
 export const HERO_DEMO_REFINED_DETAILS_CURSOR_MOVE_MS = 850;
 export const HERO_DEMO_REFINED_DETAILS_HOLD_MS = 2000;
+// Final appended step: the Subnautica detail preview opens, scrolls slowly from
+// top to bottom, then holds before the loop restarts.
+export const HERO_DEMO_DETAIL_OPEN_MS = 600;
+// Slower, calmer read-through of the full detail page (was 5200).
+export const HERO_DEMO_DETAIL_SCROLL_MS = 8800;
+export const HERO_DEMO_DETAIL_HOLD_MS = 1600;
 export const HERO_DEMO_REFINED_VIEW_DETAILS_CARD_INDEX = 2;
 export const HERO_DEMO_LOOP_RESET_CURSOR_MS = 500;
 export const HERO_DEMO_RESULTS_REVEAL_SCROLL_PROGRESS = 0.28;
@@ -58,7 +67,10 @@ export type WalkthroughPhase =
   | "refined-scroll"
   | "refined-row2-hold"
   | "refined-details-cursor-move"
-  | "refined-details-hold";
+  | "refined-details-hold"
+  | "detail-open"
+  | "detail-scroll"
+  | "detail-hold";
 
 export const HERO_DEMO_PHASE_ORDER: WalkthroughPhase[] = [
   "search-typing",
@@ -81,6 +93,9 @@ export const HERO_DEMO_PHASE_ORDER: WalkthroughPhase[] = [
   "refined-row2-hold",
   "refined-details-cursor-move",
   "refined-details-hold",
+  "detail-open",
+  "detail-scroll",
+  "detail-hold",
 ];
 
 const PHASE_DURATION: Record<WalkthroughPhase, number> = {
@@ -104,6 +119,9 @@ const PHASE_DURATION: Record<WalkthroughPhase, number> = {
   "refined-row2-hold": HERO_DEMO_REFINED_ROW2_HOLD_MS,
   "refined-details-cursor-move": HERO_DEMO_REFINED_DETAILS_CURSOR_MOVE_MS,
   "refined-details-hold": HERO_DEMO_REFINED_DETAILS_HOLD_MS,
+  "detail-open": HERO_DEMO_DETAIL_OPEN_MS,
+  "detail-scroll": HERO_DEMO_DETAIL_SCROLL_MS,
+  "detail-hold": HERO_DEMO_DETAIL_HOLD_MS,
 };
 
 type PhaseWindow = {
@@ -213,12 +231,30 @@ export const HERO_DEMO_GUIDED_REFINED_PHASES: WalkthroughPhase[] = [
   "refined-details-hold",
 ];
 
-export const HERO_DEMO_HIDE_REFINE_PANEL_PHASES: WalkthroughPhase[] = [
-  ...HERO_DEMO_GUIDED_REFINED_PHASES,
+/** Final appended step — the Subnautica detail overlay is shown during these. */
+export const HERO_DEMO_DETAIL_PHASES: WalkthroughPhase[] = [
+  "detail-open",
+  "detail-scroll",
+  "detail-hold",
 ];
 
-export const HERO_DEMO_REFINED_GRID_PHASES: WalkthroughPhase[] = [
+export const HERO_DEMO_HIDE_REFINE_PANEL_PHASES: WalkthroughPhase[] = [
   ...HERO_DEMO_GUIDED_REFINED_PHASES,
+  ...HERO_DEMO_DETAIL_PHASES,
+];
+
+// Refined cards appear only AFTER the scroll-to-top beat: during `refine-updating`
+// the results are faded out (see phaseResultsRevealed) while the viewport resets to
+// the top, so the prior cards are never scrolled through and the grid swap is hidden
+// at opacity 0. The refined grid is then revealed from `refined-row1-hold` onward,
+// fading in already at the top, and scrolled down. So `refine-updating` is excluded.
+export const HERO_DEMO_REFINED_GRID_PHASES: WalkthroughPhase[] = [
+  "refined-row1-hold",
+  "refined-scroll",
+  "refined-row2-hold",
+  "refined-details-cursor-move",
+  "refined-details-hold",
+  ...HERO_DEMO_DETAIL_PHASES,
 ];
 
 export type DemoFrameState = {
@@ -232,6 +268,8 @@ export type DemoFrameState = {
   resultsRevealed: boolean;
   showRefinedResults: boolean;
   hideRefinePanel: boolean;
+  /** Final step: Subnautica detail overlay open state + 0..1 scroll progress. */
+  detailPreview: { open: boolean; scrollProgress: number };
   cursor: {
     x: number;
     y: number;
@@ -859,8 +897,10 @@ function computeScrollY(
 
   if (
     phase === "refined-details-cursor-move" ||
-    phase === "refined-details-hold"
+    phase === "refined-details-hold" ||
+    HERO_DEMO_DETAIL_PHASES.includes(phase)
   ) {
+    // Freeze the underlying tape while the detail overlay is shown on top.
     if (!metrics.refinedBrowse) {
       return metrics.refineExitScrollY || metrics.lockedRefineViewScrollY;
     }
@@ -1066,6 +1106,11 @@ function computeCursorState(
     return { ...refinedViewDetailsStage, visible, clicking: false };
   }
 
+  if (HERO_DEMO_DETAIL_PHASES.includes(phase)) {
+    // Detail overlay is on top — hide the fake cursor, keep it parked.
+    return { ...refinedViewDetailsStage, visible: false, clicking: false };
+  }
+
   return { ...toCursor(cursor.prompt), visible, clicking: false };
 }
 
@@ -1087,6 +1132,14 @@ function phaseResultsRevealed(phase: WalkthroughPhase, phaseElapsed: number): bo
     );
   }
 
+  // Refine transition: fade the results out while the viewport resets to the top
+  // so the OLD cards are never scrolled through, and the initial→refined grid swap
+  // happens hidden (at opacity 0). The refined grid then fades back in already at
+  // the top from `refined-row1-hold` onward (see HERO_DEMO_REFINED_GRID_PHASES).
+  if (phase === "refine-updating") {
+    return false;
+  }
+
   return true;
 }
 
@@ -1096,6 +1149,21 @@ function phaseHideRefinePanel(phase: WalkthroughPhase): boolean {
 
 function phaseShowRefinedResults(phase: WalkthroughPhase): boolean {
   return HERO_DEMO_REFINED_GRID_PHASES.includes(phase);
+}
+
+function phaseDetailPreview(
+  phase: WalkthroughPhase,
+  phaseElapsed: number,
+): DemoFrameState["detailPreview"] {
+  if (phase === "detail-open") return { open: true, scrollProgress: 0 };
+  if (phase === "detail-scroll") {
+    return {
+      open: true,
+      scrollProgress: easeInOutCubic(phaseElapsed / PHASE_DURATION["detail-scroll"]),
+    };
+  }
+  if (phase === "detail-hold") return { open: true, scrollProgress: 1 };
+  return { open: false, scrollProgress: 0 };
 }
 
 export function computeDemoFrame(
@@ -1139,6 +1207,7 @@ export function computeDemoFrame(
     resultsRevealed: phaseResultsRevealed(phase, phaseElapsed),
     showRefinedResults: phaseShowRefinedResults(phase),
     hideRefinePanel: phaseHideRefinePanel(phase),
+    detailPreview: phaseDetailPreview(phase, phaseElapsed),
     cursor,
   };
 }

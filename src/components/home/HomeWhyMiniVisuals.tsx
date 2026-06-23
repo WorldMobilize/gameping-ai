@@ -66,7 +66,7 @@ function MiniLabel({ isDark, children }: { isDark: boolean; children: ReactNode 
   return (
     <p
       className={`text-[9px] font-bold uppercase tracking-[0.16em] ${
-        isDark ? "text-slate-500" : "text-slate-400"
+        isDark ? "text-slate-400" : "text-slate-600"
       }`}
     >
       {children}
@@ -109,7 +109,7 @@ function FitCheckIcon({ isDark }: { isDark: boolean }) {
 }
 
 function KnowBeforePlayingMiniVisual({ isDark }: MiniVisualProps) {
-  const label = isDark ? "text-slate-500" : "text-slate-400";
+  const label = isDark ? "text-slate-400" : "text-slate-600";
   const score = isDark ? "text-cyan-100" : "text-cyan-700";
   const scoreGlow = isDark ? "text-cyan-400/80" : "text-cyan-600/80";
   const row = isDark ? "text-slate-100" : "text-slate-700";

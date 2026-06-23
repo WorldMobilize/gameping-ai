@@ -20,7 +20,7 @@ export default function HomePersonalFit() {
           >
             Know if a game fits you
           </h2>
-          <p className={`mt-4 max-w-md text-lg leading-relaxed ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+          <p className={`mt-4 max-w-md text-lg leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600"}`}>
             On every game page, GamePing explains whether a title fits what you&apos;re looking for
             — in plain language, with honest trade-offs before you buy.
           </p>
@@ -44,7 +44,7 @@ export default function HomePersonalFit() {
                     <h3 className={`text-xl font-bold ${isDark ? "text-slate-50" : "text-slate-900"}`}>
                       {game.title}
                     </h3>
-                    <p className="mt-1 text-xs text-slate-400">Based on your search context</p>
+                    <p className={`mt-1 text-xs ${isDark ? "text-slate-400" : "text-slate-600"}`}>Based on your search context</p>
                   </div>
                   <div
                     className={`shrink-0 rounded-[16px] px-3 py-2 text-right ${isDark ? "bg-emerald-950/70" : "bg-emerald-100"}`}
@@ -62,7 +62,7 @@ export default function HomePersonalFit() {
 
                 <div className="mt-5 space-y-4">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                    <p className={`text-xs font-bold uppercase tracking-[0.16em] ${isDark ? "text-slate-400" : "text-slate-600"}`}>
                       Why it might fit you
                     </p>
                     <ul className={`mt-2 space-y-2.5 text-sm leading-relaxed ${isDark ? "text-slate-300" : "text-slate-700"}`}>
@@ -74,10 +74,10 @@ export default function HomePersonalFit() {
                   <div
                     className={`rounded-xl border px-3 py-2.5 ${isDark ? "border-amber-800/40 bg-amber-950/30" : "border-amber-200 bg-amber-50/80"}`}
                   >
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+                    <p className={`text-xs font-bold uppercase tracking-[0.16em] ${isDark ? "text-slate-400" : "text-slate-600"}`}>
                       Potential concern
                     </p>
-                    <p className={`mt-1.5 text-sm leading-relaxed ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                    <p className={`mt-1.5 text-sm leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600"}`}>
                       {game.concerns[0]}
                     </p>
                   </div>

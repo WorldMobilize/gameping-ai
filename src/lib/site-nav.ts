@@ -17,6 +17,14 @@ export const SITE_NAV_ITEMS: SiteNavItem[] = [
   },
   { label: "A–Z Games Directory", href: "/games", matchPrefix: "/games" },
   { label: "How It Works", href: "/#how-it-works" },
+];
+
+/**
+ * Discovery feature pages — incomplete/future features, gated ADMIN ONLY for now
+ * (same profiles.plan === "admin" check as AdminOnlyPageGate). Hidden from the
+ * public nav, drawer, and footer until they ship.
+ */
+export const ADMIN_DISCOVERY_NAV_ITEMS: SiteNavItem[] = [
   { label: "Hidden Gems", href: "/hidden-gems", matchPrefix: "/hidden-gems" },
   {
     label: "Games of the Week",
@@ -25,7 +33,7 @@ export const SITE_NAV_ITEMS: SiteNavItem[] = [
   },
 ];
 
-/** Premium discovery — shown in nav only when plan is premium or admin. */
+/** Premium personal discovery — admin-only while incomplete (was premium-or-admin). */
 export const PREMIUM_DISCOVERY_NAV_ITEMS: SiteNavItem[] = [
   {
     label: "Your weekly picks",
@@ -38,6 +46,21 @@ export const PREMIUM_DISCOVERY_NAV_ITEMS: SiteNavItem[] = [
     href: "/monthly-recap",
     matchPrefix: "/monthly-recap",
   },
+];
+
+/** GamePing Parties — admin-only, future feature. Not in public nav. */
+export const PARTIES_NAV_ITEM: SiteNavItem = {
+  label: "GamePing Parties",
+  href: "/parties",
+  matchPrefix: "/parties",
+};
+
+export const PARTIES_SUBNAV_ITEMS: SiteNavItem[] = [
+  { label: "Competitive", href: "/parties#competitive" },
+  { label: "Co-op / PvE", href: "/parties#co-op" },
+  { label: "Survival", href: "/parties#survival" },
+  { label: "Strategy", href: "/parties#strategy" },
+  { label: "Weekend squads", href: "/parties#weekend-squads" },
 ];
 
 export function isSiteNavItemActive(

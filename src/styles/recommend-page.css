@@ -1,0 +1,84 @@
+/*
+ * /recommend — green "recommendation" identity, mirroring the Landing (cyan) and
+ * Premium (gold) systems. One fixed cinematic background image used identically
+ * in light AND dark (no brighten/desaturate/wash); only the UI surfaces, text,
+ * borders, inputs, and buttons change with theme. Scoped to .gp-recommend so no
+ * other page is affected.
+ */
+.gp-recommend-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #070b14;
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(7, 11, 20, 0.5) 0%,
+      rgba(7, 11, 20, 0.68) 52%,
+      rgba(7, 11, 20, 0.9) 100%
+    ),
+    url("/images/backgrounds/gameping-recommend-bg-dark.png");
+  background-repeat: no-repeat, no-repeat;
+  background-position: center top, center top;
+  background-size: cover, cover;
+}
+
+/*
+ * Primary CTA — green gradient + green glow (overrides the shared cyan
+ * `.gp-home-cta`), scoped to /recommend so the cyan button is unchanged
+ * everywhere else.
+ */
+.gp-recommend .gp-home-cta {
+  background-image: linear-gradient(to bottom, #22c55e, #15803d);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.25) inset,
+    0 8px 22px -8px rgba(21, 128, 61, 0.55),
+    0 2px 6px -2px rgba(21, 128, 61, 0.4);
+}
+
+.gp-recommend .gp-home-cta:hover {
+  background-image: linear-gradient(to bottom, #4ade80, #16a34a);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.3) inset,
+    0 14px 30px -10px rgba(34, 197, 94, 0.5),
+    0 3px 10px -2px rgba(34, 197, 94, 0.42);
+}
+
+.gp-recommend .gp-home-cta:active {
+  box-shadow:
+    0 1px 2px rgba(21, 128, 61, 0.5) inset,
+    0 4px 12px -4px rgba(21, 128, 61, 0.45);
+}
+
+/*
+ * Light-mode /recommend surfaces — frosted light green glass over the SAME dark
+ * cinematic image (no background wash). White/grey card surfaces become a soft
+ * green-tinted frosted glass with a green hairline border; their dark/slate text
+ * stays readable and green accents stay green. Scoped to .gp-recommend + light
+ * theme so dark mode and every other page are untouched.
+ */
+html[data-home-theme="light"] .gp-recommend .bg-white,
+html[data-home-theme="light"] .gp-recommend .bg-slate-50,
+html[data-home-theme="light"] .gp-recommend .bg-slate-50\/60,
+html[data-home-theme="light"] .gp-recommend .bg-slate-50\/70,
+html[data-home-theme="light"] .gp-recommend .bg-slate-50\/80,
+html[data-home-theme="light"] .gp-recommend .bg-slate-50\/90 {
+  background-color: rgba(236, 253, 244, 0.8);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+html[data-home-theme="light"] .gp-recommend .border-slate-200,
+html[data-home-theme="light"] .gp-recommend .border-slate-200\/90 {
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+/* Green focus glow on the prompt / refine inputs (overrides the cyan focus). */
+.gp-recommend .gp-prompt-textarea:focus,
+.gp-recommend input:focus,
+.gp-recommend textarea:focus {
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22);
+  outline: none;
+}

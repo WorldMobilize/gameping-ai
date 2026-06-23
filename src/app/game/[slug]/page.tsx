@@ -4,6 +4,7 @@ import AppPageShell from "@/components/app/AppPageShell";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import {
   buildGameBreadcrumbs,
+  buildGameDisplayBreadcrumbs,
   buildGamePageMetadata,
   findCuratedCollectionsForGame,
   findDirectoryGameImage,
@@ -396,6 +397,12 @@ export default async function GameDetailPage({
   const curatedCollections = findCuratedCollectionsForGame(displayTitle);
   const curatedCollection = curatedCollections[0] ?? null;
   const breadcrumbs = buildGameBreadcrumbs(displayTitle, curatedCollections);
+  const breadcrumbSource = typeof sp.from === "string" ? sp.from : undefined;
+  const displayBreadcrumbs = buildGameDisplayBreadcrumbs(
+    displayTitle,
+    curatedCollections,
+    breadcrumbSource
+  );
   const relatedGames = getSemanticRelatedGames({
     currentTitle: displayTitle,
     genreNames: rawg?.genres?.map((g) => g.name),
@@ -422,7 +429,7 @@ export default async function GameDetailPage({
   const viewData = buildGameDetailViewData({
     title,
     displayTitle,
-    breadcrumbs,
+    breadcrumbs: displayBreadcrumbs,
     rawg,
     description,
     heroImage,
@@ -457,7 +464,7 @@ export default async function GameDetailPage({
   });
 
   return (
-    <AppPageShell>
+    <AppPageShell hideAmbient>
       <GameStructuredData
         data={{
           name: displayTitle,
@@ -478,25 +485,29 @@ export default async function GameDetailPage({
       {gameId ? (
         <GamePageAnalytics title={displayTitle} rawgId={gameId} />
       ) : null}
-      <div className="gp-game-page-enter relative z-10">
-      <GameDetailWithTheme
-        data={viewData}
-        fitSlot={
-          recommendFitContext ? undefined : (
-            <PersonalGameFitCard gameSlug={title} rawgId={gameId} />
-          )
-        }
-        trackPriceSlot={
-          <TrackPriceButton
-            title={rawg?.name || title}
-            rawgId={rawg?.id ?? null}
-            baselinePrice={trackBaselinePrice}
-            pricingCountry={trackPricingCountry}
-            offerSnapshot={trackOfferSnapshot}
-          />
-        }
-        showExploreSection
-      />
+      <div className="gp-accent-page relative isolate min-h-0 flex-1">
+        {/* Fixed cinematic Games background — SAME image in light + dark. */}
+        <div aria-hidden className="gp-games-bg" />
+        <div className="gp-game-page-enter relative z-10">
+        <GameDetailWithTheme
+          data={viewData}
+          fitSlot={
+            recommendFitContext ? undefined : (
+              <PersonalGameFitCard gameSlug={title} rawgId={gameId} />
+            )
+          }
+          trackPriceSlot={
+            <TrackPriceButton
+              title={rawg?.name || title}
+              rawgId={rawg?.id ?? null}
+              baselinePrice={trackBaselinePrice}
+              pricingCountry={trackPricingCountry}
+              offerSnapshot={trackOfferSnapshot}
+            />
+          }
+          showExploreSection
+        />
+        </div>
       </div>
     </AppPageShell>
   );

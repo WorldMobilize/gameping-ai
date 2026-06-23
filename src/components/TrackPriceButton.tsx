@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useToast } from "@/components/ToastProvider";
-import { APP_INLINE_LINK, APP_PRIMARY_CTA_SM } from "@/components/app/app-styles";
+import { APP_PRIMARY_CTA_ACCENT_SM } from "@/components/app/app-styles";
 import {
   LIMIT_TOAST_DURATION_MS,
   limitReachedToastMessage,
@@ -182,19 +182,22 @@ export default function TrackPriceButton({
         type="button"
         onClick={handleClick}
         disabled={loading}
-        className={`w-full ${APP_PRIMARY_CTA_SM} disabled:cursor-not-allowed disabled:opacity-60`}
+        className={`w-full ${APP_PRIMARY_CTA_ACCENT_SM} disabled:cursor-not-allowed disabled:opacity-60`}
       >
         {loading ? "Saving…" : "Track price"}
       </button>
-      <p className="mt-3 text-xs leading-relaxed text-slate-500">
+      <p className="mt-3 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
         Alerts will use your current region:{" "}
-        <span className="font-semibold text-slate-700">
+        <span className="font-semibold text-[color:var(--page-accent-text)]">
           {region}
           {currencyHint ? ` / ${currencyHint}` : ""}
         </span>
         . We&apos;ll email you when we detect a verified price drop. Track one game here for
         alerts. To save a whole recommendation run to your dashboard, use{" "}
-        <Link href="/recommend" className={APP_INLINE_LINK}>
+        <Link
+          href="/recommend"
+          className="font-semibold text-[color:var(--page-accent-text)] underline-offset-4 transition hover:underline"
+        >
           Recommend
         </Link>
         .

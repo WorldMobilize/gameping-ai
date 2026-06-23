@@ -27,9 +27,16 @@ export default function HomeComingSoon() {
   const { theme } = useHomeTheme();
   const isDark = theme === "dark";
 
+  // Card-internal text: dark on the light frosted card in light mode.
   const text = isDark ? "text-slate-50" : "text-slate-900";
-  const body = isDark ? "text-slate-400" : "text-slate-600";
+  // Card descriptions are real explanatory copy — readable on both the dark glass
+  // and light frosted cards rather than faint.
+  const body = isDark ? "text-slate-300" : "text-slate-700";
   const accent = homeCyanAccentText(isDark);
+  // On-background header text: stays light in both themes (dark room).
+  const headerText = "text-slate-50";
+  const headerBody = "text-slate-300";
+  const headerAccent = "text-cyan-400";
   const soonBadge = homeSoonChip(isDark);
   const chip = isDark
     ? "inline-flex items-center rounded-full border border-slate-700/80 bg-slate-900/50 px-3 py-1 text-xs font-medium leading-none text-slate-300"
@@ -41,11 +48,11 @@ export default function HomeComingSoon() {
         <span className={`inline-flex uppercase tracking-wide ${soonBadge}`}>Coming soon</span>
         <h2
           id="future-roadmap-heading"
-          className={`${HOME_SECTION_TITLE} mt-3 text-2xl sm:text-3xl ${text}`}
+          className={`${HOME_SECTION_TITLE} mt-3 text-2xl sm:text-3xl ${headerText}`}
         >
-          GamePing gets <span className={accent}>smarter</span> with you
+          GamePing gets <span className={headerAccent}>smarter</span> with you
         </h2>
-        <p className={`mt-3 max-w-xl text-base leading-relaxed sm:text-lg ${body}`}>
+        <p className={`mt-3 max-w-xl text-base leading-relaxed sm:text-lg ${headerBody}`}>
           Steam import and taste memory are planned features — not live yet.
         </p>
       </header>
@@ -53,7 +60,11 @@ export default function HomeComingSoon() {
       <ul className="mt-10 grid gap-10 lg:grid-cols-2 lg:items-stretch lg:gap-12">
         {HOME_FUTURE_ROADMAP.map((item) => (
           <li key={item.id} className="flex h-full">
-            <article className="flex h-full w-full flex-col">
+            <article
+              className={`gp-home-card flex h-full w-full flex-col rounded-2xl border p-6 sm:p-7 ${
+                isDark ? "gp-home-panel-dark" : "gp-home-panel-light"
+              }`}
+            >
               <h3 className={`${HOME_BLOCK_TITLE} ${text}`}>{item.title}</h3>
               <p className={`${HOME_BLOCK_BODY} max-w-md ${body}`}>{item.detail}</p>
               <ul className="mt-6 flex flex-wrap items-center gap-2">

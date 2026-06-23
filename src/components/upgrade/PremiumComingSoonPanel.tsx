@@ -1,7 +1,7 @@
 /** Static UI — upcoming Premium discovery features (no routes or data). */
 
 export const COMING_SOON_BADGE =
-  "inline-flex shrink-0 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-200";
+  "inline-flex shrink-0 rounded-full border border-amber-300/80 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8a6a14] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200";
 
 const UPCOMING_FEATURES = [
   {
@@ -25,9 +25,9 @@ const UPCOMING_FEATURES = [
 
 export default function PremiumComingSoonPanel() {
   return (
-    <div className="mt-6 rounded-2xl border border-cyan-200/80 bg-gradient-to-br from-cyan-50/80 via-white to-slate-50/60 p-5 shadow-sm shadow-cyan-100/25 dark:border-cyan-500/25 dark:from-cyan-950/35 dark:via-slate-950/40 dark:to-slate-950/20 dark:shadow-cyan-950/20">
+    <div className="mt-6 rounded-2xl border border-amber-300/60 bg-white bg-gradient-to-br p-5 shadow-sm shadow-amber-100/25 dark:bg-slate-950/40 dark:border-amber-500/25 dark:from-amber-950/30 dark:via-slate-950/40 dark:to-slate-950/20 dark:shadow-amber-950/20">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-800 dark:text-cyan-300">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8a6a14] dark:text-amber-300">
           Coming soon for Premium
         </p>
         <span className={COMING_SOON_BADGE}>Coming soon</span>
@@ -36,7 +36,7 @@ export default function PremiumComingSoonPanel() {
         {UPCOMING_FEATURES.map((feature) => (
           <li key={feature.title} className="flex gap-3">
             <span
-              className="mt-0.5 shrink-0 text-cyan-600 dark:text-cyan-400"
+              className="mt-0.5 shrink-0 text-[#B98224] dark:text-[#e8c879]"
               aria-hidden
             >
               ◦

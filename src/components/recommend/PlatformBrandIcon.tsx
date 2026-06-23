@@ -1,15 +1,23 @@
-import { APP_BRAND_ICON_IMG } from "@/components/app/app-styles";
-
 type PlatformBrandIconProps = {
   src: string;
   alt: string;
   className?: string;
 };
 
-/** Platform logos shipped as white-filled SVGs — invert in light mode for contrast. */
+/**
+ * Platform logos rendered via CSS mask so the glyph paints in `currentColor`
+ * instead of a hardcoded black/white fill. The parent sets the text colour
+ * (e.g. the page accent), so the icon inherits the page identity and adapts to
+ * light/dark. The SVG file supplies only the shape (its own fill is ignored).
+ */
 export default function PlatformBrandIcon({ src, alt, className = "" }: PlatformBrandIconProps) {
+  const mask = `url("${src}") center / contain no-repeat`;
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} className={`${APP_BRAND_ICON_IMG} ${className}`} />
+    <span
+      role="img"
+      aria-label={alt}
+      className={`block h-full w-full bg-current ${className}`}
+      style={{ WebkitMask: mask, mask }}
+    />
   );
 }

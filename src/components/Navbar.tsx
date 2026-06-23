@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import EmailVerificationNotice from "@/components/EmailVerificationNotice";
+import { isEmailVerified } from "@/lib/auth-email-verification";
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import NavDrawer from "@/components/NavDrawer";
-import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -27,33 +27,40 @@ function displayNameFromMetadata(
   return null;
 }
 
-function firstAvatarLetter(value: string): string | null {
-  const match = value.trim().match(/[a-zA-Z0-9]/);
-  return match ? match[0].toUpperCase() : null;
+/** Active-page test for the nav links (hash links are never "active"). */
+function isNavLinkActive(href: string, pathname: string): boolean {
+  if (href.startsWith("#")) return false;
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function avatarInitial(displayName: string | null, email: string): string {
-  if (displayName) {
-    const fromName = firstAvatarLetter(displayName);
-    if (fromName) return fromName;
-  }
-  const local = email.split("@")[0]?.trim() ?? email.trim();
-  return firstAvatarLetter(local) ?? "?";
+/** Classic head-and-shoulders silhouette for the account avatar. */
+function UserSilhouetteIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4.06 3.58-6.5 8-6.5s8 2.44 8 6.5a.5.5 0 0 1-.5.5h-15A.5.5 0 0 1 4 20z" />
+    </svg>
+  );
 }
 
-function shortEmailLabel(email: string, max = 22): string {
-  if (email.length <= max) return email;
-  return `${email.slice(0, max - 1)}…`;
+/** Small crown for the Premium pill. */
+function CrownIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M3 7.5l4 3.2L12 4l5 6.7 4-3.2-1.6 10.1a1 1 0 0 1-1 .84H5.6a1 1 0 0 1-1-.84L3 7.5z" />
+    </svg>
+  );
 }
 
 type MenuCoords = { top: number; right: number };
 
 /** Core links shown inline from xl (container handles the breakpoint). */
 const HOME_NAV_CORE_LINKS = [
+  { label: "Home", href: "/" },
   { label: "Recommend", href: "/recommend" },
   { label: "Curated", href: "/curated" },
   { label: "Games", href: "/games" },
-  { label: "How it works", href: "#how-it-works" },
 ] as const;
 
 /** Discovery links shown inline only at 2xl. */
@@ -62,7 +69,7 @@ const HOME_NAV_DISCOVERY_LINKS = [
   { label: "Games of the week", href: "/games-of-the-week" },
 ] as const;
 
-/** Premium discovery links — desktop nav shows these only when plan is premium or admin. */
+/** Personal discovery links — desktop nav shows these only to admins (admin-only for now). */
 const HOME_NAV_PREMIUM_LINKS = [
   { label: "Weekly picks", href: "/weekly-picks" },
   { label: "Deals for you", href: "/deals-for-you" },
@@ -77,11 +84,50 @@ export default function Navbar({
   const isHomePage = pathname === "/";
   const { theme, toggleTheme } = useHomeTheme();
   const isLight = theme === "light";
+  // Header accents follow the CURRENT PAGE accent via the --page-accent-* CSS
+  // variables (set per route in PageAccentProvider): cyan landing, gold premium,
+  // green recommend, etc. No per-page colour ternaries here. Visual only.
   const { showToast } = useToast();
-  const homeNavLinkClass = `${isLight ? "text-slate-600 hover:text-cyan-700" : "text-slate-400 hover:text-cyan-300"} shrink-0 items-center whitespace-nowrap text-sm font-semibold transition`;
+  const navLinkLayout = "shrink-0 items-center whitespace-nowrap text-sm font-semibold transition";
+
+  /**
+   * A primary nav link with an animated accent active/hover underline that
+   * matches the current page identity (driven by --page-accent-*).
+   */
+  const renderHomeNavLink = (item: { label: string; href: string }) => {
+    const active = isNavLinkActive(item.href, pathname);
+    const baseText = isLight ? "text-slate-700" : "text-slate-300";
+    const colorClass = active
+      ? "text-[color:var(--page-accent-text)]"
+      : `${baseText} hover:text-[color:var(--page-accent-text)]`;
+    const className = `group relative inline-flex ${navLinkLayout} ${colorClass}`;
+    const underline = (
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute -bottom-2 left-0 h-[2px] w-full origin-center rounded-full bg-[var(--page-accent-strong)] shadow-[0_0_8px_var(--page-accent-glow)] transition-transform duration-300 ease-out ${
+          active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+        }`}
+      />
+    );
+
+    return item.href.startsWith("#") ? (
+      <a key={item.href} href={item.href} className={className} aria-current={active ? "page" : undefined}>
+        <span>{item.label}</span>
+        {underline}
+      </a>
+    ) : (
+      <Link key={item.href} href={item.href} className={className} aria-current={active ? "page" : undefined}>
+        <span>{item.label}</span>
+        {underline}
+      </Link>
+    );
+  };
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [emailUnverified, setEmailUnverified] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
-  const [hasPremiumDiscovery, setHasPremiumDiscovery] = useState(false);
+  // Discovery + personal feature links are admin-only for now. Same
+  // profiles.plan === "admin" check used by AdminOnlyPageGate — no new auth.
+  const [isAdmin, setIsAdmin] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
@@ -94,6 +140,7 @@ export default function Navbar({
       const { data } = await supabase.auth.getUser();
       const user = data.user;
       setUserEmail(user?.email ?? null);
+      setEmailUnverified(!!user && !isEmailVerified(user));
       setUserDisplayName(displayNameFromMetadata(user?.user_metadata));
     };
 
@@ -102,6 +149,7 @@ export default function Navbar({
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user;
       setUserEmail(user?.email ?? null);
+      setEmailUnverified(!!user && !isEmailVerified(user));
       setUserDisplayName(displayNameFromMetadata(user?.user_metadata));
     });
 
@@ -113,12 +161,12 @@ export default function Navbar({
   useEffect(() => {
     let cancelled = false;
 
-    async function loadPremiumDiscovery() {
+    async function loadAdmin() {
       const { data } = await supabase.auth.getUser();
       if (cancelled) return;
 
       if (!data.user) {
-        setHasPremiumDiscovery(false);
+        setIsAdmin(false);
         return;
       }
 
@@ -128,13 +176,13 @@ export default function Navbar({
         .eq("user_id", data.user.id)
         .maybeSingle();
 
-      if (!cancelled) setHasPremiumDiscovery(hasPremiumDiscoveryAccess(profile?.plan));
+      if (!cancelled) setIsAdmin(profile?.plan === "admin");
     }
 
-    void loadPremiumDiscovery();
+    void loadAdmin();
 
     const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      void loadPremiumDiscovery();
+      void loadAdmin();
     });
 
     return () => {
@@ -229,7 +277,7 @@ export default function Navbar({
         className={`w-[min(calc(100vw-1rem),17.5rem)] rounded-2xl border py-2 shadow-lg backdrop-blur-xl pointer-events-auto ${
           isLight
             ? "border-slate-200/90 bg-white/98 shadow-slate-200/60 ring-1 ring-slate-200/80"
-            : "border-white/10 bg-[#0b0c18]/98 shadow-[0_16px_48px_rgba(0,0,0,0.55)] ring-1 ring-cyan-400/10"
+            : "border-white/10 bg-[#0b0c18]/98 shadow-[0_16px_48px_rgba(0,0,0,0.55)] ring-1 ring-[color:var(--page-accent-soft)]"
         }`}
       >
         <div
@@ -252,8 +300,8 @@ export default function Navbar({
             role="menuitem"
             className={`flex w-full items-center px-4 py-3 text-sm font-bold no-underline transition focus-visible:outline-none ${
               isLight
-                ? "text-slate-800 hover:bg-cyan-50 hover:text-cyan-800 focus-visible:bg-cyan-50"
-                : "text-white/90 hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:bg-cyan-400/10"
+                ? "text-slate-800 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
+                : "text-white/90 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
             }`}
             onClick={closeAccountMenu}
           >
@@ -265,15 +313,15 @@ export default function Navbar({
             role="menuitem"
             className={`flex w-full flex-col items-stretch px-4 py-3 text-left text-sm font-bold no-underline transition focus-visible:outline-none ${
               isLight
-                ? "text-slate-800 hover:bg-cyan-50 hover:text-cyan-800 focus-visible:bg-cyan-50"
-                : "text-white/90 hover:bg-cyan-400/10 hover:text-cyan-200 focus-visible:bg-cyan-400/10"
+                ? "text-slate-800 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
+                : "text-white/90 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
             }`}
             onClick={closeAccountMenu}
           >
             <span className="block w-full">Account settings</span>
             <span
               className={`mt-0.5 block w-full text-[11px] font-semibold leading-snug ${
-                isLight ? "text-slate-500" : "text-white/45"
+                isLight ? "text-slate-600" : "text-white/70"
               }`}
             >
               Privacy, deletion, account data
@@ -285,8 +333,8 @@ export default function Navbar({
             role="menuitem"
             className={`flex w-full items-center px-4 py-3 text-sm font-bold no-underline transition focus-visible:outline-none ${
               isLight
-                ? "text-slate-800 hover:bg-violet-50 hover:text-violet-800 focus-visible:bg-violet-50"
-                : "text-white/90 hover:bg-purple-500/15 hover:text-purple-200 focus-visible:bg-purple-500/15"
+                ? "text-slate-800 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
+                : "text-white/90 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
             }`}
             onClick={closeAccountMenu}
           >
@@ -303,8 +351,8 @@ export default function Navbar({
             role="menuitem"
             className={`flex w-full items-center px-4 py-3 text-left text-sm font-bold transition focus-visible:outline-none ${
               isLight
-                ? "text-violet-700 hover:bg-violet-50 focus-visible:bg-violet-50 focus-visible:ring-2 focus-visible:ring-violet-400/35"
-                : "text-purple-200/95 hover:bg-purple-500/10 focus-visible:bg-purple-500/10 focus-visible:ring-2 focus-visible:ring-purple-400/35"
+                ? "text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-300"
+                : "text-slate-300 hover:bg-white/10 hover:text-white focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/20"
             }`}
             onClick={() => void handleLogout()}
           >
@@ -317,25 +365,21 @@ export default function Navbar({
   return (
     <>
     <nav
-      className={`gp-nav-bar relative z-30 w-full border-b backdrop-blur-xl ${
+      className={`gp-nav-bar sticky top-0 z-40 w-full border-b backdrop-blur-xl ${
         isLight
-          ? "border-slate-200/80 bg-white/85 shadow-sm shadow-slate-200/40"
-          : "border-slate-800/80 bg-[#0b0f1a]/90"
+          ? "border-[color:var(--page-accent-border)] bg-[rgba(245,247,250,0.82)] shadow-sm shadow-slate-200/40"
+          : "border-white/[0.08] bg-gradient-to-b from-[#0b0f1a]/92 to-[#0b0f1a]/78 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_30px_-16px_rgba(0,0,0,0.8)]"
       }`}
     >
-      <div
-        className={`gp-nav-inner flex w-full items-center py-4 sm:py-5 ${
-          isHomePage ? "gp-nav-home-layout" : "justify-between gap-4"
-        }`}
-      >
+      <div className="gp-nav-inner gp-nav-home-layout flex w-full items-center py-4 sm:py-5">
         <div className="gp-nav-brand relative z-0 flex shrink-0 items-center gap-3">
           <button
             type="button"
             onClick={() => setNavOpen(true)}
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 ${
               isLight
-                ? "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100 focus-visible:ring-cyan-500/40"
-                : "border-white/15 bg-white/[0.06] text-white/80 hover:border-cyan-400/40 hover:bg-white/10 hover:text-cyan-200 focus-visible:ring-cyan-400/50"
+                ? "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100 focus-visible:ring-[color:var(--page-accent-border)]"
+                : "border-white/15 bg-white/[0.06] text-white/80 hover:border-[color:var(--page-accent-border)] hover:bg-white/10 hover:text-[color:var(--page-accent-text)] focus-visible:ring-[color:var(--page-accent-border)]"
             }`}
             aria-label="Open navigation menu"
             aria-expanded={navOpen}
@@ -358,23 +402,24 @@ export default function Navbar({
             className="flex min-w-0 shrink flex-col gap-1 sm:flex-row sm:items-center sm:gap-2"
           >
           <span className={`truncate text-lg font-black tracking-tight sm:text-xl ${isLight ? "text-slate-900" : ""}`}>
-            GamePing <span className="text-cyan-600">AI</span>
+            GamePing{" "}
+            <span className="text-[color:var(--page-accent-text)]">AI</span>
           </span>
           <span
-            className={`w-fit shrink-0 rounded-full border px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] sm:hidden ${
+            className={`inline-flex w-fit shrink-0 items-center justify-center rounded-full border px-2 py-0.5 text-[8px] font-semibold uppercase leading-none tracking-[0.18em] [text-indent:0.18em] sm:hidden ${
               isLight
-                ? "border-slate-200 bg-slate-50 text-slate-500"
-                : "border-white/10 bg-white/[0.04] text-white/45"
+                ? "border-slate-200 bg-slate-50 text-slate-600"
+                : "border-white/10 bg-white/[0.04] text-white/70"
             }`}
             title="GamePing early access"
           >
             Early access
           </span>
           <span
-            className={`hidden w-fit shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.22em] lg:inline ${
+            className={`hidden w-fit shrink-0 items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.22em] [text-indent:0.22em] lg:inline-flex ${
               isLight
-                ? "border-slate-200 bg-slate-50 text-slate-500"
-                : "border-white/10 bg-white/[0.04] text-white/45"
+                ? "border-slate-200 bg-slate-50 text-slate-600"
+                : "border-white/10 bg-white/[0.04] text-white/70"
             }`}
             title="GamePing early access"
           >
@@ -383,79 +428,35 @@ export default function Navbar({
           </Link>
         </div>
 
-        {isHomePage ? (
-          <nav className="gp-nav-home-links" aria-label="Primary navigation">
-            {HOME_NAV_CORE_LINKS.map((item) =>
-              item.href.startsWith("#") ? (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className={`inline-flex ${homeNavLinkClass}`}
-                >
-                  {item.label}
-                </a>
-              ) : (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`inline-flex ${homeNavLinkClass}`}
-                >
-                  {item.label}
-                </Link>
-              )
-            )}
+        <nav className="gp-nav-home-links" aria-label="Primary navigation">
+          {HOME_NAV_CORE_LINKS.map((item) => renderHomeNavLink(item))}
 
+          {/* Discovery + personal feature pages are admin-only for now — hidden
+           * from anonymous, free, and premium (non-admin) users. */}
+          {isAdmin ? (
             <span className="hidden items-center gap-7 2xl:flex">
-              {HOME_NAV_DISCOVERY_LINKS.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`inline-flex ${homeNavLinkClass}`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </span>
-
-            {hasPremiumDiscovery ? (
-              <span className="hidden items-center gap-7 2xl:flex">
-                <span
-                  className={`h-5 w-px shrink-0 ${isLight ? "bg-slate-200" : "bg-white/15"}`}
-                  aria-hidden
-                />
-                <span
-                  className={`shrink-0 text-[10px] font-black uppercase tracking-[0.22em] ${
-                    isLight ? "text-violet-700" : "text-violet-300/90"
-                  }`}
-                >
-                  Premium
-                </span>
-                {HOME_NAV_PREMIUM_LINKS.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`inline-flex ${homeNavLinkClass}`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+              <span
+                className={`h-5 w-px shrink-0 ${isLight ? "bg-slate-200" : "bg-white/15"}`}
+                aria-hidden
+              />
+              <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.22em] text-[color:var(--page-accent-text)]">
+                Admin
               </span>
-            ) : null}
-          </nav>
-        ) : null}
+              {HOME_NAV_DISCOVERY_LINKS.map((item) => renderHomeNavLink(item))}
+              {HOME_NAV_PREMIUM_LINKS.map((item) => renderHomeNavLink(item))}
+              {renderHomeNavLink({ label: "Parties", href: "/parties" })}
+            </span>
+          ) : null}
+        </nav>
 
-        <div
-          className={`gp-nav-actions relative z-0 flex shrink-0 items-center gap-3 ${
-            isHomePage ? "ml-auto" : ""
-          }`}
-        >
+        <div className="gp-nav-actions relative z-0 ml-auto flex shrink-0 items-center gap-3">
           <button
             type="button"
             onClick={toggleTheme}
             className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border p-0 transition focus-visible:outline-none focus-visible:ring-2 ${
               isLight
-                ? "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-cyan-500/40"
-                : "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800 focus-visible:ring-cyan-400/40"
+                ? "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-[color:var(--page-accent-border)]"
+                : "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800 focus-visible:ring-[color:var(--page-accent-border)]"
             }`}
             aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
           >
@@ -471,26 +472,26 @@ export default function Navbar({
             )}
           </button>
 
+          {/* Premium is a right-side action button — intentionally NOT part of
+           * the left-nav active-underline system (no underline, no active state). */}
+          {/* Premium pill follows the CURRENT page accent via --page-accent-*
+           * (cyan landing / gold premium / green recommend / …). No fixed colour. */}
+          {/* Filled primary CTA matching the site's gp-page-cta (follows the
+           * current page accent automatically). Same position, route, and
+           * responsive sizing as before — only the visual language is upgraded. */}
           <Link
             href="/upgrade"
-            className={`relative z-0 hidden shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition sm:inline-flex sm:items-center sm:px-4 sm:py-2 ${
-              isLight
-                ? "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                : "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800"
-            }`}
+            className="gp-page-cta group z-0 hidden shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] sm:inline-flex sm:px-4 sm:py-2"
           >
-            Premium
+            <CrownIcon className="h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:-translate-y-px" />
+            <span>Premium</span>
           </Link>
 
           {!userEmail ? (
             <>
               <Link
                 href={ctaHref}
-                className={`relative z-0 shrink-0 rounded-full px-3.5 py-2 text-sm font-semibold shadow-md transition sm:px-5 sm:py-2.5 xl:px-6 xl:py-3 xl:text-base ${
-                  isLight
-                    ? "bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-cyan-600/25 hover:-translate-y-0.5 hover:from-cyan-700 hover:to-cyan-600 hover:shadow-lg hover:shadow-cyan-600/30"
-                    : "bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-cyan-600/20 hover:-translate-y-0.5 hover:from-cyan-500 hover:to-cyan-400"
-                }`}
+                className="gp-page-cta relative z-0 shrink-0 rounded-full px-3.5 py-2 text-sm font-semibold sm:px-5 sm:py-2.5 xl:px-6 xl:py-3 xl:text-base"
               >
                 {isHomePage ? (
                   <>
@@ -504,10 +505,10 @@ export default function Navbar({
 
               <Link
                 href="/login"
-                className={`relative z-0 inline-flex shrink-0 items-center rounded-full border px-3.5 py-2 text-sm font-semibold transition sm:px-4 sm:py-2.5 md:px-5 md:py-3 md:text-base ${
+                className={`relative z-0 inline-flex shrink-0 items-center rounded-full border px-3.5 py-2 text-sm font-semibold transition hover:border-[color:var(--page-accent-border)] sm:px-4 sm:py-2.5 md:px-5 md:py-3 md:text-base ${
                   isLight
-                    ? "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                    : "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800"
+                    ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                    : "border-slate-700 bg-slate-900/80 text-slate-300 hover:bg-slate-800"
                 }`}
               >
                 Login
@@ -515,60 +516,31 @@ export default function Navbar({
             </>
           ) : (
             <>
-              <Link
-                href="/recommend"
-                className={`relative z-0 hidden rounded-full px-5 py-2 text-sm font-bold transition sm:inline-flex sm:items-center ${
-                  isLight
-                    ? "bg-cyan-600 text-white hover:bg-cyan-700"
-                    : "bg-white/10 hover:bg-white/20"
-                }`}
-              >
-                <span className="whitespace-nowrap">New recommendation</span>
-              </Link>
-
               <div className="relative z-0 shrink-0">
                 <button
                   ref={accountMenuButtonRef}
                   type="button"
-                  className={`flex max-w-[min(100vw-8rem,14rem)] items-center gap-1.5 rounded-full border py-1.5 pl-1.5 pr-2 text-left transition focus-visible:outline-none focus-visible:ring-2 sm:gap-2 sm:pl-2 sm:pr-2.5 ${
+                  title={userDisplayName ?? userEmail}
+                  className={`group flex shrink-0 items-center gap-1 rounded-full border p-1 pr-1.5 transition hover:border-[color:var(--page-accent-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] ${
                     isLight
-                      ? "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-cyan-500/40"
-                      : "border-white/15 bg-white/[0.06] hover:border-cyan-400/35 hover:bg-white/[0.1] focus-visible:ring-cyan-400/50"
+                      ? "border-slate-200 bg-white hover:bg-slate-50"
+                      : "border-white/12 bg-white/[0.05] hover:bg-white/[0.09]"
                   }`}
                   aria-expanded={accountMenuOpen}
                   aria-haspopup="menu"
                   aria-controls="account-menu"
+                  aria-label="Open account menu"
                   id="account-menu-button"
                   onClick={() => setAccountMenuOpen((o) => !o)}
                 >
                   <span
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold leading-none ${
-                      isLight
-                        ? "border-slate-200 bg-slate-100 text-slate-700"
-                        : "border-white/15 bg-[#141824] text-white/90"
-                    }`}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)]"
                     aria-hidden
                   >
-                    {avatarInitial(userDisplayName, userEmail)}
-                  </span>
-                  <span className="hidden min-w-0 flex-1 flex-col sm:flex">
-                    <span
-                      className={`truncate text-[11px] font-bold leading-tight ${
-                        isLight ? "text-slate-700" : "text-white/85"
-                      }`}
-                    >
-                      {shortEmailLabel(userEmail, 26)}
-                    </span>
-                    <span
-                      className={`text-[9px] font-bold uppercase tracking-wider ${
-                        isLight ? "text-slate-400" : "text-white/35"
-                      }`}
-                    >
-                      Account
-                    </span>
+                    <UserSilhouetteIcon className="h-[18px] w-[18px]" />
                   </span>
                   <svg
-                    className={`h-4 w-4 shrink-0 transition sm:h-4 sm:w-4 ${
+                    className={`h-4 w-4 shrink-0 transition-transform duration-200 ${
                       isLight ? "text-slate-400" : "text-white/45"
                     } ${accountMenuOpen ? "rotate-180" : ""}`}
                     viewBox="0 0 20 20"
@@ -593,10 +565,10 @@ export default function Navbar({
       </div>
       <NavDrawer open={navOpen} onClose={closeNav} theme={theme} />
     </nav>
-    {userEmail ? (
+    {userEmail && emailUnverified ? (
       <div
         className={`relative z-20 border-b ${
-          isLight ? "border-slate-200/80 bg-cyan-50/50" : "border-white/10 bg-[#05060f]/90"
+          isLight ? "border-slate-200/80 bg-[var(--page-accent-soft)]" : "border-white/10 bg-[#05060f]/90"
         }`}
       >
         <div className="gp-nav-inner py-2">

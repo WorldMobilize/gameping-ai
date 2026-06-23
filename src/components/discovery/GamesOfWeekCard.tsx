@@ -4,10 +4,13 @@ import { APP_CARD, APP_CARD_TITLE, APP_MUTED } from "@/components/app/app-styles
 import { gameDetailPath } from "@/lib/curated/game-links";
 import type { GamesOfWeekPick } from "@/lib/discovery/placeholder-data";
 
+// All categories follow the current page accent so badges match the page identity.
+const CATEGORY_BADGE =
+  "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)]";
 const CATEGORY_STYLES: Record<GamesOfWeekPick["category"], string> = {
-  "New discovery": "border-cyan-200/90 bg-cyan-50 text-cyan-900",
-  "Great deal": "border-emerald-200/90 bg-emerald-50 text-emerald-900",
-  "Community favorite": "border-violet-200/90 bg-violet-50 text-violet-900",
+  "New discovery": CATEGORY_BADGE,
+  "Great deal": CATEGORY_BADGE,
+  "Community favorite": CATEGORY_BADGE,
 };
 
 export default function GamesOfWeekCard({ pick }: { pick: GamesOfWeekPick }) {
@@ -33,7 +36,7 @@ export default function GamesOfWeekCard({ pick }: { pick: GamesOfWeekPick }) {
           </span>
         </div>
         <h3 className={`mt-3 ${APP_CARD_TITLE}`}>
-          <Link href={href} className="transition hover:text-cyan-700">
+          <Link href={href} className="transition hover:text-[color:var(--page-accent-text)]">
             {pick.title}
           </Link>
         </h3>

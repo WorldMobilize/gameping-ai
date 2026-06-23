@@ -102,7 +102,7 @@ export default function EmailVerificationNotice({
           disabled={resending}
           onClick={() => void resend()}
           className={`font-bold underline-offset-2 hover:underline disabled:opacity-50 ${
-            isLight ? "text-cyan-700" : "text-cyan-200"
+            isLight ? "text-[color:var(--page-accent-text)]" : "text-[color:var(--page-accent-strong)]"
           }`}
         >
           {resending ? "Sending…" : "Resend verification email"}

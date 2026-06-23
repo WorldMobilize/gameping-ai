@@ -158,7 +158,7 @@ export default function HomeGameCarousel() {
               <div className="space-y-3 p-4 pt-3">
                 <div>
                   <h3 className="text-base font-semibold leading-tight">{game.title}</h3>
-                  <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-white/40">
+                  <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-white/70">
                     {game.tag}
                   </p>
                 </div>

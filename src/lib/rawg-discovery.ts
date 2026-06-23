@@ -17,6 +17,10 @@ export type RawgCandidate = {
   stores?: string[]
   genres?: { name: string }[]
   tags?: { name: string }[]
+  /** Metacritic score (present on the /games list endpoint). */
+  metacritic?: number | null
+  /** First short screenshot URL — image fallback when background_image is missing. */
+  image_fallback?: string | null
 }
 
 const RAWG_FETCH_TIMEOUT_MS = 8_500
@@ -296,6 +300,74 @@ export async function searchRawgByTitle(params: {
       } satisfies RawgCandidate
     })
 
+    return mapped.filter(notNull)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Query the RAWG `/games` LIST endpoint with arbitrary filters (ordering, dates,
+ * metacritic, genres, tags, …). Same RAWG integration/key as the rest of this
+ * module — no new client. Used by the admin discovery pages to pull real
+ * candidates (Hidden Gems / Games of the Week). Best-effort: returns [] on any
+ * failure so callers can fall back to static data.
+ */
+export async function fetchRawgGamesList(params: {
+  rawgApiKey: string
+  query: Record<string, string>
+  timeoutMs?: number
+}): Promise<RawgCandidate[]> {
+  try {
+    const qs = new URLSearchParams({ key: params.rawgApiKey, ...params.query }).toString()
+    const url = `https://api.rawg.io/api/games?${qs}`
+    const res = await fetchRawgJson(url, params.timeoutMs)
+    if (!res.ok) return []
+    const data = (await res.json()) as { results?: unknown }
+    const arr = Array.isArray(data?.results) ? (data.results as unknown[]) : []
+    const mapped: Array<RawgCandidate | null> = arr.map((g) => {
+      if (!g || typeof g !== "object") return null
+      const rec = g as Record<string, unknown>
+      if (typeof rec.id !== "number" && typeof rec.id !== "string") return null
+      if (typeof rec.name !== "string") return null
+      const platforms =
+        Array.isArray(rec.platforms) ?
+          (rec.platforms as Array<{ platform?: { name?: unknown } }>).map((p) =>
+            typeof p?.platform?.name === "string" ? p.platform.name : ""
+          ).filter(Boolean)
+        : undefined
+      const stores =
+        Array.isArray(rec.stores) ?
+          (rec.stores as Array<{ store?: { name?: unknown } }>).map((s) =>
+            typeof s?.store?.name === "string" ? s.store.name : ""
+          ).filter(Boolean)
+        : undefined
+      const shortScreens = Array.isArray(rec.short_screenshots)
+        ? (rec.short_screenshots as Array<{ image?: unknown }>)
+        : []
+      const firstScreen = shortScreens.find(
+        (s) => typeof s?.image === "string" && (s.image as string).trim()
+      )
+      return {
+        id: Number(rec.id),
+        name: rec.name,
+        slug: typeof rec.slug === "string" ? rec.slug : undefined,
+        background_image:
+          typeof rec.background_image === "string" ? rec.background_image : null,
+        released: typeof rec.released === "string" ? rec.released : null,
+        rating: typeof rec.rating === "number" ? rec.rating : null,
+        ratings_count:
+          typeof rec.ratings_count === "number" ? rec.ratings_count : null,
+        added: typeof rec.added === "number" ? rec.added : null,
+        metacritic: typeof rec.metacritic === "number" ? rec.metacritic : null,
+        image_fallback:
+          firstScreen && typeof firstScreen.image === "string" ? firstScreen.image : null,
+        platforms: platforms?.length ? platforms.slice(0, 8) : undefined,
+        stores: stores?.length ? stores.slice(0, 8) : undefined,
+        genres: Array.isArray(rec.genres) ? (rec.genres as { name: string }[]) : undefined,
+        tags: Array.isArray(rec.tags) ? (rec.tags as { name: string }[]) : undefined,
+      } satisfies RawgCandidate
+    })
     return mapped.filter(notNull)
   } catch {
     return []

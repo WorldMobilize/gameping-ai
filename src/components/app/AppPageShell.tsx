@@ -51,10 +51,10 @@ export default function AppPageShell({
       {!bare ? (
         <Navbar ctaLabel={navbarCtaLabel} ctaHref={navbarCtaHref} />
       ) : null}
-      <div className="relative flex flex-1 flex-col">
+      <main className="relative flex flex-1 flex-col">
         {!hideAmbient ? <AppAmbientBlobs isDark={isDark} /> : null}
         {children}
-      </div>
+      </main>
     </div>
   );
 }

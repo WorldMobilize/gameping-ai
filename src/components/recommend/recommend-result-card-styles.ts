@@ -27,10 +27,10 @@ export function recommendResultCardStyles(
     imagePlaceholder: isExport ? "h-[300px] text-lg" : isDemo ? "h-28 text-sm" : "h-52",
     bodyPad: isExport ? "flex flex-1 flex-col p-8" : isDemo ? "flex flex-1 flex-col p-3" : "flex flex-1 flex-col p-6",
     rank: isLight
-      ? "rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tabular-nums text-slate-500"
+      ? "rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tabular-nums text-slate-600"
       : isExport
-        ? "rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-sm font-semibold tabular-nums text-white/60"
-        : "rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold tabular-nums text-white/60",
+        ? "rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-sm font-semibold tabular-nums text-white/70"
+        : "rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold tabular-nums text-white/70",
     title: isExport
       ? "text-4xl font-black leading-tight tracking-tight"
       : isDemo
@@ -39,10 +39,10 @@ export function recommendResultCardStyles(
           ? "text-2xl font-bold tracking-tight text-slate-900"
           : "text-2xl font-bold tracking-tight",
     fitNote: isLight
-      ? "mt-2 text-xs leading-5 text-slate-500"
+      ? "mt-2 text-xs leading-5 text-slate-600"
       : isExport
-        ? "mt-3 text-base leading-6 text-white/50"
-        : "mt-2 text-xs leading-5 text-white/50",
+        ? "mt-3 text-base leading-6 text-white/70"
+        : "mt-2 text-xs leading-5 text-white/70",
     badgeTier: isExport ? "rounded-full px-4 py-1.5 text-sm font-bold" : "rounded-full px-3 py-1 text-xs font-bold",
     tierBest: isLight ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80" : "bg-emerald-500/20 text-emerald-200",
     tierAlt: isLight ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200/80" : "bg-amber-500/25 text-amber-200",
@@ -53,32 +53,32 @@ export function recommendResultCardStyles(
         ? "rounded-full bg-cyan-400/12 px-4 py-1.5 text-base font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20"
         : "rounded-full bg-cyan-400/12 px-3 py-1 text-sm font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20",
     budget: isLight
-      ? "mt-3 text-xs text-slate-500"
+      ? "mt-3 text-xs text-slate-600"
       : isExport
-        ? "mt-4 text-sm text-white/45"
-        : "mt-3 text-xs text-white/45",
+        ? "mt-4 text-sm text-white/70"
+        : "mt-3 text-xs text-white/70",
     whyLabel: isLight
-      ? "text-xs font-semibold uppercase tracking-[0.15em] text-slate-500"
+      ? "text-xs font-semibold uppercase tracking-[0.15em] text-slate-600"
       : isExport
-        ? "text-sm font-semibold uppercase tracking-[0.15em] text-white/40"
-        : "text-xs font-semibold uppercase tracking-[0.15em] text-white/40",
+        ? "text-sm font-semibold uppercase tracking-[0.15em] text-white/70"
+        : "text-xs font-semibold uppercase tracking-[0.15em] text-white/70",
     whyBody: isLight
-      ? `mt-1.5 text-sm leading-5 text-slate-600${isDemo ? " line-clamp-2" : ""}`
+      ? `mt-1.5 text-sm leading-5 text-slate-700${isDemo ? " line-clamp-2" : ""}`
       : isExport
         ? "mt-3 text-lg leading-8 text-white/70"
         : "mt-2 text-sm leading-6 text-white/70",
     whyMeta: isLight
-      ? `mt-1.5 text-xs text-slate-400${isDemo ? " line-clamp-1" : ""}`
+      ? `mt-1.5 text-xs text-slate-600${isDemo ? " line-clamp-1" : ""}`
       : isExport
-        ? "mt-3 text-sm text-white/40"
-        : "mt-2 text-xs text-white/40",
+        ? "mt-3 text-sm text-white/65"
+        : "mt-2 text-xs text-white/65",
     cta: isLight
       ? "inline-flex rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-cyan-600/20"
       : isExport
         ? "inline-flex rounded-full bg-cyan-400 px-6 py-3.5 text-base font-bold text-black"
         : "inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-bold text-black",
     ctaDivider: isLight ? `mt-auto border-t border-slate-200 ${isDemo ? "pt-3" : "pt-4"}` : "mt-auto border-t border-white/10 pt-5",
-    placeholderText: isLight ? "text-slate-400" : "text-white/40",
+    placeholderText: isLight ? "text-slate-600" : "text-white/70",
     placeholderBg: isLight ? "bg-slate-100" : "bg-black/40",
   };
 }

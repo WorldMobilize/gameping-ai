@@ -128,7 +128,7 @@ function DemoGameCard({
           {pick.tags.map((tag) => (
             <span
               key={tag}
-              className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-white/45"
+              className="rounded-md border border-white/[0.08] bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-white/70"
             >
               {tag}
             </span>
@@ -136,10 +136,10 @@ function DemoGameCard({
         </div>
         {expanded ? (
           <div className="border-t border-white/[0.06] pt-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/35">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/65">
               Why it fits you
             </p>
-            <p className="mt-1 text-xs leading-5 text-white/55">{pick.reason}</p>
+            <p className="mt-1 text-xs leading-5 text-white/75">{pick.reason}</p>
           </div>
         ) : null}
       </div>
@@ -302,7 +302,7 @@ export default function HomeProductDemo({
               Ping session
             </span>
           </div>
-          <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-white/45">
+          <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium text-white/70">
             {sessionLabel}
           </span>
         </div>
@@ -368,7 +368,7 @@ export default function HomeProductDemo({
           ) : null}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] bg-black/20 px-3.5 py-2 text-[10px] text-white/35 backdrop-blur-md min-[960px]:px-4 min-[960px]:py-2.5 min-[960px]:text-[11px]">
+        <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] bg-black/20 px-3.5 py-2 text-[10px] text-white/65 backdrop-blur-md min-[960px]:px-4 min-[960px]:py-2.5 min-[960px]:text-[11px]">
           <span>{showRefinedResults ? "Refined results" : "Sample session"}</span>
           <span className="tabular-nums">
             {showRefinedResults || showInitialResults ? "3 of 5" : "—"}

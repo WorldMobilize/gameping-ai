@@ -1,18 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
   APP_CARD,
-  APP_CTA_PANEL,
   APP_INPUT,
-  APP_INLINE_LINK,
-  APP_KICKER,
   APP_MUTED,
-  APP_PAGE_LEAD,
-  APP_PAGE_TITLE,
   APP_PRIMARY_CTA_SM,
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
@@ -32,7 +27,7 @@ function planLabel(plan: PlanKey): string {
 }
 
 const DANGER_ZONE_CARD =
-  "rounded-3xl border border-rose-200/90 bg-gradient-to-br from-rose-50/80 via-white to-white p-8 shadow-sm";
+  "rounded-3xl border border-slate-200/90 bg-white/70 p-8 shadow-sm shadow-slate-200/40 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60 dark:shadow-slate-950/40";
 
 const DANGER_DELETE_BTN =
   "rounded-full border border-rose-300 bg-rose-50 px-8 py-3.5 text-sm font-semibold text-rose-800 transition hover:border-rose-400 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40";
@@ -50,6 +45,16 @@ export default function AccountSettingsPage() {
   const [password, setPassword] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const deleteTriggerRef = useRef<HTMLButtonElement>(null);
+
+  // Return focus to the trigger button when the delete-account modal closes (a11y).
+  useEffect(() => {
+    if (!modalOpen) return;
+    const trigger = deleteTriggerRef.current;
+    return () => {
+      trigger?.focus();
+    };
+  }, [modalOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,7 +145,7 @@ export default function AccountSettingsPage() {
   if (!ready) {
     return (
       <AppPageShell>
-        <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-500">
+        <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-600 dark:text-slate-400">
           Loading…
         </div>
       </AppPageShell>
@@ -151,15 +156,25 @@ export default function AccountSettingsPage() {
   const isPremium = plan === "premium";
 
   return (
-    <AppPageShell>
-      <AppSection maxWidth="max-w-3xl">
+    <AppPageShell hideAmbient>
+      <div className="gp-accent-page relative isolate min-h-0 flex-1 overflow-hidden">
+        {/* Fixed cinematic background — SAME image in light + dark. */}
+        <div aria-hidden className="gp-account-bg" />
+        <AppSection maxWidth="max-w-3xl">
         <EmailVerificationNotice className="mb-8" theme="light" />
 
-        <p className={APP_KICKER}>Settings</p>
-        <h1 className={APP_PAGE_TITLE}>Account</h1>
-        <p className={APP_PAGE_LEAD}>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
+          Settings
+        </p>
+        <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">
+          Account
+        </h1>
+        <p className="mt-6 text-lg leading-8 text-slate-200">
           Manage how your GamePing account is stored. For privacy rights and processors, see the{" "}
-          <Link href="/privacy" className={APP_INLINE_LINK}>
+          <Link
+            href="/privacy"
+            className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-4 hover:underline"
+          >
             Privacy Policy
           </Link>
           .
@@ -167,26 +182,26 @@ export default function AccountSettingsPage() {
 
         <div className="mt-10 space-y-6">
           <section className={`${APP_CARD} p-8`}>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
               Account
             </p>
             <dl className="mt-5 space-y-4">
               <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-6">
-                <dt className="text-sm text-slate-500">Email</dt>
+                <dt className="text-sm text-slate-600 dark:text-slate-300">Email</dt>
                 <dd className="text-sm font-semibold text-slate-900 dark:text-white">{userEmail ?? "—"}</dd>
               </div>
               <div className="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-6">
-                <dt className="text-sm text-slate-500">Current plan</dt>
-                <dd className="text-sm font-semibold text-cyan-700">{planLabel(plan)}</dd>
+                <dt className="text-sm text-slate-600 dark:text-slate-300">Current plan</dt>
+                <dd className="text-sm font-semibold text-[color:var(--page-accent-text)]">{planLabel(plan)}</dd>
               </div>
             </dl>
           </section>
 
-          <section className={`${APP_CTA_PANEL} p-8`}>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700">
+          <section className="rounded-3xl border border-[color:var(--page-accent-border)] bg-white p-8 shadow-sm dark:bg-slate-900/70">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
               Plan
             </p>
-            <p className="mt-3 text-sm leading-7 text-slate-600">
+            <p className="mt-3 text-sm leading-7 text-slate-700 dark:text-slate-300">
               {isPaid
                 ? "You have access to higher daily limits and more saved searches. Billing is managed through Stripe."
                 : "Upgrade for higher daily recommendation limits, more saved runs, and more tracked games."}
@@ -217,38 +232,39 @@ export default function AccountSettingsPage() {
           <SteamLibraryImportSection />
 
           <section className={`${APP_CARD} p-8`}>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
               Preferences & notifications
             </p>
-            <p className="mt-3 text-sm leading-7 text-slate-600">
+            <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
               Price-drop emails are sent when you track games from their game pages. Alert
               preferences per game (pause/resume) are available on your{" "}
-              <Link href="/dashboard" className={APP_INLINE_LINK}>
+              <Link href="/dashboard" className="font-semibold text-[color:var(--page-accent-text)] underline-offset-2 hover:underline">
                 dashboard
               </Link>
               .
             </p>
-            <p className="mt-3 text-sm leading-7 text-slate-500">
+            <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">
               Global notification settings (email frequency, digest mode) are coming soon.
             </p>
           </section>
 
           <section className={DANGER_ZONE_CARD}>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-rose-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-rose-700 dark:text-rose-300">
               Danger zone
             </p>
             <h2 className="mt-3 text-2xl font-extrabold text-slate-900 dark:text-white">Delete account</h2>
-            <p className="mt-4 text-sm leading-7 text-slate-600">
+            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">
               Permanently delete your GamePing account, saved recommendation runs, tracked games,
               imported Steam library data, alert history tied to those games, profile row, and
               outbound-click records linked to your user ID. This cannot be undone.
             </p>
-            <p className="mt-4 text-sm leading-7 text-slate-500">
+            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-400">
               If you have an active Premium subscription, cancel it in Stripe (use the billing links
               from Stripe&apos;s emails) before deleting your account so you are not charged again.
               GamePing does not cancel Stripe subscriptions automatically from this screen.
             </p>
             <button
+              ref={deleteTriggerRef}
               type="button"
               onClick={() => {
                 setModalOpen(true);
@@ -263,12 +279,16 @@ export default function AccountSettingsPage() {
           </section>
         </div>
 
-        <p className={`mt-10 ${APP_MUTED}`}>
-          <Link href="/dashboard" className={APP_INLINE_LINK}>
+        <p className="mt-10 text-sm text-slate-300">
+          <Link
+            href="/dashboard"
+            className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-4 hover:underline"
+          >
             ← Back to dashboard
           </Link>
         </p>
-      </AppSection>
+        </AppSection>
+      </div>
 
       {modalOpen ? (
         <div
@@ -277,12 +297,15 @@ export default function AccountSettingsPage() {
           aria-modal="true"
           aria-labelledby="delete-account-title"
           onClick={() => !submitting && setModalOpen(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && !submitting) setModalOpen(false);
+          }}
         >
           <div
             className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200/90 bg-white p-8 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="delete-account-title" className="text-xl font-extrabold text-slate-900 dark:text-white">
+            <h2 id="delete-account-title" className="text-xl font-extrabold text-slate-900">
               Confirm account deletion
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">
@@ -291,7 +314,7 @@ export default function AccountSettingsPage() {
               confirm you understand this is irreversible.
             </p>
 
-            <label className="mt-6 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <label className="mt-6 block text-xs font-semibold uppercase tracking-wider text-slate-600">
               Type DELETE
             </label>
             <input
@@ -300,11 +323,12 @@ export default function AccountSettingsPage() {
               onChange={(e) => setConfirmPhrase(e.target.value)}
               autoComplete="off"
               placeholder="DELETE"
+              autoFocus
             />
 
             {hasEmailPassword ? (
               <>
-                <label className="mt-5 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <label className="mt-5 block text-xs font-semibold uppercase tracking-wider text-slate-600">
                   Account password
                 </label>
                 <input
@@ -320,9 +344,9 @@ export default function AccountSettingsPage() {
               <>
                 <p className="mt-5 text-sm text-slate-600">
                   You signed in with a social provider. Enter your full GamePing account email (
-                  <span className="font-semibold text-slate-900 dark:text-white">{userEmail ?? "—"}</span>) to confirm.
+                  <span className="font-semibold text-slate-900">{userEmail ?? "—"}</span>) to confirm.
                 </p>
-                <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <label className="mt-3 block text-xs font-semibold uppercase tracking-wider text-slate-600">
                   Email confirmation
                 </label>
                 <input

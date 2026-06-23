@@ -42,14 +42,14 @@ function FitBulletList({
 }) {
   if (items.length === 0) return null;
 
-  const dotClass = variant === "pro" ? "bg-cyan-500" : "bg-slate-400";
+  const dotClass = variant === "pro" ? "bg-[var(--page-accent)]" : "bg-slate-400 dark:bg-white/40";
 
   return (
     <div className="mt-7">
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
+      <p className="text-sm font-semibold text-slate-900 dark:text-white">{title}</p>
       <ul className="mt-3 space-y-3">
         {items.map((line) => (
-          <li key={line} className="flex gap-3 text-[15px] leading-6 text-slate-600">
+          <li key={line} className="flex gap-3 text-[15px] leading-6 text-slate-600 dark:text-slate-300">
             <span
               className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${dotClass}`}
               aria-hidden
@@ -64,33 +64,33 @@ function FitBulletList({
 
 function PersonalGameFitContent({ fit }: { fit: PersonalGameFit }) {
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-7 shadow-sm md:p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-cyan-700">
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-7 shadow-sm dark:border-[color:var(--page-accent-border)] dark:bg-white/[0.04] md:p-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[color:var(--page-accent-text)]">
         Your Personal Fit
       </p>
-      <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 gp-home-display md:text-3xl">
+      <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 gp-home-display dark:text-white md:text-3xl">
         Is this game right for you?
       </h2>
-      <p className="mt-2 text-sm leading-6 text-slate-500">
+      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
         Based on your Gaming DNA and this game&apos;s design.
       </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <span className={fitTierClassName(fit.fitTier)}>{fitTierLabel(fit.fitTier)}</span>
         {fit.fitTier !== "owned" ? (
-          <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1.5">
-            <span className="text-xs font-medium text-slate-500">Fit score</span>
-            <span className="text-sm font-bold tabular-nums text-cyan-800">{fit.fitScore}%</span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1.5">
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Fit score</span>
+            <span className="text-sm font-bold tabular-nums text-[color:var(--page-accent-text)]">{fit.fitScore}%</span>
           </span>
         ) : null}
       </div>
 
-      <p className="mt-5 text-lg leading-8 text-slate-800">{fit.headline}</p>
+      <p className="mt-5 text-lg leading-8 text-slate-800 dark:text-slate-100">{fit.headline}</p>
 
       <FitBulletList title="Why you may like it" items={fit.whyYouMayLike} variant="pro" />
       <FitBulletList title="Potential concerns" items={fit.potentialConcerns} variant="con" />
 
-      <p className="mt-8 border-t border-slate-100 pt-5 text-xs leading-relaxed text-slate-400">
+      <p className="mt-8 border-t border-slate-100 pt-5 text-xs leading-relaxed text-slate-600 dark:border-white/10 dark:text-white/70">
         From your imported Steam library. Search recommendations do not use Gaming DNA yet.
       </p>
     </div>
@@ -100,7 +100,7 @@ function PersonalGameFitContent({ fit }: { fit: PersonalGameFit }) {
 function LoadingCard() {
   return (
     <div
-      className="rounded-2xl border border-slate-200/90 bg-white p-7 animate-pulse motion-reduce:animate-none md:p-8"
+      className="rounded-2xl border border-slate-200/90 bg-white p-7 animate-pulse motion-reduce:animate-none dark:border-[color:var(--page-accent-border)] dark:bg-white/[0.04] md:p-8"
       aria-busy="true"
       aria-label="Loading personal game fit"
     >

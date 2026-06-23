@@ -20,14 +20,14 @@ export default function DealForYouCard({ pick }: { pick: DealForYouPick }) {
       </Link>
       <div className="flex flex-1 flex-col p-5">
         <h3 className={APP_CARD_TITLE}>
-          <Link href={href} className="transition hover:text-cyan-700">
+          <Link href={href} className="transition hover:text-[color:var(--page-accent-text)]">
             {pick.title}
           </Link>
         </h3>
         <p className="mt-3 flex flex-wrap items-baseline gap-2">
-          <span className="text-sm text-slate-400 line-through">{pick.oldPrice}</span>
-          <span className="text-xl font-extrabold text-emerald-700">{pick.newPrice}</span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+          <span className="text-sm text-slate-500 line-through dark:text-slate-400">{pick.oldPrice}</span>
+          <span className="text-xl font-extrabold text-[color:var(--page-accent-text)]">{pick.newPrice}</span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">
             Demo prices
           </span>
         </p>

@@ -3,8 +3,10 @@
 
 @custom-variant dark (&:where(html[data-home-theme="dark"], html[data-home-theme="dark"] *));
 
+@import "../styles/page-accent.css";
 @import "../styles/home-light.css";
 @import "../styles/upgrade-page.css";
+@import "../styles/recommend-page.css";
 @import "../styles/ping-assistant.css";
 
 :root {

@@ -61,7 +61,7 @@ export default function ContactPage() {
           </div>
 
           <div className={APP_CARD_LG}>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-600 dark:text-slate-400">
               Legal &amp; compliance notices
             </p>
             <p className="mt-2 break-all text-lg font-bold text-slate-900 dark:text-white">legal@gamepingai.com</p>
@@ -87,7 +87,7 @@ export default function ContactPage() {
           </div>
 
           <div className={APP_CARD_LG}>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-600 dark:text-slate-400">
               Account deletion
             </p>
             <p className={`mt-2 ${APP_BODY_SM}`}>
@@ -102,7 +102,7 @@ export default function ContactPage() {
           </div>
         </div>
 
-        <p className="mt-8 text-sm text-slate-500">
+        <p className="mt-8 text-sm text-slate-600 dark:text-slate-400">
           We aim to respond within a reasonable timeframe. During early access, response times may
           vary.
         </p>
@@ -112,7 +112,7 @@ export default function ContactPage() {
           advice.
         </div>
 
-        <p className="mt-6 text-sm text-slate-500">
+        <p className="mt-6 text-sm text-slate-600 dark:text-slate-400">
           <Link href="/legal" className={APP_INLINE_LINK}>
             Legal hub
           </Link>

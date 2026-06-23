@@ -176,7 +176,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                   ×
                 </button>
               </div>
-              <p id={descId} className="mt-3 text-sm leading-relaxed text-white/60">
+              <p id={descId} className="mt-3 text-sm leading-relaxed text-white/75">
                 GamePing is still evolving. If something feels wrong, confusing, inaccurate, or
                 just not great, let us know — your feedback genuinely helps improve recommendations
                 and pricing quality.
@@ -213,7 +213,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                 ) : null}
 
                 <div>
-                  <label htmlFor={`${titleId}-category`} className="text-xs font-bold text-white/50">
+                  <label htmlFor={`${titleId}-category`} className="text-xs font-bold text-white/70">
                     Category
                   </label>
                   <select
@@ -232,7 +232,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                 </div>
 
                 <div>
-                  <label htmlFor={`${titleId}-message`} className="text-xs font-bold text-white/50">
+                  <label htmlFor={`${titleId}-message`} className="text-xs font-bold text-white/70">
                     Your feedback
                   </label>
                   <textarea
@@ -246,14 +246,14 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                     placeholder="What felt off, confusing, or worth improving?"
                     className="mt-2 w-full resize-y rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm leading-relaxed text-white placeholder:text-white/30 focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/25"
                   />
-                  <p className="mt-1 text-right text-[11px] text-white/35">
+                  <p className="mt-1 text-right text-[11px] text-white/65">
                     {message.length} / {FEEDBACK_MESSAGE_MAX}
                   </p>
                 </div>
 
                 <div>
-                  <label htmlFor={`${titleId}-email`} className="text-xs font-bold text-white/50">
-                    Email <span className="font-normal text-white/35">(optional)</span>
+                  <label htmlFor={`${titleId}-email`} className="text-xs font-bold text-white/70">
+                    Email <span className="font-normal text-white/65">(optional)</span>
                   </label>
                   <input
                     id={`${titleId}-email`}

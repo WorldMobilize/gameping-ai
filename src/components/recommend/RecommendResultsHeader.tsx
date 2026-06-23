@@ -6,8 +6,8 @@ export default function RecommendResultsHeader({ theme = "dark" }: RecommendResu
   const isLight = theme === "light";
 
   const kicker = isLight
-    ? "text-xs font-semibold uppercase tracking-[0.3em] text-slate-500"
-    : "text-xs font-semibold uppercase tracking-[0.3em] text-white/40";
+    ? "text-xs font-semibold uppercase tracking-[0.3em] text-slate-600"
+    : "text-xs font-semibold uppercase tracking-[0.3em] text-white/70";
 
   const title = isLight
     ? "mt-3 text-3xl font-black tracking-tight text-slate-900"

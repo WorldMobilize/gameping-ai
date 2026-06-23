@@ -12,7 +12,7 @@ export default function GameBreadcrumbs({ items, className, theme = "dark" }: Pr
 
   const isLight = theme === "light";
   const defaultClass = isLight
-    ? "flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-slate-500"
+    ? "flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-slate-600"
     : "flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-white/65";
 
   return (
@@ -43,8 +43,8 @@ export default function GameBreadcrumbs({ items, className, theme = "dark" }: Pr
                   href={item.href}
                   className={
                     isLight
-                      ? "rounded-lg px-2 py-1 transition hover:bg-slate-100 hover:text-cyan-800"
-                      : "rounded-lg px-2 py-1 transition hover:bg-white/10 hover:text-cyan-200"
+                      ? "rounded-lg px-2 py-1 transition hover:bg-slate-100 hover:text-[color:var(--page-accent-text)]"
+                      : "rounded-lg px-2 py-1 transition hover:bg-white/10 hover:text-[color:var(--page-accent-strong)]"
                   }
                 >
                   {item.label}

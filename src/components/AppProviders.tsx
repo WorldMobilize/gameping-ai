@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Suspense } from "react";
 import { HomeThemeProvider } from "@/components/home/HomeThemeProvider";
+import PageAccentProvider from "@/components/PageAccentProvider";
 import { ToastProvider } from "@/components/ToastProvider";
 import ProductAnalyticsProvider from "@/components/ProductAnalyticsProvider";
 
@@ -11,6 +12,7 @@ export default function AppProviders({ children }: { children: ReactNode }) {
     <HomeThemeProvider>
       <ToastProvider>
         <Suspense fallback={null}>
+          <PageAccentProvider />
           <ProductAnalyticsProvider>{children}</ProductAnalyticsProvider>
         </Suspense>
       </ToastProvider>

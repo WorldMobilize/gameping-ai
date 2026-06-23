@@ -31,9 +31,9 @@ export default function HomeTasteNotTags() {
   const signalChipAlt = isDark
     ? "gp-home-chip-drift-alt rounded-full bg-violet-950/70 px-3 py-1 text-xs font-bold text-violet-300"
     : "gp-home-chip-drift-alt rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-800";
-  const muted = isDark ? "text-slate-500" : "text-slate-400";
+  const muted = isDark ? "text-slate-400" : "text-slate-600";
   const text = isDark ? "text-slate-50" : "text-slate-900";
-  const body = isDark ? "text-slate-400" : "text-slate-600";
+  const body = isDark ? "text-slate-300" : "text-slate-600";
 
   return (
     <HomeSectionShell tone="taste" ariaLabelledby="taste-not-tags-heading">

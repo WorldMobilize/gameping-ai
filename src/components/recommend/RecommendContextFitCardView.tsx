@@ -30,11 +30,11 @@ export default function RecommendContextFitCardView({
 
   const shell = isLight
     ? `rounded-2xl border border-slate-200/90 bg-white shadow-sm ${isDemo ? "p-4" : "p-7 md:p-8"}`
-    : `rounded-2xl border border-white/10 bg-[#0a0b14]/60 ${isDemo ? "p-4" : "p-7 md:p-8"}`;
+    : `rounded-2xl border border-white/10 bg-white/[0.04] ${isDemo ? "p-4" : "p-7 md:p-8"}`;
 
   const kicker = isLight
-    ? "text-xs font-semibold uppercase tracking-[0.25em] text-cyan-700"
-    : "text-xs font-semibold uppercase tracking-[0.25em] text-white/40";
+    ? "text-xs font-semibold uppercase tracking-[0.25em] text-[color:var(--page-accent-text)]"
+    : "text-xs font-semibold uppercase tracking-[0.25em] text-white/70";
 
   const title = isLight
     ? `font-extrabold tracking-tight text-slate-900 gp-home-display ${isDemo ? "mt-2 text-lg" : "mt-3 text-2xl md:text-3xl"}`
@@ -49,11 +49,11 @@ export default function RecommendContextFitCardView({
   const tierAlt = isLight ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200/80" : "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/25";
   const tierPartial = isLight ? "bg-orange-50 text-orange-800 ring-1 ring-orange-200/80" : "bg-orange-500/15 text-orange-200 ring-1 ring-orange-500/25";
   const badgeMatch = isLight
-    ? "rounded-full bg-cyan-50 px-2.5 py-0.5 text-xs font-bold tabular-nums text-cyan-800 ring-1 ring-cyan-200/80"
-    : "rounded-full bg-cyan-400/12 px-3 py-1 text-sm font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20";
+    ? "rounded-full bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-xs font-bold tabular-nums text-[color:var(--page-accent-text)] ring-1 ring-[color:var(--page-accent-border)]"
+    : "rounded-full bg-[var(--page-accent-soft)] px-3 py-1 text-sm font-bold tabular-nums text-[color:var(--page-accent-strong)] ring-1 ring-[color:var(--page-accent-border)]";
 
   const body = isLight ? "text-sm leading-6 text-slate-600" : "text-lg leading-8 text-white/70";
-  const muted = isLight ? "text-xs text-slate-400" : "text-xs text-white/35";
+  const muted = isLight ? "text-xs text-slate-600" : "text-xs text-white/65";
   const concernTitle = isLight ? "text-sm font-semibold text-slate-800" : "text-sm font-semibold text-white";
 
   return (
@@ -82,7 +82,7 @@ export default function RecommendContextFitCardView({
         </div>
       )}
 
-      {fitNote ? <p className={`mt-3 ${isLight ? "text-sm text-slate-500" : "text-sm text-white/50"}`}>{fitNote}</p> : null}
+      {fitNote ? <p className={`mt-3 ${isLight ? "text-sm text-slate-600" : "text-sm text-white/70"}`}>{fitNote}</p> : null}
 
       <p className={`mt-4 ${body}`}>{fitBody}</p>
 

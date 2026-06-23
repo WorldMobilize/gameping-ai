@@ -64,7 +64,7 @@ export default function HomeAdminSection() {
             <h3 className={`mt-2 text-lg font-bold ${isDark ? "text-slate-100" : "text-slate-900"}`}>
               PING preview &amp; tools
             </h3>
-            <p className={`mt-2 max-w-2xl text-sm leading-relaxed ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+            <p className={`mt-2 max-w-2xl text-sm leading-relaxed ${isDark ? "text-slate-300" : "text-slate-600"}`}>
               Internal testing area — not shown to public visitors. Text-only roadmap copy is used
               on the public page; no PING robot is rendered here.
             </p>

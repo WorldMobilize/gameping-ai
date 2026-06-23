@@ -7,9 +7,8 @@ import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import {
   HOME_BLOCK_BODY,
   HOME_BLOCK_TITLE,
-  HOME_PRIMARY_CTA_SM,
+  HOME_DISPLAY_FONT,
   HOME_SECTION_TITLE,
-  homeCyanAccentText,
 } from "@/components/home/home-styles";
 import { HomeSectionShell } from "@/components/home/HomeVisualPrimitives";
 
@@ -17,9 +16,14 @@ export default function HomeHowItWorks() {
   const { theme } = useHomeTheme();
   const isDark = theme === "dark";
 
-  const text = isDark ? "text-slate-50" : "text-slate-900";
-  const body = isDark ? "text-slate-400" : "text-slate-600";
-  const accent = homeCyanAccentText(isDark);
+  // On-background ("HUD") text floats over the fixed dark cinematic room, so it
+  // stays light in BOTH themes (these are the dark-mode values — dark mode is
+  // unchanged; light mode now matches instead of going dark-on-dark).
+  const text = "text-slate-50";
+  // Step descriptions are real explanatory copy over the cinematic background —
+  // slate-300 keeps them comfortably readable rather than faint.
+  const body = "text-slate-300";
+  const accent = "text-cyan-400";
 
   return (
     <HomeSectionShell
@@ -44,16 +48,52 @@ export default function HomeHowItWorks() {
         Three steps from your taste to your next favorite game.
       </h3>
 
-      <ol className="mt-10 grid gap-12 sm:gap-14 lg:mt-12 lg:grid-cols-3 lg:items-stretch lg:gap-10 xl:gap-14">
-        {HOME_HOW_CARDS.map((item) => (
-          <li key={item.id} className="flex">
-            <article className="flex w-full flex-col items-center text-center">
-              <h4 className={`${HOME_BLOCK_TITLE} ${text}`}>{item.title}</h4>
-              <p className={`${HOME_BLOCK_BODY} max-w-sm flex-1 ${body}`}>{item.summary}</p>
-              <Link href={item.href} className={`mt-8 ${HOME_PRIMARY_CTA_SM}`}>
+      {/*
+       * Open, un-boxed steps: no card container or heavy border — just a cyan
+       * step number, copy, and a light text link, with a faint divider between
+       * columns on large screens so the section reads as part of the cinematic
+       * background instead of three rectangles sitting on top of it.
+       */}
+      <ol className="mt-12 grid gap-10 sm:gap-12 lg:mt-14 lg:grid-cols-3 lg:items-start lg:gap-8 xl:gap-12">
+        {HOME_HOW_CARDS.map((item, i) => (
+          <li key={item.id} className="relative flex">
+            {i > 0 ? (
+              <span
+                aria-hidden
+                className="absolute -left-1 top-2 hidden h-[calc(100%-1rem)] w-px bg-gradient-to-b from-transparent via-white/12 to-transparent lg:block xl:-left-3"
+              />
+            ) : null}
+            <div className="flex w-full flex-col items-center px-2 text-center sm:px-4">
+              <span
+                className={`flex h-12 w-12 items-center justify-center rounded-full border text-base font-bold tabular-nums ${HOME_DISPLAY_FONT} ${
+                  isDark
+                    ? "border-cyan-400/30 bg-cyan-950/40 text-cyan-300"
+                    : "border-cyan-200/80 bg-cyan-50 text-cyan-700"
+                }`}
+              >
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <h4 className={`${HOME_BLOCK_TITLE} mt-5 ${text}`}>{item.title}</h4>
+              <p className={`${HOME_BLOCK_BODY} max-w-sm ${body}`}>{item.summary}</p>
+              <Link
+                href={item.href}
+                className={`group mt-6 inline-flex items-center gap-1.5 text-sm font-semibold transition-all ${accent} hover:gap-2.5`}
+              >
                 Learn more
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <path d="M3 8h9M8.5 4l4 4-4 4" />
+                </svg>
               </Link>
-            </article>
+            </div>
           </li>
         ))}
       </ol>

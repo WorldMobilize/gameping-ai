@@ -5,12 +5,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
-  APP_ACCENT,
-  APP_CARD_LG,
-  APP_KICKER,
   APP_MUTED,
-  APP_PAGE_LEAD,
-  APP_PAGE_TITLE,
   APP_PRIMARY_CTA_LG,
   APP_PRIMARY_CTA_SM,
   APP_SECONDARY_CTA,
@@ -50,7 +45,25 @@ import { useToast } from "@/components/ToastProvider";
 type LoadedPlan = "free" | "premium" | "admin" | null;
 
 const PAID_ACTIVE_CARD =
-  "rounded-[2rem] border border-emerald-200/90 bg-gradient-to-br from-emerald-50/80 via-white to-white p-8 shadow-sm dark:border-emerald-700/30 dark:from-emerald-950/25 dark:via-slate-900/80 dark:to-slate-950/60 md:p-10";
+  "rounded-3xl border border-slate-200/90 bg-white/70 p-8 shadow-sm shadow-slate-200/40 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60 dark:shadow-slate-950/40 md:p-10";
+
+/**
+ * Premium page identity = warm gold / champagne (the "upgrade" tier), as
+ * opposed to GamePing's cyan "discovery" accent used everywhere else. These are
+ * page-local so the shared APP_* cyan tokens stay cyan on every other page.
+ */
+const PREMIUM_KICKER =
+  "text-xs font-semibold uppercase tracking-[0.35em] text-[#a17c1e] dark:text-[#e8c879]";
+const PREMIUM_ACCENT = "text-[#a17c1e] dark:text-[#e8c879]";
+
+/** Page header text floats over the dark cinematic room → light in both themes. */
+const PREMIUM_PAGE_TITLE =
+  "mt-4 text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display";
+
+/** Frosted gold surface for the FAQ card (frosted light glass in light mode via
+ *  the .gp-premium .bg-white rule; dark glass in dark mode) with a gold border. */
+const PREMIUM_SURFACE_CARD =
+  "rounded-3xl border border-amber-300/50 bg-white p-6 shadow-sm shadow-amber-200/20 dark:border-amber-700/30 dark:bg-slate-900/70 dark:shadow-amber-950/20";
 
 function UpgradeContent() {
   const searchParams = useSearchParams();
@@ -178,13 +191,13 @@ function UpgradeContent() {
     return (
       <>
         {canceled && (
-          <div className="mb-8 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-950 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-100">
+          <div className="mb-8 rounded-2xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-[#6b5210] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100">
             Checkout was canceled. You can try again whenever you&apos;re ready.
           </div>
         )}
 
         <div className={`mt-12 ${PAID_ACTIVE_CARD}`}>
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-slate-600 dark:text-slate-400">
             Current plan
           </p>
           {profilePlan === "admin" ? (
@@ -210,7 +223,7 @@ function UpgradeContent() {
           )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Link href="/dashboard" className={APP_PRIMARY_CTA_SM}>
+            <Link href="/dashboard" className={APP_SECONDARY_CTA}>
               Open dashboard
             </Link>
             <Link href="/recommend" className={APP_SECONDARY_CTA}>
@@ -247,42 +260,42 @@ function UpgradeContent() {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-200">
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/70 bg-amber-50 px-3 py-1 text-xs font-semibold text-[#8a6a14] dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200">
                 {PLAN_QUOTAS.freeRecommendDaily}/day
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-200">
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/70 bg-amber-50 px-3 py-1 text-xs font-semibold text-[#8a6a14] dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200">
                 {PLAN_QUOTAS.freeSavedSearches} saves
               </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-200">
+              <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/70 bg-amber-50 px-3 py-1 text-xs font-semibold text-[#8a6a14] dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200">
                 {PLAN_QUOTAS.freeTrackedGames} tracked
               </span>
             </div>
 
             <div className="mt-6 rounded-2xl border border-slate-200/90 bg-white p-4 dark:border-slate-800/80 dark:bg-slate-900/70">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-600 dark:text-slate-400">
                 Included
               </p>
               <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-300">
                 <li className="flex gap-2">
-                  <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                  <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                     ✓
                   </span>
                   {PLAN_QUOTAS.freeRecommendDaily} recommendations per day
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                  <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                     ✓
                   </span>
                   {PLAN_QUOTAS.freeSavedSearches} saved recommendation runs
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                  <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                     ✓
                   </span>
                   {PLAN_QUOTAS.freeTrackedGames} tracked games
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                  <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                     ✓
                   </span>
                   Build your taste profile over time
@@ -299,10 +312,10 @@ function UpgradeContent() {
           <div className={PREMIUM_CARD_COLUMN}>
             <div className={PREMIUM_CARD_GLOW} aria-hidden />
             <div className={PREMIUM_PLAN_CARD}>
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-cyan-200/40 via-cyan-50/20 to-transparent dark:from-cyan-400/15 dark:via-cyan-950/10" aria-hidden />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-amber-200/40 via-amber-50/20 to-transparent dark:from-amber-400/15 dark:via-amber-950/10" aria-hidden />
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <span className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-200">
+                <span className="inline-flex rounded-full border border-amber-300/80 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8a6a14] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
                   Premium discovery
                 </span>
                 <h2 className={`mt-4 ${APP_SECTION_TITLE}`}>Premium</h2>
@@ -310,36 +323,36 @@ function UpgradeContent() {
                   Built for deeper discovery and deal tracking.
                 </p>
               </div>
-              <span className="rounded-full border border-cyan-200/80 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-800 dark:border-cyan-700/40 dark:bg-slate-950/40 dark:text-cyan-200">
+              <span className="rounded-full border border-amber-300/70 bg-amber-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a6a14] dark:border-amber-700/40 dark:bg-slate-950/40 dark:text-amber-200">
                 Active
               </span>
             </div>
 
             <div className={`mt-6 ${PREMIUM_INCLUDED_PANEL}`}>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-800 dark:text-cyan-300">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8a6a14] dark:text-amber-300">
                 Included in Premium
               </p>
               <ul className="mt-3 space-y-2.5 text-sm text-slate-700 dark:text-slate-300">
                 <li className="flex gap-2">
-                  <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                  <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                     ✓
                   </span>
                   Persistent taste memory across sessions
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                  <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                     ✓
                   </span>
                   {PLAN_QUOTAS.premiumSavedSearches} saved recommendation runs
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                  <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                     ✓
                   </span>
                   {PLAN_QUOTAS.premiumTrackedGames} tracked games with deal alerts
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                  <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                     ✓
                   </span>
                   {PLAN_QUOTAS.premiumRecommendDaily} recommendations per day
@@ -349,7 +362,7 @@ function UpgradeContent() {
 
             <PremiumComingSoonPanel />
 
-            <div className="mt-6 border-t border-cyan-200/60 pt-5 dark:border-cyan-800/50">
+            <div className="mt-6 border-t border-amber-300/50 pt-5 dark:border-amber-800/40">
               <p className={`text-sm leading-6 ${APP_MUTED}`}>
                 Use Manage billing to cancel or update your subscription in Stripe&apos;s portal.
               </p>
@@ -365,7 +378,7 @@ function UpgradeContent() {
   return (
     <>
       {canceled && (
-        <div className="mb-8 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-950 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-100">
+        <div className="mb-8 rounded-2xl border border-amber-300/70 bg-amber-50 px-4 py-3 text-sm text-[#6b5210] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100">
           Checkout was canceled. You can try again whenever you&apos;re ready.
         </div>
       )}
@@ -397,42 +410,42 @@ function UpgradeContent() {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-200">
+            <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/70 bg-amber-50 px-3 py-1 text-xs font-semibold text-[#8a6a14] dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200">
               {PLAN_QUOTAS.freeRecommendDaily}/day
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-200">
+            <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/70 bg-amber-50 px-3 py-1 text-xs font-semibold text-[#8a6a14] dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200">
               {PLAN_QUOTAS.freeSavedSearches} saves
             </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-200">
+            <span className="inline-flex items-center gap-2 rounded-full border border-amber-300/70 bg-amber-50 px-3 py-1 text-xs font-semibold text-[#8a6a14] dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200">
               {PLAN_QUOTAS.freeTrackedGames} tracked
             </span>
           </div>
 
           <div className="mt-6 rounded-2xl border border-slate-200/90 bg-white p-4 dark:border-slate-800/80 dark:bg-slate-900/70">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-600 dark:text-slate-400">
               Included
             </p>
             <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-300">
               <li className="flex gap-2">
-                <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                   ✓
                 </span>
                 {PLAN_QUOTAS.freeRecommendDaily} recommendations per day
               </li>
               <li className="flex gap-2">
-                <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                   ✓
                 </span>
                 {PLAN_QUOTAS.freeSavedSearches} saved recommendation runs
               </li>
               <li className="flex gap-2">
-                <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                   ✓
                 </span>
                 {PLAN_QUOTAS.freeTrackedGames} tracked games
               </li>
               <li className="flex gap-2">
-                <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                   ✓
                 </span>
                 Build your taste profile over time
@@ -450,10 +463,10 @@ function UpgradeContent() {
           <div className={PREMIUM_CARD_GLOW} aria-hidden />
           <div className={PREMIUM_PLAN_CARD}>
           <span className={RECOMMENDED_RIBBON}>Recommended</span>
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-cyan-200/40 via-cyan-50/20 to-transparent dark:from-cyan-400/15 dark:via-cyan-950/10" aria-hidden />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-amber-200/40 via-amber-50/20 to-transparent dark:from-amber-400/15 dark:via-amber-950/10" aria-hidden />
           <div className="flex flex-wrap items-start justify-between gap-4 pt-2">
             <div>
-              <span className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-200">
+              <span className="inline-flex rounded-full border border-amber-300/80 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8a6a14] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
                 Premium discovery
               </span>
               <h2 className={`mt-4 ${APP_SECTION_TITLE}`}>Premium</h2>
@@ -461,7 +474,7 @@ function UpgradeContent() {
                 Built for deeper discovery and deal tracking.
               </p>
             </div>
-            <span className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-200">
+            <span className="rounded-full border border-amber-300/80 bg-amber-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#8a6a14] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
               Early supporter pricing
             </span>
           </div>
@@ -472,18 +485,18 @@ function UpgradeContent() {
               onClick={() => setBillingInterval("month")}
               className={`flex h-full flex-col rounded-2xl border p-4 text-left transition ${
                 billingInterval === "month"
-                  ? "border-cyan-300 bg-cyan-50 ring-2 ring-cyan-500/20 dark:border-cyan-600/40 dark:bg-cyan-950/40 dark:ring-cyan-500/15"
-                  : "border-slate-200/90 bg-white hover:border-cyan-200 hover:shadow-sm dark:border-slate-700/80 dark:bg-slate-900/60 dark:hover:border-cyan-700/40"
+                  ? "border-amber-300 bg-amber-50 ring-2 ring-amber-500/20 dark:border-amber-500/40 dark:bg-amber-950/40 dark:ring-amber-500/15"
+                  : "border-slate-200/90 bg-white hover:border-amber-200 hover:shadow-sm dark:border-slate-700/80 dark:bg-slate-900/60 dark:hover:border-amber-700/40"
               }`}
             >
-              <span className="block min-h-[1.125rem] text-[10px] font-semibold uppercase leading-none tracking-[0.2em] text-slate-500">
+              <span className="block min-h-[1.125rem] text-[10px] font-semibold uppercase leading-none tracking-[0.2em] text-slate-600 dark:text-slate-400">
                 Monthly
               </span>
-              <p className="mt-2 flex min-h-8 items-end text-2xl font-extrabold leading-none text-slate-900 dark:text-white">
+              <p className="mt-2 flex min-h-8 items-end text-2xl font-extrabold leading-none text-[#9a7518] dark:text-[#ecce82]">
                 {PREMIUM_EARLY_ACCESS_PRICE_MONTHLY}
-                <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">/month</span>
+                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">/month</span>
               </p>
-              <p className="mt-1 min-h-4 text-xs leading-4 text-slate-400 line-through dark:text-slate-500">
+              <p className="mt-1 min-h-4 text-xs leading-4 text-slate-500 line-through dark:text-slate-400">
                 {PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH} standard
               </p>
             </button>
@@ -493,48 +506,48 @@ function UpgradeContent() {
               onClick={() => setBillingInterval("year")}
               className={`flex h-full flex-col rounded-2xl border p-4 text-left transition ${
                 billingInterval === "year"
-                  ? "border-cyan-300 bg-cyan-50 ring-2 ring-cyan-500/20 dark:border-cyan-600/40 dark:bg-cyan-950/40 dark:ring-cyan-500/15"
-                  : "border-slate-200/90 bg-white hover:border-cyan-200 hover:shadow-sm dark:border-slate-700/80 dark:bg-slate-900/60 dark:hover:border-cyan-700/40"
+                  ? "border-amber-300 bg-amber-50 ring-2 ring-amber-500/20 dark:border-amber-500/40 dark:bg-amber-950/40 dark:ring-amber-500/15"
+                  : "border-slate-200/90 bg-white hover:border-amber-200 hover:shadow-sm dark:border-slate-700/80 dark:bg-slate-900/60 dark:hover:border-amber-700/40"
               }`}
             >
-              <span className="block min-h-[1.125rem] text-[10px] font-semibold uppercase leading-none tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
+              <span className="block min-h-[1.125rem] text-[10px] font-semibold uppercase leading-none tracking-[0.2em] text-[#8a6a14] dark:text-amber-300">
                 Best value
               </span>
-              <p className="mt-2 flex min-h-8 items-end text-2xl font-extrabold leading-none text-slate-900 dark:text-white">
+              <p className="mt-2 flex min-h-8 items-end text-2xl font-extrabold leading-none text-[#9a7518] dark:text-[#ecce82]">
                 {PREMIUM_EARLY_ACCESS_PRICE_ANNUAL}
-                <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">/year</span>
+                <span className="text-sm font-semibold text-slate-600 dark:text-slate-400">/year</span>
               </p>
-              <p className="mt-1 min-h-4 text-xs leading-4 text-slate-400 line-through dark:text-slate-500">
+              <p className="mt-1 min-h-4 text-xs leading-4 text-slate-500 line-through dark:text-slate-400">
                 {PREMIUM_STANDARD_PRICE_ANNUAL_STRIKETHROUGH}/year
               </p>
             </button>
           </div>
 
           <div className={`mt-7 ${PREMIUM_INCLUDED_PANEL}`}>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-800 dark:text-cyan-300">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8a6a14] dark:text-amber-300">
               Included in Premium
             </p>
             <ul className="mt-3 space-y-2.5 text-sm text-slate-700 dark:text-slate-300">
               <li className="flex gap-2">
-                <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                   ✓
                 </span>
                 Persistent taste memory across sessions
               </li>
               <li className="flex gap-2">
-                <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                   ✓
                 </span>
                 {PLAN_QUOTAS.premiumSavedSearches} saved recommendation runs
               </li>
               <li className="flex gap-2">
-                <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                   ✓
                 </span>
                 {PLAN_QUOTAS.premiumTrackedGames} tracked games with deal alerts
               </li>
               <li className="flex gap-2">
-                <span className="text-cyan-700 dark:text-cyan-400" aria-hidden>
+                <span className="text-[#a17c1e] dark:text-[#e8c879]" aria-hidden>
                   ✓
                 </span>
                 {PLAN_QUOTAS.premiumRecommendDaily} recommendations per day
@@ -544,7 +557,7 @@ function UpgradeContent() {
 
           <PremiumComingSoonPanel />
 
-          <div className="mt-6 border-t border-cyan-200/60 pt-5 dark:border-cyan-800/50">
+          <div className="mt-6 border-t border-amber-300/50 pt-5 dark:border-amber-800/40">
             <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
@@ -572,21 +585,21 @@ function UpgradeContent() {
 export default function UpgradePage() {
   return (
     <AppPageShell hideAmbient className="overflow-x-hidden">
-      <div className="relative isolate min-h-0 flex-1 overflow-hidden">
+      <div className="gp-premium relative isolate min-h-0 flex-1 overflow-hidden">
         <UpgradePageAtmosphere />
         <AppSection maxWidth={UPGRADE_PAGE_MAX_WIDTH} className="relative z-10">
-        <p className={APP_KICKER}>GamePing Premium</p>
+        <p className={PREMIUM_KICKER}>GamePing Premium</p>
 
-        <h1 className={APP_PAGE_TITLE}>
-          Upgrade to <span className={APP_ACCENT}>GamePing Premium</span>
+        <h1 className={PREMIUM_PAGE_TITLE}>
+          Upgrade to <span className={PREMIUM_ACCENT}>GamePing Premium</span>
         </h1>
 
-        <p className={`mt-6 max-w-3xl ${APP_PAGE_LEAD}`}>
+        <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-200">
           AI game discovery that learns your taste—save searches, track deals, and build a
           personal profile that gets smarter over time.
         </p>
 
-        <p className={`mt-4 max-w-3xl ${APP_MUTED}`}>{EARLY_ACCESS_NOTICE}</p>
+        <p className="mt-4 max-w-3xl text-sm text-slate-300">{EARLY_ACCESS_NOTICE}</p>
 
         <Suspense
           fallback={
@@ -603,8 +616,8 @@ export default function UpgradePage() {
           sectionClassName={UPGRADE_STEAM_SECTION}
         />
 
-        <div className={`${UPGRADE_FAQ_SECTION} ${APP_CARD_LG} p-8`}>
-          <p className={APP_KICKER}>
+        <div className={`${UPGRADE_FAQ_SECTION} ${PREMIUM_SURFACE_CARD} p-8`}>
+          <p className={PREMIUM_KICKER}>
             FAQ
           </p>
           <h2 className="mt-3 text-3xl font-extrabold text-slate-900 dark:text-white gp-home-display">Quick answers</h2>

@@ -1,0 +1,349 @@
+/*
+ * Page accent system. `data-page-accent` is set on <html> per route by
+ * PageAccentProvider; the values below adapt to light/dark via the existing
+ * `data-home-theme` attribute (also on <html>). Header, footer, labels, and
+ * chips read these variables instead of hardcoding per-page colours, so every
+ * page controls its own accent from one place.
+ *
+ *   --page-accent        solid mid accent (borders / glows base)
+ *   --page-accent-strong brighter accent (underlines / gradient top)
+ *   --page-accent-text   readable accent text (theme-aware)
+ *   --page-accent-on     text colour ON the accent gradient (CTA labels)
+ *   --page-accent-soft   translucent accent fill (pills / chips)
+ *   --page-accent-border translucent accent border
+ *   --page-accent-glow   accent glow colour
+ */
+html {
+  /* Default = GamePing cyan (landing + every unthemed page). */
+  --page-accent: #0891b2;
+  --page-accent-strong: #22d3ee;
+  --page-accent-text: #0e7490;
+  --page-accent-on: #ffffff;
+  --page-accent-soft: rgba(34, 211, 238, 0.12);
+  --page-accent-border: rgba(34, 211, 238, 0.4);
+  --page-accent-glow: rgba(34, 211, 238, 0.6);
+}
+html[data-home-theme="dark"] {
+  --page-accent-text: #67e8f9;
+}
+
+/* Premium = gold / champagne */
+html[data-page-accent="premium"] {
+  --page-accent: #c79a3a;
+  --page-accent-strong: #d6a84f;
+  --page-accent-text: #8a5a10;
+  --page-accent-on: #3a2c08;
+  --page-accent-soft: rgba(214, 168, 79, 0.14);
+  --page-accent-border: rgba(214, 168, 79, 0.45);
+  --page-accent-glow: rgba(214, 168, 79, 0.6);
+}
+html[data-home-theme="dark"][data-page-accent="premium"] {
+  --page-accent-text: #e8c879;
+}
+
+/* Recommend = green / emerald */
+html[data-page-accent="recommend"] {
+  --page-accent: #16a34a;
+  --page-accent-strong: #22c55e;
+  --page-accent-text: #15803d;
+  --page-accent-on: #ffffff;
+  --page-accent-soft: rgba(34, 197, 94, 0.14);
+  --page-accent-border: rgba(34, 197, 94, 0.4);
+  --page-accent-glow: rgba(34, 197, 94, 0.6);
+}
+html[data-home-theme="dark"][data-page-accent="recommend"] {
+  --page-accent-text: #4ade80;
+}
+
+/* Curated = violet */
+html[data-page-accent="curated"] {
+  --page-accent: #7c3aed;
+  --page-accent-strong: #8b5cf6;
+  --page-accent-text: #6d28d9;
+  --page-accent-on: #ffffff;
+  --page-accent-soft: rgba(139, 92, 246, 0.14);
+  --page-accent-border: rgba(139, 92, 246, 0.4);
+  --page-accent-glow: rgba(139, 92, 246, 0.6);
+}
+html[data-home-theme="dark"][data-page-accent="curated"] {
+  --page-accent-text: #c4b5fd;
+}
+
+/* Games = red */
+html[data-page-accent="games"] {
+  --page-accent: #dc2626;
+  --page-accent-strong: #f87171;
+  --page-accent-text: #b91c1c;
+  --page-accent-on: #ffffff;
+  --page-accent-soft: rgba(248, 113, 113, 0.14);
+  --page-accent-border: rgba(248, 113, 113, 0.4);
+  --page-accent-glow: rgba(239, 68, 68, 0.6);
+}
+html[data-home-theme="dark"][data-page-accent="games"] {
+  --page-accent-text: #fca5a5;
+}
+
+/* Hidden gems = blue */
+html[data-page-accent="hidden-gems"] {
+  --page-accent: #2563eb;
+  --page-accent-strong: #60a5fa;
+  --page-accent-text: #1d4ed8;
+  --page-accent-on: #ffffff;
+  --page-accent-soft: rgba(96, 165, 250, 0.14);
+  --page-accent-border: rgba(96, 165, 250, 0.4);
+  --page-accent-glow: rgba(59, 130, 246, 0.6);
+}
+html[data-home-theme="dark"][data-page-accent="hidden-gems"] {
+  --page-accent-text: #93c5fd;
+}
+
+/* Games of the week = yellow / gold */
+html[data-page-accent="gotw"] {
+  --page-accent: #ca8a04;
+  --page-accent-strong: #facc15;
+  --page-accent-text: #a16207;
+  --page-accent-on: #422006;
+  --page-accent-soft: rgba(250, 204, 21, 0.14);
+  --page-accent-border: rgba(250, 204, 21, 0.4);
+  --page-accent-glow: rgba(234, 179, 8, 0.6);
+}
+html[data-home-theme="dark"][data-page-accent="gotw"] {
+  --page-accent-text: #fde047;
+}
+
+/* Weekly picks = orange */
+html[data-page-accent="weekly"] {
+  --page-accent: #ea580c;
+  --page-accent-strong: #fb923c;
+  --page-accent-text: #c2410c;
+  --page-accent-on: #ffffff;
+  --page-accent-soft: rgba(251, 146, 60, 0.14);
+  --page-accent-border: rgba(251, 146, 60, 0.4);
+  --page-accent-glow: rgba(249, 115, 22, 0.6);
+}
+html[data-home-theme="dark"][data-page-accent="weekly"] {
+  --page-accent-text: #fdba74;
+}
+
+/* Deals for you = pink / magenta */
+html[data-page-accent="deals"] {
+  --page-accent: #db2777;
+  --page-accent-strong: #f472b6;
+  --page-accent-text: #be185d;
+  --page-accent-on: #ffffff;
+  --page-accent-soft: rgba(244, 114, 182, 0.14);
+  --page-accent-border: rgba(244, 114, 182, 0.4);
+  --page-accent-glow: rgba(236, 72, 153, 0.6);
+}
+html[data-home-theme="dark"][data-page-accent="deals"] {
+  --page-accent-text: #f9a8d4;
+}
+
+/* Monthly recap = aqua-blue / sky — distinct from the landing cyan (bluer, not
+ * teal, not the same hue as Home). */
+html[data-page-accent="recap"] {
+  --page-accent: #60a5fa;
+  --page-accent-strong: #38bdf8;
+  --page-accent-text: #2563eb;
+  --page-accent-on: #ffffff;
+  --page-accent-soft: rgba(56, 189, 248, 0.14);
+  --page-accent-border: rgba(56, 189, 248, 0.42);
+  --page-accent-glow: rgba(96, 165, 250, 0.55);
+}
+html[data-home-theme="dark"][data-page-accent="recap"] {
+  --page-accent-text: #7dd3fc;
+}
+
+/* Dashboard / Account = white / silver */
+html[data-page-accent="account"] {
+  --page-accent: #94a3b8;
+  --page-accent-strong: #e2e8f0;
+  --page-accent-text: #475569;
+  --page-accent-on: #0f172a;
+  --page-accent-soft: rgba(226, 232, 240, 0.12);
+  --page-accent-border: rgba(226, 232, 240, 0.4);
+  --page-accent-glow: rgba(226, 232, 240, 0.5);
+}
+html[data-home-theme="dark"][data-page-accent="account"] {
+  --page-accent-text: #e2e8f0;
+}
+
+/*
+ * Page-accent primary CTA — THE shared standard for primary pill CTAs (header
+ * CTA, accent-page CTAs, etc.). Follows the current page accent automatically
+ * (cyan / gold / green / …) with a readable label. Matches the landing
+ * `gp-home-cta` visual language: a subtle VERTICAL gradient (lighter top →
+ * accent bottom) with an inset white sheen and a soft accent glow — no strong
+ * horizontal gradient. Hover = slightly brighter + lifted.
+ */
+.gp-page-cta {
+  background-image: linear-gradient(to bottom, var(--page-accent-strong), var(--page-accent));
+  color: var(--page-accent-on);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.25) inset,
+    0 8px 22px -8px var(--page-accent-glow),
+    0 2px 6px -2px var(--page-accent-glow);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    filter 0.25s ease;
+}
+.gp-page-cta:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.3) inset,
+    0 14px 30px -10px var(--page-accent-glow);
+}
+
+/*
+ * --page-surface = the frosted light-mode card colour for accent pages, tinted
+ * toward the page accent so cards read as the same glass family.
+ */
+html {
+  --page-surface: rgba(248, 250, 252, 0.85);
+}
+html[data-page-accent="premium"] {
+  --page-surface: rgba(255, 250, 235, 0.82);
+}
+html[data-page-accent="recommend"] {
+  --page-surface: rgba(236, 253, 244, 0.8);
+}
+html[data-page-accent="curated"] {
+  --page-surface: rgba(244, 242, 255, 0.8);
+}
+html[data-page-accent="games"] {
+  --page-surface: rgba(254, 242, 242, 0.8);
+}
+html[data-page-accent="hidden-gems"] {
+  --page-surface: rgba(239, 246, 255, 0.8);
+}
+html[data-page-accent="gotw"] {
+  --page-surface: rgba(254, 252, 232, 0.8);
+}
+html[data-page-accent="weekly"] {
+  --page-surface: rgba(255, 247, 237, 0.8);
+}
+html[data-page-accent="deals"] {
+  --page-surface: rgba(253, 242, 248, 0.8);
+}
+html[data-page-accent="recap"] {
+  --page-surface: rgba(240, 249, 255, 0.82);
+}
+html[data-page-accent="account"] {
+  --page-surface: rgba(248, 250, 252, 0.82);
+}
+
+/*
+ * Generic accent-page surface system (Curated / Games). The page sets
+ * `gp-accent-page` on its content wrapper; cards/borders/CTAs then follow the
+ * current --page-accent-* automatically — same cinematic background, only the
+ * surfaces/text adapt to theme. (Premium/Recommend keep their own scoped rules.)
+ */
+.gp-accent-page .gp-home-cta {
+  background-image: linear-gradient(to bottom, var(--page-accent-strong), var(--page-accent));
+  color: var(--page-accent-on);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.25) inset,
+    0 8px 22px -8px var(--page-accent-glow),
+    0 2px 6px -2px var(--page-accent-glow);
+}
+.gp-accent-page .gp-home-cta:hover {
+  filter: brightness(1.06);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.3) inset,
+    0 14px 30px -10px var(--page-accent-glow);
+}
+
+html[data-home-theme="light"] .gp-accent-page .bg-white,
+html[data-home-theme="light"] .gp-accent-page .bg-slate-50,
+html[data-home-theme="light"] .gp-accent-page .bg-slate-50\/60,
+html[data-home-theme="light"] .gp-accent-page .bg-slate-50\/70,
+html[data-home-theme="light"] .gp-accent-page .bg-slate-50\/80,
+html[data-home-theme="light"] .gp-accent-page .bg-slate-50\/90 {
+  background-color: var(--page-surface);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+html[data-home-theme="light"] .gp-accent-page .border-slate-200,
+html[data-home-theme="light"] .gp-accent-page .border-slate-200\/80,
+html[data-home-theme="light"] .gp-accent-page .border-slate-200\/90 {
+  border-color: var(--page-accent-border);
+}
+
+.gp-accent-page input:focus,
+.gp-accent-page textarea:focus {
+  border-color: var(--page-accent-strong);
+  box-shadow: 0 0 0 3px var(--page-accent-soft);
+  outline: none;
+}
+
+/* Shared interactive cards/rows use a cyan hover border by default — remap it to
+ * the page accent inside accent pages so there are no cyan leftovers. */
+.gp-accent-page .hover\:border-cyan-300\/70:hover,
+.gp-accent-page .hover\:border-cyan-700\/50:hover {
+  border-color: var(--page-accent-border);
+}
+
+/*
+ * Fixed cinematic backgrounds — identical image in light AND dark (no wash /
+ * brighten / desaturate). Mirror the landing/premium/recommend approach.
+ */
+.gp-curated-bg,
+.gp-games-bg,
+.gp-hidden-gems-bg,
+.gp-gotw-bg,
+.gp-weekly-bg,
+.gp-deals-bg,
+.gp-recap-bg,
+.gp-account-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #070b14;
+  background-repeat: no-repeat, no-repeat;
+  background-position: center top, center top;
+  background-size: cover, cover;
+}
+.gp-curated-bg {
+  background-image:
+    linear-gradient(to bottom, rgba(7, 11, 20, 0.5) 0%, rgba(7, 11, 20, 0.68) 52%, rgba(7, 11, 20, 0.9) 100%),
+    url("/images/backgrounds/gameping-curated-bg-dark.png");
+}
+.gp-games-bg {
+  background-image:
+    linear-gradient(to bottom, rgba(7, 11, 20, 0.5) 0%, rgba(7, 11, 20, 0.68) 52%, rgba(7, 11, 20, 0.9) 100%),
+    url("/images/backgrounds/gameping-games-bg-dark.png");
+}
+.gp-hidden-gems-bg {
+  background-image:
+    linear-gradient(to bottom, rgba(7, 11, 20, 0.5) 0%, rgba(7, 11, 20, 0.68) 52%, rgba(7, 11, 20, 0.9) 100%),
+    url("/images/backgrounds/gameping-hidden-gems-bg-dark.png");
+}
+.gp-gotw-bg {
+  background-image:
+    linear-gradient(to bottom, rgba(7, 11, 20, 0.5) 0%, rgba(7, 11, 20, 0.68) 52%, rgba(7, 11, 20, 0.9) 100%),
+    url("/images/backgrounds/gameping-games-of-the-week-bg-dark.png");
+}
+.gp-weekly-bg {
+  background-image:
+    linear-gradient(to bottom, rgba(7, 11, 20, 0.5) 0%, rgba(7, 11, 20, 0.68) 52%, rgba(7, 11, 20, 0.9) 100%),
+    url("/images/backgrounds/gameping-weekly-picks-bg-dark.png");
+}
+.gp-deals-bg {
+  background-image:
+    linear-gradient(to bottom, rgba(7, 11, 20, 0.5) 0%, rgba(7, 11, 20, 0.68) 52%, rgba(7, 11, 20, 0.9) 100%),
+    url("/images/backgrounds/gameping-deals-for-you-bg-dark.png");
+}
+.gp-recap-bg {
+  background-image:
+    linear-gradient(to bottom, rgba(7, 11, 20, 0.5) 0%, rgba(7, 11, 20, 0.68) 52%, rgba(7, 11, 20, 0.9) 100%),
+    url("/images/backgrounds/gameping-monthly-recap-bg-dark.png");
+}
+.gp-account-bg {
+  background-image:
+    linear-gradient(to bottom, rgba(7, 11, 20, 0.5) 0%, rgba(7, 11, 20, 0.68) 52%, rgba(7, 11, 20, 0.9) 100%),
+    url("/images/backgrounds/gameping-account-bg-dark.png");
+}

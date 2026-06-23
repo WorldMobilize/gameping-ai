@@ -29,7 +29,7 @@ function BuildGameDnaCard() {
       <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-700 dark:text-slate-300">
         Connect your Steam library and let GamePing understand your gaming taste.
       </p>
-      <p className="mt-4 text-sm text-slate-500 dark:text-slate-400 dark:text-slate-500">
+      <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
         Taste-based recommendations are coming next. This preview only analyzes your imported
         Steam playtime.
       </p>
@@ -52,13 +52,13 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
 
     return (
       <div className={`${APP_CARD} p-7`}>
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">Taste DNA</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">Taste DNA</p>
         <h2 className="mt-4 text-3xl font-extrabold text-slate-900 dark:text-white gp-home-display">Your Game DNA 🧬</h2>
-        <p className="mt-3 text-sm font-semibold text-cyan-700">{tasteDna.playerArchetype}</p>
+        <p className="mt-3 text-sm font-semibold text-[color:var(--page-accent-text)]">{tasteDna.playerArchetype}</p>
 
         <p className="mt-5 text-lg leading-8 text-slate-700 dark:text-slate-300">{tasteDna.summary}</p>
 
-        <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 dark:text-slate-500">
+        <p className="mt-6 text-sm font-semibold uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">
           Based on
         </p>
         <p className="mt-2 text-lg text-slate-800 dark:text-slate-200">
@@ -72,8 +72,8 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
               {motivations.map((motivation) => (
                 <li key={motivation.trait}>
                   <span className="font-semibold text-slate-900 dark:text-white">{motivation.trait}</span>
-                  <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500"> · {Math.round(motivation.confidence * 100)}%</span>
-                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400 dark:text-slate-500">{motivation.reason}</p>
+                  <span className="text-slate-600 dark:text-slate-400"> · {Math.round(motivation.confidence * 100)}%</span>
+                  <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">{motivation.reason}</p>
                 </li>
               ))}
             </ul>
@@ -102,7 +102,7 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
           </div>
         ) : null}
 
-        <p className="mt-8 text-xs leading-relaxed text-slate-400 dark:text-slate-500">
+        <p className="mt-8 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
           Recommendations do not use Taste DNA yet. Personal recommendations are coming next.
         </p>
       </div>
@@ -117,7 +117,7 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
       <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">Taste DNA</p>
       <h2 className="mt-4 text-3xl font-extrabold text-slate-900 dark:text-white gp-home-display">Your Game DNA 🧬</h2>
 
-      <p className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 dark:text-slate-500">
+      <p className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">
         Based on
       </p>
       <p className="mt-2 text-lg text-slate-800 dark:text-slate-200">
@@ -146,7 +146,7 @@ function YourGameDnaCard({ tasteDna }: { tasteDna: TasteDna }) {
         </div>
       ) : null}
 
-      <p className="mt-8 text-xs leading-relaxed text-slate-400 dark:text-slate-500">
+      <p className="mt-8 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
         Recommendations do not use Taste DNA yet. Personal recommendations are coming next.
       </p>
     </div>

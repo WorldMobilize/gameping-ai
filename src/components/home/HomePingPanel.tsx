@@ -28,7 +28,7 @@ export default function HomePingPanel() {
             >
               PING
             </p>
-            <p className={`mt-1.5 text-sm ${isDark ? "text-white/55" : "text-slate-600"}`}>
+            <p className={`mt-1.5 text-sm ${isDark ? "text-white/75" : "text-slate-600"}`}>
               Your game discovery companion
             </p>
           </div>
@@ -56,7 +56,7 @@ export default function HomePingPanel() {
                   <p className={`gp-mini-title gp-mini-title-${tone} mt-3 text-[12px] font-semibold leading-snug`}>
                     {prop.label}
                   </p>
-                  <p className={`mt-1.5 text-[11px] leading-4 ${isDark ? "text-white/50" : "text-slate-600"}`}>
+                  <p className={`mt-1.5 text-[11px] leading-4 ${isDark ? "text-white/70" : "text-slate-600"}`}>
                     {prop.detail}
                   </p>
                 </li>

@@ -4,31 +4,44 @@ import SocialPlatformIcon from "@/components/SocialPlatformIcon";
 import { EARLY_ACCESS_NOTICE } from "@/lib/product-copy";
 import { SITE_SOCIAL_LINKS } from "@/lib/site-social-links";
 
-const socialLinkClassDark =
-  "inline-flex items-center justify-center rounded-lg p-1.5 text-slate-400 transition-colors duration-200 hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60";
-
-const socialLinkClassLight =
-  "inline-flex items-center justify-center rounded-lg p-1.5 text-slate-500 transition-colors duration-200 hover:text-cyan-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40";
-
-const linkClassDark =
-  "transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60";
-
-const linkClassLight =
-  "transition hover:text-cyan-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40";
-
 type FooterProps = {
   theme?: "dark" | "light";
+  /** "themed" = a cinematic page (fixed bg) → translucent glass footer; else solid. */
+  accent?: "default" | "themed";
 };
 
-export default function Footer({ theme = "dark" }: FooterProps) {
+export default function Footer({ theme = "dark", accent = "default" }: FooterProps) {
   const isLight = theme === "light";
-  const socialLinkClass = isLight ? socialLinkClassLight : socialLinkClassDark;
-  const linkClass = isLight ? linkClassLight : linkClassDark;
-  const borderColor = isLight ? "border-slate-300/90" : "border-slate-700/70";
-  const footerBg = isLight ? "bg-[#F6F8FC]" : "bg-[#080b14]";
+  // Cinematic pages have a fixed background image → translucent glass footer so
+  // it blends in (no hard cutoff). Default pages keep a solid footer. The accent
+  // COLOUR always follows the current page via --page-accent-* below.
+  const isCinematic = accent === "themed";
+
+  // Accent COLOUR follows the current page via --page-accent-* (set per route),
+  // so footer headings/links/AI mark match whatever page you're on (cyan / gold
+  // / green / violet / sky) in both themes.
+  const hoverText = "hover:text-[color:var(--page-accent-text)]";
+  const focusRing = "focus-visible:ring-[color:var(--page-accent-border)]";
+  const baseTextColor = isLight ? "text-slate-600" : "text-slate-400";
+
+  const socialLinkClass = `inline-flex items-center justify-center rounded-lg p-1.5 ${baseTextColor} transition-colors duration-200 ${hoverText} focus-visible:outline-none focus-visible:ring-2 ${focusRing}`;
+  const linkClass = `transition ${hoverText} focus-visible:outline-none focus-visible:ring-2 ${focusRing}`;
+  const headingColor = "text-[color:var(--page-accent-text)]";
+  const aiAccent = "text-[color:var(--page-accent-text)]";
+
+  // The light frosted surface uses --page-surface so it picks up the page's
+  // accent tint automatically (champagne / green / violet / sky).
+  const borderColor = "border-[color:var(--page-accent-border)]";
+  const footerBg = isCinematic
+    ? isLight
+      ? "bg-[var(--page-surface)] backdrop-blur-md"
+      : "bg-[#080b14]/80 backdrop-blur-md"
+    : isLight
+      ? "bg-[#F6F8FC]"
+      : "bg-[#080b14]/85 backdrop-blur-md";
 
   return (
-    <footer className={`mt-auto w-full border-t ${borderColor} ${footerBg}`}>
+    <footer className={`relative z-10 mt-auto w-full border-t ${borderColor} ${footerBg}`}>
       <div className="mx-auto max-w-6xl px-4 pb-12 pt-14 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
           <div>
@@ -37,7 +50,7 @@ export default function Footer({ theme = "dark" }: FooterProps) {
                 isLight ? "text-slate-900" : "text-slate-100"
               }`}
             >
-              GamePing <span className="text-cyan-600">AI</span>
+              GamePing <span className={aiAccent}>AI</span>
             </p>
             <p
               className={`mt-3 max-w-md text-sm leading-6 ${
@@ -49,9 +62,7 @@ export default function Footer({ theme = "dark" }: FooterProps) {
             </p>
             <div className="mt-5">
               <p
-                className={`text-xs font-black uppercase tracking-[0.35em] ${
-                  isLight ? "text-slate-900" : "text-slate-100"
-                }`}
+                className={`text-xs font-black uppercase tracking-[0.35em] ${headingColor}`}
               >
                 Follow us
               </p>
@@ -76,9 +87,7 @@ export default function Footer({ theme = "dark" }: FooterProps) {
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:gap-10">
             <div className="space-y-3">
               <p
-                className={`text-xs font-black uppercase tracking-[0.35em] ${
-                  isLight ? "text-slate-900" : "text-slate-100"
-                }`}
+                className={`text-xs font-black uppercase tracking-[0.35em] ${headingColor}`}
               >
                 Product
               </p>
@@ -100,20 +109,12 @@ export default function Footer({ theme = "dark" }: FooterProps) {
                 <Link href="/games" className={linkClass}>
                   Games A–Z
                 </Link>
-                <Link href="/hidden-gems" className={linkClass}>
-                  Hidden gems
-                </Link>
-                <Link href="/games-of-the-week" className={linkClass}>
-                  Games of the week
-                </Link>
               </div>
             </div>
 
             <div className="space-y-3">
               <p
-                className={`text-xs font-black uppercase tracking-[0.35em] ${
-                  isLight ? "text-slate-900" : "text-slate-100"
-                }`}
+                className={`text-xs font-black uppercase tracking-[0.35em] ${headingColor}`}
               >
                 Company
               </p>
@@ -134,9 +135,7 @@ export default function Footer({ theme = "dark" }: FooterProps) {
 
             <div className="space-y-3">
               <p
-                className={`text-xs font-black uppercase tracking-[0.35em] ${
-                  isLight ? "text-slate-900" : "text-slate-100"
-                }`}
+                className={`text-xs font-black uppercase tracking-[0.35em] ${headingColor}`}
               >
                 Legal
               </p>
@@ -182,7 +181,7 @@ export default function Footer({ theme = "dark" }: FooterProps) {
           <p className={`text-sm ${isLight ? "text-slate-700" : "text-slate-300"}`}>
             © {new Date().getFullYear()} GamePing AI. All rights reserved.
           </p>
-          <p className="text-xs leading-relaxed text-slate-500">
+          <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
             Built with third-party services including OpenAI, RAWG, CheapShark, Supabase and
             Stripe.
           </p>

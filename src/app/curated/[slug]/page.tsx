@@ -3,13 +3,13 @@ import CuratedGameArt from "@/components/CuratedGameArt";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
   APP_CARD_INTERACTIVE_LG,
-  APP_INLINE_LINK,
-  APP_KICKER,
-  APP_PAGE_LEAD,
-  APP_PAGE_TITLE,
-  APP_PRIMARY_CTA_SM,
+  APP_PRIMARY_CTA_ACCENT_SM,
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
+
+/** Inline link in the current page accent (violet on /curated). */
+const ACCENT_LINK =
+  "font-semibold text-[color:var(--page-accent-strong)] underline-offset-4 hover:underline";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import {
   CURATED_COLLECTIONS,
@@ -47,41 +47,47 @@ export default async function CuratedCollectionPage({ params }: Props) {
   const others = CURATED_COLLECTIONS.filter((c) => c.slug !== slug).slice(0, 4);
 
   return (
-    <AppPageShell>
-      <article>
+    <AppPageShell hideAmbient>
+      <article className="gp-accent-page relative isolate min-h-0 flex-1 overflow-hidden">
+        {/* Fixed cinematic background — SAME image in light + dark. */}
+        <div aria-hidden className="gp-curated-bg" />
         <AppSection maxWidth="max-w-3xl">
-          <p className={APP_KICKER}>Curated collection</p>
-          <h1 className={APP_PAGE_TITLE}>{collection.h1}</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
+            Curated collection
+          </p>
+          <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">
+            {collection.h1}
+          </h1>
 
-          <p className={APP_PAGE_LEAD}>{collection.intro}</p>
+          <p className="mt-6 text-lg leading-8 text-slate-200">{collection.intro}</p>
 
-          <p className="mt-6 text-sm leading-7 text-slate-600">
+          <p className="mt-6 text-sm leading-7 text-slate-300">
             For recommendations shaped to your budget, platform, and mood, use{" "}
-            <Link href="/recommend" className={APP_INLINE_LINK}>
+            <Link href="/recommend" className={ACCENT_LINK}>
               GamePing AI recommendations
             </Link>
             . You can also browse our{" "}
-            <Link href="/games" className={APP_INLINE_LINK}>
+            <Link href="/games" className={ACCENT_LINK}>
               games directory (A–Z)
             </Link>{" "}
             or return to the{" "}
-            <Link href="/curated" className={APP_INLINE_LINK}>
+            <Link href="/curated" className={ACCENT_LINK}>
               full list of collections
             </Link>
             .
           </p>
 
-          <div className="mt-10 rounded-3xl border border-cyan-200/80 bg-cyan-50/60 p-6">
-            <p className="text-sm font-bold text-slate-800">Try your own recommendation</p>
-            <Link href="/recommend" className={`mt-3 inline-flex ${APP_PRIMARY_CTA_SM}`}>
+          <div className="mt-10 rounded-3xl border border-[color:var(--page-accent-border)] bg-white p-6 dark:bg-slate-900/70">
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">Try your own recommendation</p>
+            <Link href="/recommend" className={`mt-3 ${APP_PRIMARY_CTA_ACCENT_SM}`}>
               Open GamePing AI
             </Link>
           </div>
         </AppSection>
 
         <AppSection maxWidth="max-w-5xl" className="pt-0">
-          <h2 className="text-xl font-bold text-slate-900 md:text-2xl">Games in this angle</h2>
-          <p className="mt-2 text-sm text-slate-500">
+          <h2 className="text-xl font-bold text-white md:text-2xl">Games in this angle</h2>
+          <p className="mt-2 text-sm text-slate-300">
             Each entry explains why it fits this collection—tap through to the game page when
             available.
           </p>
@@ -100,10 +106,10 @@ export default async function CuratedCollectionPage({ params }: Props) {
                 />
 
                 <div className="flex flex-1 flex-col justify-center p-6">
-                  <h3 className="text-lg font-bold text-slate-900">{game.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">{game.whyItFits}</p>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{game.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{game.whyItFits}</p>
                   <Link
-                    href={gameDetailPath(game.title)}
+                    href={`${gameDetailPath(game.title)}?from=curated`}
                     className={`mt-4 inline-flex w-fit ${APP_SECONDARY_CTA}`}
                   >
                     View game details
@@ -115,14 +121,14 @@ export default async function CuratedCollectionPage({ params }: Props) {
         </AppSection>
 
         {others.length > 0 ? (
-          <AppSection maxWidth="max-w-5xl" className="border-t border-slate-200/90 pt-12">
-            <h2 className="text-xl font-bold text-slate-900">More curated pages</h2>
+          <AppSection maxWidth="max-w-5xl" className="border-t border-[color:var(--page-accent-border)] pt-12">
+            <h2 className="text-xl font-bold text-white">More curated pages</h2>
             <ul className="mt-6 flex flex-wrap gap-3">
               {others.map((c) => (
                 <li key={c.slug}>
                   <Link
                     href={`/curated/${c.slug}`}
-                    className="inline-flex rounded-full border border-slate-200/90 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-cyan-300/70 hover:text-cyan-800"
+                    className="inline-flex rounded-full border border-slate-200/90 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-[color:var(--page-accent-border)] hover:text-[color:var(--page-accent-text)] dark:bg-slate-900/70 dark:text-slate-200"
                   >
                     {c.h1}
                   </Link>

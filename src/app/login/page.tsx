@@ -189,7 +189,7 @@ function LoginForm() {
             Welcome to <span className={APP_ACCENT}>GamePing AI</span>
           </h1>
 
-          <p className="mt-3 text-center text-sm text-slate-600">
+          <p className="mt-3 text-center text-sm text-slate-600 dark:text-slate-300">
             Save your game preferences and get smart alerts.
           </p>
 
@@ -202,7 +202,7 @@ function LoginForm() {
             </p>
           ) : null}
 
-          <ul className="mt-6 space-y-2 text-sm leading-relaxed text-slate-600">
+          <ul className="mt-6 space-y-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
             <li className="flex gap-2">
               <span className="text-cyan-600">✓</span>
               <span>Save recommendation runs to your dashboard</span>
@@ -226,6 +226,7 @@ function LoginForm() {
           <input
             className={`mt-8 ${APP_INPUT}`}
             placeholder="Email"
+            aria-label="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -234,11 +235,12 @@ function LoginForm() {
             type="password"
             className={`mt-4 ${APP_INPUT}`}
             placeholder="Password"
+            aria-label="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
             Password: at least 8 characters with one letter and one number.
           </p>
 
@@ -266,7 +268,7 @@ function LoginForm() {
             </button>
           </div>
 
-          <p className="mt-6 text-center text-xs text-slate-500">
+          <p className="mt-6 text-center text-xs text-slate-600 dark:text-slate-400">
             By continuing you agree to our{" "}
             <Link href="/terms" className={APP_INLINE_LINK}>
               Terms
@@ -295,7 +297,7 @@ function LoginFallback() {
   return (
     <AppPageShell>
       <AppSection className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-sm text-slate-500">Loading…</p>
+        <p className="text-sm text-slate-600 dark:text-slate-400">Loading…</p>
       </AppSection>
     </AppPageShell>
   );

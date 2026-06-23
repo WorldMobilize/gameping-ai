@@ -89,16 +89,16 @@ export default function GameScreenshotLightbox({
   const active = activeIndex !== null ? screenshots[activeIndex] : null;
 
   const thumbClass = isLight
-    ? "group cursor-pointer overflow-hidden rounded-2xl border border-slate-200/90 bg-white text-left shadow-sm transition hover:border-cyan-300/70 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
-    : "group cursor-pointer overflow-hidden rounded-3xl border border-white/10 bg-black/20 text-left transition hover:border-cyan-400/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60";
+    ? "group cursor-pointer overflow-hidden rounded-2xl border border-slate-200/90 bg-white text-left shadow-sm transition hover:border-[color:var(--page-accent-border)] hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]"
+    : "group cursor-pointer overflow-hidden rounded-3xl border border-white/10 bg-black/20 text-left transition hover:border-[color:var(--page-accent-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]";
 
   const overlayBtnClass = isLight
-    ? "absolute right-4 top-4 z-[102] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-2xl font-light text-slate-700 shadow-md transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40 sm:right-6 sm:top-6"
-    : "absolute right-4 top-4 z-[102] flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 text-2xl font-light text-white transition hover:border-white/40 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 sm:right-6 sm:top-6";
+    ? "absolute right-4 top-4 z-[102] flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-2xl font-light text-slate-700 shadow-md transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] sm:right-6 sm:top-6"
+    : "absolute right-4 top-4 z-[102] flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 text-2xl font-light text-white transition hover:border-white/40 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] sm:right-6 sm:top-6";
 
   const navBtnClass = isLight
-    ? "absolute top-1/2 z-[102] flex -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-md transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
-    : "absolute top-1/2 z-[102] flex -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white transition hover:border-white/40 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60";
+    ? "absolute top-1/2 z-[102] flex -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-700 shadow-md transition hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]"
+    : "absolute top-1/2 z-[102] flex -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-black/60 text-white transition hover:border-white/40 hover:bg-black/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]";
 
   return (
     <>
@@ -172,7 +172,7 @@ export default function GameScreenshotLightbox({
               alt={`${gameTitle} screenshot ${activeIndex + 1} of ${count}`}
               className="max-h-[min(78vh,820px)] w-full object-contain"
             />
-            <p className={`mt-4 text-sm font-semibold ${isLight ? "text-slate-500" : "text-white/55"}`}>
+            <p className={`mt-4 text-sm font-semibold ${isLight ? "text-slate-600" : "text-white/70"}`}>
               {activeIndex + 1} / {count}
             </p>
           </div>

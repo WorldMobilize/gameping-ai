@@ -9,6 +9,9 @@ import {
   HOME_HERO_DEMO_REFINE,
   HOME_HERO_DEMO_REFINED_RESULTS,
 } from "@/components/home/demo/home-hero-product-demo-data";
+import HomeHeroDemoDetailPreview, {
+  DEMO_DETAIL_FIXED_WIDTH,
+} from "@/components/home/HomeHeroDemoDetailPreview";
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import {
   captureRefinedBrowseScroll,
@@ -38,25 +41,34 @@ import RecommendSearchCta from "@/components/recommend/RecommendSearchCta";
 import { PROMPT_MAX_DEFAULT } from "@/lib/recommend-limits";
 
 const STAGE_CLASS = "h-[44rem] sm:h-[42rem]";
-/** Minimum stage pixels visible in the viewport before the walkthrough may start. */
-const VIEWPORT_PLAY_MIN_VISIBLE_PX = 220;
-/** Minimum share of the demo stage that must be visible (prevents edge peeks). */
-const VIEWPORT_PLAY_MIN_VISIBLE_RATIO = 0.3;
+/**
+ * Share of the demo stage that must be visible before the walkthrough starts.
+ * High enough (~0.68) that a small partial peek never triggers it — the clip
+ * only plays once the user has clearly scrolled it into view.
+ */
+const VIEWPORT_PLAY_MIN_VISIBLE_RATIO = 0.68;
 
 function isDemoStagePlayable(entry: IntersectionObserverEntry): boolean {
   if (!entry.isIntersecting) return false;
 
   const rect = entry.boundingClientRect;
   const viewportHeight = entry.rootBounds?.height ?? window.innerHeight;
+  if (viewportHeight <= 0) return false;
+
   const visibleTop = Math.max(rect.top, 0);
   const visibleBottom = Math.min(rect.bottom, viewportHeight);
   const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+  if (visibleHeight <= 0) return false;
 
-  if (visibleHeight < VIEWPORT_PLAY_MIN_VISIBLE_PX) return false;
-  if (rect.height > 0 && visibleHeight / rect.height < VIEWPORT_PLAY_MIN_VISIBLE_RATIO) return false;
-
-  const stageCenterY = rect.top + rect.height / 2;
-  return stageCenterY >= viewportHeight * 0.14 && stageCenterY <= viewportHeight * 0.9;
+  // "Mostly visible": either most of the stage is on screen, OR — when the stage
+  // is taller than the viewport and can't be mostly shown — it fills most of the
+  // viewport. Either way the user has clearly reached the clip area.
+  const ratioOfStage = rect.height > 0 ? visibleHeight / rect.height : 0;
+  const ratioOfViewport = visibleHeight / viewportHeight;
+  return (
+    ratioOfStage >= VIEWPORT_PLAY_MIN_VISIBLE_RATIO ||
+    ratioOfViewport >= VIEWPORT_PLAY_MIN_VISIBLE_RATIO
+  );
 }
 
 const INITIAL_FRAME: DemoFrameState = {
@@ -70,6 +82,7 @@ const INITIAL_FRAME: DemoFrameState = {
   resultsRevealed: false,
   showRefinedResults: false,
   hideRefinePanel: false,
+  detailPreview: { open: false, scrollProgress: 0 },
   cursor: { x: 0, y: 0, visible: false, clicking: false },
 };
 
@@ -200,6 +213,9 @@ export default function HomeHeroTasteVisual() {
   const refineInputRef = useRef<HTMLInputElement>(null);
   const refineButtonRef = useRef<HTMLButtonElement>(null);
   const refinedViewDetailsRef = useRef<HTMLButtonElement>(null);
+  const detailViewportRef = useRef<HTMLDivElement>(null);
+  const detailTapeRef = useRef<HTMLDivElement>(null);
+  const detailScalerRef = useRef<HTMLDivElement>(null);
 
   const scrollMetricsRef = useRef<DemoScrollMetrics | null>(null);
   const cursorMetricsRef = useRef<DemoCursorMetrics | null>(null);
@@ -222,6 +238,26 @@ export default function HomeHeroTasteVisual() {
       y = Math.min(y, Math.max(0, tape.scrollHeight - stage.clientHeight));
     }
     applyTapeScroll(tape, y);
+  }, []);
+
+  // Independent scroll for the final Subnautica detail overlay. The real
+  // GameDetailView is rendered at a fixed desktop width and scaled to the stage
+  // width ("real page zoomed out"); 0..1 progress maps to its scaled height.
+  // Does not touch the main demo tape.
+  const syncDetailScroll = useCallback((progress: number) => {
+    const viewport = detailViewportRef.current;
+    const tape = detailTapeRef.current;
+    const scaler = detailScalerRef.current;
+    if (!viewport || !tape || !scaler) return;
+    const viewportWidth = viewport.clientWidth;
+    const scale = viewportWidth > 0 ? viewportWidth / DEMO_DETAIL_FIXED_WIDTH : 1;
+    // Static scale on the inner element keeps text crisp; the outer tape only
+    // translates (integer px) for the scroll.
+    scaler.style.transform = `scale(${scale})`;
+    const scaledHeight = scaler.scrollHeight * scale;
+    const max = Math.max(0, scaledHeight - viewport.clientHeight);
+    const y = Math.round(Math.max(0, Math.min(1, progress)) * max);
+    tape.style.transform = `translateY(-${y}px)`;
   }, []);
 
   const measureScrollMetrics = useCallback(
@@ -303,8 +339,9 @@ export default function HomeHeroTasteVisual() {
     const initial = computeDemoFrame(0, scrollMetrics, cursorMetrics);
     prevCursorRef.current = { x: initial.cursor.x, y: initial.cursor.y };
     syncTapeScroll(0);
+    syncDetailScroll(0);
     setFrame(initial);
-  }, [measureLiveCursor, measureScrollMetrics, syncTapeScroll]);
+  }, [measureLiveCursor, measureScrollMetrics, syncTapeScroll, syncDetailScroll]);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -417,8 +454,11 @@ export default function HomeHeroTasteVisual() {
         wasInViewRef.current = inView;
       },
       {
-        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.55, 0.7],
-        rootMargin: "0px 0px -18% 0px",
+        // Fine-grained steps around the ~0.68 visibility gate so entry/exit is
+        // detected cleanly. No negative rootMargin — the ratio gate above is what
+        // prevents an early trigger on a partial peek.
+        threshold: [0, 0.3, 0.5, 0.6, 0.68, 0.75, 0.85, 1],
+        rootMargin: "0px",
       },
     );
 
@@ -445,7 +485,7 @@ export default function HomeHeroTasteVisual() {
       const { phase, phaseElapsed } = resolveWalkthroughPhase(loopElapsed);
       const previousPhase = lastPhaseRef.current;
 
-      if (phase === "search-typing" && previousPhase === "refined-details-hold") {
+      if (phase === "search-typing" && previousPhase === "detail-hold") {
         loopResetCursorFromRef.current = { ...prevCursorRef.current };
       }
 
@@ -502,13 +542,16 @@ export default function HomeHeroTasteVisual() {
       }
       prevCursorRef.current = { x: nextFrame.cursor.x, y: nextFrame.cursor.y };
       syncTapeScroll(nextFrame.scrollY);
+      syncDetailScroll(
+        nextFrame.detailPreview.open ? nextFrame.detailPreview.scrollProgress : 0,
+      );
       setFrame(nextFrame);
       rafRef.current = requestAnimationFrame(tick);
     };
 
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [layoutReady, reducedMotion, measureLiveCursor, measureScrollMetrics, syncTapeScroll]);
+  }, [layoutReady, reducedMotion, measureLiveCursor, measureScrollMetrics, syncTapeScroll, syncDetailScroll]);
 
   if (reducedMotion) return <StaticWalkthrough panelClass={panelClass} demoTheme={demoTheme} />;
 
@@ -623,7 +666,15 @@ export default function HomeHeroTasteVisual() {
               </div>
             </div>
 
-            {layoutReady ? (
+            <HomeHeroDemoDetailPreview
+              theme={demoTheme}
+              open={frame.detailPreview.open}
+              viewportRef={detailViewportRef}
+              tapeRef={detailTapeRef}
+              scalerRef={detailScalerRef}
+            />
+
+            {layoutReady && !frame.detailPreview.open ? (
               <FakeCursor
                 x={frame.cursor.x}
                 y={frame.cursor.y}

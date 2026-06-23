@@ -98,7 +98,7 @@ export default function ResetPasswordPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
+          <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
             <Link href="/login" className={APP_INLINE_LINK}>
               ← Back to login
             </Link>

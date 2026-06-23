@@ -42,7 +42,7 @@ export const RECOMMEND_RESULT_CARD_SHELL =
 
 export function recommendResultCardShellClass(emphasizeCyanBorder: boolean) {
   return emphasizeCyanBorder
-    ? `${RECOMMEND_RESULT_CARD_SHELL} border-cyan-400/25`
+    ? `${RECOMMEND_RESULT_CARD_SHELL} border-[color:var(--page-accent-border)]`
     : `${RECOMMEND_RESULT_CARD_SHELL} border-white/10`;
 }
 
@@ -137,7 +137,7 @@ export default function RecommendResultCardView({
               ref={viewDetailsRef}
               type="button"
               tabIndex={-1}
-              className={`${s.cta} transition ${highlightDetails ? "ring-2 ring-cyan-400/55" : ""} ${clickPulse ? "scale-[0.97] opacity-90" : ""}`}
+              className={`${s.cta} transition ${highlightDetails ? "ring-2 ring-[color:var(--page-accent-border)]" : ""} ${clickPulse ? "scale-[0.97] opacity-90" : ""}`}
             >
               View details
             </button>

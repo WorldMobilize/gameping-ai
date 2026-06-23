@@ -199,31 +199,86 @@
 
 .gp-home-card {
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+    box-shadow 0.28s ease,
+    border-color 0.28s ease,
+    background-color 0.28s ease;
 }
 
+/*
+ * Premium "discovery card" depth. Hover deepens the shadow and adds a soft
+ * cyan glow + cyan-tinted border — no transform, so it never fights the
+ * floating animation that drives transform on panels.
+ */
 .gp-home-card-light {
   border-color: rgb(226 232 240 / 0.9);
   background: rgb(255 255 255 / 0.92);
-  box-shadow: 0 8px 30px -12px rgb(100 116 139 / 0.18);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.7) inset,
+    0 10px 30px -14px rgb(100 116 139 / 0.22),
+    0 2px 8px -4px rgb(100 116 139 / 0.12);
 }
 
 .gp-home-card-dark {
   border-color: rgb(51 65 85 / 0.7);
   background: rgb(15 23 42 / 0.85);
-  box-shadow: 0 12px 40px -16px rgb(0 0 0 / 0.45);
+  box-shadow:
+    0 1px 0 rgb(148 163 184 / 0.08) inset,
+    0 16px 44px -18px rgb(0 0 0 / 0.55),
+    0 4px 14px -8px rgb(0 0 0 / 0.4);
+}
+
+.gp-home-card-light:hover {
+  border-color: rgb(34 211 238 / 0.45);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.8) inset,
+    0 18px 44px -16px rgb(8 145 178 / 0.22),
+    0 0 0 1px rgb(34 211 238 / 0.12),
+    0 0 28px -6px rgb(34 211 238 / 0.28);
+}
+
+.gp-home-card-dark:hover {
+  border-color: rgb(34 211 238 / 0.4);
+  box-shadow:
+    0 1px 0 rgb(148 163 184 / 0.1) inset,
+    0 22px 56px -18px rgb(0 0 0 / 0.6),
+    0 0 0 1px rgb(34 211 238 / 0.15),
+    0 0 34px -4px rgb(34 211 238 / 0.3);
 }
 
 .gp-home-panel-light {
   border-color: rgb(226 232 240 / 0.85);
   background: rgb(255 255 255 / 0.88);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.7) inset,
+    0 12px 34px -16px rgb(100 116 139 / 0.2),
+    0 2px 8px -4px rgb(100 116 139 / 0.1);
 }
 
 .gp-home-panel-dark {
   border-color: rgb(51 65 85 / 0.75);
   background: rgb(15 23 42 / 0.82);
+  box-shadow:
+    0 1px 0 rgb(148 163 184 / 0.08) inset,
+    0 16px 46px -20px rgb(0 0 0 / 0.5),
+    0 4px 14px -10px rgb(0 0 0 / 0.4);
+}
+
+.gp-home-panel-light:hover {
+  border-color: rgb(34 211 238 / 0.45);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.8) inset,
+    0 20px 48px -18px rgb(8 145 178 / 0.22),
+    0 0 0 1px rgb(34 211 238 / 0.12),
+    0 0 30px -6px rgb(34 211 238 / 0.26);
+}
+
+.gp-home-panel-dark:hover {
+  border-color: rgb(34 211 238 / 0.4);
+  box-shadow:
+    0 1px 0 rgb(148 163 184 / 0.1) inset,
+    0 24px 60px -20px rgb(0 0 0 / 0.55),
+    0 0 0 1px rgb(34 211 238 / 0.15),
+    0 0 36px -4px rgb(34 211 238 / 0.3);
 }
 
 .gp-home-panel-float {
@@ -262,6 +317,320 @@
   animation: gp-home-float 4s ease-in-out infinite;
 }
 
+/*
+ * Premium primary CTA — physical, cyan, AI-product feel.
+ * Vertical gradient + inset top highlight + layered cyan glow; lifts on
+ * hover and presses down on active. Cyan identity only (no purple).
+ */
+.gp-home-cta {
+  background-image: linear-gradient(to bottom, #22d3ee, #0891b2);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.3) inset,
+    0 8px 22px -8px rgb(8 145 178 / 0.55),
+    0 2px 6px -2px rgb(8 145 178 / 0.4);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    background-image 0.25s ease;
+}
+
+.gp-home-cta:hover {
+  background-image: linear-gradient(to bottom, #67e8f9, #06b6d4);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.4) inset,
+    0 14px 30px -10px rgb(34 211 238 / 0.5),
+    0 3px 10px -2px rgb(34 211 238 / 0.4);
+  transform: translateY(-2px);
+}
+
+.gp-home-cta:active {
+  transform: translateY(0);
+  box-shadow:
+    0 1px 2px rgb(8 145 178 / 0.5) inset,
+    0 4px 12px -4px rgb(8 145 178 / 0.45);
+}
+
+/* ============================================================
+ * Landing cinematic image background — fixed brand asset, IDENTICAL in both
+ * themes. One dark cinematic image under one deep-navy gradient; the theme
+ * never brightens, desaturates, recolours, or overlays the background. The
+ * landing foreground is rendered in its dark skin in both themes (see
+ * HomePageShell), so light mode keeps the exact same cinematic "room". The
+ * image is pinned to the viewport so the whole landing shares one continuous
+ * environment. Scoped to .gp-landing. Reference art lives in the PNG, not CSS.
+ * ============================================================ */
+.gp-landing-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: #070b14;
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(7, 11, 20, 0.15) 0%,
+      rgba(7, 11, 20, 0.4) 48%,
+      rgba(7, 11, 20, 0.72) 100%
+    ),
+    url("/images/backgrounds/gameping-hero-bg-dark.png");
+  background-repeat: no-repeat, no-repeat;
+  background-position: center top, center top;
+  background-size: cover, cover;
+}
+
+/* Embedded landing-tutorial detail preview backdrop. The final "View details"
+ * step reuses the REAL GameDetailView, whose full-page hero is built for a dark
+ * cinematic backdrop in BOTH themes (white hero text + a from-black/via-#070b14
+ * scrim). Rather than a flat #070b14 fill (reads as a black/grey block that
+ * doesn't belong), the overlay shows the SAME cinematic landing image — local
+ * (not fixed) so it lives inside the scaled preview — so light mode keeps the
+ * landing's "dark room, light cards" model and the preview visually integrates
+ * with the tutorial. Theme-identical, matching the .gp-landing-bg rule. */
+.gp-demo-detail-bg {
+  background-color: #070b14;
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(7, 11, 20, 0.15) 0%,
+      rgba(7, 11, 20, 0.4) 48%,
+      rgba(7, 11, 20, 0.72) 100%
+    ),
+    url("/images/backgrounds/gameping-hero-bg-dark.png");
+  background-repeat: no-repeat, no-repeat;
+  background-position: center top, center top;
+  background-size: cover, cover;
+}
+
+/* --- Tutorial detail preview: LIGHT MODE only -----------------------------
+ * The embedded preview reuses the real GameDetailView, which is built for a dark
+ * cinematic backdrop (white hero/section text) in BOTH themes. In the tutorial's
+ * light mode that dark teal/red photo backdrop clashes with the frosted light
+ * tutorial surface, so here we swap it for a frosted light surface and make the
+ * white text readable on it.
+ *
+ * Scoped to `html[data-home-theme="light"] .gp-demo-detail-bg` ONLY: the real
+ * /game/[slug] page is never inside .gp-demo-detail-bg, and dark mode is the
+ * default block above — both stay exactly as they were. */
+html[data-home-theme="light"] .gp-demo-detail-bg {
+  /* Single, uniform near-opaque light surface (no backdrop-filter: avoids any
+   * clipping of the scaled detail content, so the top text stays visible). */
+  background-color: rgba(245, 249, 255, 0.97);
+  background-image: none;
+}
+/* Neutralise GameDetailView's dark hero scrim (from-black/30 via-#070b14/70…)
+ * so it doesn't re-darken the light surface. */
+html[data-home-theme="light"] .gp-demo-detail-bg .from-black\/30 {
+  background-image: none !important;
+}
+/* Hide GameDetailView's cyan accent-glow blob (the blurred --page-accent-soft
+ * circle in the hero) so the light preview reads as one clean surface with no
+ * blue/cyan patch behind/above the content. */
+html[data-home-theme="light"] .gp-demo-detail-bg .blur-3xl {
+  display: none !important;
+}
+/* Flip the preview's white hero/section text to dark so it reads on the light
+ * surface. Exclude text that intentionally sits on dark chips/buttons (slate-900
+ * badges, black surfaces) and the accent CTA (gp-page-cta keeps its own color). */
+html[data-home-theme="light"]
+  .gp-demo-detail-bg
+  [class*="text-white"]:not([class*="bg-slate-900"]):not([class*="bg-black"]):not([class*="gp-page-cta"]) {
+  color: #0f172a !important;
+}
+
+/* Tutorial detail preview — hero image fit (both themes, preview only).
+ * The real GameDetailView hero uses object-cover, which crops the wide Subnautica
+ * capsule and cuts the logo. In the scaled-down preview, show the whole artwork
+ * instead. Targets ONLY the hero <img alt="Subnautica"> (screenshots use
+ * alt="…screenshot N"), and only inside .gp-demo-detail-bg, so the real page and
+ * the preview's thumbnails are untouched. */
+.gp-demo-detail-bg img[alt="Subnautica"] {
+  object-fit: contain !important;
+  object-position: center;
+  background-color: #0a0b14;
+}
+html[data-home-theme="light"] .gp-demo-detail-bg img[alt="Subnautica"] {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+/* On the landing the image IS the atmosphere: neutralise the per-section
+ * surface gradients so the image shows through, and disable the old
+ * CSS-generated polygon/beam geometry entirely (still available off-landing). */
+.gp-landing .gp-home-section {
+  background: transparent !important;
+}
+
+.gp-landing .gp-atmo {
+  display: none !important;
+}
+
+/* ------------------------------------------------------------
+ * Light-mode landing surfaces — premium frosted "holographic" glass.
+ * The fixed dark background never changes with theme; only the UI surfaces do.
+ * In light mode the landing cards/panels become translucent frosted glass
+ * (rgba(240,248,255,0.80) + blur + a subtle cyan border) with their existing
+ * dark navy text, reading as a light holographic interface over the dark room.
+ * Scoped to .gp-landing in light theme — other pages and dark mode are untouched.
+ * ------------------------------------------------------------ */
+html[data-home-theme="light"] .gp-landing .gp-home-panel-light,
+html[data-home-theme="light"] .gp-landing .gp-home-card-light {
+  background: rgba(240, 248, 255, 0.8);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-color: rgba(34, 211, 238, 0.35);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 18px 50px -22px rgba(8, 47, 73, 0.45),
+    0 0 0 1px rgba(34, 211, 238, 0.08);
+}
+
+html[data-home-theme="light"] .gp-landing .gp-home-panel-light:hover,
+html[data-home-theme="light"] .gp-landing .gp-home-card-light:hover {
+  border-color: rgba(34, 211, 238, 0.55);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 22px 56px -22px rgba(8, 47, 73, 0.5),
+    0 0 28px -6px rgba(34, 211, 238, 0.3);
+}
+
+/* ============================================================
+ * Landing background atmosphere (gp-atmo) — theme-aware recreation
+ * of the reference art: deep navy/teal base with a top-centre glow,
+ * large translucent angular glass panels, soft top-down cyan light
+ * beams, sparse cyan edge highlights, and a vignette. Rendered as
+ * inline SVG (HomeAtmosphere.tsx); every colour is a CSS variable so
+ * the same geometry works in dark and light. Sits at z-0 behind the
+ * z-10 content. Light values are the base; dark overrides follow.
+ * ============================================================ */
+.gp-atmo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+
+  /* Light theme — off-white base with darker pale blue/grey glass planes
+   * (depth, not empty pale cyan), subtle shadows, sparse cyan edge light */
+  --atmo-glow-top: #eaf4fc;
+  --atmo-glow-mid: #eef3f9;
+  --atmo-glow-bottom: #e2e8f1;
+  --atmo-panel-hi: rgba(56, 189, 248, 0.45);
+  --atmo-panel-a: rgba(150, 192, 220, 0.5);
+  --atmo-panel-b: rgba(166, 198, 221, 0.42);
+  --atmo-panel-c: rgba(138, 160, 188, 0.5);
+  --atmo-panel-front: rgba(196, 222, 244, 0.34);
+  --atmo-panel-shadow: rgba(88, 113, 148, 0.12);
+  --atmo-shadow: rgba(40, 60, 92, 0.12);
+  --atmo-beam-strong: rgba(125, 211, 252, 0.26);
+  --atmo-beam-soft: rgba(125, 211, 252, 0.05);
+  --atmo-edge: rgba(14, 165, 233, 0.55);
+  --atmo-edge-2: rgba(13, 148, 136, 0.4);
+  --atmo-edge-core: rgba(56, 189, 248, 0.6);
+  --atmo-vignette: rgba(40, 60, 95, 0.12);
+}
+
+/* Dark theme — deep near-black navy base, layered dark glass panels lit from
+ * above, cyan kept to selected edge light only (no overall cyan wash) */
+html[data-home-theme="dark"] .gp-atmo {
+  --atmo-glow-top: #163d57;
+  --atmo-glow-mid: #07182a;
+  --atmo-glow-bottom: #02070e;
+  --atmo-panel-hi: rgba(103, 232, 249, 0.6);
+  --atmo-panel-a: rgba(20, 54, 76, 0.5);
+  --atmo-panel-b: rgba(11, 32, 50, 0.6);
+  --atmo-panel-c: rgba(3, 11, 22, 0.72);
+  --atmo-panel-front: rgba(48, 104, 134, 0.2);
+  --atmo-panel-shadow: rgba(1, 5, 12, 0.6);
+  --atmo-shadow: rgba(0, 3, 9, 0.72);
+  --atmo-beam-strong: rgba(140, 216, 250, 0.42);
+  --atmo-beam-soft: rgba(120, 205, 245, 0.07);
+  --atmo-edge: rgba(103, 232, 249, 0.9);
+  --atmo-edge-2: rgba(45, 212, 191, 0.55);
+  --atmo-edge-core: rgba(214, 250, 255, 0.95);
+  --atmo-vignette: rgba(1, 4, 10, 0.85);
+}
+
+.gp-atmo-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hero — strongest. Fades out at the very bottom into the next section. */
+.gp-atmo--hero {
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent 100%);
+}
+
+/* Below-hero — softer, farther continuation; fades at both seams. */
+.gp-atmo--section {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 88%, transparent);
+}
+
+/* Lower sections share the SAME crisp glass-panel language as the hero — the
+ * only difference is intensity (slightly lower opacity) and polygon placement.
+ * No heavy blur: blurring washed the planes into a flat smudge that read as a
+ * different, flatter system. A hair of blur (0.5px) just softens SVG aliasing. */
+.gp-atmo--section .gp-atmo-svg {
+  opacity: 0.8;
+  filter: blur(0.5px);
+}
+
+/* Per-section intensity — all a touch softer than the hero (opacity 1), each
+ * tuned to its composition (these override the generic .gp-atmo--section above). */
+.gp-atmo--how-it-works .gp-atmo-svg {
+  opacity: 0.88;
+  filter: blur(0.5px);
+}
+
+.gp-atmo--why-gameping .gp-atmo-svg {
+  opacity: 0.8;
+  filter: blur(0.5px);
+}
+
+.gp-atmo--coming-soon .gp-atmo-svg {
+  opacity: 0.85;
+  filter: blur(0.5px);
+}
+
+/* Subtle motion — slow beam drift + gentle edge breathing */
+.gp-atmo-beams {
+  animation: gp-atmo-beam-drift 24s ease-in-out infinite;
+}
+
+.gp-atmo-edges {
+  animation: gp-atmo-edge-breathe 9s ease-in-out infinite;
+}
+
+@keyframes gp-atmo-beam-drift {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateX(14px);
+    opacity: 0.86;
+  }
+}
+
+@keyframes gp-atmo-edge-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-atmo-beams,
+  .gp-atmo-edges {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gp-home-panel-float,
   .gp-home-float,
@@ -272,6 +641,15 @@
   .gp-home-chip-drift-alt,
   .gp-home-flow-line {
     animation: none;
+  }
+
+  .gp-home-cta {
+    transition: box-shadow 0.25s ease, background-image 0.25s ease;
+  }
+
+  .gp-home-cta:hover,
+  .gp-home-cta:active {
+    transform: none;
   }
 }
 

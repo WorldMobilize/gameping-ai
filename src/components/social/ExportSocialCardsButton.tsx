@@ -28,10 +28,10 @@ type ExportSocialCardsButtonProps = {
 }
 
 const BUTTON_CLASS =
-  "rounded-full border border-cyan-200 bg-cyan-50 px-5 py-2.5 text-xs font-semibold text-cyan-800 transition hover:border-cyan-300 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+  "rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-5 py-2.5 text-xs font-semibold text-[color:var(--page-accent-text)] transition hover:border-[color:var(--page-accent-strong)] hover:bg-[var(--page-accent-soft)] disabled:cursor-not-allowed disabled:opacity-50"
 
 const AI_BUTTON_CLASS =
-  "rounded-full border border-violet-200 bg-violet-50 px-5 py-2.5 text-xs font-semibold text-violet-800 transition hover:border-violet-300 hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+  "inline-flex min-w-[9.5rem] shrink-0 items-center justify-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-5 py-2.5 text-center text-xs font-semibold leading-snug text-[color:var(--page-accent-text)] transition hover:border-[color:var(--page-accent-strong)] hover:bg-[var(--page-accent-soft)] disabled:cursor-not-allowed disabled:opacity-50"
 
 export default function ExportSocialCardsButton({
   prompt,

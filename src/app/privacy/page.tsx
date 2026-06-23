@@ -199,7 +199,7 @@ export default function PrivacyPage() {
             <p className="mt-3">
               We use essential cookies for authentication/session management. We may store a
               consent preference locally (for example in{" "}
-              <span className="font-mono text-slate-600">localStorage</span>) for the cookie banner.
+              <span className="font-mono text-slate-700 dark:text-slate-200">localStorage</span>) for the cookie banner.
               See the{" "}
               <Link href="/cookies" className={APP_INLINE_LINK}>
                 Cookie Policy

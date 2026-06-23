@@ -17,10 +17,10 @@ const NO_VERIFIED_DEAL_HELPER =
   "Check the store page or track this game to catch future drops.";
 
 const LIGHT_PAGE_PRIMARY_CTA =
-  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-cyan-600/25 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-cyan-600/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40";
+  "gp-page-cta inline-flex items-center justify-center rounded-full px-8 py-3.5 text-base font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]";
 
 const LIGHT_PAGE_MUTED_CTA =
-  "inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-8 py-3.5 text-base font-semibold text-slate-500";
+  "inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-8 py-3.5 text-base font-semibold text-slate-600";
 
 export type GameDetailViewProps = {
   data: GameDetailViewData;
@@ -36,17 +36,34 @@ function DetailRow({
   value,
   theme,
   compact,
+  valueTone = "default",
 }: {
   label: string;
   value?: string | number | null;
   theme: "dark" | "light";
   compact?: boolean;
+  /** "score" → valid value uses page accent, N/A uses muted unavailable. */
+  valueTone?: "default" | "score";
 }) {
+  const isNA = value == null || value === "" || value === "N/A";
+  const darkValueClass =
+    valueTone === "score"
+      ? isNA
+        ? "text-white/45"
+        : "text-[color:var(--page-accent-strong)]"
+      : "text-white/85";
+  const lightValueClass =
+    valueTone === "score"
+      ? isNA
+        ? "text-slate-400"
+        : "text-[color:var(--page-accent-text)]"
+      : "text-slate-900";
+
   if (theme === "dark" && !compact) {
     return (
       <div className="flex items-start justify-between gap-6 border-b border-white/10 py-4">
-        <span className="text-sm text-white/45">{label}</span>
-        <span className="max-w-[65%] text-right text-sm font-bold text-white/85">
+        <span className="text-sm text-white/65">{label}</span>
+        <span className={`max-w-[65%] text-right text-sm font-bold ${darkValueClass}`}>
           {value || "N/A"}
         </span>
       </div>
@@ -55,8 +72,8 @@ function DetailRow({
 
   return (
     <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-2.5 last:border-0">
-      <span className="text-xs text-slate-500">{label}</span>
-      <span className="max-w-[65%] text-right text-xs font-bold text-slate-900">
+      <span className="text-xs text-slate-600">{label}</span>
+      <span className={`max-w-[65%] text-right text-xs font-bold ${lightValueClass}`}>
         {value || "N/A"}
       </span>
     </div>
@@ -78,12 +95,12 @@ function FreeToPlayPricingState({
       : "text-sm font-semibold leading-snug text-slate-800";
   const bodyClass =
     theme === "dark" && !compact
-      ? "text-xs leading-relaxed text-white/50"
-      : "text-xs leading-relaxed text-slate-500";
+      ? "text-xs leading-relaxed text-white/70"
+      : "text-xs leading-relaxed text-slate-600";
   const linkClass =
     theme === "dark" && !compact
-      ? "mt-3 inline-flex rounded-full border border-cyan-400/35 bg-cyan-400/10 px-4 py-2 text-xs font-black text-cyan-200 transition hover:bg-cyan-400/20"
-      : "mt-3 inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-black text-cyan-800";
+      ? "mt-3 inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-2 text-xs font-black text-[color:var(--page-accent-strong)] transition hover:bg-[var(--page-accent-soft)]"
+      : "mt-3 inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1.5 text-xs font-black text-[color:var(--page-accent-text)]";
 
   return (
     <>
@@ -113,12 +130,12 @@ function PricingUnavailableState({
       : "text-sm font-semibold leading-snug text-slate-800";
   const bodyClass =
     theme === "dark" && !compact
-      ? "text-xs leading-relaxed text-white/50"
-      : "text-xs leading-relaxed text-slate-500";
+      ? "text-xs leading-relaxed text-white/70"
+      : "text-xs leading-relaxed text-slate-600";
   const helperClass =
     theme === "dark" && !compact
-      ? "text-xs leading-relaxed text-white/40"
-      : "text-xs leading-relaxed text-slate-400";
+      ? "text-xs leading-relaxed text-white/65"
+      : "text-xs leading-relaxed text-slate-600";
 
   return (
     <>
@@ -149,21 +166,21 @@ function VerifiedStoreDealCard({
       <div className="grid items-center gap-4 rounded-2xl border border-white/10 bg-black/30 p-4 md:grid-cols-[1fr_auto_auto]">
         <div>
           <p className="font-black">{deal.storeName}</p>
-          <p className="text-xs text-white/35">Matched listing: {deal.matchedTitle}</p>
-          <p className="text-sm text-white/45">Normal: {deal.normalPrice}</p>
+          <p className="text-xs text-white/70">Matched listing: {deal.matchedTitle}</p>
+          <p className="text-sm text-white/70">Normal: {deal.normalPrice}</p>
         </div>
-        <p className="text-2xl font-black text-cyan-300">{deal.salePrice}</p>
+        <p className="text-2xl font-black text-[color:var(--page-accent-strong)]">{deal.salePrice}</p>
         {deal.buyUrl ? (
           <a
             href={deal.buyUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-full bg-white px-5 py-3 text-center text-sm font-black text-black transition hover:bg-cyan-100"
+            className="gp-page-cta inline-flex items-center justify-center rounded-full px-5 py-3 text-center text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]"
           >
             {buyLabel ?? "Buy"}
           </a>
         ) : (
-          <span className="text-center text-sm text-white/45">No verified store link</span>
+          <span className="text-center text-sm text-white/70">No verified store link</span>
         )}
       </div>
     );
@@ -174,10 +191,10 @@ function VerifiedStoreDealCard({
       <div className="grid items-center gap-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto_auto]">
         <div>
           <p className="font-bold text-slate-900">{deal.storeName}</p>
-          <p className="text-xs text-slate-500">Matched listing: {deal.matchedTitle}</p>
-          <p className="text-sm text-slate-500">Normal: {deal.normalPrice}</p>
+          <p className="text-xs text-slate-600">Matched listing: {deal.matchedTitle}</p>
+          <p className="text-sm text-slate-600">Normal: {deal.normalPrice}</p>
         </div>
-        <p className="text-2xl font-extrabold tabular-nums text-cyan-700">{deal.salePrice}</p>
+        <p className="text-2xl font-extrabold tabular-nums text-[color:var(--page-accent-text)]">{deal.salePrice}</p>
         {deal.buyUrl ? (
           <a
             href={deal.buyUrl}
@@ -188,7 +205,7 @@ function VerifiedStoreDealCard({
             {buyLabel ?? "Buy"}
           </a>
         ) : (
-          <span className="text-center text-sm text-slate-500">No verified store link</span>
+          <span className="text-center text-sm text-slate-600">No verified store link</span>
         )}
       </div>
     );
@@ -198,16 +215,16 @@ function VerifiedStoreDealCard({
     <div className="grid items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-[1fr_auto_auto]">
       <div>
         <p className="text-sm font-black text-slate-900">{deal.storeName}</p>
-        <p className="text-xs text-slate-500">Matched listing: {deal.matchedTitle}</p>
-        <p className="text-xs text-slate-500">Normal: {deal.normalPrice}</p>
+        <p className="text-xs text-slate-600">Matched listing: {deal.matchedTitle}</p>
+        <p className="text-xs text-slate-600">Normal: {deal.normalPrice}</p>
       </div>
-      <p className="text-lg font-black text-cyan-700">{deal.salePrice}</p>
+      <p className="text-lg font-black text-[color:var(--page-accent-text)]">{deal.salePrice}</p>
       {deal.buyUrl ? (
         <span className="rounded-full bg-slate-900 px-4 py-2 text-center text-xs font-black text-white">
           {buyLabel ?? "Buy"}
         </span>
       ) : (
-        <span className="text-center text-xs text-slate-500">No verified store link</span>
+        <span className="text-center text-xs text-slate-600">No verified store link</span>
       )}
     </div>
   );
@@ -231,7 +248,7 @@ function GameDetailBreadcrumbsBar({
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-slate-500">
+    <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-slate-600">
       <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
         {items.map((item, index) => (
           <li key={`${item.label}-${index}`} className="flex items-center gap-x-2">
@@ -261,7 +278,7 @@ function HeroPricePanel({
   if (theme === "dark" && !compact) {
     return (
       <div className="rounded-2xl bg-black/30 p-4">
-        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">
+        <p className="text-[10px] font-black uppercase tracking-widest text-white/70">
           {hasTrustedVerifiedBuy ? "Best verified store price" : "Estimated aggregator price"}
         </p>
         <div className="mt-2 flex flex-col gap-2">
@@ -269,27 +286,27 @@ function HeroPricePanel({
             <FreeToPlayPricingState storeUrl={data.freeToPlayStoreUrl} theme={theme} />
           ) : hasTrustedVerifiedBuy && primaryDeal ? (
             <>
-              <p className="text-2xl font-black text-cyan-300">{primaryDeal.salePrice}</p>
-              <p className="text-xs leading-relaxed text-white/45">
+              <p className="text-2xl font-black text-[color:var(--page-accent-strong)]">{primaryDeal.salePrice}</p>
+              <p className="text-xs leading-relaxed text-white/70">
                 {primaryDeal.storeName} · {primaryDeal.matchedTitle}
               </p>
               {data.primaryUsdFallback ? (
-                <p className="text-xs text-white/35">{data.priceDisclaimer}</p>
+                <p className="text-xs text-white/70">{data.priceDisclaimer}</p>
               ) : null}
             </>
           ) : showEstimatedPriceNoStoreLinks && bestPrice ? (
             <>
-              <p className="text-2xl font-black text-cyan-300">Estimated price found</p>
-              <p className="text-xs leading-relaxed text-white/45">
+              <p className="text-2xl font-black text-[color:var(--page-accent-strong)]">Estimated price found</p>
+              <p className="text-xs leading-relaxed text-white/70">
                 Indicative match only — no additional verified store rows passed title safety
                 checks.
               </p>
             </>
           ) : pricingMode === "verified_price" && bestPrice ? (
             <>
-              <p className="text-2xl font-black text-cyan-300">{bestPrice.displayPrice}</p>
+              <p className="text-2xl font-black text-[color:var(--page-accent-strong)]">{bestPrice.displayPrice}</p>
               {data.primaryUsdFallback ? (
-                <p className="text-xs text-white/40">{data.priceDisclaimer}</p>
+                <p className="text-xs text-white/70">{data.priceDisclaimer}</p>
               ) : null}
             </>
           ) : pricingMode === "likely_console_or_unsupported" ? (
@@ -305,7 +322,7 @@ function HeroPricePanel({
   if (theme === "light" && !compact) {
     return (
       <div className="rounded-2xl border border-slate-200/90 bg-slate-50/80 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">
           {hasTrustedVerifiedBuy ? "Best verified store price" : "Estimated aggregator price"}
         </p>
         <div className="mt-2 flex flex-col gap-2">
@@ -313,26 +330,26 @@ function HeroPricePanel({
             <FreeToPlayPricingState storeUrl={data.freeToPlayStoreUrl} theme={theme} />
           ) : hasTrustedVerifiedBuy && primaryDeal ? (
             <>
-              <p className="text-2xl font-extrabold tabular-nums text-cyan-700">{primaryDeal.salePrice}</p>
-              <p className="text-xs leading-relaxed text-slate-500">
+              <p className="text-2xl font-extrabold tabular-nums text-[color:var(--page-accent-text)]">{primaryDeal.salePrice}</p>
+              <p className="text-xs leading-relaxed text-slate-600">
                 {primaryDeal.storeName} · {primaryDeal.matchedTitle}
               </p>
               {data.primaryUsdFallback ? (
-                <p className="text-xs text-slate-400">{data.priceDisclaimer}</p>
+                <p className="text-xs text-slate-600">{data.priceDisclaimer}</p>
               ) : null}
             </>
           ) : showEstimatedPriceNoStoreLinks && bestPrice ? (
             <>
               <p className="text-xl font-bold text-slate-900">Estimated price found</p>
-              <p className="text-xs leading-relaxed text-slate-500">
+              <p className="text-xs leading-relaxed text-slate-600">
                 Indicative match only — no additional verified store rows passed title safety checks.
               </p>
             </>
           ) : pricingMode === "verified_price" && bestPrice ? (
             <>
-              <p className="text-2xl font-extrabold tabular-nums text-cyan-700">{bestPrice.displayPrice}</p>
+              <p className="text-2xl font-extrabold tabular-nums text-[color:var(--page-accent-text)]">{bestPrice.displayPrice}</p>
               {data.primaryUsdFallback ? (
-                <p className="text-xs text-slate-400">{data.priceDisclaimer}</p>
+                <p className="text-xs text-slate-600">{data.priceDisclaimer}</p>
               ) : null}
             </>
           ) : pricingMode === "likely_console_or_unsupported" ? (
@@ -347,24 +364,24 @@ function HeroPricePanel({
 
   return (
     <div className="rounded-xl bg-white p-3 ring-1 ring-slate-200/80">
-      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600">
         {hasTrustedVerifiedBuy ? "Best verified store price" : "Estimated aggregator price"}
       </p>
       {pricingMode === "free_to_play" ? (
         <FreeToPlayPricingState storeUrl={data.freeToPlayStoreUrl} theme={theme} compact />
       ) : hasTrustedVerifiedBuy && primaryDeal ? (
         <>
-          <p className="mt-1 text-xl font-black text-cyan-700">{primaryDeal.salePrice}</p>
-          <p className="text-[0.65rem] leading-relaxed text-slate-500">
+          <p className="mt-1 text-xl font-black text-[color:var(--page-accent-text)]">{primaryDeal.salePrice}</p>
+          <p className="text-[0.65rem] leading-relaxed text-slate-600">
             {primaryDeal.storeName} · {primaryDeal.matchedTitle}
           </p>
         </>
       ) : (
         <>
-          <p className="mt-1 text-xl font-black text-cyan-700">
+          <p className="mt-1 text-xl font-black text-[color:var(--page-accent-text)]">
             {primaryDeal?.salePrice ?? bestPrice?.displayPrice ?? "N/A"}
           </p>
-          <p className="text-[0.65rem] leading-relaxed text-slate-500">
+          <p className="text-[0.65rem] leading-relaxed text-slate-600">
             {primaryDeal
               ? `${primaryDeal.storeName} · ${primaryDeal.matchedTitle}`
               : bestPrice
@@ -389,10 +406,10 @@ function HeroPrimaryCta({ data, theme, compact }: { data: GameDetailViewData; th
   } = data;
 
   const darkPrimary =
-    "rounded-full bg-cyan-400 px-8 py-4 text-base font-bold text-black transition hover:-translate-y-0.5 hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300";
-  const darkMuted = "rounded-full bg-white/10 px-8 py-4 font-bold text-white/55";
+    "gp-page-cta inline-flex items-center justify-center rounded-full px-8 py-4 text-base font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]";
+  const darkMuted = "rounded-full bg-white/10 px-8 py-4 font-bold text-white/70";
   const lightPrimary =
-    "inline-flex rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-5 py-2 text-xs font-bold text-white shadow-sm shadow-cyan-600/20";
+    "gp-page-cta inline-flex rounded-full px-5 py-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]";
 
   if (theme === "dark" && !compact) {
     if (pricingMode === "free_to_play" && freeToPlayStoreUrl) {
@@ -403,7 +420,7 @@ function HeroPrimaryCta({ data, theme, compact }: { data: GameDetailViewData; th
       );
     }
     if (pricingMode === "free_to_play") {
-      return <span className={`${darkMuted} text-white/60`}>{FREE_TO_PLAY_TITLE}</span>;
+      return <span className={`${darkMuted} text-white/70`}>{FREE_TO_PLAY_TITLE}</span>;
     }
     if (hasTrustedVerifiedBuy && primaryTrustedBuyUrl) {
       return (
@@ -541,7 +558,7 @@ export default function GameDetailView({
       <button
         type="button"
         tabIndex={-1}
-        className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-5 py-2.5 text-sm font-black text-white shadow-sm shadow-cyan-600/20"
+        className="mt-4 gp-page-cta inline-flex w-full items-center justify-center rounded-full px-5 py-2.5 text-sm font-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]"
       >
         Track price
       </button>
@@ -551,30 +568,22 @@ export default function GameDetailView({
     <>
       <section
         className={
-          isDarkPage
+          isFullPage
             ? "relative overflow-hidden pb-10"
-            : isLightPage
-              ? "relative overflow-hidden border-b border-slate-200/80 bg-gradient-to-b from-cyan-50/40 via-white to-white pb-10"
-              : "overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm"
+            : "overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm"
         }
       >
-        {isDarkPage && data.heroImage ? (
-          <img
-            src={data.heroImage}
-            alt={data.title}
-            className="absolute inset-0 h-full w-full scale-110 object-cover opacity-30 blur-sm"
-          />
-        ) : null}
+        {/* No per-game blurred cover backdrop — the hero sits directly on the
+            fixed red cinematic Games background (the game's own art still shows
+            in the visible hero card/gallery below). */}
 
-        {isDarkPage ? (
+        {isFullPage ? (
           <>
-            <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-[#05060f]/80 to-[#05060f]" />
-            <div className="pointer-events-none absolute left-10 top-20 h-72 w-72 rounded-full bg-cyan-500/8 blur-3xl" />
+            {/* Scrim fades to transparent at the bottom so the hero blends into
+                the cinematic Games background (no hard horizontal cutoff). */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-[#070b14]/70 to-transparent" />
+            <div className="pointer-events-none absolute left-10 top-20 h-72 w-72 rounded-full bg-[var(--page-accent-soft)] blur-3xl" />
           </>
-        ) : null}
-
-        {isLightPage ? (
-          <div className="pointer-events-none absolute -left-24 top-0 h-72 w-72 rounded-full bg-cyan-200/25 blur-3xl" />
         ) : null}
 
         <div
@@ -597,10 +606,10 @@ export default function GameDetailView({
               <p
                 className={
                   isDarkPage
-                    ? "mb-5 text-sm uppercase tracking-[0.45em] text-cyan-300"
+                    ? "mb-5 text-sm uppercase tracking-[0.45em] text-[color:var(--page-accent-strong)]"
                     : isLightPage
-                      ? "mb-5 text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700"
-                      : "text-[10px] font-semibold uppercase tracking-[0.35em] text-cyan-700 sm:text-xs sm:tracking-[0.4em]"
+                      ? "mb-5 text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]"
+                      : "text-[10px] font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)] sm:text-xs sm:tracking-[0.4em]"
                 }
               >
                 GamePing pick
@@ -609,9 +618,9 @@ export default function GameDetailView({
               <h1
                 className={
                   isDarkPage
-                    ? "max-w-4xl text-5xl font-black leading-tight md:text-7xl"
+                    ? "max-w-4xl text-5xl font-black leading-tight text-white md:text-7xl"
                     : isLightPage
-                      ? "max-w-4xl text-4xl font-extrabold leading-tight text-slate-900 gp-home-display md:text-6xl"
+                      ? "max-w-4xl text-4xl font-extrabold leading-tight text-white gp-home-display md:text-6xl"
                       : "mt-2 text-xl font-black leading-tight text-slate-900 sm:text-2xl"
                 }
               >
@@ -623,7 +632,7 @@ export default function GameDetailView({
                   isDarkPage
                     ? "mt-6 max-w-2xl text-xl leading-9 text-white/75"
                     : isLightPage
-                      ? "mt-6 max-w-2xl text-lg leading-8 text-slate-600"
+                      ? "mt-6 max-w-2xl text-lg leading-8 text-slate-200"
                       : "mt-3 text-sm leading-relaxed text-slate-600"
                 }
               >
@@ -637,10 +646,10 @@ export default function GameDetailView({
                     key={genre}
                     className={
                       isDarkPage
-                        ? "rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-200 backdrop-blur"
+                        ? "rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-2 text-sm font-bold text-[color:var(--page-accent-strong)] backdrop-blur"
                         : isLightPage
-                          ? "rounded-full border border-cyan-200/80 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-800"
-                          : "rounded-full border border-cyan-200/80 bg-cyan-50 px-2.5 py-0.5 text-[0.65rem] font-bold text-cyan-800 sm:px-3 sm:py-1 sm:text-xs"
+                          ? "rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-2 text-sm font-semibold text-[color:var(--page-accent-text)]"
+                          : "rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[0.65rem] font-bold text-[color:var(--page-accent-text)] sm:px-3 sm:py-1 sm:text-xs"
                     }
                   >
                     {genre}
@@ -655,7 +664,7 @@ export default function GameDetailView({
                     href="#trailer"
                     className={
                       isDarkPage
-                        ? "rounded-full border border-white/15 bg-white/5 px-8 py-4 font-bold text-white/80 backdrop-blur transition hover:border-purple-400/60 hover:text-purple-200"
+                        ? "rounded-full border border-white/15 bg-white/5 px-8 py-4 font-bold text-white/80 backdrop-blur transition hover:border-[color:var(--page-accent-border)] hover:text-[color:var(--page-accent-strong)]"
                         : "rounded-full border border-slate-200 bg-white px-8 py-3.5 text-base font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
                     }
                   >
@@ -703,8 +712,8 @@ export default function GameDetailView({
                   <div
                     className={
                       isDarkPage
-                        ? "flex h-[450px] items-center justify-center bg-black/40 text-white/40"
-                        : "flex h-32 items-center justify-center bg-slate-900 text-white/40 sm:h-36"
+                        ? "flex h-[450px] items-center justify-center bg-black/40 text-white/70"
+                        : "flex h-32 items-center justify-center bg-slate-900 text-white/70 sm:h-36"
                     }
                   >
                     No image available
@@ -725,8 +734,8 @@ export default function GameDetailView({
                         <p
                           className={
                             isDarkPage
-                              ? "text-[10px] font-black uppercase tracking-widest text-white/40"
-                              : "text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-500"
+                              ? "text-[10px] font-black uppercase tracking-widest text-white/70"
+                              : "text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600"
                           }
                         >
                           Rating
@@ -751,8 +760,8 @@ export default function GameDetailView({
                         <p
                           className={
                             isDarkPage
-                              ? "text-[10px] font-black uppercase tracking-widest text-white/40"
-                              : "text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-500"
+                              ? "text-[10px] font-black uppercase tracking-widest text-white/70"
+                              : "text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600"
                           }
                         >
                           Metacritic
@@ -760,8 +769,16 @@ export default function GameDetailView({
                         <p
                           className={
                             isDarkPage
-                              ? "text-lg font-black leading-none text-green-300 sm:text-xl"
-                              : "text-sm font-black text-emerald-700"
+                              ? `text-lg font-black leading-none sm:text-xl ${
+                                  data.metacriticDisplay === "N/A"
+                                    ? "text-white/45"
+                                    : "text-[color:var(--page-accent-strong)]"
+                                }`
+                              : `text-sm font-black ${
+                                  data.metacriticDisplay === "N/A"
+                                    ? "text-slate-400"
+                                    : "text-[color:var(--page-accent-text)]"
+                                }`
                           }
                         >
                           {data.metacriticDisplay}
@@ -772,10 +789,10 @@ export default function GameDetailView({
                   <p
                     className={
                       isDarkPage
-                        ? "mt-5 text-sm leading-6 text-white/60"
+                        ? "mt-5 text-sm leading-6 text-white/70"
                         : isLightPage
                           ? "mt-4 text-sm leading-6 text-slate-600"
-                          : "mt-2 text-[0.65rem] leading-relaxed text-slate-500"
+                          : "mt-2 text-[0.65rem] leading-relaxed text-slate-600"
                     }
                   >
                     {data.audienceLine}
@@ -797,19 +814,19 @@ export default function GameDetailView({
         {isDarkPage ? (
           <div className="grid gap-5 md:grid-cols-4">
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-              <p className="text-xs uppercase tracking-[0.3em] text-white/40">Rating</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-white/70">Rating</p>
               <p className="mt-3 text-3xl font-black text-yellow-300">{data.ratingDisplay}</p>
             </div>
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-              <p className="text-xs uppercase tracking-[0.3em] text-white/40">Release</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-white/70">Release</p>
               <p className="mt-3 text-2xl font-black text-white">{data.releaseDateDisplay}</p>
             </div>
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-              <p className="text-xs uppercase tracking-[0.3em] text-white/40">Genres</p>
-              <p className="mt-3 text-lg font-bold text-cyan-300">{data.genresLine}</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-white/70">Genres</p>
+              <p className="mt-3 text-lg font-bold text-[color:var(--page-accent-strong)]">{data.genresLine}</p>
             </div>
-            <div className="rounded-[2rem] border border-cyan-400/20 bg-cyan-400/10 p-6">
-              <p className="text-xs uppercase tracking-[0.3em] text-cyan-200">{data.audienceLabel}</p>
+            <div className="rounded-[2rem] border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] p-6">
+              <p className="text-xs uppercase tracking-[0.3em] text-[color:var(--page-accent-strong)]">{data.audienceLabel}</p>
               <p className="mt-3 text-sm leading-6 text-white/75">{data.audienceLine}</p>
             </div>
           </div>
@@ -818,7 +835,7 @@ export default function GameDetailView({
             {[
               { label: "Rating", value: data.ratingDisplay, className: "text-amber-600" },
               { label: "Release", value: data.releaseDateDisplay, className: "text-slate-900" },
-              { label: "Genres", value: data.genresLine, className: "text-cyan-700" },
+              { label: "Genres", value: data.genresLine, className: "text-[color:var(--page-accent-text)]" },
               {
                 label: data.audienceLabel,
                 value: data.audienceLine,
@@ -830,11 +847,11 @@ export default function GameDetailView({
                 key={stat.label}
                 className={
                   stat.accent
-                    ? "rounded-2xl border border-cyan-200/80 bg-cyan-50/60 p-6 shadow-sm"
+                    ? "rounded-2xl border border-[color:var(--page-accent-border)] bg-white p-6 shadow-sm"
                     : "rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm"
                 }
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-600">
                   {stat.label}
                 </p>
                 <p className={`mt-3 text-lg font-bold leading-snug ${stat.className}`}>{stat.value}</p>
@@ -846,7 +863,7 @@ export default function GameDetailView({
             {[
               { label: "Rating", value: data.ratingDisplay, className: "text-amber-600" },
               { label: "Release", value: data.releaseDateDisplay, className: "text-slate-900" },
-              { label: "Genres", value: data.genresLine, className: "text-cyan-700" },
+              { label: "Genres", value: data.genresLine, className: "text-[color:var(--page-accent-text)]" },
               {
                 label: data.audienceLabel,
                 value: data.audienceLine,
@@ -858,11 +875,11 @@ export default function GameDetailView({
                 key={stat.label}
                 className={
                   stat.accent
-                    ? "rounded-xl border border-cyan-200/80 bg-cyan-50/40 p-3"
+                    ? "rounded-xl border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] p-3"
                     : "rounded-xl border border-slate-200/90 bg-white p-3"
                 }
               >
-                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600">
                   {stat.label}
                 </p>
                 <p className={`mt-1 text-xs font-bold leading-snug ${stat.className}`}>{stat.value}</p>
@@ -876,8 +893,8 @@ export default function GameDetailView({
         <section id="trailer" className="mx-auto max-w-7xl px-6 pb-14">
           {isDarkPage ? (
             <>
-              <p className="text-sm uppercase tracking-[0.35em] text-purple-300">Official media</p>
-              <h2 className="mt-3 text-4xl font-black">Trailer</h2>
+              <p className="text-sm uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">Official media</p>
+              <h2 className="mt-3 text-4xl font-black text-white">Trailer</h2>
               <div className="mt-6 overflow-hidden rounded-[2rem] border border-white/10 bg-black shadow-2xl">
                 <video
                   src={data.trailerUrl}
@@ -889,10 +906,10 @@ export default function GameDetailView({
             </>
           ) : (
             <>
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
                 Official media
               </p>
-              <h2 className="mt-3 text-3xl font-extrabold text-slate-900 gp-home-display">Trailer</h2>
+              <h2 className="mt-3 text-3xl font-extrabold text-white gp-home-display">Trailer</h2>
               <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200/90 bg-slate-900 shadow-lg shadow-slate-200/40">
                 <video
                   src={data.trailerUrl}
@@ -917,10 +934,10 @@ export default function GameDetailView({
           <p
             className={
               isDarkPage
-                ? "text-sm uppercase tracking-[0.35em] text-cyan-300"
+                ? "text-sm uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]"
                 : isLightPage
-                  ? "text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700"
-                  : "text-[10px] font-black uppercase tracking-[0.35em] text-cyan-700"
+                  ? "text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]"
+                  : "text-[10px] font-black uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]"
             }
           >
             Gallery
@@ -928,9 +945,9 @@ export default function GameDetailView({
           <h2
             className={
               isDarkPage
-                ? "mt-3 text-4xl font-black"
+                ? "mt-3 text-4xl font-black text-white"
                 : isLightPage
-                  ? "mt-3 text-3xl font-extrabold text-slate-900 gp-home-display"
+                  ? "mt-3 text-3xl font-extrabold text-white gp-home-display"
                   : "mt-2 text-lg font-black text-slate-900"
             }
           >
@@ -968,10 +985,10 @@ export default function GameDetailView({
             <p
               className={
                 isDarkPage
-                  ? "text-sm uppercase tracking-[0.35em] text-cyan-300"
+                  ? "text-sm uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]"
                   : isLightPage
-                    ? "text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700"
-                    : "text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-700"
+                    ? "text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]"
+                    : "text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--page-accent-text)]"
               }
             >
               Overview
@@ -1015,10 +1032,10 @@ export default function GameDetailView({
             <p
               className={
                 isDarkPage
-                  ? "text-sm uppercase tracking-[0.35em] text-cyan-300"
+                  ? "text-sm uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]"
                   : isLightPage
-                    ? "text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700"
-                    : "text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-700"
+                    ? "text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]"
+                    : "text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--page-accent-text)]"
               }
             >
               Store comparison
@@ -1037,10 +1054,10 @@ export default function GameDetailView({
             <p
               className={
                 isDarkPage
-                  ? "mt-2 text-sm text-white/45"
+                  ? "mt-2 text-sm text-white/70"
                   : isLightPage
-                    ? "mt-2 text-sm text-slate-500"
-                    : "mt-1 text-xs leading-relaxed text-slate-500"
+                    ? "mt-2 text-sm text-slate-600"
+                    : "mt-1 text-xs leading-relaxed text-slate-600"
               }
             >
               {data.priceDisclaimer}
@@ -1049,10 +1066,10 @@ export default function GameDetailView({
               <p
                 className={
                   isDarkPage
-                    ? "mt-2 text-xs text-white/40"
+                    ? "mt-2 text-xs text-white/65"
                     : isLightPage
-                      ? "mt-2 text-xs text-slate-400"
-                      : "mt-1 text-xs text-slate-400"
+                      ? "mt-2 text-xs text-slate-600"
+                      : "mt-1 text-xs text-slate-600"
                 }
               >
                 {data.dealsLastCheckedLabel}
@@ -1075,10 +1092,10 @@ export default function GameDetailView({
                 <p
                   className={
                     isDarkPage
-                      ? "mt-2 text-sm leading-relaxed text-white/55"
+                      ? "mt-2 text-sm leading-relaxed text-white/70"
                       : isLightPage
-                        ? "mt-2 text-sm leading-relaxed text-slate-500"
-                        : "mt-1 text-xs text-slate-500"
+                        ? "mt-2 text-sm leading-relaxed text-slate-600"
+                        : "mt-1 text-xs text-slate-600"
                   }
                 >
                   {FREE_TO_PLAY_BODY}
@@ -1090,10 +1107,10 @@ export default function GameDetailView({
                     rel="noopener noreferrer"
                     className={
                       isDarkPage
-                        ? "mt-4 inline-flex rounded-full border border-cyan-400/35 bg-cyan-400/10 px-5 py-2.5 text-sm font-black text-cyan-200 transition hover:bg-cyan-400/20"
+                        ? "mt-4 inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-5 py-2.5 text-sm font-black text-[color:var(--page-accent-strong)] transition hover:bg-[var(--page-accent-soft)]"
                         : isLightPage
-                          ? "mt-4 inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-5 py-2.5 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-100"
-                          : "mt-3 inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-xs font-black text-cyan-800"
+                          ? "mt-4 inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-5 py-2.5 text-sm font-semibold text-[color:var(--page-accent-text)] transition hover:bg-[var(--page-accent-soft)]"
+                          : "mt-3 inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-2 text-xs font-black text-[color:var(--page-accent-text)]"
                     }
                   >
                     View store page
@@ -1106,19 +1123,19 @@ export default function GameDetailView({
                   <div
                     className={
                       isDarkPage
-                        ? "rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-6"
+                        ? "rounded-2xl border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] p-6"
                         : isLightPage
-                          ? "rounded-2xl border border-cyan-200/80 bg-cyan-50/60 p-6 shadow-sm"
-                          : "rounded-xl border border-cyan-200/80 bg-cyan-50/50 p-3"
+                          ? "rounded-2xl border border-[color:var(--page-accent-border)] bg-white p-6 shadow-sm"
+                          : "rounded-xl border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] p-3"
                     }
                   >
                     <p
                       className={
                         isDarkPage
-                          ? "text-xs font-black uppercase tracking-[0.25em] text-cyan-200/90"
+                          ? "text-xs font-black uppercase tracking-[0.25em] text-[color:var(--page-accent-strong)]"
                           : isLightPage
-                            ? "text-xs font-semibold uppercase tracking-[0.25em] text-cyan-700"
-                            : "text-[9px] font-semibold uppercase tracking-[0.2em] text-cyan-700"
+                            ? "text-xs font-semibold uppercase tracking-[0.25em] text-[color:var(--page-accent-text)]"
+                            : "text-[9px] font-semibold uppercase tracking-[0.2em] text-[color:var(--page-accent-text)]"
                       }
                     >
                       Best verified price
@@ -1145,7 +1162,7 @@ export default function GameDetailView({
                         <p
                           className={
                             isDarkPage
-                              ? "mt-2 text-sm text-white/50"
+                              ? "mt-2 text-sm text-white/70"
                               : isLightPage
                                 ? "mt-2 text-sm text-slate-600"
                                 : "mt-1 text-xs text-slate-600"
@@ -1157,10 +1174,10 @@ export default function GameDetailView({
                           <p
                             className={
                               isDarkPage
-                                ? "mt-2 text-xs text-white/45"
+                                ? "mt-2 text-xs text-white/70"
                                 : isLightPage
-                                  ? "mt-2 text-xs text-slate-500"
-                                  : "mt-1 text-xs text-slate-500"
+                                  ? "mt-2 text-xs text-slate-600"
+                                  : "mt-1 text-xs text-slate-600"
                             }
                           >
                             {data.priceDisclaimer}
@@ -1173,7 +1190,7 @@ export default function GameDetailView({
                             href={data.primaryTrustedBuyUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex shrink-0 items-center justify-center rounded-full bg-white px-8 py-4 text-base font-black text-black shadow-[0_0_24px_rgba(255,255,255,0.12)] transition hover:bg-cyan-100"
+                            className="gp-page-cta inline-flex shrink-0 items-center justify-center rounded-full px-8 py-4 text-base font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]"
                           >
                             Buy now
                           </a>
@@ -1220,10 +1237,10 @@ export default function GameDetailView({
                     <p
                       className={
                         isDarkPage
-                          ? "mt-2 text-sm leading-6 text-white/55"
+                          ? "mt-2 text-sm leading-6 text-white/70"
                           : isLightPage
-                            ? "mt-2 text-sm leading-6 text-slate-500"
-                            : "mt-1 text-xs text-slate-500"
+                            ? "mt-2 text-sm leading-6 text-slate-600"
+                            : "mt-1 text-xs text-slate-600"
                       }
                     >
                       We found an indicative price, but no additional verified store deal rows met our
@@ -1238,8 +1255,8 @@ export default function GameDetailView({
                       <h3
                         className={
                           isDarkPage
-                            ? "text-sm font-black uppercase tracking-[0.28em] text-white/50"
-                            : "text-sm font-semibold uppercase tracking-[0.28em] text-slate-500"
+                            ? "text-sm font-black uppercase tracking-[0.28em] text-white/70"
+                            : "text-sm font-semibold uppercase tracking-[0.28em] text-slate-600"
                         }
                       >
                         Other verified stores
@@ -1274,8 +1291,8 @@ export default function GameDetailView({
                     <h3
                       className={
                         isDarkPage
-                          ? "text-sm font-black uppercase tracking-[0.28em] text-white/50"
-                          : "text-sm font-semibold uppercase tracking-[0.28em] text-slate-500"
+                          ? "text-sm font-black uppercase tracking-[0.28em] text-white/70"
+                          : "text-sm font-semibold uppercase tracking-[0.28em] text-slate-600"
                       }
                     >
                       Listings without a verified buy link
@@ -1292,10 +1309,10 @@ export default function GameDetailView({
                   <p
                     className={
                       isDarkPage
-                        ? "text-white/55"
+                        ? "text-white/70"
                         : isLightPage
-                          ? "text-sm text-slate-500"
-                          : "text-xs text-slate-500"
+                          ? "text-sm text-slate-600"
+                          : "text-xs text-slate-600"
                     }
                   >
                     {data.pricingMode === "verified_price"
@@ -1323,10 +1340,10 @@ export default function GameDetailView({
             <p
               className={
                 isDarkPage
-                  ? "text-sm uppercase tracking-[0.35em] text-cyan-300"
+                  ? "text-sm uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]"
                   : isLightPage
-                    ? "text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700"
-                    : "text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-700"
+                    ? "text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]"
+                    : "text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--page-accent-text)]"
               }
             >
               Game info
@@ -1339,7 +1356,7 @@ export default function GameDetailView({
               <DetailRow label="Publisher" value={data.publishers} theme={theme} compact={compact} />
               <DetailRow label="ESRB" value={data.esrb} theme={theme} compact={compact} />
               <DetailRow label="RAWG rating" value={data.ratingDisplay} theme={theme} compact={compact} />
-              <DetailRow label="Metacritic" value={data.metacriticDisplay} theme={theme} compact={compact} />
+              <DetailRow label="Metacritic" value={data.metacriticDisplay} theme={theme} compact={compact} valueTone="score" />
             </div>
           </div>
 
@@ -1348,27 +1365,27 @@ export default function GameDetailView({
               isDarkPage
                 ? `sticky top-6 rounded-[2rem] border p-7 ${
                     data.sidebarShowsPriceFigure
-                      ? "border-cyan-400/20 bg-cyan-400/10"
+                      ? "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)]"
                       : "border-white/10 bg-white/[0.04]"
                   }`
                 : isLightPage
                   ? `sticky top-6 rounded-2xl border p-7 shadow-sm ${
                       data.sidebarShowsPriceFigure
-                        ? "border-cyan-200/80 bg-cyan-50/60"
+                        ? "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)]"
                         : "border-slate-200/90 bg-white"
                     }`
-                  : "rounded-2xl border border-cyan-200/80 bg-cyan-50/40 p-4"
+                  : "rounded-2xl border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] p-4"
             }
           >
             <p
               className={
                 isDarkPage
                   ? `text-sm uppercase tracking-[0.35em] ${
-                      data.sidebarShowsPriceFigure ? "text-cyan-200" : "text-white/40"
+                      data.sidebarShowsPriceFigure ? "text-[color:var(--page-accent-strong)]" : "text-white/70"
                     }`
                   : isLightPage
-                    ? "text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700"
-                    : "text-[10px] font-semibold uppercase tracking-[0.3em] text-cyan-700"
+                    ? "text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]"
+                    : "text-[10px] font-semibold uppercase tracking-[0.3em] text-[color:var(--page-accent-text)]"
               }
             >
               {data.sidebarPriceTitle}
@@ -1396,10 +1413,10 @@ export default function GameDetailView({
               <p
                 className={
                   isDarkPage
-                    ? "mt-2 text-xs text-white/45"
+                    ? "mt-2 text-xs text-white/70"
                     : isLightPage
-                      ? "mt-2 text-xs text-slate-500"
-                      : "mt-2 text-xs text-slate-500"
+                      ? "mt-2 text-xs text-slate-600"
+                      : "mt-2 text-xs text-slate-600"
                 }
               >
                 {data.priceDisclaimer}
@@ -1409,11 +1426,11 @@ export default function GameDetailView({
               className={
                 isDarkPage
                   ? `mt-4 leading-relaxed ${
-                      data.sidebarShowsPriceFigure ? "text-white/65" : "text-sm text-white/50"
+                      data.sidebarShowsPriceFigure ? "text-white/70" : "text-sm text-white/70"
                     }`
                   : isLightPage
-                    ? "mt-4 text-sm leading-relaxed text-slate-500"
-                    : "mt-2 text-xs leading-relaxed text-slate-500"
+                    ? "mt-4 text-sm leading-relaxed text-slate-600"
+                    : "mt-2 text-xs leading-relaxed text-slate-600"
               }
             >
               {data.sidebarPriceBody}
@@ -1425,8 +1442,8 @@ export default function GameDetailView({
                 rel="noopener noreferrer"
                 className={
                   isDarkPage
-                    ? "mt-4 inline-flex rounded-full border border-cyan-400/35 bg-cyan-400/10 px-5 py-2.5 text-sm font-black text-cyan-200 transition hover:bg-cyan-400/20"
-                    : "mt-4 inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-5 py-2.5 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-100"
+                    ? "mt-4 inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-5 py-2.5 text-sm font-black text-[color:var(--page-accent-strong)] transition hover:bg-[var(--page-accent-soft)]"
+                    : "mt-4 inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-5 py-2.5 text-sm font-semibold text-[color:var(--page-accent-text)] transition hover:bg-[var(--page-accent-soft)]"
                 }
               >
                 View store page
@@ -1436,8 +1453,8 @@ export default function GameDetailView({
               <p
                 className={
                   isDarkPage
-                    ? "mt-2 text-xs leading-relaxed text-white/40"
-                    : "mt-2 text-xs leading-relaxed text-slate-400"
+                    ? "mt-2 text-xs leading-relaxed text-white/65"
+                    : "mt-2 text-xs leading-relaxed text-slate-600"
                 }
               >
                 {NO_VERIFIED_DEAL_HELPER}
@@ -1452,8 +1469,8 @@ export default function GameDetailView({
         <section
           className={
             isDarkPage
-              ? "mx-auto max-w-7xl border-t border-white/10 px-6 pb-14 pt-10"
-              : "mx-auto max-w-7xl border-t border-slate-200/80 px-6 pb-14 pt-10"
+              ? "mx-auto max-w-7xl px-6 pb-14 pt-10"
+              : "mx-auto max-w-7xl px-6 pb-14 pt-10"
           }
           aria-labelledby="game-detail-explore-heading"
         >
@@ -1468,8 +1485,8 @@ export default function GameDetailView({
               id="game-detail-explore-heading"
               className={
                 isDarkPage
-                  ? "text-xs font-black uppercase tracking-[0.35em] text-white/40"
-                  : "text-xs font-semibold uppercase tracking-[0.35em] text-slate-500"
+                  ? "text-xs font-black uppercase tracking-[0.35em] text-white/70"
+                  : "text-xs font-semibold uppercase tracking-[0.35em] text-slate-600"
               }
             >
               Continue exploring
@@ -1477,7 +1494,7 @@ export default function GameDetailView({
             <p
               className={
                 isDarkPage
-                  ? "mt-3 max-w-2xl text-sm leading-6 text-white/55"
+                  ? "mt-3 max-w-2xl text-sm leading-6 text-white/70"
                   : "mt-3 max-w-2xl text-sm leading-6 text-slate-600"
               }
             >
@@ -1486,14 +1503,14 @@ export default function GameDetailView({
             </p>
 
             {data.curatedCollection ? (
-              <p className={isDarkPage ? "mt-5 text-sm text-white/55" : "mt-5 text-sm text-slate-600"}>
+              <p className={isDarkPage ? "mt-5 text-sm text-white/70" : "mt-5 text-sm text-slate-600"}>
                 Featured in{" "}
                 <Link
                   href={`/curated/${data.curatedCollection.slug}`}
                   className={
                     isDarkPage
-                      ? "font-bold text-cyan-300 underline-offset-4 hover:underline"
-                      : "font-semibold text-cyan-700 underline-offset-4 hover:text-cyan-800 hover:underline"
+                      ? "font-bold text-[color:var(--page-accent-strong)] underline-offset-4 hover:underline"
+                      : "font-semibold text-[color:var(--page-accent-text)] underline-offset-4 hover:text-[color:var(--page-accent-text)] hover:underline"
                   }
                 >
                   {data.curatedCollection.h1}
@@ -1518,8 +1535,8 @@ export default function GameDetailView({
                         href={gameDetailPath(game.title)}
                         className={
                           isDarkPage
-                            ? "inline-flex rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-bold text-white/80 transition hover:border-cyan-400/40 hover:text-cyan-200"
-                            : "inline-flex rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-cyan-200 hover:bg-cyan-50 hover:text-cyan-800"
+                            ? "inline-flex rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-bold text-white/80 transition hover:border-[color:var(--page-accent-border)] hover:text-[color:var(--page-accent-strong)]"
+                            : "inline-flex rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-[color:var(--page-accent-border)] hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)]"
                         }
                       >
                         {game.title}
@@ -1536,8 +1553,8 @@ export default function GameDetailView({
                   href="/games"
                   className={
                     isDarkPage
-                      ? "text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
-                      : "font-semibold text-cyan-700 underline-offset-4 transition hover:text-cyan-800 hover:underline"
+                      ? "text-[color:var(--page-accent-strong)] underline-offset-4 transition hover:text-[color:var(--page-accent-strong)] hover:underline"
+                      : "font-semibold text-[color:var(--page-accent-text)] underline-offset-4 transition hover:text-[color:var(--page-accent-text)] hover:underline"
                   }
                 >
                   Browse games A–Z
@@ -1548,8 +1565,8 @@ export default function GameDetailView({
                   href="/curated"
                   className={
                     isDarkPage
-                      ? "text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
-                      : "font-semibold text-cyan-700 underline-offset-4 transition hover:text-cyan-800 hover:underline"
+                      ? "text-[color:var(--page-accent-strong)] underline-offset-4 transition hover:text-[color:var(--page-accent-strong)] hover:underline"
+                      : "font-semibold text-[color:var(--page-accent-text)] underline-offset-4 transition hover:text-[color:var(--page-accent-text)] hover:underline"
                   }
                 >
                   Explore curated lists
@@ -1560,8 +1577,8 @@ export default function GameDetailView({
                   href="/recommend"
                   className={
                     isDarkPage
-                      ? "text-cyan-300/90 underline-offset-4 transition hover:text-cyan-200 hover:underline"
-                      : "font-semibold text-cyan-700 underline-offset-4 transition hover:text-cyan-800 hover:underline"
+                      ? "text-[color:var(--page-accent-strong)] underline-offset-4 transition hover:text-[color:var(--page-accent-strong)] hover:underline"
+                      : "font-semibold text-[color:var(--page-accent-text)] underline-offset-4 transition hover:text-[color:var(--page-accent-text)] hover:underline"
                   }
                 >
                   Try AI recommendations

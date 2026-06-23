@@ -19,8 +19,8 @@ function LibraryGlyph({
     >
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="48" y2="48">
-          <stop stopColor="rgb(8 145 178)" stopOpacity="0.95" />
-          <stop offset="1" stopColor="rgb(14 165 233)" stopOpacity="0.85" />
+          <stop stopColor="rgb(182 130 36)" stopOpacity="0.95" />
+          <stop offset="1" stopColor="rgb(214 168 79)" stopOpacity="0.9" />
         </linearGradient>
       </defs>
       <rect
@@ -78,37 +78,37 @@ export default function SteamTasteComingSoon({
         className="pointer-events-none absolute -inset-x-10 inset-y-0 z-0 sm:-inset-x-20"
         aria-hidden
       >
-        <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-cyan-200/20 blur-3xl dark:bg-cyan-500/10" />
-        <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-sky-200/25 blur-3xl dark:bg-cyan-400/8" />
+        <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-amber-200/20 blur-3xl dark:bg-amber-500/10" />
+        <div className="absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-amber-200/20 blur-3xl dark:bg-amber-400/10" />
       </div>
 
       <div className={containerClassName}>
         <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] lg:gap-12">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-200">
+              <span className="inline-flex rounded-full border border-amber-300/80 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8a6a14] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
                 Coming soon
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-slate-400">
                 Future Premium feature
               </span>
             </div>
 
             <div className="mt-6 flex items-start gap-4">
-              <div className="shrink-0 rounded-2xl border border-cyan-200/80 bg-cyan-50 p-3 shadow-sm dark:border-cyan-900/50 dark:bg-cyan-950/30">
+              <div className="shrink-0 rounded-2xl border border-amber-300/70 bg-amber-50 p-3 shadow-sm dark:border-amber-700/40 dark:bg-amber-950/30">
                 <LibraryGlyph className="h-11 w-11 sm:h-12 sm:w-12" gradientId={gidMain} />
               </div>
               <div>
                 <h2
                   id={headingId}
-                  className="text-3xl font-extrabold leading-tight tracking-tight text-slate-900 dark:text-white md:text-4xl lg:text-[2.35rem] gp-home-display"
+                  className="text-3xl font-extrabold leading-tight tracking-tight text-white md:text-4xl lg:text-[2.35rem] gp-home-display"
                 >
                   Import your{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 to-sky-600 dark:from-cyan-400 dark:to-sky-400">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#B98224] to-[#D6A84F] dark:from-[#F4D58D] dark:to-[#D6A84F]">
                     Steam taste profile
                   </span>
                 </h2>
-                <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-700 dark:text-slate-300 md:text-lg">
+                <p className="mt-4 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
                   Connect your Steam profile so GamePing AI can learn from your library, playtime, and
                   favorite genres—then surface smarter recommendations and more personalized deal
                   alerts.
@@ -128,7 +128,7 @@ export default function SteamTasteComingSoon({
                   key={item}
                   className="flex gap-3 rounded-2xl border border-slate-200/90 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-200 dark:shadow-slate-950/30"
                 >
-                  <span className="select-none text-cyan-600" aria-hidden>
+                  <span className="select-none text-[#B98224] dark:text-[#e8c879]" aria-hidden>
                     ✓
                   </span>
                   {item}
@@ -136,7 +136,7 @@ export default function SteamTasteComingSoon({
               ))}
             </ul>
 
-            <p className="mt-6 max-w-xl text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+            <p className="mt-6 max-w-xl text-xs leading-relaxed text-slate-300 dark:text-slate-400">
               Availability may depend on Steam privacy settings. We&apos;ll only request the data
               needed for recommendations—never sold to third parties for unrelated marketing.
             </p>
@@ -151,40 +151,40 @@ export default function SteamTasteComingSoon({
               >
                 Join early access
               </button>
-              <p className="text-xs text-slate-500 dark:text-slate-400 sm:max-w-[14rem]">
+              <p className="text-xs text-slate-300 dark:text-slate-400 sm:max-w-[14rem]">
                 No connection yet—this button is disabled until the feature ships.
               </p>
             </div>
           </div>
 
           <div className="relative">
-            <div className="absolute -inset-1 rounded-[1.75rem] bg-gradient-to-br from-cyan-200/30 via-white to-sky-200/30 blur-xl dark:from-cyan-400/10 dark:via-transparent dark:to-cyan-500/10" />
-            <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-white shadow-lg shadow-slate-200/40 dark:border-slate-800/80 dark:bg-slate-900/70 dark:shadow-slate-950/40">
+            <div className="absolute -inset-1 rounded-[1.75rem] bg-gradient-to-br from-amber-200/10 via-transparent to-amber-200/10 blur-xl dark:from-amber-400/10 dark:via-transparent dark:to-amber-500/10" />
+            <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-white shadow-sm shadow-slate-200/40 dark:border-slate-800/80 dark:bg-slate-900/70 dark:shadow-slate-950/40">
               <div className="flex items-center justify-between border-b border-slate-200/90 bg-slate-50/80 px-4 py-3 dark:border-slate-800/80 dark:bg-slate-950/40">
                 <div className="flex items-center gap-2">
                   <LibraryGlyph className="h-8 w-8 sm:hidden" gradientId={gidCard} />
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-600 dark:text-slate-400">
                       Preview
                     </p>
                     <p className="text-sm font-bold text-slate-900 dark:text-white">Taste snapshot</p>
                   </div>
                 </div>
-                <span className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-700 dark:border-cyan-400/30 dark:bg-cyan-500/10 dark:text-cyan-200">
+                <span className="rounded-full border border-amber-300/80 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#8a6a14] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
                   Mock UI
                 </span>
               </div>
 
               <div className="space-y-4 p-4 sm:p-5">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                     Inferred genres
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {["Roguelike", "Narrative", "Cozy sim"].map((g) => (
                       <span
                         key={g}
-                        className="rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800 dark:border-cyan-800/60 dark:bg-cyan-950/40 dark:text-cyan-200"
+                        className="rounded-full border border-amber-300/70 bg-amber-50 px-3 py-1 text-xs font-semibold text-[#8a6a14] dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-200"
                       >
                         {g}
                       </span>
@@ -193,7 +193,7 @@ export default function SteamTasteComingSoon({
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                     Library signal (sample)
                   </p>
                   <ul className="mt-2 space-y-2">
@@ -207,13 +207,13 @@ export default function SteamTasteComingSoon({
                         className="flex items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50 px-3 py-2.5 text-sm dark:border-slate-800/80 dark:bg-slate-950/30"
                       >
                         <span className="font-semibold text-slate-800 dark:text-slate-100">{row.t}</span>
-                        <span className="font-mono text-xs text-slate-500 dark:text-slate-400">{row.h}</span>
+                        <span className="font-mono text-xs text-slate-600 dark:text-slate-400">{row.h}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-3 py-2 text-center text-[11px] leading-relaxed text-slate-500 dark:border-slate-800/80 dark:bg-slate-950/25 dark:text-slate-400">
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-3 py-2 text-center text-[11px] leading-relaxed text-slate-600 dark:border-slate-800/80 dark:bg-slate-950/25 dark:text-slate-400">
                   Illustrative data only — not connected to a real account.
                 </div>
               </div>

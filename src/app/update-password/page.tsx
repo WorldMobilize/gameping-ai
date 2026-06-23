@@ -124,7 +124,7 @@ export default function UpdatePasswordPage() {
     return (
       <AppPageShell>
         <AppSection className="flex min-h-[50vh] items-center justify-center">
-          <p className="text-sm text-slate-500">Verifying reset link…</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Verifying reset link…</p>
         </AppSection>
       </AppPageShell>
     );
@@ -141,7 +141,7 @@ export default function UpdatePasswordPage() {
             <h1 className="text-2xl font-black text-slate-900 dark:text-white gp-home-display">
               Link <span className={APP_ACCENT}>invalid</span>
             </h1>
-            <p className="mt-4 text-sm leading-relaxed text-slate-600">
+            <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
               This reset link is invalid or expired. Please request a new one.
             </p>
             <Link
@@ -150,7 +150,7 @@ export default function UpdatePasswordPage() {
             >
               Request new link
             </Link>
-            <p className="mt-6 text-sm text-slate-500">
+            <p className="mt-6 text-sm text-slate-600 dark:text-slate-400">
               <Link href="/login" className={APP_INLINE_LINK}>
                 Back to login
               </Link>
@@ -172,7 +172,7 @@ export default function UpdatePasswordPage() {
             New <span className={APP_ACCENT}>password</span>
           </h1>
 
-          <p className="mt-3 text-center text-sm text-slate-600">
+          <p className="mt-3 text-center text-sm text-slate-600 dark:text-slate-300">
             Choose a new password for your account (at least 8 characters).
           </p>
 
@@ -220,7 +220,7 @@ export default function UpdatePasswordPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
+          <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
             <Link href="/login" className={APP_INLINE_LINK}>
               Back to login
             </Link>

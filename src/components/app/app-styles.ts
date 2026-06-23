@@ -29,6 +29,19 @@ export {
 export const APP_PRIMARY_CTA_SM = HOME_PRIMARY_CTA_SM;
 export const APP_PRIMARY_CTA_LG = HOME_PRIMARY_CTA_LG;
 
+/**
+ * Page-accent primary CTA (sm) — the shared standard for accent pill CTAs.
+ * Built on the global `.gp-page-cta` class so every primary CTA shares ONE
+ * visual language (the landing "Try GamePing" look): a subtle vertical accent
+ * gradient + inset sheen + soft accent glow, hover slightly brighter + lifted —
+ * NO strong horizontal gradient. The accent follows `--page-accent` per page
+ * (blue on /hidden-gems, gold on /games-of-the-week, purple on /curated, red on
+ * /games, cyan on default pages). This token only adds shape, sizing, and an
+ * accessible focus ring on top. No hardcoded brand colour. UI only.
+ */
+export const APP_PRIMARY_CTA_ACCENT_SM =
+  "gp-page-cta inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]";
+
 export const APP_SHELL =
   "relative flex min-h-screen flex-col bg-white text-slate-900 dark:bg-[#0b0f1a] dark:text-slate-100";
 
@@ -59,7 +72,9 @@ export const APP_BODY = "text-slate-700 leading-7 dark:text-slate-300";
 
 export const APP_BODY_SM = "text-sm leading-6 text-slate-700 dark:text-slate-300";
 
-export const APP_MUTED = "text-sm text-slate-500 dark:text-slate-400";
+// Light mode uses slate-600 (not slate-500) so muted/helper text stays readable;
+// dark mode is unchanged.
+export const APP_MUTED = "text-sm text-slate-600 dark:text-slate-400";
 
 export const APP_SECTION_TITLE = "text-2xl font-extrabold text-slate-900 dark:text-white";
 
@@ -83,11 +98,14 @@ export const APP_CARD =
 export const APP_CARD_LG =
   "rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm shadow-slate-200/40 dark:border-slate-800/80 dark:bg-slate-900/70 dark:shadow-slate-950/40";
 
+// Hover uses a page-accent-tinted glow (not a pale-cyan/near-white shadow, which
+// reads as a white halo on the cinematic backgrounds). Hover border follows the
+// current page accent. Card border + default look are unchanged.
 export const APP_CARD_INTERACTIVE =
-  "rounded-2xl border border-slate-200/90 bg-white px-5 py-4 shadow-sm transition hover:border-cyan-300/70 hover:shadow-md hover:shadow-cyan-100/50 dark:border-slate-800/80 dark:bg-slate-900/70 dark:hover:border-cyan-700/50 dark:hover:shadow-cyan-950/20";
+  "rounded-2xl border border-slate-200/90 bg-white px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[color:var(--page-accent-border)] hover:shadow-[0_10px_28px_-14px_var(--page-accent-glow)] dark:border-slate-800/80 dark:bg-slate-900/70 dark:hover:border-[color:var(--page-accent-border)]";
 
 export const APP_CARD_INTERACTIVE_LG =
-  "rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm transition hover:border-cyan-300/70 hover:shadow-md hover:shadow-cyan-100/50 dark:border-slate-800/80 dark:bg-slate-900/70 dark:hover:border-cyan-700/50 dark:hover:shadow-cyan-950/20";
+  "rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[color:var(--page-accent-border)] hover:shadow-[0_14px_36px_-16px_var(--page-accent-glow)] dark:border-slate-800/80 dark:bg-slate-900/70 dark:hover:border-[color:var(--page-accent-border)]";
 
 export const APP_CTA_PANEL =
   "rounded-3xl border border-cyan-200/80 bg-gradient-to-br from-cyan-50/80 via-white to-violet-50/50 p-6 shadow-sm dark:border-cyan-900/50 dark:from-cyan-950/40 dark:via-slate-900/80 dark:to-violet-950/30";

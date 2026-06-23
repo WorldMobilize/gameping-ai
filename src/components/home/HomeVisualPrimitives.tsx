@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import HomeAtmosphere from "@/components/home/HomeAtmosphere";
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 
 export type HomeSectionTone =
@@ -25,80 +26,108 @@ type SectionBg = {
   blobDarkC?: string;
 };
 
+/*
+ * Section surfaces use vertical gradients whose top/bottom endpoints all match
+ * the page background (#0b0f1a dark / white light). Because every section
+ * starts and ends on the same tone, adjacent seams blend into one continuous
+ * atmosphere instead of hard background cuts; the mid-stop adds gentle depth.
+ */
+const DARK_SURFACE = "bg-gradient-to-b from-[#0b0f1a] via-[#0a0e18] to-[#0b0f1a]";
+const DARK_SURFACE_ALT = "bg-gradient-to-b from-[#0b0f1a] via-[#0c1120] to-[#0b0f1a]";
+const LIGHT_SURFACE = "bg-gradient-to-b from-white via-[#f7f9ff] to-white";
+const LIGHT_SURFACE_ALT = "bg-gradient-to-b from-white via-[#f3f8ff] to-white";
+
 const SECTION_BG: Record<HomeSectionTone, SectionBg> = {
   hero: {
     light: "bg-white",
     dark: "bg-[#0b0f1a]",
-    blobLightA: "bg-cyan-200/18 gp-home-blob-drift",
-    blobLightB: "bg-violet-200/14 gp-home-blob-drift-alt",
-    blobDarkA: "bg-cyan-500/8 gp-home-blob-drift",
-    blobDarkB: "bg-violet-500/6 gp-home-blob-drift-alt",
+    blobLightA: "opacity-0",
+    blobLightB: "opacity-0",
+    blobDarkA: "opacity-0",
+    blobDarkB: "opacity-0",
   },
   "how-it-works": {
-    light: "bg-white",
-    dark: "bg-[#0a0e18]",
-    blobLightA: "opacity-0",
-    blobLightB: "opacity-0",
-    blobDarkA: "opacity-0",
-    blobDarkB: "opacity-0",
+    light: LIGHT_SURFACE,
+    dark: DARK_SURFACE,
+    blobLightA: "bg-cyan-200/14 gp-home-blob-drift",
+    blobLightB: "bg-teal-200/12 gp-home-blob-drift-alt",
+    blobDarkA: "bg-cyan-500/7 gp-home-blob-drift",
+    blobDarkB: "bg-teal-500/6 gp-home-blob-drift-alt",
   },
   "why-gameping": {
-    light: "bg-white",
-    dark: "bg-[#0b0f1a]",
-    blobLightA: "opacity-0",
-    blobLightB: "opacity-0",
-    blobDarkA: "opacity-0",
-    blobDarkB: "opacity-0",
+    light: LIGHT_SURFACE_ALT,
+    dark: DARK_SURFACE_ALT,
+    blobLightA: "bg-cyan-200/12 gp-home-blob-drift",
+    blobLightB: "bg-teal-200/10 gp-home-blob-drift-alt",
+    blobDarkA: "bg-cyan-500/6 gp-home-blob-drift",
+    blobDarkB: "bg-teal-500/5 gp-home-blob-drift-alt",
   },
   taste: {
-    light: "bg-white",
-    dark: "bg-[#0b0f1a]",
-    blobLightA: "opacity-0",
-    blobLightB: "opacity-0",
-    blobDarkA: "opacity-0",
-    blobDarkB: "opacity-0",
+    light: LIGHT_SURFACE,
+    dark: DARK_SURFACE,
+    blobLightA: "bg-teal-200/12 gp-home-blob-drift",
+    blobLightB: "bg-cyan-200/10 gp-home-blob-drift-alt",
+    blobDarkA: "bg-teal-500/6 gp-home-blob-drift",
+    blobDarkB: "bg-cyan-500/6 gp-home-blob-drift-alt",
   },
   "personal-fit": {
-    light: "bg-[#FAFBFF]",
-    dark: "bg-[#0a0e18]",
-    blobLightA: "opacity-0",
-    blobLightB: "opacity-0",
-    blobDarkA: "opacity-0",
-    blobDarkB: "opacity-0",
+    light: LIGHT_SURFACE_ALT,
+    dark: DARK_SURFACE_ALT,
+    blobLightA: "bg-cyan-200/12 gp-home-blob-drift",
+    blobLightB: "bg-teal-200/9 gp-home-blob-drift-alt",
+    blobDarkA: "bg-cyan-500/6 gp-home-blob-drift",
+    blobDarkB: "bg-teal-500/5 gp-home-blob-drift-alt",
   },
   "gaming-radar": {
-    light: "bg-white",
-    dark: "bg-[#0b0f1a]",
-    blobLightA: "opacity-0",
-    blobLightB: "opacity-0",
-    blobDarkA: "opacity-0",
-    blobDarkB: "opacity-0",
+    light: LIGHT_SURFACE,
+    dark: DARK_SURFACE,
+    blobLightA: "bg-cyan-200/14 gp-home-blob-drift",
+    blobLightB: "bg-teal-200/12 gp-home-blob-drift-alt",
+    blobDarkA: "bg-cyan-500/8 gp-home-blob-drift",
+    blobDarkB: "bg-teal-500/6 gp-home-blob-drift-alt",
   },
   deals: {
-    light: "bg-[#FAFBFF]",
-    dark: "bg-[#0a0e18]",
-    blobLightA: "opacity-0",
-    blobLightB: "opacity-0",
-    blobDarkA: "opacity-0",
-    blobDarkB: "opacity-0",
+    light: LIGHT_SURFACE_ALT,
+    dark: DARK_SURFACE_ALT,
+    blobLightA: "bg-teal-200/12 gp-home-blob-drift",
+    blobLightB: "bg-cyan-200/10 gp-home-blob-drift-alt",
+    blobDarkA: "bg-teal-500/6 gp-home-blob-drift",
+    blobDarkB: "bg-cyan-500/6 gp-home-blob-drift-alt",
   },
   "coming-soon": {
-    light: "bg-white",
-    dark: "bg-[#0a0e18]",
-    blobLightA: "opacity-0",
-    blobLightB: "opacity-0",
-    blobDarkA: "opacity-0",
-    blobDarkB: "opacity-0",
+    light: LIGHT_SURFACE,
+    dark: DARK_SURFACE,
+    blobLightA: "bg-cyan-200/12 gp-home-blob-drift",
+    blobLightB: "bg-teal-200/10 gp-home-blob-drift-alt",
+    blobDarkA: "bg-cyan-500/6 gp-home-blob-drift",
+    blobDarkB: "bg-teal-500/5 gp-home-blob-drift-alt",
   },
   cta: {
-    light: "bg-white",
-    dark: "bg-[#0b0f1a]",
-    blobLightA: "opacity-0",
-    blobLightB: "opacity-0",
-    blobDarkA: "opacity-0",
-    blobDarkB: "opacity-0",
+    light: LIGHT_SURFACE,
+    dark: DARK_SURFACE,
+    blobLightA: "bg-cyan-200/16 gp-home-blob-drift",
+    blobLightB: "bg-teal-200/12 gp-home-blob-drift-alt",
+    blobDarkA: "bg-cyan-500/8 gp-home-blob-drift",
+    blobDarkB: "bg-teal-500/6 gp-home-blob-drift-alt",
   },
 };
+
+/*
+ * Landing background atmosphere. A theme-aware inline-SVG recreation of the
+ * reference (deep navy glass panels, top-down cyan light beams, cyan edge
+ * highlights, vignette) renders behind the hero at full strength; the lower
+ * sections share the same world but each gets its own softer composition
+ * (see the variant docs in HomeAtmosphere.tsx) so the page reads as one
+ * coherent AI game-discovery interface without repeating the hero verbatim.
+ * Colours are CSS variables (dark + light) in home-light.css.
+ */
+function SectionPattern({ tone }: { tone: HomeSectionTone }) {
+  if (tone === "hero") return <HomeAtmosphere variant="hero" />;
+  if (tone === "how-it-works") return <HomeAtmosphere variant="how-it-works" />;
+  if (tone === "why-gameping") return <HomeAtmosphere variant="why-gameping" />;
+  if (tone === "coming-soon") return <HomeAtmosphere variant="coming-soon" />;
+  return null;
+}
 
 function SectionBlobs({ bg, isDark }: { bg: SectionBg; isDark: boolean }) {
   const blobA = isDark ? bg.blobDarkA : bg.blobLightA;
@@ -143,9 +172,9 @@ export function HomeSectionShell({
     <section
       id={id}
       aria-labelledby={ariaLabelledby}
-      className={`relative isolate overflow-hidden py-14 sm:py-16 lg:py-20 ${isDark ? bg.dark : bg.light} ${className}`}
+      className={`gp-home-section relative isolate overflow-hidden py-14 sm:py-16 lg:py-20 ${isDark ? bg.dark : bg.light} ${className}`}
     >
-      <SectionBlobs bg={bg} isDark={isDark} />
+      <SectionPattern tone={tone} />
       <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">{children}</div>
     </section>
   );
@@ -224,7 +253,7 @@ export function HomeMockupFrame({ children, label, className = "", float = true 
         <span className="h-2 w-2 rounded-full bg-amber-400/80" aria-hidden />
         <span className="h-2 w-2 rounded-full bg-emerald-400/80" aria-hidden />
         {label ? (
-          <span className={`ml-2 truncate text-[10px] font-medium ${isDark ? "text-slate-500" : "text-slate-400"}`}>
+          <span className={`ml-2 truncate text-[10px] font-medium ${isDark ? "text-slate-400" : "text-slate-600"}`}>
             {label}
           </span>
         ) : null}

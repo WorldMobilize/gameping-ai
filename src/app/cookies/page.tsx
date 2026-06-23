@@ -56,8 +56,8 @@ export default function CookiesPage() {
             <h2 className={APP_PROSE_HEADING}>Cookie banner &amp; localStorage</h2>
             <p className="mt-3">
               Our cookie banner stores your choice in browser{" "}
-              <span className="font-mono text-slate-600">localStorage</span> under the key{" "}
-              <span className="font-mono text-slate-600">cookie_consent</span> (values such as
+              <span className="font-mono text-slate-700 dark:text-slate-200">localStorage</span> under the key{" "}
+              <span className="font-mono text-slate-700 dark:text-slate-200">cookie_consent</span> (values such as
               &quot;accepted&quot; or &quot;rejected&quot;). This is not a tracking cookie, but it
               is a client-side record of your preference. You can clear it anytime via browser
               settings.

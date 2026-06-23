@@ -25,9 +25,9 @@ export default function HomeDealsSection() {
   const { theme } = useHomeTheme();
   const isDark = theme === "dark";
 
-  const muted = isDark ? "text-slate-500" : "text-slate-400";
+  const muted = isDark ? "text-slate-400" : "text-slate-600";
   const text = isDark ? "text-slate-100" : "text-slate-900";
-  const body = isDark ? "text-slate-400" : "text-slate-600";
+  const body = isDark ? "text-slate-300" : "text-slate-600";
   const row = isDark ? "border-slate-700 bg-slate-950/50" : "border-slate-100 bg-white/90";
   const dropBadge = isDark ? "bg-emerald-950/70 text-emerald-300" : "bg-emerald-100 text-emerald-800";
   const statusBadge = isDark ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600";

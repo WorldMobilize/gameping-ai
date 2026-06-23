@@ -5,8 +5,8 @@ import { COMING_SOON_BADGE } from "@/components/upgrade/PremiumComingSoonPanel";
 /** Static left-column teaser — balances Free card height vs Premium. */
 export default function FreeWhyUpgradePanel() {
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-slate-50/90 via-white to-cyan-50/25 p-5 shadow-sm dark:border-slate-800/80 dark:from-slate-950/50 dark:via-slate-900/70 dark:to-cyan-950/15">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+    <div className="rounded-2xl border border-slate-200/90 bg-white bg-gradient-to-br p-5 shadow-sm dark:bg-slate-900 dark:border-slate-800/80 dark:from-slate-950/50 dark:via-slate-900/70 dark:to-amber-950/15">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-600 dark:text-slate-400">
         Why upgrade later?
       </p>
       <ul className="mt-4 space-y-3.5">

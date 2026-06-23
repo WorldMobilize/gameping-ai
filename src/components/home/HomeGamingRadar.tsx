@@ -8,9 +8,9 @@ export default function HomeGamingRadar() {
   const { theme } = useHomeTheme();
   const isDark = theme === "dark";
 
-  const muted = isDark ? "text-slate-500" : "text-slate-400";
+  const muted = isDark ? "text-slate-400" : "text-slate-600";
   const text = isDark ? "text-slate-100" : "text-slate-900";
-  const body = isDark ? "text-slate-400" : "text-slate-600";
+  const body = isDark ? "text-slate-300" : "text-slate-600";
   const row = isDark ? "border-slate-700 bg-slate-950/50" : "border-slate-100 bg-slate-50/90";
   const chip = isDark
     ? "rounded-full bg-cyan-950/70 px-2.5 py-1 text-[11px] font-bold text-cyan-300"

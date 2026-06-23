@@ -25,11 +25,11 @@ export default function RecommendSearchCta({
 
   const title = isLight ? "text-sm font-semibold text-slate-900" : "text-sm font-semibold text-white/90";
 
-  const body = isLight ? "mt-1 text-sm text-slate-600" : "mt-1 text-sm text-white/50";
+  const body = isLight ? "mt-1 text-sm text-slate-600" : "mt-1 text-sm text-white/70";
 
   const button = isLight
-    ? "shrink-0 rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-10 py-4 text-sm font-bold text-white shadow-sm transition hover:from-cyan-500 hover:to-cyan-400 disabled:opacity-60"
-    : "shrink-0 rounded-full bg-cyan-400 px-10 py-4 font-bold text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60";
+    ? "shrink-0 rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-10 py-4 text-sm font-bold text-white shadow-sm shadow-cyan-600/20 transition disabled:opacity-60"
+    : "shrink-0 rounded-full bg-cyan-400 px-10 py-4 text-sm font-bold text-black transition disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
     <div className={shell}>
@@ -46,7 +46,7 @@ export default function RecommendSearchCta({
           type="button"
           tabIndex={-1}
           disabled={disabled || loading}
-          className={`${button} ${highlightButton ? "ring-2 ring-cyan-400/55" : ""} ${
+          className={`${button} ${highlightButton ? "ring-2 ring-[color:var(--page-accent-border)]" : ""} ${
             buttonPulse ? "scale-[0.97] opacity-90" : ""
           }`}
         >

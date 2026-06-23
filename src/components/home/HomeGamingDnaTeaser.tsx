@@ -25,7 +25,7 @@ export default function HomeGamingDnaTeaser() {
               Connect your Steam library and Ping learns the patterns behind your
               favorite games—motivations and play style, not just genre tags.
             </p>
-            <ul className="mt-6 space-y-3 text-sm text-white/55">
+            <ul className="mt-6 space-y-3 text-sm text-white/75">
               {[
                 { text: "Personal fit on game pages", dot: "bg-teal-400" },
                 { text: "Playtime-weighted taste signals", dot: "bg-violet-400" },
@@ -49,17 +49,17 @@ export default function HomeGamingDnaTeaser() {
             <PingOrb size={64} variant="compact" className="absolute right-0 top-0 opacity-90" bars={3} />
             <div className="relative mx-auto max-w-md space-y-4">
               <div className="gp-landing-panel">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-white/38">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
                   Player archetype
                 </p>
                 <p className="mt-2 text-xl font-semibold text-white/92">The Sandbox Explorer</p>
-                <p className="mt-2 text-sm leading-6 text-white/52">
+                <p className="mt-2 text-sm leading-6 text-white/75">
                   You gravitate toward worlds where freedom, systems, and long-term
                   progression shape the story you tell.
                 </p>
               </div>
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-white/38">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-white/70">
                   Signals
                 </p>
                 <div className="grid grid-cols-2 gap-2.5">
@@ -78,7 +78,7 @@ export default function HomeGamingDnaTeaser() {
                   })}
                 </div>
               </div>
-              <p className="text-center text-[11px] text-white/35">
+              <p className="text-center text-[11px] text-white/65">
                 Illustrative preview · import your library to generate yours
               </p>
             </div>

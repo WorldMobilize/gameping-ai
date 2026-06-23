@@ -46,14 +46,14 @@ export default function HomeLoggedInStrip({ theme = "light" }: HomeLoggedInStrip
       }`}
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <span className={isDark ? "text-slate-400" : "text-slate-600"}>
-          Welcome back — pick up where you left off.
+        <span className={isDark ? "text-slate-300" : "text-slate-700"}>
+          Continue your discovery journey — your recommendations, saved games, and alerts live here.
         </span>
         <div className="flex flex-wrap gap-x-5 gap-y-2">
           <Link
             href="/dashboard"
             className={`font-semibold transition ${
-              isDark ? "text-cyan-300 hover:text-cyan-200" : "text-cyan-700 hover:text-cyan-800"
+              isDark ? "text-slate-200 hover:text-white" : "text-slate-700 hover:text-slate-900"
             }`}
           >
             Dashboard
@@ -61,7 +61,7 @@ export default function HomeLoggedInStrip({ theme = "light" }: HomeLoggedInStrip
           <Link
             href="/recommend"
             className={`font-semibold transition ${
-              isDark ? "text-violet-300 hover:text-violet-200" : "text-violet-700 hover:text-violet-800"
+              isDark ? "text-slate-200 hover:text-white" : "text-slate-700 hover:text-slate-900"
             }`}
           >
             New recommendation

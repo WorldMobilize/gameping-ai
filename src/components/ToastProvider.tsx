@@ -114,7 +114,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <button
               type="button"
               onClick={() => dismiss(t.id)}
-              className="mt-2 text-xs font-bold text-white/45 underline-offset-2 hover:text-white/70 hover:underline"
+              className="mt-2 text-xs font-bold text-white/70 underline-offset-2 hover:text-white/90 hover:underline"
             >
               Dismiss
             </button>

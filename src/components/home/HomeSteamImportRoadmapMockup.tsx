@@ -33,7 +33,7 @@ export function HomeSteamImportRoadmapMockup() {
   const panel = isDark
     ? "border-slate-700/80 bg-slate-950/60"
     : "border-slate-200/90 bg-white/80 shadow-sm";
-  const muted = isDark ? "text-slate-500" : "text-slate-500";
+  const muted = isDark ? "text-slate-400" : "text-slate-600";
   const label = isDark ? "text-slate-300" : "text-slate-700";
   const rowBg = isDark ? "bg-slate-900/55" : "bg-slate-50/90";
   const track = isDark ? "bg-slate-800" : "bg-slate-200";
@@ -108,7 +108,7 @@ export function HomeTasteMemoryRoadmapMockup() {
   const panel = isDark
     ? "border-slate-700/80 bg-slate-950/60"
     : "border-slate-200/90 bg-white/80 shadow-sm";
-  const muted = isDark ? "text-slate-500" : "text-slate-500";
+  const muted = isDark ? "text-slate-400" : "text-slate-600";
   const label = isDark ? "text-slate-300" : "text-slate-700";
   const filled = isDark ? "bg-violet-500/75" : "bg-violet-500";
   const empty = isDark ? "bg-slate-800" : "bg-slate-200";

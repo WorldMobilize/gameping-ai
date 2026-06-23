@@ -21,11 +21,11 @@ export default function WeeklyPickCard({ pick }: { pick: WeeklyPersonalPick }) {
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <h3 className={APP_CARD_TITLE}>
-            <Link href={href} className="transition hover:text-cyan-700">
+            <Link href={href} className="transition hover:text-[color:var(--page-accent-text)]">
               {pick.title}
             </Link>
           </h3>
-          <span className="shrink-0 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold tabular-nums text-cyan-800">
+          <span className="shrink-0 rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1 text-xs font-semibold tabular-nums text-[color:var(--page-accent-text)]">
             {pick.match}% fit
           </span>
         </div>

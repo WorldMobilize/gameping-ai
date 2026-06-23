@@ -31,7 +31,7 @@ function formatPlaytime(minutes: number): string {
 }
 
 const STEAM_IMPORT_CTA =
-  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-emerald-600 to-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-sm shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[var(--page-accent-strong)] to-[var(--page-accent)] px-6 py-3 text-sm font-semibold text-[color:var(--page-accent-on)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function SteamLibraryImportSection() {
   const { showToast } = useToast();
@@ -164,23 +164,23 @@ export default function SteamLibraryImportSection() {
   return (
     <section
       id="steam-library-import"
-      className={`${APP_CARD} border-emerald-200/80 bg-gradient-to-br from-emerald-50/60 via-white to-white p-8`}
+      className={`${APP_CARD} border-[color:var(--page-accent-border)] bg-gradient-to-br from-[var(--page-accent-soft)] via-white to-white p-8`}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-700">
+      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
         Steam Library Import
       </p>
       <p className="mt-3 text-sm leading-7 text-slate-600">
         Import your public Steam library so GamePing can learn your taste. Taste-based
         recommendations are coming next.
       </p>
-      <p className="mt-3 text-xs leading-relaxed text-slate-500">
+      <p className="mt-3 text-xs leading-relaxed text-slate-600">
         We only read game names and playtime. We never access friends, chat, inventory,
         payments, or your Steam account.
       </p>
 
       {!connected ? (
         <div className="mt-6 space-y-4">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
             Steam profile URL or Steam ID
           </label>
           <input
@@ -206,19 +206,19 @@ export default function SteamLibraryImportSection() {
             <p className="text-sm font-semibold text-emerald-700">Connected</p>
             <dl className="mt-4 space-y-2 text-sm text-slate-700">
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Games imported</dt>
+                <dt className="text-slate-600">Games imported</dt>
                 <dd className="font-semibold">{summary.gameCount ?? 0}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-500">Total playtime</dt>
+                <dt className="text-slate-600">Total playtime</dt>
                 <dd className="font-semibold">
                   {formatPlaytime(summary.totalPlaytimeMin ?? 0)}
                 </dd>
               </div>
               {summary.profileUrl ? (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-500">Profile</dt>
-                  <dd className="truncate font-semibold text-cyan-700">
+                  <dt className="text-slate-600">Profile</dt>
+                  <dd className="truncate font-semibold text-[color:var(--page-accent-text)]">
                     <a
                       href={summary.profileUrl}
                       target="_blank"
@@ -235,7 +235,7 @@ export default function SteamLibraryImportSection() {
 
           {summary.topGames && summary.topGames.length > 0 ? (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-600">
                 Top played
               </p>
               <ol className="mt-3 space-y-2">
@@ -245,7 +245,7 @@ export default function SteamLibraryImportSection() {
                     className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white px-4 py-3 text-sm shadow-sm"
                   >
                     <span className="font-semibold text-slate-800">{game.title}</span>
-                    <span className="shrink-0 text-slate-500">
+                    <span className="shrink-0 text-slate-600">
                       {formatPlaytime(game.playtimeForever)}
                     </span>
                   </li>

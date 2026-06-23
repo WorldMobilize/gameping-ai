@@ -4,11 +4,14 @@ import { APP_CARD, APP_CARD_TITLE, APP_MUTED } from "@/components/app/app-styles
 import { gameDetailPath } from "@/lib/curated/game-links";
 import type { HiddenGemPick } from "@/lib/discovery/placeholder-data";
 
+// All tags follow the current page accent so badges match the page identity.
+const TAG_BADGE =
+  "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)]";
 const TAG_STYLES: Record<HiddenGemPick["tag"], string> = {
-  Underrated: "border-amber-200/90 bg-amber-50 text-amber-900",
-  "Cult favorite": "border-violet-200/90 bg-violet-50 text-violet-900",
-  "Hidden RPG": "border-cyan-200/90 bg-cyan-50 text-cyan-900",
-  "Small studio": "border-emerald-200/90 bg-emerald-50 text-emerald-900",
+  Underrated: TAG_BADGE,
+  "Cult favorite": TAG_BADGE,
+  "Hidden RPG": TAG_BADGE,
+  "Small studio": TAG_BADGE,
 };
 
 export default function HiddenGemCard({ pick }: { pick: HiddenGemPick }) {
@@ -28,7 +31,7 @@ export default function HiddenGemCard({ pick }: { pick: HiddenGemPick }) {
       <div className="flex flex-1 flex-col p-5">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h3 className={APP_CARD_TITLE}>
-            <Link href={href} className="transition hover:text-cyan-700">
+            <Link href={href} className="transition hover:text-[color:var(--page-accent-text)]">
               {pick.title}
             </Link>
           </h3>
@@ -39,10 +42,10 @@ export default function HiddenGemCard({ pick }: { pick: HiddenGemPick }) {
           </span>
         </div>
         <p className={`mt-3 flex-1 text-sm leading-6 ${APP_MUTED}`}>{pick.reason}</p>
-        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-slate-600 dark:text-slate-400">
           Future match{" "}
-          <span className="tabular-nums text-cyan-700">{pick.futureMatch}%</span>
-          <span className="ml-1 font-normal normal-case tracking-normal text-slate-400">
+          <span className="tabular-nums text-[color:var(--page-accent-text)]">{pick.futureMatch}%</span>
+          <span className="ml-1 font-normal normal-case tracking-normal text-slate-500 dark:text-slate-400">
             (demo)
           </span>
         </p>

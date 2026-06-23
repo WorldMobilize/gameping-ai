@@ -39,39 +39,39 @@ export default function RecommendPromptSection({
     : "rounded-2xl border border-white/10 bg-[#0a0b14]/60 p-6 md:p-8";
 
   const kicker = isLight
-    ? "text-xs font-semibold uppercase tracking-[0.25em] text-slate-500"
-    : "text-xs font-semibold uppercase tracking-[0.25em] text-white/40";
+    ? "text-xs font-semibold uppercase tracking-[0.25em] text-slate-600"
+    : "text-xs font-semibold uppercase tracking-[0.25em] text-white/70";
 
   const title = isLight
     ? `font-black tracking-tight text-slate-900 ${isDemo ? "mt-2 text-xl" : "mt-3 text-2xl md:text-3xl"}`
     : `font-black tracking-tight ${isDemo ? "mt-2 text-xl" : "mt-3 text-2xl md:text-3xl"}`;
 
-  const lead = isLight ? "text-sm leading-6 text-slate-600" : "text-sm leading-6 text-white/50";
+  const lead = isLight ? "text-sm leading-6 text-slate-600" : "text-sm leading-6 text-white/65";
 
   const textarea = isLight
-    ? `gp-prompt-textarea mt-6 min-h-52 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50/80 p-5 text-[15px] leading-7 text-slate-900 outline-none placeholder:text-slate-400 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/15`
-    : `gp-prompt-textarea mt-6 min-h-52 w-full resize-y rounded-2xl border border-white/10 bg-black/30 p-5 text-[15px] leading-7 text-white outline-none placeholder:text-white/30 focus:border-cyan-400/50 focus:ring-2 focus:ring-cyan-400/15`;
+    ? `gp-prompt-textarea mt-6 min-h-52 w-full resize-y rounded-2xl border border-slate-200 bg-slate-50/80 p-5 text-[15px] leading-7 text-slate-900 outline-none placeholder:text-slate-400 focus:border-[color:var(--page-accent-border)] focus:ring-2 focus:ring-[color:var(--page-accent-border)]`
+    : `gp-prompt-textarea mt-6 min-h-52 w-full resize-y rounded-2xl border border-white/10 bg-black/30 p-5 text-[15px] leading-7 text-white outline-none placeholder:text-white/45 focus:border-[color:var(--page-accent-border)] focus:ring-2 focus:ring-[color:var(--page-accent-border)]`;
 
-  const counter = isLight ? "mt-2 text-xs tabular-nums text-slate-400" : "mt-2 text-xs tabular-nums text-white/40";
+  const counter = isLight ? "mt-2 text-xs tabular-nums text-slate-600" : "mt-2 text-xs tabular-nums text-white/70";
 
   const toggleShell = isLight
     ? `flex max-w-full items-center gap-3 rounded-full border px-5 py-3 text-left text-sm font-bold transition ${
         filtersEnabled
-          ? "border-cyan-400/50 bg-cyan-50 text-cyan-900"
+          ? "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)]"
           : "border-slate-200 bg-slate-50 text-slate-700"
-      } ${highlightToggle ? "ring-2 ring-cyan-400/55" : ""} ${togglePulse ? "scale-[0.98] opacity-90" : ""}`
+      } ${highlightToggle ? "ring-2 ring-[color:var(--page-accent-border)]" : ""} ${togglePulse ? "scale-[0.98] opacity-90" : ""}`
     : `flex max-w-full items-center gap-3 rounded-full border px-5 py-3 text-left text-sm font-bold transition ${
         filtersEnabled
-          ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100"
+          ? "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-strong)]"
           : "border-white/10 bg-black/30 text-white/75 hover:border-white/25"
-      } ${highlightToggle ? "ring-2 ring-cyan-400/55" : ""} ${togglePulse ? "scale-[0.98] opacity-90" : ""}`;
+      } ${highlightToggle ? "ring-2 ring-[color:var(--page-accent-border)]" : ""} ${togglePulse ? "scale-[0.98] opacity-90" : ""}`;
 
   const toggleTrack = isLight
     ? `relative inline-flex h-8 w-14 shrink-0 items-center rounded-full px-0.5 transition-colors ${
-        filtersEnabled ? "justify-end bg-cyan-500" : "justify-start bg-slate-300"
+        filtersEnabled ? "justify-end bg-[var(--page-accent)]" : "justify-start bg-slate-300"
       }`
     : `relative inline-flex h-8 w-14 shrink-0 items-center rounded-full px-0.5 transition-colors ${
-        filtersEnabled ? "justify-end bg-cyan-400" : "justify-start bg-white/20"
+        filtersEnabled ? "justify-end bg-[var(--page-accent)]" : "justify-start bg-white/20"
       }`;
 
   const toggleKnob = isLight
@@ -91,6 +91,7 @@ export default function RecommendPromptSection({
       <textarea
         ref={textareaRef}
         id="recommend-prompt"
+        aria-label="Describe the kind of game you want"
         readOnly={readOnly}
         maxLength={maxLength}
         className={textarea}

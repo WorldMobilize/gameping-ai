@@ -1,36 +1,48 @@
 /**
  * Theme-aware styles for the recommend advanced filters panel.
- * UI tokens only — no filter logic.
+ * UI tokens only — no filter logic. Recommend identity = green / emerald.
  */
 
 export const RECOMMEND_FILTER_TOGGLE_ON =
-  "border-cyan-300 bg-cyan-50 text-cyan-800 dark:border-cyan-600/50 dark:bg-cyan-950/40 dark:text-cyan-200";
+  "border-green-300 bg-green-50 text-green-800 dark:border-green-600/50 dark:bg-green-950/40 dark:text-green-200";
 
+// No visible default border in light mode (border-transparent so the call
+// site's bare `border` doesn't fall back to currentColor) — depth comes from
+// the frosted glass surface + soft shadow. Dark keeps a subtle slate edge for
+// definition on the cinematic background. Hover/selected stay green.
 export const RECOMMEND_FILTER_TOGGLE_OFF =
-  "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-900";
+  "border-transparent bg-white text-slate-700 shadow-sm hover:border-green-300 hover:bg-green-50/60 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-green-600/50 dark:hover:bg-slate-900";
 
-export const RECOMMEND_FILTER_TOGGLE_TRACK_ON = "justify-end bg-cyan-600 dark:bg-cyan-500";
+export const RECOMMEND_FILTER_TOGGLE_TRACK_ON = "justify-end bg-green-600 dark:bg-green-500";
 
 export const RECOMMEND_FILTER_TOGGLE_TRACK_OFF =
   "justify-start bg-slate-300 dark:bg-slate-600";
 
+// No default outline in light mode (border-transparent) to avoid the pale-green
+// remap artifact on the frosted surface; depth via shadow. Hover/focus = green.
 export const RECOMMEND_FILTER_PRESET_CARD =
-  "rounded-2xl border border-slate-200/90 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-300/70 hover:shadow-md dark:border-slate-700/80 dark:bg-slate-900/70 dark:shadow-slate-950/30 dark:hover:border-cyan-600/50";
+  "rounded-2xl border border-transparent bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-green-300/70 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] dark:border-slate-700/80 dark:bg-slate-900/70 dark:shadow-slate-950/30 dark:hover:border-green-600/50";
 
 export const RECOMMEND_FILTER_PLATFORM_SELECTED =
-  "border-violet-300 bg-violet-50 shadow-md shadow-violet-100/50 dark:border-cyan-600/50 dark:bg-cyan-950/40 dark:shadow-cyan-950/20";
+  "border-green-300 bg-green-50 shadow-md shadow-green-100/50 dark:border-green-600/50 dark:bg-green-950/40 dark:shadow-green-950/20";
 
+// No default outline in light mode (border-transparent); the OPTION_BASE
+// shadow provides depth. Dark keeps a subtle slate edge. Hover/selected = green.
 export const RECOMMEND_FILTER_PLATFORM_UNSELECTED =
-  "border-slate-200/90 bg-white hover:border-violet-200 hover:shadow-md dark:border-slate-700/80 dark:bg-slate-900/70 dark:hover:border-cyan-600/40 dark:hover:shadow-slate-950/30";
+  "border-transparent bg-white hover:border-green-200 hover:shadow-md dark:border-slate-700/80 dark:bg-slate-900/70 dark:hover:border-green-600/40 dark:hover:shadow-slate-950/30";
 
 export const RECOMMEND_FILTER_BUDGET_PANEL =
   "rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5 dark:border-slate-700/80 dark:bg-slate-900/50";
 
 export const RECOMMEND_FILTER_TAG_ACTIVE =
-  "bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-sm shadow-cyan-600/20";
+  "bg-gradient-to-r from-green-600 to-green-500 text-white shadow-sm shadow-green-600/20";
 
+// Borderless tag pill: the call site keeps a transparent `border` only to reserve
+// width (no layout shift) — no visible outline in any state, including hover.
+// Depth comes from the frosted surface + soft shadow; hover lifts the background
+// tint and text colour instead of drawing a border. Focus ring is at the call site.
 export const RECOMMEND_FILTER_TAG_INACTIVE =
-  "border border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:text-cyan-800 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:border-cyan-600/50 dark:hover:text-cyan-300";
+  "bg-white text-slate-700 shadow-sm hover:bg-green-50/70 hover:text-green-800 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-800/70 dark:hover:text-green-300";
 
 export const RECOMMEND_FILTER_OPTION_BASE =
-  "rounded-2xl border p-5 text-left shadow-sm transition hover:-translate-y-0.5";
+  "rounded-2xl border p-5 text-left shadow-sm transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]";

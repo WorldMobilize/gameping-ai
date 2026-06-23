@@ -89,6 +89,56 @@ export function buildGameBreadcrumbs(
   ];
 }
 
+/**
+ * Display-only breadcrumbs that reflect where the user came from (via a `?from=`
+ * query param) without changing the canonical/schema breadcrumbs. The game page
+ * keeps its own (red) identity — only the path labels change. Falls back to the
+ * canonical breadcrumbs for direct visits or unknown sources.
+ */
+export function buildGameDisplayBreadcrumbs(
+  gameName: string,
+  collections: CuratedCollection[] | undefined,
+  source: string | undefined
+): GameBreadcrumbItem[] {
+  const name = gameName.trim() || "Game";
+
+  if (source === "recommend") {
+    return [
+      { label: "Home", href: "/" },
+      { label: "Recommend", href: "/recommend" },
+      { label: name },
+    ];
+  }
+
+  if (source === "games") {
+    return [
+      { label: "Home", href: "/" },
+      { label: "Games", href: "/games" },
+      { label: name },
+    ];
+  }
+
+  if (source === "curated") {
+    const primary = (collections ?? findCuratedCollectionsForGame(name))[0];
+    if (primary) {
+      return [
+        { label: "Home", href: "/" },
+        { label: "Curated", href: "/curated" },
+        { label: primary.h1, href: `/curated/${primary.slug}` },
+        { label: name },
+      ];
+    }
+    return [
+      { label: "Home", href: "/" },
+      { label: "Curated", href: "/curated" },
+      { label: name },
+    ];
+  }
+
+  // Direct visit / unknown source → canonical breadcrumbs.
+  return buildGameBreadcrumbs(name, collections);
+}
+
 function genreOverlapScore(tagOrLabel: string, genres: string[]): number {
   const blob = tagOrLabel.toLowerCase();
   let score = 0;

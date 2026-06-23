@@ -6,19 +6,13 @@ import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
   APP_CARD,
   APP_CARD_LG,
-  APP_CTA_PANEL,
-  APP_INLINE_LINK,
   APP_CARD_TITLE,
-  APP_KICKER,
   APP_MUTED,
-  APP_PAGE_LEAD,
-  APP_PAGE_TITLE,
   APP_PRIMARY_CTA_LG,
   APP_PRIMARY_CTA_SM,
   APP_SECONDARY_CTA,
   APP_SECTION_TITLE,
   APP_SECTION_TITLE_LG,
-  homeCyanChip,
 } from "@/components/app/app-styles";
 import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import { useToast } from "@/components/ToastProvider";
@@ -90,7 +84,7 @@ function DeleteConfirmCard({
       <p id="delete-confirm-title" className="text-sm font-bold text-rose-950">
         Delete this item?
       </p>
-      <p id="delete-confirm-desc" className="mt-1 text-xs leading-relaxed text-rose-800/70">
+      <p id="delete-confirm-desc" className="mt-1 text-xs leading-relaxed text-rose-800">
         This action can&apos;t be undone.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -378,29 +372,36 @@ export default function Dashboard() {
       trackedGames.some((g) => !g.is_active));
 
   return (
-    <AppPageShell>
-      <AppSection maxWidth="max-w-6xl">
+    <AppPageShell hideAmbient>
+      <div className="gp-accent-page relative isolate min-h-0 flex-1 overflow-hidden">
+        {/* Fixed cinematic background — SAME image in light + dark. */}
+        <div aria-hidden className="gp-account-bg" />
+        <AppSection maxWidth="max-w-6xl">
         <EmailVerificationNotice className="mb-8" theme="light" />
 
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div className="max-w-2xl">
-            <p className={APP_KICKER}>Dashboard</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
+              Dashboard
+            </p>
 
-            <h1 className={APP_PAGE_TITLE}>Your dashboard</h1>
+            <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">
+              Your dashboard
+            </h1>
 
-            <p className={APP_PAGE_LEAD}>
+            <p className="mt-6 text-lg leading-8 text-slate-200">
               Saved recommendation runs are complete searches you can revisit. Tracked games are
               individual titles you&apos;re monitoring for verified price drops.
             </p>
 
-            <p className={`mt-4 ${APP_MUTED}`}>
+            <p className="mt-4 text-sm text-slate-300">
               Free: 10 recommendations/day, 3 saved runs, 5 tracked games. Premium: 50/day, 25 saved
               runs, 50 tracked games.{" "}
-              <Link href="/upgrade" className={APP_INLINE_LINK}>
+              <Link href="/upgrade" className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-2 hover:underline">
                 Upgrade
               </Link>
               {" · "}
-              <Link href="/settings/account" className={APP_INLINE_LINK}>
+              <Link href="/settings/account" className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-2 hover:underline">
                 Account &amp; deletion
               </Link>
             </p>
@@ -416,7 +417,7 @@ export default function Dashboard() {
             Some items were paused because your plan changed. Free users can keep{" "}
             {PLAN_QUOTAS.freeSavedSearches} saved runs and {PLAN_QUOTAS.freeTrackedGames}{" "}
             tracked games active. Pause one to activate another, or{" "}
-            <Link href="/upgrade" className="font-semibold text-cyan-700 underline-offset-2 hover:underline">
+            <Link href="/upgrade" className="font-semibold text-[color:var(--page-accent-text)] underline-offset-2 hover:underline">
               upgrade to Premium
             </Link>
             .
@@ -528,13 +529,13 @@ export default function Dashboard() {
 
                       <div className="mt-3 flex flex-wrap gap-2">
                         {search.preferences?.genres && (
-                          <span className={homeCyanChip(false)}>
+                          <span className="inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-1 text-xs font-medium text-[color:var(--page-accent-text)]">
                             {search.preferences.genres}
                           </span>
                         )}
 
                         {search.preferences?.platform && (
-                          <span className="rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold tabular-nums text-cyan-800">
+                          <span className="rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1 text-xs font-semibold tabular-nums text-[color:var(--page-accent-text)]">
                             {search.preferences.platform}
                           </span>
                         )}
@@ -546,7 +547,7 @@ export default function Dashboard() {
                         )}
 
                         {search.preferences?.budget && (
-                          <span className="rounded-full border border-emerald-200/80 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                          <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                             Max €{search.preferences.budget}
                           </span>
                         )}
@@ -573,7 +574,7 @@ export default function Dashboard() {
                             type="button"
                             disabled={runBusy}
                             onClick={() => void setSavedRunActive(search.id, true)}
-                            className="rounded-full border border-cyan-300 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-800 transition hover:border-cyan-400 hover:bg-cyan-100 disabled:opacity-50"
+                            className="rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-2 text-sm font-semibold text-[color:var(--page-accent-text)] transition hover:border-[color:var(--page-accent-strong)] disabled:opacity-50"
                           >
                             Activate
                           </button>
@@ -617,11 +618,11 @@ export default function Dashboard() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <h3 className="font-extrabold leading-snug text-slate-900">
-                              <span className="text-slate-400">#{index + 1}</span>{" "}
+                              <span className="text-slate-500">#{index + 1}</span>{" "}
                               {detailHref ? (
                                 <Link
                                   href={detailHref}
-                                  className="text-slate-900 transition hover:text-cyan-700"
+                                  className="text-slate-900 transition hover:text-[color:var(--page-accent-text)]"
                                 >
                                   {game.title}
                                 </Link>
@@ -630,7 +631,7 @@ export default function Dashboard() {
                               )}
                             </h3>
 
-                            <span className="shrink-0 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-xs font-semibold tabular-nums text-cyan-800">
+                            <span className="shrink-0 rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1 text-xs font-semibold tabular-nums text-[color:var(--page-accent-text)]">
                               {game.match}% match
                             </span>
                           </div>
@@ -639,14 +640,14 @@ export default function Dashboard() {
                             💡 {game.reason}
                           </p>
 
-                          <p className="mt-4 font-semibold text-cyan-700">
+                          <p className="mt-4 font-semibold text-[color:var(--page-accent-text)]">
                             {game.price}
                           </p>
 
                           {detailHref ? (
                             <Link
                               href={detailHref}
-                              className={`mt-3 inline-flex ${APP_INLINE_LINK}`}
+                              className="mt-3 inline-flex font-semibold text-[color:var(--page-accent-text)] underline-offset-2 hover:underline"
                             >
                               View details
                             </Link>
@@ -663,10 +664,10 @@ export default function Dashboard() {
           </section>
 
           <section
-            className={`mt-10 ${APP_CTA_PANEL} p-6 md:p-8`}
+            className="mt-10 rounded-3xl border border-[color:var(--page-accent-border)] bg-white p-6 shadow-sm dark:bg-slate-900/70 md:p-8"
             aria-labelledby="dashboard-tracked-games-heading"
           >
-            <div className="mb-6 border-b border-cyan-200/60 pb-5">
+            <div className="mb-6 border-b border-[color:var(--page-accent-border)] pb-5">
               <h2
                 id="dashboard-tracked-games-heading"
                 className={APP_SECTION_TITLE_LG}
@@ -691,7 +692,7 @@ export default function Dashboard() {
                   <button
                     type="button"
                     onClick={() => void loadTrackedGames()}
-                    className="font-semibold text-cyan-700 underline-offset-2 hover:underline"
+                    className="font-semibold text-[color:var(--page-accent-text)] underline-offset-2 hover:underline"
                   >
                     Retry
                   </button>
@@ -739,7 +740,7 @@ export default function Dashboard() {
                           <h3 className={APP_CARD_TITLE}>
                             <Link
                               href={detailHref}
-                              className="transition hover:text-cyan-700"
+                              className="transition hover:text-[color:var(--page-accent-text)]"
                             >
                               {row.title}
                             </Link>
@@ -751,14 +752,14 @@ export default function Dashboard() {
                           )}
                         </div>
                         {priceLabel ? (
-                          <p className="mt-1 text-sm font-medium text-cyan-700">{priceLabel}</p>
+                          <p className="mt-1 text-sm font-medium text-[color:var(--page-accent-text)]">{priceLabel}</p>
                         ) : (
                           <p className={`mt-1 text-sm ${APP_MUTED}`}>
                             Baseline set on first price check
                           </p>
                         )}
                         {row.last_checked_at ? (
-                          <p className="mt-1 text-xs text-slate-400">
+                          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                             Last checked{" "}
                             {formatDisplayDate(row.last_checked_at) ?? "—"}
                           </p>
@@ -789,7 +790,7 @@ export default function Dashboard() {
                                 type="button"
                                 disabled={busy}
                                 onClick={() => void setTrackedGameActive(row.id, true)}
-                                className="rounded-full border border-cyan-300 bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-800 transition hover:border-cyan-400 hover:bg-cyan-100 disabled:opacity-50"
+                                className="rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-2 text-sm font-semibold text-[color:var(--page-accent-text)] transition hover:border-[color:var(--page-accent-strong)] disabled:opacity-50"
                               >
                                 Resume alerts
                               </button>
@@ -813,7 +814,8 @@ export default function Dashboard() {
               </div>
             )}
           </section>
-      </AppSection>
+        </AppSection>
+      </div>
     </AppPageShell>
   );
 }

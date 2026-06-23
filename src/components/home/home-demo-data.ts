@@ -519,6 +519,48 @@ export const HOME_WHY_SIMPLE = [
   },
 ] as const;
 
+/**
+ * Why GamePing — animated carousel cards (homepage).
+ * 5 static cards; `accent` highlights part of the title in cyan. No API.
+ */
+export const HOME_WHY_CAROUSEL = [
+  {
+    id: "taste",
+    title: "Taste over tags",
+    accent: "Taste",
+    detail:
+      "Store tags describe categories. GamePing reads what you actually enjoy — mood, pacing, choices, and the feel of play.",
+  },
+  {
+    id: "fit",
+    title: "Know before playing",
+    accent: "Know before",
+    detail:
+      "Every pick comes with clear reasons, strengths, and possible concerns so you can decide before you buy.",
+  },
+  {
+    id: "radar",
+    title: "Your gaming radar",
+    accent: "radar",
+    detail:
+      "Save searches, track games, and spot future matches that line up with how you like to play.",
+  },
+  {
+    id: "hidden",
+    title: "Finds hidden fits",
+    accent: "hidden fits",
+    detail:
+      "GamePing can surface games you might not search for, based on mood and playstyle.",
+  },
+  {
+    id: "explains",
+    title: "Explains the match",
+    accent: "match",
+    detail:
+      "Every pick comes with clear reasons, tradeoffs, and what kind of player it fits.",
+  },
+] as const;
+
 /** Future roadmap — single homepage section. */
 export const HOME_FUTURE_ROADMAP = [
   {

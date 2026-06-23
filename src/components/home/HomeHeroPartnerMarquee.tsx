@@ -9,10 +9,10 @@ export default function HomeHeroPartnerMarquee() {
   const isDark = theme === "dark";
 
   return (
-    <div className="w-full opacity-80">
+    <div className="w-full opacity-90">
       <p
         className={`text-center text-[10px] font-semibold uppercase tracking-[0.2em] sm:text-[11px] ${
-          isDark ? "text-slate-500" : "text-slate-400"
+          isDark ? "text-slate-400" : "text-slate-600"
         }`}
       >
         Searching across game data &amp; deal sources
@@ -24,8 +24,8 @@ export default function HomeHeroPartnerMarquee() {
             <span
               className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium tracking-tight sm:px-3.5 sm:py-1.5 sm:text-xs ${
                 isDark
-                  ? "border-slate-700/60 bg-slate-900/35 text-slate-500"
-                  : "border-slate-200/80 bg-slate-50/80 text-slate-500"
+                  ? "border-slate-700/60 bg-slate-900/35 text-slate-300"
+                  : "border-slate-200/80 bg-slate-50/80 text-slate-700"
               }`}
             >
               {source}
@@ -36,7 +36,7 @@ export default function HomeHeroPartnerMarquee() {
 
       <p
         className={`mt-3 text-center text-[11px] leading-relaxed sm:text-xs ${
-          isDark ? "text-slate-600" : "text-slate-400"
+          isDark ? "text-slate-400" : "text-slate-600"
         }`}
       >
         Data and prices may vary by store and region.
