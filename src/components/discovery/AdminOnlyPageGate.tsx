@@ -42,16 +42,8 @@ export default function AdminOnlyPageGate({ children }: { children: ReactNode })
     if (status === "denied") notFound();
   }, [status]);
 
-  if (status === "loading") {
-    return (
-      <div
-        className="gp-game-skeleton-bar-light mt-12 h-48 animate-pulse rounded-3xl border border-slate-200/90 bg-white motion-reduce:animate-none"
-        aria-busy="true"
-        aria-label="Loading"
-      />
-    );
-  }
-
+  // While checking access, render nothing (just navbar + page background) so the
+  // admin/future pages don't flash an empty glass card. Content appears once ready.
   if (status !== "admin") return null;
 
   return <>{children}</>;

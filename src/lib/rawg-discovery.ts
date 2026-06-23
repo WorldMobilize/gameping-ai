@@ -10,6 +10,10 @@ export type RawgCandidate = {
   released?: string | null
   rating?: number | null
   ratings_count?: number | null
+  /** Number of text reviews (popularity signal). */
+  reviews_count?: number | null
+  /** RAWG "similar games" suggestion count (mainstream cross-link signal). */
+  suggestions_count?: number | null
   added?: number | null
   // Optional metadata (best-effort; may be missing depending on endpoint used)
   description_raw?: string | null
@@ -358,6 +362,10 @@ export async function fetchRawgGamesList(params: {
         rating: typeof rec.rating === "number" ? rec.rating : null,
         ratings_count:
           typeof rec.ratings_count === "number" ? rec.ratings_count : null,
+        reviews_count:
+          typeof rec.reviews_count === "number" ? rec.reviews_count : null,
+        suggestions_count:
+          typeof rec.suggestions_count === "number" ? rec.suggestions_count : null,
         added: typeof rec.added === "number" ? rec.added : null,
         metacritic: typeof rec.metacritic === "number" ? rec.metacritic : null,
         image_fallback:

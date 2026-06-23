@@ -25,42 +25,53 @@ import {
  * candidates → returns null, and the page falls back to the existing static data.
  */
 
-// Famous picks to hard-avoid for Hidden Gems (the page is about overlooked games).
-// Normalised substring match against the RAWG title.
-const FAMOUS_TITLE_BLOCKLIST = [
-  "red dead redemption",
-  "the witcher 3",
-  "witcher 3",
-  "elden ring",
-  "grand theft auto",
-  "gta v",
-  "skyrim",
-  "the elder scrolls v",
-  "cyberpunk 2077",
-  "hades",
-  "hollow knight",
-  "celeste",
-  "stardew valley",
-  "undertale",
-  "terraria",
-  // A few more obvious blockbusters so admin testing stays "hidden"-flavoured.
-  "god of war",
-  "the last of us",
-  "minecraft",
-  "fortnite",
-  "counter-strike",
-  "dota 2",
-  "baldur's gate 3",
-  "portal 2",
-];
-
 function normalize(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function isFamous(name: string): boolean {
+// Hidden Gems must be overlooked/cult/lesser-known — never famous classics. Two
+// layers: distinctive franchise tokens (substring match) + famous standalone
+// titles that are short/common words (exact normalized match, to avoid false
+// positives like "Inside My Radio" matching "inside").
+
+// Famous franchises / mega-IPs — substring match on the normalized title.
+const BLOCKED_FRANCHISE_SUBSTRINGS = [
+  "mario", "luigi", "zelda", "pokemon", "grand theft auto", "gta v", "gta iv",
+  "red dead", "elder scrolls", "skyrim", "oblivion", "morrowind", "fallout",
+  "half life", "metal gear", "final fantasy", "resident evil", "assassins creed",
+  "call of duty", "halo", "god of war", "witcher", "dark souls", "demons souls",
+  "elden ring", "bloodborne", "sekiro", "armored core", "persona", "monster hunter",
+  "sonic the", "sonic mania", "sonic frontiers", "tekken", "street fighter",
+  "mortal kombat", "soulcalibur", "soul calibur", "kirby", "donkey kong", "metroid",
+  "splatoon", "animal crossing", "mario kart", "super smash", "gran turismo",
+  "uncharted", "the last of us", "horizon zero", "horizon forbidden",
+  "ghost of tsushima", "spider man", "ratchet", "gears of war", "forza",
+  "starfield", "minecraft", "fortnite", "counter strike", "dota", "league of legends",
+  "valorant", "overwatch", "apex legends", "diablo", "warcraft", "starcraft",
+  "hearthstone", "fifa", "madden", "nba 2k", "the sims", "cyberpunk 2077",
+  "batman arkham", "far cry", "watch dogs", "tomb raider", "hitman", "deus ex",
+  "dishonored", "bioshock", "borderlands", "mass effect", "dragon age",
+  "baldurs gate", "kingdom hearts", "dragon quest", "yakuza", "like a dragon",
+  "devil may cry", "bayonetta", "crash bandicoot", "spyro", "prince of persia",
+  "need for speed", "saints row", "dead space", "left 4 dead", "team fortress",
+  "destiny 2", "warframe", "path of exile", "death stranding", "sid meier",
+  "civilization", "total war", "football manager", "nier",
+];
+
+// Famous indie classics — exact normalized title match (short/common words).
+const BLOCKED_EXACT_TITLES = [
+  "hades", "hades ii", "hollow knight", "celeste", "stardew valley", "undertale",
+  "deltarune", "terraria", "cuphead", "dead cells", "slay the spire",
+  "the binding of isaac", "binding of isaac", "limbo", "inside", "journey",
+  "firewatch", "gris", "ori and the blind forest", "ori and the will of the wisps",
+];
+
+function isBlockedTitle(name: string): boolean {
   const n = normalize(name);
-  return FAMOUS_TITLE_BLOCKLIST.some((bad) => n.includes(normalize(bad)));
+  if (BLOCKED_FRANCHISE_SUBSTRINGS.some((bad) => n.includes(normalize(bad)))) {
+    return true;
+  }
+  return BLOCKED_EXACT_TITLES.some((t) => normalize(t) === n);
 }
 
 function candidateImage(c: RawgCandidate): string | undefined {
@@ -125,32 +136,141 @@ function assignHiddenCategory(c: RawgCandidate): HiddenGemCategory {
   return "Weird but brilliant";
 }
 
+// Category-based reason/standout copy — NO "critically praised (Metacritic XX)"
+// line (absurd for famous games, and Metacritic is no longer how we pick).
+const HIDDEN_GEM_REASON_BY_CATEGORY: Record<HiddenGemCategory, string> = {
+  "Weird but brilliant":
+    "An unusual genre mix that doesn't fit the normal store categories — strange, specific, and easy to miss.",
+  "Underplayed RPGs":
+    "A systems-heavy RPG with a small but devoted audience rather than mainstream reach.",
+  "Short unforgettable games":
+    "A compact, story-driven experience that rewards curiosity in a single sitting.",
+  "Cult favorites":
+    "A cult pick with a loyal niche following that most players never stumble onto.",
+  "Experimental mechanics":
+    "Built around one unusual mechanic you won't find in the big-name releases.",
+  "Story-first discoveries":
+    "A narrative game with a specific mood and voice that most players overlook.",
+  "Cozy hidden picks":
+    "A quiet, low-stress game that slipped past the mainstream spotlight.",
+  "Difficult but rewarding":
+    "A demanding game with a hard-earned payoff that never went mainstream.",
+};
+
+const HIDDEN_GEM_STANDOUT_BY_CATEGORY: Record<HiddenGemCategory, string> = {
+  "Weird but brilliant": "A genuinely strange premise executed with conviction.",
+  "Underplayed RPGs": "Deep systems and choices with a cult-sized audience.",
+  "Short unforgettable games": "Says what it needs to and ends before it overstays.",
+  "Cult favorites": "The kind of game its small fanbase won't stop recommending.",
+  "Experimental mechanics": "One distinctive mechanic the whole game is built around.",
+  "Story-first discoveries": "Writing and mood over spectacle.",
+  "Cozy hidden picks": "Calm, characterful, and quietly absorbing.",
+  "Difficult but rewarding": "Punishing at first, deeply satisfying once it clicks.",
+};
+
 function toHiddenGemPick(c: RawgCandidate): HiddenGemPick | null {
   const image = candidateImage(c);
   if (!image) return null;
   const genre = primaryGenre(c).toLowerCase();
+  const category = assignHiddenCategory(c);
   return {
     id: `rawg-${c.id}`,
     title: c.name,
     slug: c.name.toLowerCase(),
     image,
-    reason: `A ${genre} that flew under the radar — ${qualityPhrase(c)}, with a strong identity worth discovering beyond the usual recommendations.`,
-    bestFor: `Players hunting for overlooked ${genre} gems with real character.`,
-    skipIf: "You only play the biggest mainstream AAA releases.",
-    standoutElement: `Distinctive ${genre} with a clear point of view, ${qualityPhrase(c)}.`,
+    reason: HIDDEN_GEM_REASON_BY_CATEGORY[category],
+    bestFor: `Players hunting for overlooked ${genre} games with a strong identity.`,
+    skipIf: "You only play the biggest mainstream AAA and famous indie releases.",
+    standoutElement: HIDDEN_GEM_STANDOUT_BY_CATEGORY[category],
     tags: topTags(c),
-    discoveryCategory: assignHiddenCategory(c),
+    discoveryCategory: category,
     gameId: c.id,
     rating: typeof c.rating === "number" ? c.rating : null,
     released: c.released ?? null,
-    sourceNote: "Live RAWG candidate (admin testing). Price enrichment not wired yet.",
+    sourceNote:
+      "Live RAWG candidate (admin testing) — selected for underexposure, not Metacritic.",
   };
 }
 
+// --- Hidden Gems candidate strategy + thresholds ---------------------------
+// Pull from NICHE genre/tag pools ordered by rating (NOT metacritic-descending,
+// which surfaced all-time classics). Heavy popularity caps + blocklist then keep
+// only genuinely overlooked games.
+const HIDDEN_GEM_QUERY_POOLS: Array<Record<string, string>> = [
+  { genres: "indie", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { genres: "indie", ordering: "-rating", page_size: "40", page: "2", exclude_additions: "true" },
+  { genres: "adventure", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { genres: "puzzle", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { genres: "role-playing-games-rpg", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { genres: "strategy", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { genres: "simulation", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { tags: "atmospheric", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { tags: "story-rich", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+];
+
+// Popularity ceilings — anything above is "too mainstream" to be a hidden gem.
+const HIDDEN_GEM_MAX_ADDED = 9000;
+const HIDDEN_GEM_MIN_ADDED = 80;
+const HIDDEN_GEM_MAX_RATINGS_COUNT = 2500;
+const HIDDEN_GEM_MIN_RATINGS_COUNT = 40;
+const HIDDEN_GEM_MAX_REVIEWS_COUNT = 900;
+const HIDDEN_GEM_MAX_SUGGESTIONS_COUNT = 500;
+const HIDDEN_GEM_MAX_METACRITIC = 89; // 90+ = universally-known classic → reject
+const HIDDEN_GEM_MIN_RATING = 3.6;
+const HIDDEN_GEM_MIN_PICKS = 8; // else fall back to static curated (no famous filler)
+
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
+
+const UNIQUE_TAG_HINTS = [
+  "surreal", "experimental", "psychological", "weird", "unusual", "atmospheric",
+  "narrative", "story rich", "immersive sim", "detective", "hand drawn",
+  "nonlinear", "unique", "cult", "abstract", "minimalist", "time loop",
+  "metroidvania", "roguelite", "deckbuild", "tactical", "point and click",
+];
+
+function uniquenessScore(c: RawgCandidate): number {
+  const blob = metaBlob(c);
+  let hits = 0;
+  for (const h of UNIQUE_TAG_HINTS) if (blob.includes(h)) hits += 1;
+  const tagDiversity = clamp01(((c.genres?.length ?? 0) + (c.tags?.length ?? 0)) / 12);
+  return clamp01((hits / 4) * 0.7 + tagDiversity * 0.3);
+}
+
 /**
- * Real "hidden gem" candidates: acclaimed (high metacritic / rating) but
- * mid/low popularity (so not the obvious blockbusters), with the famous-title
- * blocklist applied. Returns null → caller uses the static curated list.
+ * Hidden-gem score — prioritises UNDEREXPOSURE + uniqueness, NOT Metacritic.
+ * Higher = better hidden gem.
+ */
+function hiddenGemScore(c: RawgCandidate): number {
+  const rating = typeof c.rating === "number" ? c.rating : 0;
+  const added = typeof c.added === "number" ? c.added : 0;
+  const rc = typeof c.ratings_count === "number" ? c.ratings_count : 0;
+
+  const underexposure = added > 0 ? clamp01(1 - added / HIDDEN_GEM_MAX_ADDED) : 0.6;
+  const nicheReviews = rc > 0 ? clamp01(1 - rc / HIDDEN_GEM_MAX_RATINGS_COUNT) : 0.6;
+  const quality = clamp01(rating / 5);
+  const uniqueness = uniquenessScore(c);
+
+  let score = underexposure * 40 + nicheReviews * 20 + quality * 20 + uniqueness * 20;
+
+  // Metacritic is rewarded only mildly, and damped as it nears "classic" territory.
+  const mc = typeof c.metacritic === "number" ? c.metacritic : 0;
+  if (mc >= 85) score -= (mc - 84) * 2.5;
+
+  // Extra dampening as popularity approaches the caps (mainstream penalty).
+  if (added > HIDDEN_GEM_MAX_ADDED * 0.7) score -= 12;
+  if (rc > HIDDEN_GEM_MAX_RATINGS_COUNT * 0.7) score -= 8;
+
+  return score;
+}
+
+/**
+ * Real "hidden gem" candidates: overlooked / cult / lesser-known. Pulled from
+ * niche genre/tag pools, filtered by popularity caps + a famous-title blocklist,
+ * scored by underexposure (not Metacritic), then validated. If fewer than
+ * HIDDEN_GEM_MIN_PICKS survive, returns null → caller uses the static curated
+ * list (better to show fewer good gems than famous filler).
  */
 export async function getLiveHiddenGemPicks(): Promise<
   { featured: HiddenGemPick; picks: HiddenGemPick[] } | null
@@ -159,47 +279,54 @@ export async function getLiveHiddenGemPicks(): Promise<
   if (!rawgApiKey) return null;
 
   try {
-    const [byMetacritic, byRating] = await Promise.all([
-      fetchRawgGamesList({
-        rawgApiKey,
-        query: {
-          metacritic: "80,100",
-          ordering: "-metacritic",
-          page_size: "40",
-          exclude_additions: "true",
-        },
-      }),
-      fetchRawgGamesList({
-        rawgApiKey,
-        query: {
-          metacritic: "78,96",
-          ordering: "-rating",
-          page_size: "40",
-          exclude_additions: "true",
-        },
-      }),
-    ]);
-
-    const deduped = dedupeCandidates([...byMetacritic, ...byRating]);
+    const pools = await Promise.all(
+      HIDDEN_GEM_QUERY_POOLS.map((query) => fetchRawgGamesList({ rawgApiKey, query }))
+    );
+    const deduped = dedupeCandidates(pools.flat());
 
     const filtered = deduped.filter((c) => {
       if (!candidateImage(c)) return false;
       if (isLowQualityTitle(c.name)) return false;
-      if (isFamous(c.name)) return false;
-      // "good rating"
-      if (typeof c.rating === "number" && c.rating < 3.6) return false;
-      // lower / mid popularity — drop blockbusters (added is users-who-own).
+      if (isBlockedTitle(c.name)) return false; // famous franchises + indie classics
+
+      const rating = typeof c.rating === "number" ? c.rating : 0;
+      if (rating > 0 && rating < HIDDEN_GEM_MIN_RATING) return false;
+
       const added = typeof c.added === "number" ? c.added : 0;
-      if (added > 12000) return false;
-      if (added > 0 && added < 30) return false; // avoid near-empty entries
+      if (added > HIDDEN_GEM_MAX_ADDED) return false; // too mainstream
+      if (added > 0 && added < HIDDEN_GEM_MIN_ADDED) return false; // near-empty
+
+      const rc = typeof c.ratings_count === "number" ? c.ratings_count : 0;
+      if (rc > HIDDEN_GEM_MAX_RATINGS_COUNT) return false; // too popular
+      if (rc > 0 && rc < HIDDEN_GEM_MIN_RATINGS_COUNT) return false; // too obscure/junk
+
+      const reviews = typeof c.reviews_count === "number" ? c.reviews_count : 0;
+      if (reviews > HIDDEN_GEM_MAX_REVIEWS_COUNT) return false;
+
+      const suggestions = typeof c.suggestions_count === "number" ? c.suggestions_count : 0;
+      if (suggestions > HIDDEN_GEM_MAX_SUGGESTIONS_COUNT) return false;
+
+      const mc = typeof c.metacritic === "number" ? c.metacritic : 0;
+      if (mc > HIDDEN_GEM_MAX_METACRITIC) return false; // 90+ = universally-known classic
+
       return true;
     });
 
-    // Diversify across discovery categories so the grid isn't all one type.
-    const ordered = diversifyByKey(filtered, (c) => assignHiddenCategory(c));
+    // Rank by underexposure/uniqueness, then diversify across discovery categories.
+    const scored = filtered
+      .map((c) => ({ c, score: hiddenGemScore(c) }))
+      .sort((a, b) => b.score - a.score)
+      .map((s) => s.c);
+    const ordered = diversifyByKey(scored, (c) => assignHiddenCategory(c));
 
-    const picks = ordered.map(toHiddenGemPick).filter(notNullPick);
-    if (picks.length < 7) return null;
+    // Build picks, then a final validation pass (belt-and-braces) drops anything
+    // that still matches a blocked franchise/title keyword.
+    const picks = ordered
+      .map(toHiddenGemPick)
+      .filter(notNullPick)
+      .filter((p) => !isBlockedTitle(p.title));
+
+    if (picks.length < HIDDEN_GEM_MIN_PICKS) return null; // → static curated fallback
 
     return {
       featured: picks[0],

@@ -18,6 +18,15 @@ function accentForPath(pathname: string): string {
   if (pathname === "/deals-for-you") return "deals";
   if (pathname === "/monthly-recap") return "recap";
   if (pathname === "/dashboard" || pathname.startsWith("/settings")) return "account";
+  // Auth pages share the Account/Dashboard (silver) identity.
+  if (
+    pathname === "/login" ||
+    pathname === "/reset-password" ||
+    pathname === "/update-password" ||
+    pathname === "/verify-success"
+  ) {
+    return "account";
+  }
   if (pathname === "/game" || pathname.startsWith("/game/")) return "games";
   if (pathname === "/games" || pathname.startsWith("/games/")) return "games";
   return "cyan";

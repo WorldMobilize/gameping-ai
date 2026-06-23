@@ -379,26 +379,18 @@
 }
 
 /* Embedded landing-tutorial detail preview backdrop. The final "View details"
- * step reuses the REAL GameDetailView, whose full-page hero is built for a dark
- * cinematic backdrop in BOTH themes (white hero text + a from-black/via-#070b14
- * scrim). Rather than a flat #070b14 fill (reads as a black/grey block that
- * doesn't belong), the overlay shows the SAME cinematic landing image — local
- * (not fixed) so it lives inside the scaled preview — so light mode keeps the
- * landing's "dark room, light cards" model and the preview visually integrates
- * with the tutorial. Theme-identical, matching the .gp-landing-bg rule. */
+ * step reuses the REAL GameDetailView, scaled into the demo stage. The other demo
+ * steps (prompt / results / refine) render on a TRANSPARENT stage, so the shared
+ * trailer atmosphere (translucent dark panel over the landing teal + geometric
+ * lines) shows through. To keep one continuous demo, this overlay is transparent
+ * too — it inherits that exact backdrop rather than painting its own surface.
+ * (Earlier this re-painted the landing image as an opaque cover = "leak"; a flat
+ * dark fill = isolated black. Transparent matches the rest of the demo.)
+ * Light mode gets its own frosted surface below. Scoped to the preview wrapper
+ * only — the real /game/[slug] page never uses this class. */
 .gp-demo-detail-bg {
-  background-color: #070b14;
-  background-image:
-    linear-gradient(
-      to bottom,
-      rgba(7, 11, 20, 0.15) 0%,
-      rgba(7, 11, 20, 0.4) 48%,
-      rgba(7, 11, 20, 0.72) 100%
-    ),
-    url("/images/backgrounds/gameping-hero-bg-dark.png");
-  background-repeat: no-repeat, no-repeat;
-  background-position: center top, center top;
-  background-size: cover, cover;
+  background-color: transparent;
+  background-image: none;
 }
 
 /* --- Tutorial detail preview: LIGHT MODE only -----------------------------

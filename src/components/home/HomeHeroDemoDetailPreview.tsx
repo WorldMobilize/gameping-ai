@@ -29,6 +29,16 @@ export const DEMO_DETAIL_FIXED_WIDTH = 1280;
 
 const COVER = steamHeaderImage(264710);
 
+// Real Subnautica screenshots (Steam CDN — already-allowlisted host, stable URLs,
+// captured statically so the tutorial makes NO live API calls). Distinct images so
+// the gallery isn't repeated cover art. Used only by this embedded preview.
+const SUBNAUTICA_SCREENSHOTS = [
+  "https://cdn.akamai.steamstatic.com/steam/apps/264710/ss_e182b6b20bb797500f9f63c561586d920d44e37c.1920x1080.jpg",
+  "https://cdn.akamai.steamstatic.com/steam/apps/264710/ss_970a13f246e33e0df26d93baf9f8e975732adb4b.1920x1080.jpg",
+  "https://cdn.akamai.steamstatic.com/steam/apps/264710/ss_5f2f2ea498cdc632cbffd6cf37c1a09670eb3272.1920x1080.jpg",
+  "https://cdn.akamai.steamstatic.com/steam/apps/264710/ss_cebc378d2f7bc78978c21db4e3c5e12ccd067349.1920x1080.jpg",
+];
+
 const SUBNAUTICA_DEMO_DATA: GameDetailViewData = {
   title: "Subnautica",
   breadcrumbs: [
@@ -117,12 +127,10 @@ const SUBNAUTICA_DEMO_DATA: GameDetailViewData = {
   sidebarPriceValue: "$14.99",
   sidebarPriceBody: "Lowest verified price from our supported stores.",
 
-  screenshots: [
-    { id: 1, image: COVER },
-    { id: 2, image: COVER },
-    { id: 3, image: COVER },
-    { id: 4, image: COVER },
-  ],
+  screenshots: SUBNAUTICA_SCREENSHOTS.map((image, index) => ({
+    id: index + 1,
+    image,
+  })),
 
   recommendFit: {
     reason:

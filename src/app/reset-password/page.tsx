@@ -4,11 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
-  APP_ACCENT,
   APP_AUTH_CARD,
   APP_INLINE_LINK,
   APP_INPUT,
-  APP_PRIMARY_CTA_SM,
+  APP_PRIMARY_CTA_ACCENT_SM,
 } from "@/components/app/app-styles";
 import { supabase } from "@/lib/supabase";
 
@@ -47,15 +46,18 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <AppPageShell>
-      <AppSection
-        maxWidth="max-w-md"
-        className="flex flex-1 items-center justify-center py-12"
-      >
-        <div className={APP_AUTH_CARD}>
-          <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
-            Reset <span className={APP_ACCENT}>password</span>
-          </h1>
+    <AppPageShell hideAmbient>
+      {/* Same cinematic background + account (silver) accent as /dashboard and /settings/account. */}
+      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div aria-hidden className="gp-account-bg" />
+        <AppSection
+          maxWidth="max-w-md"
+          className="flex flex-1 items-center justify-center py-12"
+        >
+          <div className={APP_AUTH_CARD}>
+            <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
+              Reset <span className="text-[color:var(--page-accent-text)]">password</span>
+            </h1>
 
           <p className="mt-3 text-center text-sm text-slate-700 dark:text-slate-300">
             Enter the email for your GamePing account. We will send a reset link if it matches an
@@ -84,7 +86,7 @@ export default function ResetPasswordPage() {
             ) : null}
 
             {sent ? (
-              <p className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm text-cyan-800">
+              <p className="mt-4 rounded-xl border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-3 text-sm text-[color:var(--page-accent-text)]">
                 If an account exists, we sent you a password reset link.
               </p>
             ) : null}
@@ -92,7 +94,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`mt-6 ${APP_PRIMARY_CTA_SM} w-full disabled:cursor-not-allowed disabled:opacity-60`}
+              className={`mt-6 ${APP_PRIMARY_CTA_ACCENT_SM} w-full disabled:cursor-not-allowed disabled:opacity-60`}
             >
               {loading ? "Sending…" : "Send reset link"}
             </button>
@@ -104,7 +106,8 @@ export default function ResetPasswordPage() {
             </Link>
           </p>
         </div>
-      </AppSection>
+        </AppSection>
+      </div>
     </AppPageShell>
   );
 }

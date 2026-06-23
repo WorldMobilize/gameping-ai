@@ -5,11 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
-  APP_ACCENT,
   APP_AUTH_CARD,
   APP_INLINE_LINK,
   APP_INPUT,
-  APP_PRIMARY_CTA_SM,
+  APP_PRIMARY_CTA_ACCENT_SM,
 } from "@/components/app/app-styles";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
@@ -121,56 +120,63 @@ export default function UpdatePasswordPage() {
   };
 
   if (phase === "checking") {
+    // Navbar + account background only — no loading card flash while we verify.
     return (
-      <AppPageShell>
-        <AppSection className="flex min-h-[50vh] items-center justify-center">
-          <p className="text-sm text-slate-600 dark:text-slate-400">Verifying reset link…</p>
-        </AppSection>
+      <AppPageShell hideAmbient>
+        <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div aria-hidden className="gp-account-bg" />
+        </div>
       </AppPageShell>
     );
   }
 
   if (phase === "invalid") {
     return (
-      <AppPageShell>
-        <AppSection
-          maxWidth="max-w-md"
-          className="flex flex-1 items-center justify-center py-12"
-        >
-          <div className={`${APP_AUTH_CARD} text-center`}>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white gp-home-display">
-              Link <span className={APP_ACCENT}>invalid</span>
-            </h1>
-            <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-              This reset link is invalid or expired. Please request a new one.
-            </p>
-            <Link
-              href="/reset-password"
-              className={`mt-8 inline-flex ${APP_PRIMARY_CTA_SM}`}
-            >
-              Request new link
-            </Link>
-            <p className="mt-6 text-sm text-slate-600 dark:text-slate-400">
-              <Link href="/login" className={APP_INLINE_LINK}>
-                Back to login
+      <AppPageShell hideAmbient>
+        <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div aria-hidden className="gp-account-bg" />
+          <AppSection
+            maxWidth="max-w-md"
+            className="flex flex-1 items-center justify-center py-12"
+          >
+            <div className={`${APP_AUTH_CARD} text-center`}>
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white gp-home-display">
+                Link <span className="text-[color:var(--page-accent-text)]">invalid</span>
+              </h1>
+              <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                This reset link is invalid or expired. Please request a new one.
+              </p>
+              <Link
+                href="/reset-password"
+                className={`mt-8 inline-flex ${APP_PRIMARY_CTA_ACCENT_SM}`}
+              >
+                Request new link
               </Link>
-            </p>
-          </div>
-        </AppSection>
+              <p className="mt-6 text-sm text-slate-600 dark:text-slate-400">
+                <Link href="/login" className={APP_INLINE_LINK}>
+                  Back to login
+                </Link>
+              </p>
+            </div>
+          </AppSection>
+        </div>
       </AppPageShell>
     );
   }
 
   return (
-    <AppPageShell>
-      <AppSection
-        maxWidth="max-w-md"
-        className="flex flex-1 items-center justify-center py-12"
-      >
-        <div className={APP_AUTH_CARD}>
-          <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
-            New <span className={APP_ACCENT}>password</span>
-          </h1>
+    <AppPageShell hideAmbient>
+      {/* Same cinematic background + account (silver) accent as /dashboard and /settings/account. */}
+      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div aria-hidden className="gp-account-bg" />
+        <AppSection
+          maxWidth="max-w-md"
+          className="flex flex-1 items-center justify-center py-12"
+        >
+          <div className={APP_AUTH_CARD}>
+            <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
+              New <span className="text-[color:var(--page-accent-text)]">password</span>
+            </h1>
 
           <p className="mt-3 text-center text-sm text-slate-600 dark:text-slate-300">
             Choose a new password for your account (at least 8 characters).
@@ -214,7 +220,7 @@ export default function UpdatePasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className={`mt-6 ${APP_PRIMARY_CTA_SM} w-full disabled:cursor-not-allowed disabled:opacity-60`}
+              className={`mt-6 ${APP_PRIMARY_CTA_ACCENT_SM} w-full disabled:cursor-not-allowed disabled:opacity-60`}
             >
               {loading ? "Updating…" : "Update password"}
             </button>
@@ -226,7 +232,8 @@ export default function UpdatePasswordPage() {
             </Link>
           </p>
         </div>
-      </AppSection>
+        </AppSection>
+      </div>
     </AppPageShell>
   );
 }

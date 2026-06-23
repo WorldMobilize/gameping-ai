@@ -595,7 +595,17 @@ export default function HomeHeroTasteVisual() {
             className={`relative overflow-hidden ${STAGE_CLASS}`}
             style={{ contain: "layout" }}
           >
-            <div ref={tapeRef} style={{ transform: `translateY(-${frame.scrollY}px)` }}>
+            {/* Previous steps (prompt / results / refine). Hidden while the detail
+                preview is open so it doesn't show through the transparent detail
+                overlay — the detail step is the only visible content then. */}
+            <div
+              ref={tapeRef}
+              className={`transition-opacity duration-300 ${
+                frame.detailPreview.open ? "pointer-events-none opacity-0" : "opacity-100"
+              }`}
+              aria-hidden={frame.detailPreview.open ? true : undefined}
+              style={{ transform: `translateY(-${frame.scrollY}px)` }}
+            >
               <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
                 <RecommendPromptSection
                   theme={demoTheme}

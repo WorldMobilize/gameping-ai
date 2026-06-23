@@ -10,11 +10,10 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
-  APP_ACCENT,
   APP_AUTH_CARD,
   APP_INLINE_LINK,
   APP_INPUT,
-  APP_PRIMARY_CTA_SM,
+  APP_PRIMARY_CTA_ACCENT_SM,
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
 import { useToast } from "@/components/ToastProvider";
@@ -179,15 +178,18 @@ function LoginForm() {
   };
 
   return (
-    <AppPageShell>
-      <AppSection
-        maxWidth="max-w-md"
-        className="flex flex-1 items-center justify-center py-12"
-      >
-        <div className={APP_AUTH_CARD}>
-          <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
-            Welcome to <span className={APP_ACCENT}>GamePing AI</span>
-          </h1>
+    <AppPageShell hideAmbient>
+      {/* Same cinematic background + account (silver) accent as /dashboard and /settings/account. */}
+      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div aria-hidden className="gp-account-bg" />
+        <AppSection
+          maxWidth="max-w-md"
+          className="flex flex-1 items-center justify-center py-12"
+        >
+          <div className={APP_AUTH_CARD}>
+            <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
+              Welcome to <span className="text-[color:var(--page-accent-text)]">GamePing AI</span>
+            </h1>
 
           <p className="mt-3 text-center text-sm text-slate-600 dark:text-slate-300">
             Save your game preferences and get smart alerts.
@@ -204,15 +206,15 @@ function LoginForm() {
 
           <ul className="mt-6 space-y-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
             <li className="flex gap-2">
-              <span className="text-cyan-600">✓</span>
+              <span className="text-[color:var(--page-accent-text)]">✓</span>
               <span>Save recommendation runs to your dashboard</span>
             </li>
             <li className="flex gap-2">
-              <span className="text-cyan-600">✓</span>
+              <span className="text-[color:var(--page-accent-text)]">✓</span>
               <span>Track games and get price alerts</span>
             </li>
             <li className="flex gap-2">
-              <span className="text-cyan-600">✓</span>
+              <span className="text-[color:var(--page-accent-text)]">✓</span>
               <span>Keep your game discovery organized</span>
             </li>
           </ul>
@@ -254,7 +256,7 @@ function LoginForm() {
             <button
               type="button"
               onClick={signIn}
-              className={`${APP_PRIMARY_CTA_SM} w-full`}
+              className={`${APP_PRIMARY_CTA_ACCENT_SM} w-full`}
             >
               Login
             </button>
@@ -288,17 +290,19 @@ function LoginForm() {
             .
           </p>
         </div>
-      </AppSection>
+        </AppSection>
+      </div>
     </AppPageShell>
   );
 }
 
 function LoginFallback() {
+  // Navbar + account background only — no loading card/text flash.
   return (
-    <AppPageShell>
-      <AppSection className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-sm text-slate-600 dark:text-slate-400">Loading…</p>
-      </AppSection>
+    <AppPageShell hideAmbient>
+      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div aria-hidden className="gp-account-bg" />
+      </div>
     </AppPageShell>
   );
 }
