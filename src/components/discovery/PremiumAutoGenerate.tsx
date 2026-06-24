@@ -19,10 +19,16 @@ type Phase = "working" | "insufficient" | "error";
 export default function PremiumAutoGenerate({
   type,
   noun,
+  insufficientTitle,
+  insufficientBody,
 }: {
   type: PremiumRotationType;
   /** e.g. "weekly picks", "deals", "recap" — used in copy. */
   noun: string;
+  /** Override the "insufficient" headline (e.g. Deals → "No great matches right now"). */
+  insufficientTitle?: string;
+  /** Override the "insufficient" body copy. */
+  insufficientBody?: string;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("working");
@@ -99,12 +105,13 @@ export default function PremiumAutoGenerate({
     <section className={`mt-8 ${APP_CARD} p-6`}>
       <h2 className="text-lg font-bold text-slate-900 dark:text-white">
         {phase === "insufficient"
-          ? `Not enough signal yet for credible ${noun}`
+          ? insufficientTitle ?? `Not enough signal yet for credible ${noun}`
           : `Couldn't build your ${noun} right now`}
       </h2>
       <p className={`mt-2 max-w-2xl text-sm leading-6 ${APP_MUTED}`}>
         {phase === "insufficient"
-          ? "We only recommend real, credible games — and we don't have enough of your taste yet to find them. Import your Steam library, save a search, or track a few games, then try again."
+          ? insufficientBody ??
+            "We only recommend real, credible games — and we don't have enough of your taste yet to find them. Import your Steam library, save a search, or track a few games, then try again."
           : "Something went wrong while generating. Please try again in a moment."}
       </p>
       <div className="mt-5 flex flex-wrap gap-3">

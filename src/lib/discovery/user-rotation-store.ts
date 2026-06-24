@@ -57,6 +57,16 @@ export type MonthlyRecapCore = {
   personality: { name: string; summary: string; dna: { label: string; value: number }[] };
   month: { searches: number; discovered: number; saved: number; alerts: number };
   evolution: { before: string[]; now: string[] };
+  // --- Spotify-Wrapped-style fields (optional so older cached rows still parse) ---
+  /** "You kept returning to" — the user's strongest recurring taste themes. */
+  returnsTo?: string[];
+  /** Most-played games (from Steam). `scope` says whether these are all-time. */
+  topPlayed?: { title: string; hours: number }[];
+  /** Dominant genres + favorite mechanics, shown as identity chips. */
+  dominantGenres?: string[];
+  favoriteMechanics?: string[];
+  /** Whether playtime-based sections reflect all-time Steam data vs this month. */
+  playtimeScope?: "all-time" | "this-month";
 };
 
 /** Generic stored payload (the generator fills the right shapes per type). */

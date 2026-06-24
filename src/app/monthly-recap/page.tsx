@@ -7,6 +7,7 @@ import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsel
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
 import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
 import PremiumRotationAdminLine from "@/components/discovery/PremiumRotationAdminLine";
+import PremiumUpdateStatus from "@/components/discovery/PremiumUpdateStatus";
 import WeeklyPickPremiumCard from "@/components/discovery/WeeklyPickPremiumCard";
 import {
   MONTHLY_RECAP_DEMO_DATA,
@@ -86,10 +87,18 @@ export default async function MonthlyRecapPage({
 
   const isGenerated = state === "generated";
   const isGenerating = state === "generating";
-  const personality = isGenerated && generatedCore ? generatedCore.personality : MONTHLY_RECAP_DEMO_DATA.personality;
-  const month = isGenerated && generatedCore ? generatedCore.month : MONTHLY_RECAP_DEMO_DATA.month;
-  const evolution = isGenerated && generatedCore ? generatedCore.evolution : MONTHLY_RECAP_DEMO_DATA.evolution;
+  const core = isGenerated && generatedCore ? generatedCore : null;
+  const personality = core ? core.personality : MONTHLY_RECAP_DEMO_DATA.personality;
+  const month = core ? core.month : MONTHLY_RECAP_DEMO_DATA.month;
+  const evolution = core ? core.evolution : MONTHLY_RECAP_DEMO_DATA.evolution;
   const predictions = isGenerated ? generatedPredictions : MONTHLY_RECAP_DEMO_DATA.predictions;
+  const returnsTo = core?.returnsTo?.length ? core.returnsTo : MONTHLY_RECAP_DEMO_DATA.returnsTo;
+  const topPlayed = core?.topPlayed?.length ? core.topPlayed : isGenerated ? [] : MONTHLY_RECAP_DEMO_DATA.topPlayed;
+  const dominantGenres = core?.dominantGenres?.length ? core.dominantGenres : MONTHLY_RECAP_DEMO_DATA.dominantGenres;
+  const favoriteMechanics = core?.favoriteMechanics?.length
+    ? core.favoriteMechanics
+    : MONTHLY_RECAP_DEMO_DATA.favoriteMechanics;
+  const playtimeAllTime = core ? core.playtimeScope !== "this-month" : true;
 
   const monthStats = [
     { label: "Searches made", value: month.searches },
@@ -125,10 +134,13 @@ export default async function MonthlyRecapPage({
           </p>
           <PremiumRotationAdminLine viewer={access.viewer} meta={meta} aiUsed={meta?.sourceSummary?.aiUsed} />
 
-          {access.canViewPersonalized && isGenerated ? (
+          {isGenerated && access.viewer === "admin" ? (
             <div className="mt-6">
               <PremiumRefreshButton type="monthly_recap" label="Refresh recap" />
             </div>
+          ) : null}
+          {isGenerated && access.viewer === "premium" ? (
+            <PremiumUpdateStatus type="monthly_recap" />
           ) : null}
 
           {state === "locked" ? (
@@ -197,6 +209,94 @@ export default async function MonthlyRecapPage({
                   ) : null}
                 </div>
               </section>
+
+              {/* Section 1b — You kept returning to (Wrapped-style identity) */}
+              {returnsTo.length > 0 ? (
+                <section className="mt-10" aria-labelledby="recap-returns-heading">
+                  <div className={`${APP_CARD} p-6 sm:p-8`}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--page-accent-text)]">
+                      You kept returning to
+                    </p>
+                    <ul id="recap-returns-heading" className="mt-4 space-y-2.5">
+                      {returnsTo.map((item) => (
+                        <li key={item} className="flex items-center gap-3 text-lg font-bold text-slate-900 dark:text-white">
+                          <span aria-hidden className="text-[color:var(--page-accent-text)]">✓</span>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              ) : null}
+
+              {/* Section 1c — Top played + taste identity */}
+              {topPlayed.length > 0 || dominantGenres.length > 0 || favoriteMechanics.length > 0 ? (
+                <section className="mt-10 grid gap-6 lg:grid-cols-2" aria-label="Top played and taste identity">
+                  {topPlayed.length > 0 ? (
+                    <div className={`${APP_CARD} p-6`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300">
+                          Most played
+                        </h2>
+                        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
+                          {playtimeAllTime ? "All-time" : "This month"}
+                        </span>
+                      </div>
+                      <ol className="mt-4 space-y-2.5">
+                        {topPlayed.map((g, i) => (
+                          <li key={g.title} className="flex items-center justify-between gap-3">
+                            <span className="flex items-center gap-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
+                              <span className="tabular-nums text-[color:var(--page-accent-text)]">{i + 1}</span>
+                              {g.title}
+                            </span>
+                            <span className={`shrink-0 text-sm tabular-nums ${APP_MUTED}`}>{g.hours}h</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ) : null}
+
+                  <div className={`${APP_CARD} p-6`}>
+                    <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-600 dark:text-slate-300">
+                      Your taste
+                    </h2>
+                    {dominantGenres.length > 0 ? (
+                      <>
+                        <p className={`mt-4 text-xs font-semibold uppercase tracking-[0.15em] ${APP_MUTED}`}>
+                          Dominant genres
+                        </p>
+                        <ul className="mt-2 flex flex-wrap gap-2">
+                          {dominantGenres.map((g) => (
+                            <li
+                              key={g}
+                              className="inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1.5 text-sm font-semibold text-[color:var(--page-accent-text)]"
+                            >
+                              {g}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                    {favoriteMechanics.length > 0 ? (
+                      <>
+                        <p className={`mt-4 text-xs font-semibold uppercase tracking-[0.15em] ${APP_MUTED}`}>
+                          Favorite mechanics
+                        </p>
+                        <ul className="mt-2 flex flex-wrap gap-2">
+                          {favoriteMechanics.map((m) => (
+                            <li
+                              key={m}
+                              className="inline-flex rounded-full border border-slate-200/80 bg-white/70 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200"
+                            >
+                              {m}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    ) : null}
+                  </div>
+                </section>
+              ) : null}
 
               {/* Section 2 — Your month */}
               <section className="mt-14" aria-labelledby="recap-month-heading">

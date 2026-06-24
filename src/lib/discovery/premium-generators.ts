@@ -104,27 +104,49 @@ function ownedAndKnownNorms(profile: UserTasteProfile): Set<string> {
   ]);
 }
 
-/** Deterministic "why picked" from overlap of taste signals + candidate metadata. */
+/** Most-played Steam game with meaningful hours (the strongest taste signal). */
+function topPlayedRef(profile: UserTasteProfile): { title: string; hours: number } | null {
+  const g = profile.favoriteGames.find((x) => x.source === "steam" && (x.playtimeMin ?? 0) >= 120);
+  if (!g) return null;
+  return { title: g.title, hours: Math.round((g.playtimeMin ?? 0) / 60) };
+}
+
+/**
+ * Deterministic "why picked" — personalized to THIS user's signals, never
+ * generic review language. Each reason names the concrete signal that drove it
+ * (a preferred genre/mechanic, or the taste reflected in their most-played game).
+ * Used only when the AI explainer is unavailable.
+ */
 function deterministicWhyPicked(profile: UserTasteProfile, c: RawgCandidate): string[] {
   const reasons: string[] = [];
   const blob = norm([...candidateGenres(c), ...candidateTags(c)].join(" "));
-  for (const genre of profile.preferredGenres) {
-    if (blob.includes(norm(genre))) {
-      reasons.push(`Matches your interest in ${genre.toLowerCase()}`);
-      break;
-    }
+
+  const matchedGenre = profile.preferredGenres.find((g) => blob.includes(norm(g)));
+  if (matchedGenre) {
+    reasons.push(`Your library leans into ${matchedGenre.toLowerCase()}, and this sits squarely in that lane`);
   }
-  for (const like of profile.likes) {
-    if (blob.includes(norm(like))) {
-      reasons.push(`Fits your taste for ${like.toLowerCase()}`);
-      break;
-    }
+
+  const matchedSignal = [...profile.preferredMechanics, ...profile.likes].find((s) =>
+    blob.includes(norm(s))
+  );
+  if (matchedSignal && reasons.length < 3) {
+    reasons.push(`Carries the ${matchedSignal.toLowerCase()} you keep coming back to`);
   }
-  if (typeof c.rating === "number" && c.rating >= 4) {
-    reasons.push("Highly rated by players");
+
+  const played = topPlayedRef(profile);
+  if (played && reasons.length < 3) {
+    reasons.push(
+      `Picked for the same taste that put ${played.hours}h into ${played.title}`
+    );
   }
+
   if (reasons.length === 0) {
-    reasons.push(`A strong ${primaryGenre(c).toLowerCase()} pick worth a look`);
+    // Still grounded in the user, not the game's reputation.
+    const genre = primaryGenre(c).toLowerCase();
+    reasons.push(`A ${genre} pick chosen to match your taste profile`);
+    if (profile.preferredGenres[0]) {
+      reasons.push(`Lines up with your interest in ${profile.preferredGenres[0].toLowerCase()}`);
+    }
   }
   return reasons.slice(0, 3);
 }
@@ -222,6 +244,28 @@ function parsePrice(value: string | undefined): number {
   return Number.isFinite(n) && n > 0 ? n : NaN;
 }
 
+function dealConfidence(matchScore: number): "high" | "medium" | "low" {
+  if (matchScore >= 85) return "high";
+  if (matchScore >= 72) return "medium";
+  return "low";
+}
+
+function deterministicWhyNow(discountPercent: number, intent: boolean): string {
+  if (intent) return `On your list and ${discountPercent}% off right now.`;
+  if (discountPercent >= 60) return `Steep ${discountPercent}% discount on a strong taste match.`;
+  if (discountPercent >= 30) return `${discountPercent}% off — a solid moment to grab a taste match.`;
+  return `${discountPercent}% off a game that fits your taste.`;
+}
+
+/**
+ * Deals For You — "games you'd actually like that happen to be on sale".
+ *
+ * Candidates come from BOTH the user's intent signals (tracked + saved games)
+ * AND fresh taste-matched discovery (RAWG from the taste profile) so a Steam-only
+ * user still gets deals. Owned games are excluded. We keep ONLY games with a real
+ * verified discount, rank by taste fit first (discount is a tiebreaker, never the
+ * driver), and return "no_good_deals" rather than padding with bad cheap games.
+ */
 export async function generateDealsForYou(userId: string): Promise<GeneratePremiumResult> {
   const rawgApiKey = process.env.RAWG_API_KEY?.trim();
   if (!rawgApiKey) return { ok: false, error: "RAWG_API_KEY is not configured" };
@@ -229,57 +273,92 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
   const profile = await buildUserTasteProfile(userId);
   if (!profile.complete) return { ok: false, error: "insufficient_taste_signal" };
 
-  // Find deals on games the user is INTERESTED in (saved searches + tracked
-  // games) — never on games they already OWN on Steam (a discount on an owned
-  // game is useless). Owned-only users get the graceful "no deal signal" state.
   const ownedNorms = new Set(profile.ownedTitleNorms);
-  const titles = [
+
+  // Intent candidates: games the user tracks/saved (not owned) — highest priority.
+  const intentTitles = [
     ...new Set(
       profile.favoriteGames
         .filter((g) => g.source !== "steam" && !ownedNorms.has(normalizeForMatch(g.title)))
         .map((g) => g.title)
     ),
-  ].slice(0, MAX_DEAL_TITLES);
-  if (titles.length === 0) return { ok: false, error: "no_titles_to_price" };
+  ].slice(0, 6);
+
+  type PriceCandidate = { title: string; rawg: RawgCandidate | null; intent: boolean };
+  const candidates: PriceCandidate[] = intentTitles.map((title) => ({ title, rawg: null, intent: true }));
 
   try {
+    // Discovery candidates: fresh taste-matched, credible, not owned/known.
+    try {
+      const raw = await fetchRawgCandidates({
+        rawgApiKey,
+        discoveryQueries: discoveryQueriesFromProfile(profile),
+        pageSize: 40,
+      });
+      const discovery = selectCredibleCandidates(dedupeCandidates(raw), {
+        ownedNorms: ownedAndKnownNorms(profile),
+        limit: 10,
+      });
+      for (const c of discovery) candidates.push({ title: c.name, rawg: c, intent: false });
+    } catch {
+      // discovery is best-effort; intent candidates still flow through
+    }
+
+    if (candidates.length === 0) return { ok: false, error: "no_titles_to_price" };
+
+    const toPrice = candidates.slice(0, MAX_DEAL_TITLES + 2);
+
     const built = await Promise.all(
-      titles.map(async (title) => {
-        // Real image/genres from RAWG + real prices from the pricing service.
-        const [rawgList, dealsResult] = await Promise.all([
-          searchRawgByTitle({ rawgApiKey, title, pageSize: 5 }).catch(() => [] as RawgCandidate[]),
-          lookupDeals({ title, limit: 4 }).catch(() => ({ deals: [] as Awaited<ReturnType<typeof lookupDeals>>["deals"] })),
-        ]);
-        const rawg = rawgList.find((c) => candidateImage(c)) ?? rawgList[0];
+      toPrice.map(async (cand) => {
+        let rawg = cand.rawg;
+        if (!rawg) {
+          const list = await searchRawgByTitle({ rawgApiKey, title: cand.title, pageSize: 5 }).catch(
+            () => [] as RawgCandidate[]
+          );
+          rawg = list.find((c) => candidateImage(c)) ?? list[0] ?? null;
+        }
         const image = rawg ? candidateImage(rawg) : null;
-        const cheapest = dealsResult.deals[0]; // already sorted ascending sale price
-        if (!image || !cheapest) return null;
+        if (!image) return null;
+
+        const dealsResult = await lookupDeals({ title: cand.title, limit: 4 }).catch(() => ({
+          deals: [] as Awaited<ReturnType<typeof lookupDeals>>["deals"],
+        }));
+        const cheapest = dealsResult.deals[0]; // sorted ascending sale price
+        if (!cheapest) return null;
 
         const sale = parsePrice(cheapest.salePrice);
         const normal = parsePrice(cheapest.normalPrice);
-        if (Number.isNaN(sale) || Number.isNaN(normal) || normal <= sale) return null; // only real discounts
+        if (Number.isNaN(sale) || Number.isNaN(normal) || normal <= sale) return null; // real discounts only
 
         const discountPercent = Math.round((1 - sale / normal) * 100);
         if (discountPercent <= 0) return null;
 
+        const matchScore = rawg ? baseMatchScore(rawg) : cand.intent ? 80 : 72;
+        const store = cheapest.store?.name || cheapest.provider || undefined;
         const card: DealCardData = {
-          id: `deal-${rawg?.id ?? norm(title).replace(/\s+/g, "-")}`,
-          title,
+          id: `deal-${rawg?.id ?? norm(cand.title).replace(/\s+/g, "-")}`,
+          title: cand.title,
           image,
           oldPrice: `$${normal.toFixed(2)}`,
           newPrice: `$${sale.toFixed(2)}`,
           discount: `-${discountPercent}%`,
-          matchScore: rawg ? baseMatchScore(rawg) : 75,
-          whyDealFits: rawg ? deterministicWhyPicked(profile, rawg) : ["A game from your library / saved list"],
+          matchScore,
+          whyDealFits: rawg
+            ? deterministicWhyPicked(profile, rawg)
+            : [`On your tracked/saved list — and discounted now`],
+          whyNow: deterministicWhyNow(discountPercent, cand.intent),
+          confidence: dealConfidence(matchScore),
+          store,
         };
         return { card, genres: rawg ? candidateGenres(rawg) : [], discountPercent };
       })
     );
 
     const valid = built.filter((b): b is NonNullable<typeof b> => b !== null).slice(0, MAX_DEALS);
-    if (valid.length === 0) return { ok: false, error: "no_matching_deals" };
+    // No real, taste-matched discounts → "No great matches right now" (never filler).
+    if (valid.length === 0) return { ok: false, error: "no_good_deals" };
 
-    // Rank by taste fit (NOT biggest discount) — AI if available, else by match score.
+    // Rank by TASTE FIT first (discount is a tiebreaker) — AI if available.
     const ai = await rankDealsWithAi({
       profile,
       deals: valid.map((v) => ({
@@ -301,11 +380,17 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
             ...v.card,
             matchScore: enriched?.matchScore ?? v.card.matchScore,
             whyDealFits: enriched?.whyDealFits?.slice(0, 3) ?? v.card.whyDealFits,
+            whyNow: enriched?.whyNow || v.card.whyNow,
+            confidence: enriched?.confidence ?? v.card.confidence,
           };
         })
         .sort((a, b) => (order.get(a.id) ?? 99) - (order.get(b.id) ?? 99));
     } else {
-      deals = valid.map((v) => v.card).sort((a, b) => b.matchScore - a.matchScore);
+      // taste match desc, then discount desc as a tiebreaker
+      deals = valid
+        .slice()
+        .sort((a, b) => b.card.matchScore - a.card.matchScore || b.discountPercent - a.discountPercent)
+        .map((v) => v.card);
     }
 
     return {
@@ -317,14 +402,14 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
           ? { headline: ai.headline, summary: ai.summary }
           : {
               headline: "Deals that fit your taste",
-              summary: "Discounts on games you track and games close to your favorites.",
+              summary: "Real discounts on games that match your taste — ranked by fit, not by biggest markdown.",
             },
         sourceSummary: {
           generator: "premium:generateDealsForYou",
           sources: ["taste_profile", "rawg", "pricing", ai ? "openai" : "deterministic"],
           itemCount: deals.length,
           aiUsed: Boolean(ai),
-          note: "Live prices via ITAD/Steam/CheapShark, ranked by taste fit (not biggest discount).",
+          note: "Live prices via ITAD/Steam/CheapShark, ranked by taste fit. Owned games excluded.",
         },
       },
     };
@@ -343,6 +428,30 @@ const RECAP_DNA_BUCKETS: { label: string; keywords: string[] }[] = [
   { label: "Challenge", keywords: ["difficult", "souls", "roguelike", "strategy", "tactical", "puzzle", "survival"] },
   { label: "Competitive", keywords: ["multiplayer", "competitive", "shooter", "pvp", "esports", "fighting"] },
 ];
+
+// Map the dominant taste bucket to one of the named gaming archetypes.
+const ARCHETYPE_BY_BUCKET: Record<string, string> = {
+  Discovery: "The Explorer",
+  Story: "The Story Hunter",
+  Challenge: "The Challenge Seeker",
+  Competitive: "The Strategist",
+};
+
+/** Deterministic gaming archetype from the user's signals (5 named identities). */
+function archetypeFromProfile(
+  profile: UserTasteProfile,
+  dna: { label: string; value: number }[]
+): string {
+  const s = profile.steamSummary;
+  // Completionist: a deep, well-played library (high average playtime + high played share).
+  if (s && s.ownedCount > 0) {
+    const avgMin = s.totalPlaytimeMin / s.ownedCount;
+    const playedShare = s.playedCount / s.ownedCount;
+    if (avgMin >= 600 && playedShare >= 0.5) return "The Completionist";
+  }
+  const top = [...dna].sort((a, b) => b.value - a.value)[0];
+  return (top && ARCHETYPE_BY_BUCKET[top.label]) || "The Explorer";
+}
 
 function recapDnaBars(profile: UserTasteProfile): { label: string; value: number }[] {
   const blob = norm(
@@ -425,11 +534,23 @@ export async function generateMonthlyRecap(userId: string): Promise<GeneratePrem
     const ai = await narrateRecapWithAi({ profile, stats });
 
     const personalityName =
-      ai?.personalityName || profile.steamSummary?.archetype || "The Explorer";
+      ai?.personalityName || profile.steamSummary?.archetype || archetypeFromProfile(profile, dna);
     const personalitySummary =
       ai?.personalitySummary ||
       profile.steamSummary?.summary ||
       "Your taste leans toward discovery and story over competition.";
+
+    // Wrapped-style identity fields (deterministic; AI narrative layers on top).
+    const topPlayed = profile.favoriteGames
+      .filter((g) => g.source === "steam" && (g.playtimeMin ?? 0) > 0)
+      .slice(0, 5)
+      .map((g) => ({ title: g.title, hours: Math.round((g.playtimeMin ?? 0) / 60) }));
+    const dominantGenres = [...new Set([...profile.preferredGenres, ...profile.likes])].slice(0, 5);
+    const favoriteMechanics = profile.preferredMechanics.slice(0, 5);
+    const returnsTo = [
+      ...new Set([...profile.likes, ...profile.preferredGenres, ...profile.preferredMechanics]),
+    ].slice(0, 4);
+    const playtimeScope: "all-time" | "this-month" = profile.steamSummary ? "all-time" : "this-month";
 
     // Predictions — a few taste-matched RAWG picks (optional; recap works without).
     let predictions: WeeklyPickCardData[] = [];
@@ -462,6 +583,11 @@ export async function generateMonthlyRecap(userId: string): Promise<GeneratePrem
       personality: { name: personalityName, summary: personalitySummary, dna },
       month: stats,
       evolution: { before, now },
+      returnsTo,
+      topPlayed,
+      dominantGenres,
+      favoriteMechanics,
+      playtimeScope,
     };
 
     return {

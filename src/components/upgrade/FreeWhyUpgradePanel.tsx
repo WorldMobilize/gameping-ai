@@ -1,6 +1,5 @@
 import { APP_MUTED } from "@/components/app/app-styles";
 import { PLAN_QUOTAS } from "@/lib/plan-quotas";
-import { COMING_SOON_BADGE } from "@/components/upgrade/PremiumComingSoonPanel";
 
 /** Static left-column teaser — balances Free card height vs Premium. */
 export default function FreeWhyUpgradePanel() {
@@ -36,16 +35,13 @@ export default function FreeWhyUpgradePanel() {
             Weekly picks and Deals for you—personalized drops based on your taste.
           </p>
         </li>
-        <li className="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
-              Monthly recap
-            </p>
-            <p className={`mt-0.5 text-xs leading-relaxed ${APP_MUTED}`}>
-              A Spotify-style recap of your top games, tags, and discovery stats.
-            </p>
-          </div>
-          <span className={COMING_SOON_BADGE}>Coming soon</span>
+        <li>
+          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            Monthly recap
+          </p>
+          <p className={`mt-0.5 text-xs leading-relaxed ${APP_MUTED}`}>
+            A Spotify-style recap of your top games, tags, and discovery stats.
+          </p>
         </li>
       </ul>
     </div>

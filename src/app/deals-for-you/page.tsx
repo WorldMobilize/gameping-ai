@@ -8,6 +8,7 @@ import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsel
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
 import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
 import PremiumRotationAdminLine from "@/components/discovery/PremiumRotationAdminLine";
+import PremiumUpdateStatus from "@/components/discovery/PremiumUpdateStatus";
 import {
   DEALS_FOR_YOU_DEMO_DATA,
   type DealCardData,
@@ -111,10 +112,13 @@ export default async function DealsForYouPage({
           </p>
           <PremiumRotationAdminLine viewer={access.viewer} meta={meta} aiUsed={meta?.sourceSummary?.aiUsed} />
 
-          {access.canViewPersonalized && isGenerated ? (
+          {isGenerated && access.viewer === "admin" ? (
             <div className="mt-6">
               <PremiumRefreshButton type="deals_for_you" label="Refresh deals" />
             </div>
+          ) : null}
+          {isGenerated && access.viewer === "premium" ? (
+            <PremiumUpdateStatus type="deals_for_you" />
           ) : null}
 
           {state === "locked" ? (
@@ -137,7 +141,12 @@ export default async function DealsForYouPage({
 
           {/* Content — real deals, the generating island, or the labeled sample. */}
           {isGenerating ? (
-            <PremiumAutoGenerate type="deals_for_you" noun="deals" />
+            <PremiumAutoGenerate
+              type="deals_for_you"
+              noun="deals"
+              insufficientTitle="No great matches right now"
+              insufficientBody="We won't pad this with random cheap games. There aren't any real discounts on strong taste matches right now — track or save a few games and check back."
+            />
           ) : (
             <section className="mt-14" aria-labelledby="deals-best-heading">
               <h2 id="deals-best-heading" className="text-2xl font-extrabold text-white">
@@ -151,7 +160,7 @@ export default async function DealsForYouPage({
               <ul className="mt-8 grid gap-6 md:grid-cols-2">
                 {deals.map((deal) => (
                   <li key={deal.id} className="flex">
-                    <DealForYouPremiumCard deal={deal} />
+                    <DealForYouPremiumCard deal={deal} isSample={!isGenerated} />
                   </li>
                 ))}
               </ul>

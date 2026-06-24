@@ -7,6 +7,7 @@ import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsel
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
 import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
 import PremiumRotationAdminLine from "@/components/discovery/PremiumRotationAdminLine";
+import PremiumUpdateStatus from "@/components/discovery/PremiumUpdateStatus";
 import WeeklyPickPremiumCard from "@/components/discovery/WeeklyPickPremiumCard";
 import {
   WEEKLY_PICKS_DEMO_DATA,
@@ -117,10 +118,15 @@ export default async function WeeklyPicksPage({
           </p>
           <PremiumRotationAdminLine viewer={access.viewer} meta={meta} aiUsed={meta?.sourceSummary?.aiUsed} />
 
-          {access.canViewPersonalized && isGenerated ? (
+          {/* Admin-only manual refresh (debug). Premium users see a clean
+           * "updated weekly" caption — content is curated/scheduled, not on-demand. */}
+          {isGenerated && access.viewer === "admin" ? (
             <div className="mt-6">
               <PremiumRefreshButton type="weekly_picks" />
             </div>
+          ) : null}
+          {isGenerated && access.viewer === "premium" ? (
+            <PremiumUpdateStatus type="weekly_picks" />
           ) : null}
 
           {state === "locked" ? (

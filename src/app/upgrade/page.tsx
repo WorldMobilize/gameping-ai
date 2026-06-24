@@ -15,7 +15,7 @@ import {
 import ManageBillingButton from "@/components/ManageBillingButton";
 import FreeWhyUpgradePanel from "@/components/upgrade/FreeWhyUpgradePanel";
 import PremiumComingSoonPanel from "@/components/upgrade/PremiumComingSoonPanel";
-import SteamTasteComingSoon from "@/components/SteamTasteComingSoon";
+import PremiumFeatureCards from "@/components/upgrade/PremiumFeatureCards";
 import UpgradePageAtmosphere from "@/components/upgrade/UpgradePageAtmosphere";
 import {
   FREE_COLUMN,
@@ -609,12 +609,20 @@ export default function UpgradePage() {
           <UpgradeContent />
         </Suspense>
 
-        <SteamTasteComingSoon
-          idPrefix="upgrade-steam"
-          density="compact"
-          containerClassName="relative z-10 w-full"
-          sectionClassName={UPGRADE_STEAM_SECTION}
-        />
+        <section className={UPGRADE_STEAM_SECTION}>
+          <div className="relative z-10 mx-auto w-full max-w-5xl">
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-violet-600 dark:text-violet-300">
+              Premium personalization
+            </p>
+            <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white md:text-4xl gp-home-display">
+              Two live sources behind your picks
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-300">
+              GamePing learns from your Steam library and builds a gaming identity — then uses both to power Weekly Picks, Deals For You, and Monthly Recap.
+            </p>
+            <PremiumFeatureCards />
+          </div>
+        </section>
 
         <div className={`${UPGRADE_FAQ_SECTION} ${PREMIUM_SURFACE_CARD} p-8`}>
           <p className={PREMIUM_KICKER}>

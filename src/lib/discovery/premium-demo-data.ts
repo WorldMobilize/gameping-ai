@@ -126,6 +126,12 @@ export type DealCardData = {
   discount: string;
   matchScore: number;
   whyDealFits: string[];
+  /** Why now is a good time to act on this deal. */
+  whyNow?: string;
+  /** Taste-fit confidence for this deal. */
+  confidence?: "high" | "medium" | "low";
+  /** Store/provider the price came from (e.g. "Steam"). */
+  store?: string;
 };
 
 export type DealsForYouDemoData = {
@@ -196,6 +202,10 @@ export type MonthlyRecapDemoData = {
   personality: { name: string; summary: string; dna: TasteDnaBar[] };
   month: { searches: number; discovered: number; saved: number; alerts: number };
   evolution: { before: string[]; now: string[] };
+  returnsTo: string[];
+  topPlayed: { title: string; hours: number }[];
+  dominantGenres: string[];
+  favoriteMechanics: string[];
   predictions: WeeklyPickCardData[];
 };
 
@@ -211,6 +221,14 @@ export const MONTHLY_RECAP_DEMO_DATA: MonthlyRecapDemoData = {
     ],
   },
   month: { searches: 18, discovered: 12, saved: 4, alerts: 3 },
+  returnsTo: ["Open worlds", "Meaningful choices", "Character progression"],
+  topPlayed: [
+    { title: "The Witcher 3", hours: 120 },
+    { title: "Hades", hours: 64 },
+    { title: "Disco Elysium", hours: 38 },
+  ],
+  dominantGenres: ["RPG", "Adventure", "Story-rich"],
+  favoriteMechanics: ["Exploration", "Dialogue choices", "Build crafting"],
   evolution: {
     before: ["Open world", "Action RPG", "Combat focused"],
     now: ["Open world", "Choices matter", "Atmospheric", "Story rich"],

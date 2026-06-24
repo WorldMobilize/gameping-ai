@@ -51,6 +51,7 @@ const INSUFFICIENT_DATA_ERRORS = new Set([
   "insufficient_credible_candidates",
   "not_enough_candidates",
   "no_matching_deals",
+  "no_good_deals",
   "no_titles_to_price",
   "RAWG_API_KEY is not configured",
 ]);
@@ -162,9 +163,14 @@ export type RefreshResult = {
 };
 
 /**
- * Manual "Refresh picks" — force a regeneration for the current period, guarded
- * by a short cooldown so it can't be spammed. Premium/admin only (callers must
- * authorize the user first).
+ * Manual "Refresh" (admin-only) — force a regeneration for the current period,
+ * guarded by a short cooldown.
+ *
+ * CRITICAL: never replace a good cached rotation with a failed/empty generation.
+ * We generate FIRST and only overwrite the cache when the new generation
+ * succeeds (the generators already validate quality: credible candidates,
+ * franchise diversity, ≥ MIN_CREDIBLE_PICKS, real signal). On failure we leave
+ * the existing published rotation untouched.
  */
 export async function refreshUserPremiumRotation(
   userId: string,
@@ -182,6 +188,24 @@ export async function refreshUserPremiumRotation(
       };
     }
   }
-  const outcome = await generateAndPublish(userId, type, periodKey);
-  return { ok: outcome === "generated", status: outcome };
+
+  // Generate into memory first — do NOT touch the cache yet.
+  const generated = await generatePremiumRotation(type, userId);
+  if (!generated.ok) {
+    // Preserve the existing published rotation. Only record a failure when there
+    // was nothing good cached to keep (so we never overwrite good content).
+    if (!rotationHasContent(current)) {
+      await saveFailedUserRotation(userId, type, periodKey, generated.error);
+    }
+    return {
+      ok: false,
+      status: INSUFFICIENT_DATA_ERRORS.has(generated.error) ? "insufficient_data" : "failed",
+    };
+  }
+
+  // Success → safe to replace the cache.
+  const saved = await saveUserRotation(userId, type, periodKey, generated.data);
+  if (!saved.ok) return { ok: false, status: "failed" };
+  const published = await publishUserRotation(userId, type, periodKey);
+  return { ok: published.ok, status: published.ok ? "generated" : "failed" };
 }
