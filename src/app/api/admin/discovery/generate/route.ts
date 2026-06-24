@@ -267,6 +267,8 @@ async function runGeneration(params: {
           aiSelectedCount: generated.debug.aiSelectedCount,
           validatedCount: 0,
           fallbackUsed: generated.debug.fallbackUsed,
+          validationWarnings: validation.warnings,
+          rejectedExamples: validation.rejected,
         },
       },
       { status: 200 }
@@ -283,6 +285,8 @@ async function runGeneration(params: {
     validatedCount: validData.picks.length + 1, // incl. featured
     fallbackUsed: generated.debug.fallbackUsed,
     generator: generated.sourceSummary.generator,
+    validationWarnings: validation.warnings,
+    rejectedExamples: validation.rejected,
   };
 
   // Preview: return the curated+validated payload, no DB write.

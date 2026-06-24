@@ -10,10 +10,12 @@ import {
 } from "@/lib/discovery/live-discovery";
 import {
   HIDDEN_GEM_CATEGORIES,
+  WEEKLY_REASON_TYPES,
   type HiddenGemCategory,
   type HiddenGemPick,
   type WeeklyCategory,
   type WeeklyGamePick,
+  type WeeklyReasonType,
 } from "@/lib/discovery/curated-picks";
 import type { RawgCandidate } from "@/lib/rawg-discovery";
 
@@ -42,12 +44,14 @@ const HIDDEN_GEM_MAX = 13;
 const WEEKLY_MIN = 6;
 const WEEKLY_MAX = 10;
 
-// Obvious "safe picks" the AI should avoid for Hidden Gems (over and above the
-// franchise/classics blocklist already applied to the RAWG pool).
+// Obvious "safe picks" / high-visibility titles the AI must avoid for Hidden
+// Gems (over and above the franchise/classics blocklist applied to the RAWG
+// pool). These are press darlings, viral hits, and hyped recent/upcoming games.
 const HIDDEN_GEM_AVOID = [
-  "Hades", "Hollow Knight", "Celeste", "Disco Elysium", "Undertale",
-  "Stardew Valley", "Outer Wilds", "Firewatch", "Journey", "Life is Strange",
-  "What Remains of Edith Finch", "GRIS",
+  "Split Fiction", "Clair Obscur: Expedition 33", "Ultrakill", "Pikmin 2",
+  "Hollow Knight: Silksong", "Hades", "Celeste", "Hollow Knight",
+  "Stardew Valley", "Undertale", "Disco Elysium", "Outer Wilds", "Firewatch",
+  "Journey", "Life is Strange", "What Remains of Edith Finch", "GRIS",
 ];
 
 function getClient(): OpenAI | null {
@@ -102,6 +106,13 @@ function nonEmpty(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/** AI confidence → 0–100 int; defaults to 75 (above the deterministic baseline). */
+function clampConfidence(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return 75;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
 // ---------------------------------------------------------------------------
 // Hidden Gems
 // ---------------------------------------------------------------------------
@@ -144,16 +155,19 @@ export async function curateHiddenGemsWithAi(
     "You are GamePing's hidden-gems editor — a sharp, opinionated gaming curator, NOT a search engine. " +
     "You are given a pre-filtered pool of overlooked games (already fetched from a game database). " +
     `Choose the ${HIDDEN_GEM_MIN}-${HIDDEN_GEM_MAX} BEST genuine hidden gems: underplayed, under-discussed, high-quality games with a strong identity. ` +
-    "Prefer variety across genres/moods. " +
-    `Avoid obvious 'safe picks' even if present: ${HIDDEN_GEM_AVOID.join(", ")}. ` +
+    "THE TEST FOR EVERY PICK: if an average gamer who follows indie or gaming news has probably heard of it, REJECT it. " +
+    "REJECT, no matter how good: famous indies; viral hits; huge publisher/franchise games; highly anticipated recent or upcoming games; mainstream award or press darlings; Nintendo/Sony/Xbox first-party classics; and anything with very high visibility even if it is not AAA. " +
+    `Never pick these or anything like them: ${HIDDEN_GEM_AVOID.join(", ")}. ` +
+    "PREFER: overlooked games; older cult favorites; small/medium games with strong quality; titles with credible ratings but modest visibility; and variety across genres and moods. " +
     "Only select from the provided candidates — never invent a game or an id. Ground every reason in the candidate's own genres/tags/era; do not fabricate awards, sales, or studios. " +
+    "Write specific, vivid copy — avoid generic filler like 'worth a look', 'great gameplay', or 'fans will enjoy'. " +
     "Order best-first (the first pick becomes the featured gem). " +
     'Respond as JSON: {"picks": [{"id": number (must match a candidate id), ' +
-    '"hook": string (<=90 chars, a vivid one-line draw), ' +
-    '"whyHidden": string (<=180 chars, why it is overlooked / a gem), ' +
-    '"whoFor": string (<=120 chars, who will love it), ' +
-    `"discoveryTag": one of [${HIDDEN_GEM_CATEGORIES.map((c) => `"${c}"`).join(", ")}], ` +
-    '"confidence": number 0-100}]}.';
+    '"hook": string (<=90 chars, a vivid one-line draw — REQUIRED, non-empty), ' +
+    '"whyHidden": string (<=180 chars, why it is overlooked / a gem — REQUIRED, non-empty), ' +
+    '"whoFor": string (<=120 chars, who will love it — REQUIRED, non-empty), ' +
+    `"discoveryTag": one of [${HIDDEN_GEM_CATEGORIES.map((c) => `"${c}"`).join(", ")}] (REQUIRED), ` +
+    '"confidence": number 0-100 (REQUIRED)}]}.';
 
   const user = JSON.stringify({
     candidates: pool.slice(0, MAX_CANDIDATES).map(summarizeCandidate),
@@ -177,9 +191,12 @@ export async function curateHiddenGemsWithAi(
 
     seen.add(id);
     const category = coerceHiddenCategory(nonEmpty(sel.discoveryTag), candidate);
-    const hook = nonEmpty(sel.hook);
-    const whyHidden = nonEmpty(sel.whyHidden);
-    const whoFor = nonEmpty(sel.whoFor);
+    // Fall back to the deterministic copy (always populated) when the model omits
+    // a field, so editorial fields are never empty.
+    const hook = nonEmpty(sel.hook) || nonEmpty(base.hook);
+    const whyHidden = nonEmpty(sel.whyHidden) || nonEmpty(base.whyHidden);
+    const whoFor = nonEmpty(sel.whoFor) || nonEmpty(base.whoFor);
+    const confidence = clampConfidence(sel.confidence);
 
     picks.push({
       ...base,
@@ -187,6 +204,12 @@ export async function curateHiddenGemsWithAi(
       reason: whyHidden || base.reason,
       bestFor: whoFor || base.bestFor,
       standoutElement: hook || base.standoutElement,
+      // Explicit editorial fields (Fix 1).
+      hook,
+      whyHidden,
+      whoFor,
+      discoveryTag: category,
+      confidence,
       sourceNote: "AI-curated from live RAWG candidates.",
     });
 
@@ -201,13 +224,6 @@ export async function curateHiddenGemsWithAi(
 // ---------------------------------------------------------------------------
 // Games of the Week
 // ---------------------------------------------------------------------------
-
-type WeeklyReasonType =
-  | "new-release"
-  | "rediscovered"
-  | "trending"
-  | "hidden-pick"
-  | "timeless-pick";
 
 type AiWeeklySelection = {
   picks: Array<{
@@ -226,14 +242,21 @@ const REASON_TYPE_TO_CATEGORY: Record<WeeklyReasonType, WeeklyCategory> = {
   trending: "New & interesting",
   "hidden-pick": "Hidden pick",
   "timeless-pick": "Worth replaying",
+  "upcoming-watch": "New & interesting",
 };
 
+/** Validate the model's reasonType against the allowed set (fallback new-release). */
+function coerceReasonType(reasonType: string): WeeklyReasonType {
+  const key = reasonType.trim().toLowerCase();
+  const match = WEEKLY_REASON_TYPES.find((r) => r === key);
+  return match ?? "new-release";
+}
+
 function coerceWeeklyCategory(
-  reasonType: string,
+  reasonType: WeeklyReasonType,
   candidate: RawgCandidate
 ): WeeklyCategory {
-  const key = reasonType.trim().toLowerCase() as WeeklyReasonType;
-  return REASON_TYPE_TO_CATEGORY[key] ?? assignWeeklyCategory(candidate);
+  return REASON_TYPE_TO_CATEGORY[reasonType] ?? assignWeeklyCategory(candidate);
 }
 
 /**
@@ -250,16 +273,19 @@ export async function curateWeeklyWithAi(
 
   const system =
     "You are GamePing's weekly games editor. You are given a pool of recent and notable games (already fetched from a game database). " +
-    `Curate a varied mix of ${WEEKLY_MIN}-${WEEKLY_MAX} games 'worth paying attention to this week' — not just a list of new releases. ` +
-    "Blend new releases, rediscovered older games, trending picks, and a hidden pick or two. " +
+    `Curate a varied mix of ${WEEKLY_MIN}-${WEEKLY_MAX} games that answer ONE question: 'why is this worth paying attention to THIS WEEK?' — this is NOT just a list of recent releases. ` +
+    "Every 'whyThisWeek' must give a concrete, current reason (a fresh release, a reason to rediscover it now, momentum/buzz, an under-the-radar gem to catch, a timeless pick for right now, or an upcoming title to watch). " +
+    "VARY the reasonType across picks — do not give most picks the same reasonType. " +
+    "You MAY include a well-known or franchise game ONLY if there is a specific, real this-week angle; otherwise skip it. " +
     "Only select from the provided candidates — never invent a game or an id. Ground every reason in the candidate's own genres/tags/era; do not fabricate prices, deals, or awards. " +
+    "Write specific copy — BAN generic filler like 'worth a look', 'great gameplay', 'fans will enjoy', 'worth checking out', or 'a must-play'. " +
     "Order best-first (the first pick becomes the featured pick of the week). " +
     'Respond as JSON: {"picks": [{"id": number (must match a candidate id), ' +
-    '"hook": string (<=90 chars), ' +
-    '"whyThisWeek": string (<=180 chars, why it deserves attention now), ' +
-    '"reasonType": one of ["new-release","rediscovered","trending","hidden-pick","timeless-pick"], ' +
-    '"whoFor": string (<=120 chars), ' +
-    '"confidence": number 0-100}]}.';
+    '"hook": string (<=90 chars — REQUIRED, non-empty), ' +
+    '"whyThisWeek": string (<=180 chars, the concrete weekly angle — REQUIRED, non-empty), ' +
+    `"reasonType": one of [${WEEKLY_REASON_TYPES.map((r) => `"${r}"`).join(", ")}] (REQUIRED), ` +
+    '"whoFor": string (<=120 chars — REQUIRED, non-empty), ' +
+    '"confidence": number 0-100 (REQUIRED)}]}.';
 
   const user = JSON.stringify({
     candidates: pool.slice(0, MAX_CANDIDATES).map(summarizeCandidate),
@@ -281,15 +307,25 @@ export async function curateWeeklyWithAi(
     if (!base) continue;
 
     seen.add(id);
-    const category = coerceWeeklyCategory(nonEmpty(sel.reasonType), candidate);
-    const whyThisWeek = nonEmpty(sel.whyThisWeek);
-    const whoFor = nonEmpty(sel.whoFor);
+    const reasonType = coerceReasonType(nonEmpty(sel.reasonType));
+    const category = coerceWeeklyCategory(reasonType, candidate);
+    // Fall back to the deterministic copy (always populated) when the model omits
+    // a field, so editorial fields are never empty.
+    const hook = nonEmpty(sel.hook) || nonEmpty(base.hook);
+    const whyThisWeek = nonEmpty(sel.whyThisWeek) || nonEmpty(base.whyThisWeek);
+    const whoFor = nonEmpty(sel.whoFor) || nonEmpty(base.whoFor);
+    const confidence = clampConfidence(sel.confidence);
 
     picks.push({
       ...base,
       category,
-      whyThisWeek: whyThisWeek || base.whyThisWeek,
+      whyThisWeek,
       bestFor: whoFor || base.bestFor,
+      // Explicit editorial fields (Fix 1).
+      hook,
+      reasonType,
+      whoFor,
+      confidence,
       sourceNote: "AI-curated from live RAWG candidates.",
     });
 

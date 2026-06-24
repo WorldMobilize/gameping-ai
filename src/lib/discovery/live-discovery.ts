@@ -55,10 +55,16 @@ const BLOCKED_FRANCHISE_SUBSTRINGS = [
   "devil may cry", "bayonetta", "crash bandicoot", "spyro", "prince of persia",
   "need for speed", "saints row", "dead space", "left 4 dead", "team fortress",
   "destiny 2", "warframe", "path of exile", "death stranding", "sid meier",
-  "civilization", "total war", "football manager", "nier",
+  "civilization", "total war", "football manager", "nier", "pikmin",
+  // Highly-visible titles / press darlings / hyped recent + upcoming games that
+  // an average gamer following indie/game news has almost certainly heard of —
+  // never "hidden" (substring match catches editions/spin-offs too).
+  "split fiction", "it takes two", "clair obscur", "expedition 33", "ultrakill",
+  "silksong", "disco elysium", "outer wilds", "life is strange", "edith finch",
 ];
 
-// Famous indie classics — exact normalized title match (short/common words).
+// Famous indie classics / press darlings — exact normalized title match
+// (short/common words where a substring match would over-reject).
 const BLOCKED_EXACT_TITLES = [
   "hades", "hades ii", "hollow knight", "celeste", "stardew valley", "undertale",
   "deltarune", "terraria", "cuphead", "dead cells", "slay the spire",
@@ -108,16 +114,6 @@ function topTags(c: RawgCandidate, limit = 4): string[] {
 function releaseYear(c: RawgCandidate): string | null {
   const m = c.released?.match(/^(\d{4})/);
   return m ? m[1] : null;
-}
-
-function qualityPhrase(c: RawgCandidate): string {
-  if (typeof c.metacritic === "number" && c.metacritic > 0) {
-    return `critically praised (Metacritic ${c.metacritic})`;
-  }
-  if (typeof c.rating === "number" && c.rating > 0) {
-    return `well-rated by players (${c.rating.toFixed(1)}/5)`;
-  }
-  return "well-regarded by the people who played it";
 }
 
 // ---------------------------------------------------------------------------
@@ -173,17 +169,27 @@ export function toHiddenGemPick(c: RawgCandidate): HiddenGemPick | null {
   if (!image) return null;
   const genre = primaryGenre(c).toLowerCase();
   const category = assignHiddenCategory(c);
+  const whyHidden = HIDDEN_GEM_REASON_BY_CATEGORY[category];
+  const whoFor = `Players hunting for overlooked ${genre} games with a strong identity.`;
+  const hook = HIDDEN_GEM_STANDOUT_BY_CATEGORY[category];
   return {
     id: `rawg-${c.id}`,
     title: c.name,
     slug: c.name.toLowerCase(),
     image,
-    reason: HIDDEN_GEM_REASON_BY_CATEGORY[category],
-    bestFor: `Players hunting for overlooked ${genre} games with a strong identity.`,
+    reason: whyHidden,
+    bestFor: whoFor,
     skipIf: "You only play the biggest mainstream AAA and famous indie releases.",
-    standoutElement: HIDDEN_GEM_STANDOUT_BY_CATEGORY[category],
+    standoutElement: hook,
     tags: topTags(c),
     discoveryCategory: category,
+    // Explicit editorial fields (always populated so the deterministic path also
+    // satisfies the curation contract / validation).
+    hook,
+    whyHidden,
+    whoFor,
+    discoveryTag: category,
+    confidence: 60,
     gameId: c.id,
     rating: typeof c.rating === "number" ? c.rating : null,
     released: c.released ?? null,
@@ -284,10 +290,17 @@ export async function getHiddenGemCandidatePool(): Promise<RawgCandidate[]> {
     );
     const deduped = dedupeCandidates(pools.flat());
 
+    const now = Date.now();
     const filtered = deduped.filter((c) => {
       if (!candidateImage(c)) return false;
       if (isLowQualityTitle(c.name)) return false;
       if (isBlockedTitle(c.name)) return false; // famous franchises + indie classics
+
+      // A hidden gem has to have actually shipped and had time to be overlooked.
+      // Reject unreleased / TBA and not-yet-released (highly-anticipated) titles.
+      const releasedAt = c.released ? Date.parse(c.released) : NaN;
+      if (!Number.isFinite(releasedAt)) return false;
+      if (releasedAt > now) return false;
 
       const rating = typeof c.rating === "number" ? c.rating : 0;
       if (rating > 0 && rating < HIDDEN_GEM_MIN_RATING) return false;
@@ -369,15 +382,25 @@ export function toWeeklyGamePick(c: RawgCandidate): WeeklyGamePick | null {
   if (!image) return null;
   const genre = primaryGenre(c).toLowerCase();
   const year = releaseYear(c);
+  const whoFor = `Players who want something new and distinctive in ${genre}.`;
+  // Avoid generic filler ("worth a look", etc.) — give a concrete this-week angle.
+  const whyThisWeek = year
+    ? `Released ${year}, this ${genre} is still flying under the radar — a fresh pick to catch up on while it is new.`
+    : `A newer ${genre} that is still flying under the radar — a fresh pick to catch up on this week.`;
   return {
     id: `rawg-week-${c.id}`,
     title: c.name,
     slug: c.name.toLowerCase(),
     image,
     category: assignWeeklyCategory(c),
-    whyThisWeek: `A recent ${genre} worth a look right now${year ? ` (released ${year})` : ""} — ${qualityPhrase(c)}, fresh and easy to recommend this week.`,
-    bestFor: `Players who want something new and distinctive in ${genre}.`,
+    whyThisWeek,
+    bestFor: whoFor,
     tags: topTags(c),
+    // Explicit editorial fields (always populated for the deterministic path).
+    hook: `A recent ${genre} still flying under the radar.`,
+    reasonType: "new-release",
+    whoFor,
+    confidence: 55,
     gameId: c.id,
     rating: typeof c.rating === "number" ? c.rating : null,
     released: c.released ?? null,

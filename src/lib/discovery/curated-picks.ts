@@ -61,6 +61,19 @@ export type HiddenGemPick = {
   released?: string | null;
   /** One-line "what makes it stand out" hook. */
   standoutElement?: string;
+  // --- Editorial fields exposed explicitly on curated/AI items (Fix 1). These
+  // mirror the display fields above but are surfaced under the names the curation
+  // contract uses, so previews/consumers can read them directly. ---
+  /** Vivid one-line draw (mirrors standoutElement). */
+  hook?: string;
+  /** Why this game is overlooked / a gem (mirrors reason). */
+  whyHidden?: string;
+  /** Who will love it (mirrors bestFor). */
+  whoFor?: string;
+  /** Discovery category as a tag (mirrors discoveryCategory). */
+  discoveryTag?: HiddenGemCategory;
+  /** Curator confidence 0–100. */
+  confidence?: number;
 };
 
 export const HIDDEN_GEM_FEATURED: HiddenGemPick = {
@@ -227,6 +240,18 @@ export const WEEKLY_CATEGORIES = [
 
 export type WeeklyCategory = (typeof WEEKLY_CATEGORIES)[number];
 
+/** Why a weekly pick matters *this week* — the editorial angle, not a genre. */
+export const WEEKLY_REASON_TYPES = [
+  "new-release",
+  "rediscovered",
+  "trending",
+  "hidden-pick",
+  "timeless-pick",
+  "upcoming-watch",
+] as const;
+
+export type WeeklyReasonType = (typeof WEEKLY_REASON_TYPES)[number];
+
 export type WeeklyGamePick = {
   id: string;
   title: string;
@@ -251,6 +276,15 @@ export type WeeklyGamePick = {
   released?: string | null;
   /** Vibe/genre tags, when available. */
   tags?: string[];
+  // --- Editorial fields exposed explicitly on curated/AI items (Fix 1). ---
+  /** Vivid one-line draw. */
+  hook?: string;
+  /** Why it deserves attention *this week* (editorial angle). */
+  reasonType?: WeeklyReasonType;
+  /** Who will love it (mirrors bestFor). */
+  whoFor?: string;
+  /** Curator confidence 0–100. */
+  confidence?: number;
 };
 
 export const WEEKLY_FEATURED: WeeklyGamePick = {
