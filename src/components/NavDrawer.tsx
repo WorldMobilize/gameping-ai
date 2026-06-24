@@ -13,7 +13,18 @@ import {
   SITE_NAV_ITEMS,
   type SiteNavItem,
 } from "@/lib/site-nav";
+import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
 import { supabase } from "@/lib/supabase";
+
+/** Small padlock — marks Premium links as locked for free/anon users. */
+function LockIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 type Props = {
   open: boolean;
@@ -24,9 +35,11 @@ type Props = {
 export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
   const isLight = theme === "light";
   const pathname = usePathname();
-  // Discovery + premium feature pages and GamePing Parties are admin-only for now.
-  // Same profiles.plan === "admin" check used by AdminOnlyPageGate — no new auth.
+  // Parties stays admin-only; the Premium discovery section is always shown
+  // (premium/admin → real links, free/anon → locked previews). Same profiles.plan
+  // read used elsewhere — no new auth.
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canViewPremium, setCanViewPremium] = useState(false);
   const [partiesOpen, setPartiesOpen] = useState(false);
 
   useEffect(() => {
@@ -38,6 +51,7 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
 
       if (!data.user) {
         setIsAdmin(false);
+        setCanViewPremium(false);
         return;
       }
 
@@ -49,6 +63,7 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
 
       if (!cancelled) {
         setIsAdmin(profile?.plan === "admin");
+        setCanViewPremium(hasPremiumDiscoveryAccess(profile?.plan));
       }
     }
 
@@ -84,14 +99,15 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
 
   if (!open || typeof document === "undefined") return null;
 
-  const renderNavItem = (item: SiteNavItem) => {
+  const renderNavItem = (item: SiteNavItem, locked = false) => {
     const active = isSiteNavItemActive(pathname, item);
     return (
       <Link
         key={item.href}
         href={item.href}
         onClick={onClose}
-        className={`rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] ${
+        title={locked ? "Premium feature — preview available" : undefined}
+        className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] ${
           active
             ? isLight
               ? "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)] shadow-sm"
@@ -101,7 +117,8 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
               : "border-transparent text-white/80 hover:border-[color:var(--page-accent-border)] hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)]"
         }`}
       >
-        {item.label}
+        <span>{item.label}</span>
+        {locked ? <LockIcon className="h-3.5 w-3.5 shrink-0 opacity-70" /> : null}
       </Link>
     );
   };
@@ -157,27 +174,29 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
         </div>
 
         <nav className="relative flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
-          {SITE_NAV_ITEMS.map(renderNavItem)}
+          {SITE_NAV_ITEMS.map((item) => renderNavItem(item))}
 
           {/* Discovery — global public pages (visible to everyone). */}
           <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
             <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
               Discovery
             </p>
-            {DISCOVERY_NAV_ITEMS.map(renderNavItem)}
+            {DISCOVERY_NAV_ITEMS.map((item) => renderNavItem(item))}
+          </div>
+
+          {/* Premium — per-user personalized features. ALWAYS shown: premium/admin
+           * get real links; free/anon get the same links with a lock (locked
+           * preview on the page). */}
+          <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
+            <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
+              Premium
+            </p>
+            {PREMIUM_DISCOVERY_NAV_ITEMS.map((item) => renderNavItem(item, !canViewPremium))}
           </div>
 
           {isAdmin ? (
             <>
-              {/* Premium — per-user personalized features. */}
-              <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
-                <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
-                  Premium
-                </p>
-                {PREMIUM_DISCOVERY_NAV_ITEMS.map(renderNavItem)}
-              </div>
-
-              {/* Community / future. */}
+              {/* Community / future — admin-only. */}
               <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
                 <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
                   Community

@@ -8,6 +8,7 @@ import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import { isEmailVerified } from "@/lib/auth-email-verification";
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import NavDrawer from "@/components/NavDrawer";
+import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -53,6 +54,16 @@ function CrownIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
   );
 }
 
+/** Small padlock — marks Premium links as locked for free/anon users. */
+function LockIcon({ className = "h-3 w-3" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 /** Thin vertical divider between desktop nav groups. */
 function NavGroupSeparator({ isLight }: { isLight: boolean }) {
   return (
@@ -79,11 +90,15 @@ const HOME_NAV_DISCOVERY_LINKS = [
   { label: "Games of the week", href: "/games-of-the-week" },
 ] as const;
 
-/** Personal discovery links — desktop nav shows these only to admins (admin-only for now). */
+/**
+ * Personal premium discovery links. Shown on desktop at 2xl (space permitting)
+ * under a "Premium" group: premium/admin get plain links, free/anon get the same
+ * links with a lock icon (they land on the page's locked preview).
+ */
 const HOME_NAV_PREMIUM_LINKS = [
-  { label: "Weekly picks", href: "/weekly-picks" },
-  { label: "Deals for you", href: "/deals-for-you" },
-  { label: "Monthly recap", href: "/monthly-recap" },
+  { label: "Weekly Picks", href: "/weekly-picks" },
+  { label: "Deals For You", href: "/deals-for-you" },
+  { label: "Monthly Recap", href: "/monthly-recap" },
 ] as const;
 
 export default function Navbar({
@@ -104,7 +119,10 @@ export default function Navbar({
    * A primary nav link with an animated accent active/hover underline that
    * matches the current page identity (driven by --page-accent-*).
    */
-  const renderHomeNavLink = (item: { label: string; href: string }) => {
+  const renderHomeNavLink = (
+    item: { label: string; href: string },
+    opts?: { locked?: boolean }
+  ) => {
     const active = isNavLinkActive(item.href, pathname);
     const baseText = isLight ? "text-slate-700" : "text-slate-300";
     const colorClass = active
@@ -119,15 +137,27 @@ export default function Navbar({
         }`}
       />
     );
+    const labelContent = (
+      <span className="inline-flex items-center gap-1">
+        {item.label}
+        {opts?.locked ? <LockIcon className="h-3 w-3 shrink-0 opacity-70" /> : null}
+      </span>
+    );
 
     return item.href.startsWith("#") ? (
       <a key={item.href} href={item.href} className={className} aria-current={active ? "page" : undefined}>
-        <span>{item.label}</span>
+        {labelContent}
         {underline}
       </a>
     ) : (
-      <Link key={item.href} href={item.href} className={className} aria-current={active ? "page" : undefined}>
-        <span>{item.label}</span>
+      <Link
+        key={item.href}
+        href={item.href}
+        className={className}
+        aria-current={active ? "page" : undefined}
+        title={opts?.locked ? "Premium feature — preview available" : undefined}
+      >
+        {labelContent}
         {underline}
       </Link>
     );
@@ -135,9 +165,11 @@ export default function Navbar({
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [emailUnverified, setEmailUnverified] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
-  // Discovery + personal feature links are admin-only for now. Same
-  // profiles.plan === "admin" check used by AdminOnlyPageGate — no new auth.
+  // Parties + light toggle stay admin-only; the Premium discovery links are
+  // shown to premium/admin as real links and to free/anon as locked previews.
+  // Same profiles.plan read used elsewhere — no new auth.
   const [isAdmin, setIsAdmin] = useState(false);
+  const [canViewPremium, setCanViewPremium] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
@@ -177,6 +209,7 @@ export default function Navbar({
 
       if (!data.user) {
         setIsAdmin(false);
+        setCanViewPremium(false);
         return;
       }
 
@@ -186,7 +219,10 @@ export default function Navbar({
         .eq("user_id", data.user.id)
         .maybeSingle();
 
-      if (!cancelled) setIsAdmin(profile?.plan === "admin");
+      if (!cancelled) {
+        setIsAdmin(profile?.plan === "admin");
+        setCanViewPremium(hasPremiumDiscoveryAccess(profile?.plan));
+      }
     }
 
     void loadAdmin();
@@ -448,23 +484,26 @@ export default function Navbar({
             {HOME_NAV_DISCOVERY_LINKS.map((item) => renderHomeNavLink(item))}
           </span>
 
-          {/* Premium + Parties — admin-only VISIBILITY for now (same
-           * profiles.plan === "admin" check). Premium is a tier, Parties is a
-           * future feature. No "Admin" product category. */}
-          {isAdmin ? (
-            <span className="hidden items-center gap-7 2xl:flex">
-              {/* Premium — per-user personalized features */}
-              <NavGroupSeparator isLight={isLight} />
-              <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.22em] text-[color:var(--page-accent-text)]">
-                Premium
-              </span>
-              {HOME_NAV_PREMIUM_LINKS.map((item) => renderHomeNavLink(item))}
-
-              {/* Future / community */}
-              <NavGroupSeparator isLight={isLight} />
-              {renderHomeNavLink({ label: "Parties", href: "/parties" })}
+          {/* Premium group — shown to EVERYONE at 2xl (space permitting). Premium/
+           * admin get real links; free/anon get the same links with a lock icon
+           * (they land on the page's locked preview). Parties stays admin-only. */}
+          <span className="hidden items-center gap-7 2xl:flex">
+            <NavGroupSeparator isLight={isLight} />
+            <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.22em] text-[color:var(--page-accent-text)]">
+              Premium
             </span>
-          ) : null}
+            {HOME_NAV_PREMIUM_LINKS.map((item) =>
+              renderHomeNavLink(item, { locked: !canViewPremium })
+            )}
+
+            {/* Future / community — admin-only. */}
+            {isAdmin ? (
+              <>
+                <NavGroupSeparator isLight={isLight} />
+                {renderHomeNavLink({ label: "Parties", href: "/parties" })}
+              </>
+            ) : null}
+          </span>
         </nav>
 
         <div className="gp-nav-actions relative z-0 ml-auto flex shrink-0 items-center gap-3">

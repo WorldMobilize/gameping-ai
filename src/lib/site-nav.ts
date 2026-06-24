@@ -32,16 +32,21 @@ export const DISCOVERY_NAV_ITEMS: SiteNavItem[] = [
   },
 ];
 
-/** Premium personal discovery — admin-only while incomplete (was premium-or-admin). */
+/**
+ * Premium personal discovery — LIVE pages. Premium/admin see real personalized
+ * content; free/anon get a locked preview (shown with a lock in nav). Always
+ * listed in the drawer's Premium section; shown on desktop at 2xl, space
+ * permitting.
+ */
 export const PREMIUM_DISCOVERY_NAV_ITEMS: SiteNavItem[] = [
   {
-    label: "Your weekly picks",
+    label: "Weekly Picks",
     href: "/weekly-picks",
     matchPrefix: "/weekly-picks",
   },
-  { label: "Deals for you", href: "/deals-for-you", matchPrefix: "/deals-for-you" },
+  { label: "Deals For You", href: "/deals-for-you", matchPrefix: "/deals-for-you" },
   {
-    label: "Monthly recap",
+    label: "Monthly Recap",
     href: "/monthly-recap",
     matchPrefix: "/monthly-recap",
   },
