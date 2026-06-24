@@ -298,13 +298,14 @@ export default function HowItWorksDetailView({
   function DiscoveryContent() {
     const current = [
       "Save your recommendation runs and revisit them anytime",
-      "Track games you're interested in",
-      "Get price alerts when a tracked game drops",
+      "Track games you're interested in and get price alerts when they drop",
+      "Sync your Steam library so picks skip what you already own",
+      "Premium personalization — Weekly Picks, Deals For You, and Monthly Recap from your GamePing DNA",
     ];
     const future = [
-      "Steam import — skip what you own and learn from your library",
-      "Stronger taste memory — results that build on your history",
-      "Personalized discovery — picks that find you, not just search",
+      "Mood tuning — re-tune picks around how you feel right now",
+      "Taste evolution — see how your taste shifts over time",
+      "GamePing Parties — find games a whole group can play together",
     ];
 
     return (
@@ -331,7 +332,7 @@ export default function HowItWorksDetailView({
 
           <article className={card}>
             <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-cyan-300">
-              Coming soon
+              Coming next
             </span>
             <h2 className={`mt-3 ${cardTitle}`}>On the roadmap</h2>
             <ul className="mt-5 space-y-3">
@@ -339,9 +340,6 @@ export default function HowItWorksDetailView({
                 <Bullet key={f}>{f}</Bullet>
               ))}
             </ul>
-            <p className={`mt-4 text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-              These features are upcoming — not available yet.
-            </p>
           </article>
         </div>
       </div>
@@ -385,9 +383,9 @@ export default function HowItWorksDetailView({
           <p className={cardEyebrow}>What it does</p>
           <h2 className={`mt-2 ${cardTitle}`}>Connect your Steam library</h2>
           <p className={`mt-3 ${cardBody}`}>
-            Steam import will let you securely connect your Steam account so GamePing can understand
-            the games you already own and play. Instead of guessing from one prompt, it gets to learn
-            from your real history — making every recommendation more personal.
+            Steam Library Sync lets you securely connect your Steam account so GamePing understands
+            the games you already own and play. Instead of guessing from one prompt, it learns from
+            your real history — making every recommendation more personal.
           </p>
           <ul className="mt-5 space-y-3">
             {reads.map((r) => (
@@ -435,7 +433,7 @@ export default function HowItWorksDetailView({
           className={`${card} ${isDark ? "!border-cyan-400/40" : "!border-cyan-400/50"}`}
         >
           <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-cyan-300">
-            Coming soon
+            Coming next
           </span>
           <h2 className={`mt-3 ${cardTitle}`}>What it unlocks next</h2>
           <ul className="mt-5 space-y-3">
@@ -444,8 +442,8 @@ export default function HowItWorksDetailView({
             ))}
           </ul>
           <p className={`mt-4 text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-            Steam import isn&apos;t live yet — it&apos;s in active development. You can use GamePing
-            today by describing your taste in your own words.
+            Steam Library Sync is live today — connect it from your account settings to start
+            personalizing your picks, deals, and recap.
           </p>
         </article>
       </div>
@@ -461,13 +459,14 @@ export default function HowItWorksDetailView({
       "Dislikes — the things you tell GamePing to avoid",
     ];
     const today = [
+      "Steam library & playtime — what you actually play",
       "Searches you make",
       "Games you save to your dashboard",
-      "Games you skip past",
+      "Games you track for price alerts",
     ];
     const roadmap = [
-      "Steam playtime — what you actually play, not just search",
-      "Long-term taste profile that carries between sessions",
+      "Mood tuning — re-tune picks around how you feel",
+      "Taste evolution — see how your taste shifts over time",
       "Discovery alerts tuned to how your taste evolves",
     ];
 
@@ -475,11 +474,11 @@ export default function HowItWorksDetailView({
       <div className="space-y-6">
         <article className={card}>
           <p className={cardEyebrow}>What it does</p>
-          <h2 className={`mt-2 ${cardTitle}`}>GamePing remembers your taste over time</h2>
+          <h2 className={`mt-2 ${cardTitle}`}>Your GamePing DNA, built from how you play</h2>
           <p className={`mt-3 ${cardBody}`}>
-            Today each recommendation starts fresh from what you type. Taste memory will change that:
-            GamePing will gradually build a picture of what you enjoy, so future picks feel like they
-            already know you — without you having to re-explain yourself every time.
+            Your GamePing DNA builds a picture of what you enjoy from your Steam library, searches,
+            and saved games — so picks feel like they already know you, without you having to
+            re-explain yourself every time. The more you use GamePing, the sharper it gets.
           </p>
         </article>
 
@@ -518,7 +517,7 @@ export default function HowItWorksDetailView({
             className={`${card} ${isDark ? "!border-cyan-400/40" : "!border-cyan-400/50"}`}
           >
             <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-cyan-300">
-              Coming soon
+              Coming next
             </span>
             <h2 className={`mt-3 ${cardTitle}`}>On the roadmap</h2>
             <ul className="mt-5 space-y-3">
@@ -527,8 +526,7 @@ export default function HowItWorksDetailView({
               ))}
             </ul>
             <p className={`mt-4 text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-              Deeper taste memory is planned as part of GamePing&apos;s premium experience — not live
-              yet. For now, GamePing learns within a single search.
+              Your GamePing DNA is live as part of Premium — these refinements are coming next.
             </p>
           </article>
         </div>

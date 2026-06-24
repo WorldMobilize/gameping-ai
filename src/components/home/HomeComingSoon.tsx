@@ -45,7 +45,7 @@ export default function HomeComingSoon() {
   return (
     <HomeSectionShell tone="coming-soon" ariaLabelledby="future-roadmap-heading">
       <header className="max-w-2xl">
-        <span className={`inline-flex uppercase tracking-wide ${soonBadge}`}>Coming soon</span>
+        <span className={`inline-flex uppercase tracking-wide ${soonBadge}`}>Premium</span>
         <h2
           id="future-roadmap-heading"
           className={`${HOME_SECTION_TITLE} mt-3 text-2xl sm:text-3xl ${headerText}`}
@@ -53,7 +53,7 @@ export default function HomeComingSoon() {
           GamePing gets <span className={headerAccent}>smarter</span> with you
         </h2>
         <p className={`mt-3 max-w-xl text-base leading-relaxed sm:text-lg ${headerBody}`}>
-          Steam import and taste memory are planned features — not live yet.
+          Steam Library Sync and your GamePing DNA power personalized picks, deals, and your monthly recap.
         </p>
       </header>
 

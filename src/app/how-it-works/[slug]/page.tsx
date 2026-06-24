@@ -19,22 +19,22 @@ const HOW_IT_WORKS_PAGES = {
   discovery: {
     title: "Keep discovering",
     description:
-      "Discovery continues after one search. Save recommendation runs, track games, and get price alerts today — with stronger taste memory and Steam import on the way.",
-    body: "More detail on saving, tracking, and upcoming taste features is coming soon. You can start discovering from the homepage today.",
+      "Discovery continues after one search. Save recommendation runs, track games, get price alerts, and sync your Steam library so your GamePing DNA makes results more personal.",
+    body: "Save searches, track games, and connect Steam from your account settings — your GamePing DNA builds from those signals. Start discovering from the homepage today.",
   },
   "steam-import": {
-    title: "Steam import",
+    title: "Steam Library Sync",
     description:
-      "How connecting your Steam library will help GamePing skip games you own and learn from your play history.",
-    body: "Steam import is not live yet. We are building a way to connect your library so recommendations get smarter over time. Check back soon.",
-    kicker: "Coming soon",
+      "Connect your Steam library so GamePing understands what you actually play — not just what you search.",
+    body: "Steam Library Sync is live. Connect your library from your account settings and GamePing learns from your owned games and playtime — skipping games you already own and powering your Weekly Picks, Deals For You, and Monthly Recap.",
+    kicker: "Premium",
   },
   "taste-memory": {
-    title: "Taste memory",
+    title: "GamePing DNA",
     description:
-      "How GamePing will remember your searches, saved games, and play patterns to refine future picks.",
-    body: "Taste memory is on the roadmap. Soon GamePing will learn from your activity to personalize results. For now, try a search from the homepage.",
-    kicker: "Coming soon",
+      "Your personal gaming profile evolves from your library, searches, and saved games.",
+    body: "GamePing DNA is live. It builds from your Steam library, searches, saved games, and tracked games to personalize your Weekly Picks, Deals For You, and Monthly Recap. The more you use GamePing, the sharper it gets.",
+    kicker: "Premium",
   },
 } as const;
 

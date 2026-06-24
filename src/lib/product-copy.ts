@@ -6,7 +6,7 @@ export const EARLY_ACCESS_NOTICE =
   "GamePing AI is currently in early access. Recommendations and pricing coverage will improve over time.";
 
 export const PREMIUM_UNLOCK_LINE =
-  "Premium unlocks saved runs, tracked games, taste memory, and deeper personalization—including Steam import when it ships.";
+  "Premium unlocks saved runs, tracked games, Steam Library Sync, and your GamePing DNA—personalized Weekly Picks, Deals For You, and Monthly Recap.";
 
 /** Premium subscription marketing (EUR, matches Stripe). */
 export const PREMIUM_EARLY_ACCESS_PRICE_MONTHLY = "€2.99";
@@ -111,7 +111,7 @@ export function getLimitReachedDisplay(params: {
       body = `You've reached ${Q.freeTrackedGames} tracked games on the free plan. Upgrade to follow more deals on games you care about.`;
       break;
     case "daily_recommendations":
-      body = `You've used today's ${Q.freeRecommendDaily} free recommendations. Come back tomorrow—or upgrade for saved taste memory, more saved runs, and more tracked games.`;
+      body = `You've used today's ${Q.freeRecommendDaily} free recommendations. Come back tomorrow—or upgrade for your GamePing DNA, more saved runs, and more tracked games.`;
       break;
   }
 

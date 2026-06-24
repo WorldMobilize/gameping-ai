@@ -1,7 +1,6 @@
 "use client";
 
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
-import { homeSoonChip } from "@/components/home/home-styles";
 
 const LIBRARY_ROWS = [
   { title: "Open-world RPG", meta: "142h played", tone: "cyan" as const },
@@ -28,7 +27,6 @@ function toneSwatch(tone: (typeof LIBRARY_ROWS)[number]["tone"], isDark: boolean
 export function HomeSteamImportRoadmapMockup() {
   const { theme } = useHomeTheme();
   const isDark = theme === "dark";
-  const soonBadge = homeSoonChip(isDark);
 
   const panel = isDark
     ? "border-slate-700/80 bg-slate-950/60"
@@ -51,7 +49,10 @@ export function HomeSteamImportRoadmapMockup() {
           </p>
           <p className={`mt-1 text-sm font-bold ${label}`}>Steam</p>
         </div>
-        <span className={`shrink-0 uppercase tracking-wide ${soonBadge}`}>Coming soon</span>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-700 dark:text-emerald-300">
+          <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          Connected
+        </span>
       </div>
 
       <p className={`mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] ${muted}`}>
@@ -125,7 +126,7 @@ export function HomeTasteMemoryRoadmapMockup() {
       className={`mt-6 w-full max-w-md rounded-2xl border p-4 sm:p-5 ${panel}`}
     >
       <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${muted}`}>
-        Taste profile preview
+        GamePing DNA preview
       </p>
       <ul className="mt-3 space-y-2.5">
         {bars.map((row) => (

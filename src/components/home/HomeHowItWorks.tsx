@@ -38,7 +38,10 @@ export default function HomeHowItWorks() {
         </h2>
       </header>
 
-      <div className="mx-auto mt-10 max-w-5xl sm:mt-12">
+      {/* Animated product walkthrough — desktop/tablet only. Hidden on phones
+       * (the tall scroll-driven demo doesn't read well at narrow widths); the
+       * container collapses so no empty vertical space is left behind. */}
+      <div className="mx-auto mt-10 hidden max-w-5xl sm:mt-12 md:block">
         <HomeHeroTasteVisual />
       </div>
 

@@ -1740,7 +1740,7 @@ export default function RecommendPage() {
 
               {!emailSaved && (
                 <p className={`mt-4 ${APP_MUTED}`}>
-                  Free: 10 recommendations/day, 3 saved runs, 5 tracked games • Premium unlocks taste memory and more
+                  Free: 10 recommendations/day, 3 saved runs, 5 tracked games • Premium unlocks your GamePing DNA and more
                 </p>
               )}
             </div>

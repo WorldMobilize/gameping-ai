@@ -439,7 +439,7 @@ export const HOME_HOW_CARDS = [
     id: "discovery",
     title: "Keep discovering",
     summary:
-      "Save searches, track games, and come back when you want something new. Future taste memory and Steam import will make results even more personal.",
+      "Save searches, track games, and sync your Steam library so your GamePing DNA makes every result more personal.",
     href: "/how-it-works/discovery",
   },
 ] as const;
@@ -472,7 +472,7 @@ export const HOME_JOURNEY_STEPS = [
     items: [
       { label: "Saved games", soon: false },
       { label: "Price tracking", soon: false },
-      { label: "Taste memory", soon: true },
+      { label: "GamePing DNA", soon: false },
     ],
   },
 ] as const;
@@ -565,18 +565,18 @@ export const HOME_WHY_CAROUSEL = [
 export const HOME_FUTURE_ROADMAP = [
   {
     id: "steam-import",
-    title: "Steam import",
+    title: "Steam Library Sync",
     detail:
-      "Connect your library so GamePing can avoid games you already own and better understand what you actually play.",
+      "Connect your Steam library so GamePing understands what you actually play — not just what you search.",
     chips: ["Played games", "Playtime patterns", "Owned games"] as const,
     href: "/how-it-works/steam-import",
   },
   {
     id: "taste-memory",
-    title: "Taste memory",
+    title: "GamePing DNA",
     detail:
-      "Future recommendations will improve from searches, saved games, and eventually Steam playtime.",
-    chips: ["Searches", "Saved games", "Steam playtime"] as const,
+      "Your personal gaming profile evolves from your library, searches, and saved games.",
+    chips: ["Steam library", "Searches", "Saved games"] as const,
     href: "/how-it-works/taste-memory",
   },
 ] as const;
@@ -777,16 +777,16 @@ export type HomeRoadmapItem = {
 export const HOME_ROADMAP_ITEMS: HomeRoadmapItem[] = [
   {
     id: "steam-import",
-    label: "Steam import",
+    label: "Steam Library Sync",
     detail:
-      "Connect your Steam library so GamePing can read playtime patterns, favorite genres, and games you've already finished — and avoid recommending them again.",
+      "Connect your Steam library so GamePing understands what you actually play — reading playtime patterns and favorite genres, and skipping games you already own.",
     icon: "steam",
   },
   {
     id: "taste-memory",
-    label: "Taste memory",
+    label: "GamePing DNA",
     detail:
-      "GamePing will gradually improve by remembering your searches, saved games, skips, and — with Steam — playtime. That builds a better picture of your taste over time.",
+      "Your personal gaming profile evolves from your library, searches, and saved games — a sharper picture of your taste the more you use GamePing.",
     icon: "memory",
   },
   {
@@ -805,12 +805,12 @@ export const HOME_STEAM_IMPORT_ANALYSIS = [
   "Avoid owned games",
 ] as const;
 
-/** Taste memory roadmap mockup copy (visual only). */
+/** GamePing DNA mockup copy (visual only). */
 export const HOME_TASTE_MEMORY_SOURCES = [
+  { label: "Steam library", soon: false },
   { label: "Searches you make", soon: false },
   { label: "Games you save", soon: false },
-  { label: "Games you skip", soon: false },
-  { label: "Steam playtime", soon: true },
+  { label: "Steam playtime", soon: false },
 ] as const;
 
 export const HOME_TASTE_MEMORY_IMPROVES = [
