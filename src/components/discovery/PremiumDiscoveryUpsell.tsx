@@ -24,8 +24,8 @@ export default function PremiumDiscoveryUpsell({
       </h1>
       <p className={`${APP_PAGE_LEAD} max-w-2xl`}>
         Weekly Picks, Deals For You, and Monthly Recap are Premium discovery areas. Upgrade to
-        unlock personalized game drops, deal-focused recommendations, and your gaming recap when
-        they launch.
+        unlock personalized game picks, deal-focused recommendations, and your monthly gaming recap —
+        built from your Steam library, saved searches, and tracked games.
       </p>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
         <Link href="/upgrade" className={APP_PRIMARY_CTA_LG}>

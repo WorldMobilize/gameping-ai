@@ -3,12 +3,16 @@ import "server-only";
 import {
   dedupeCandidates,
   fetchRawgCandidates,
-  isLowQualityTitle,
   searchRawgByTitle,
   type RawgCandidate,
 } from "@/lib/rawg-discovery";
 import { lookupDeals } from "@/lib/pricing/price-service";
 import { getServiceSupabase } from "@/lib/discovery/rotation-store";
+import {
+  MIN_CREDIBLE_PICKS,
+  normalizeForMatch,
+  selectCredibleCandidates,
+} from "@/lib/discovery/premium-candidate-quality";
 import {
   buildUserTasteProfile,
   type UserTasteProfile,
@@ -92,9 +96,12 @@ function discoveryQueriesFromProfile(profile: UserTasteProfile): string[] {
   return [...new Set(queries.map((q) => q.trim()).filter(Boolean))].slice(0, 6);
 }
 
-/** Titles the user already owns/tracks/saved — exclude from fresh picks. */
-function knownTitleSet(profile: UserTasteProfile): Set<string> {
-  return new Set(profile.favoriteGames.map((g) => norm(g.title)));
+/** Titles the user already owns (Steam) / tracks / saved — exclude from fresh picks. */
+function ownedAndKnownNorms(profile: UserTasteProfile): Set<string> {
+  return new Set<string>([
+    ...profile.ownedTitleNorms,
+    ...profile.favoriteGames.map((g) => normalizeForMatch(g.title)),
+  ]);
 }
 
 /** Deterministic "why picked" from overlap of taste signals + candidate metadata. */
@@ -135,16 +142,20 @@ export async function generateWeeklyPicks(userId: string): Promise<GeneratePremi
 
   try {
     const queries = discoveryQueriesFromProfile(profile);
-    const raw = await fetchRawgCandidates({ rawgApiKey, discoveryQueries: queries, pageSize: 20 });
-    const known = knownTitleSet(profile);
+    const raw = await fetchRawgCandidates({ rawgApiKey, discoveryQueries: queries, pageSize: 40 });
+    const ownedNorms = ownedAndKnownNorms(profile);
 
-    const candidates = dedupeCandidates(raw)
-      .filter((c) => candidateImage(c) && !isLowQualityTitle(c.name) && !known.has(norm(c.name)))
-      .slice(0, MAX_PICKS * 2);
+    // STRICT credibility gate — rejects prototype/demo/versioned shovelware,
+    // requires a real popularity signal, dedupes title clusters, excludes owned
+    // games. Better to ship 3 excellent picks than 8 filler ones.
+    const chosen = selectCredibleCandidates(dedupeCandidates(raw), {
+      ownedNorms,
+      limit: MAX_PICKS,
+    });
 
-    if (candidates.length < 3) return { ok: false, error: "not_enough_candidates" };
-
-    const chosen = candidates.slice(0, MAX_PICKS);
+    if (chosen.length < MIN_CREDIBLE_PICKS) {
+      return { ok: false, error: "insufficient_credible_candidates" };
+    }
 
     // AI explanations (best-effort).
     const ai = await explainWeeklyPicksWithAi({
@@ -218,8 +229,17 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
   const profile = await buildUserTasteProfile(userId);
   if (!profile.complete) return { ok: false, error: "insufficient_taste_signal" };
 
-  // Find deals on games the user already likes / tracks / saved.
-  const titles = [...new Set(profile.favoriteGames.map((g) => g.title))].slice(0, MAX_DEAL_TITLES);
+  // Find deals on games the user is INTERESTED in (saved searches + tracked
+  // games) — never on games they already OWN on Steam (a discount on an owned
+  // game is useless). Owned-only users get the graceful "no deal signal" state.
+  const ownedNorms = new Set(profile.ownedTitleNorms);
+  const titles = [
+    ...new Set(
+      profile.favoriteGames
+        .filter((g) => g.source !== "steam" && !ownedNorms.has(normalizeForMatch(g.title)))
+        .map((g) => g.title)
+    ),
+  ].slice(0, MAX_DEAL_TITLES);
   if (titles.length === 0) return { ok: false, error: "no_titles_to_price" };
 
   try {
@@ -418,21 +438,21 @@ export async function generateMonthlyRecap(userId: string): Promise<GeneratePrem
         const raw = await fetchRawgCandidates({
           rawgApiKey,
           discoveryQueries: discoveryQueriesFromProfile(profile),
-          pageSize: 12,
+          pageSize: 24,
         });
-        const known = knownTitleSet(profile);
-        predictions = dedupeCandidates(raw)
-          .filter((c) => candidateImage(c) && !isLowQualityTitle(c.name) && !known.has(norm(c.name)))
-          .slice(0, 3)
-          .map((c) => ({
-            id: `rawg-pred-${c.id}`,
-            title: c.name,
-            image: candidateImage(c)!,
-            matchScore: baseMatchScore(c),
-            category: primaryGenre(c),
-            whyPicked: deterministicWhyPicked(profile, c),
-            possibleConcerns: [],
-          }));
+        // Same strict credibility gate as Weekly Picks — no shovelware/owned games.
+        predictions = selectCredibleCandidates(dedupeCandidates(raw), {
+          ownedNorms: ownedAndKnownNorms(profile),
+          limit: 3,
+        }).map((c) => ({
+          id: `rawg-pred-${c.id}`,
+          title: c.name,
+          image: candidateImage(c)!,
+          matchScore: baseMatchScore(c),
+          category: primaryGenre(c),
+          whyPicked: deterministicWhyPicked(profile, c),
+          possibleConcerns: [],
+        }));
       } catch {
         predictions = [];
       }

@@ -35,6 +35,8 @@ export type UserTasteProfile = {
   likes: string[];
   avoid: string[];
   favoriteGames: FavoriteGameRef[];
+  /** Normalized titles the user OWNS on Steam — used to exclude from fresh picks. */
+  ownedTitleNorms: string[];
   preferredGenres: string[];
   preferredMechanics: string[];
   steamSummary: {
@@ -66,6 +68,11 @@ function asStringArray(value: unknown): string[] {
     if (typeof v === "string" && v.trim()) out.push(v.trim());
   }
   return out;
+}
+
+/** Normalize a title for owned-set matching (lowercase, alnum-only). */
+function normTitle(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 /** Pull string-y signal arrays from a saved-search `preferences` jsonb blob. */
@@ -150,6 +157,7 @@ export async function buildUserTasteProfile(userId: string): Promise<UserTastePr
     likes: [],
     avoid: [],
     favoriteGames: [],
+    ownedTitleNorms: [],
     preferredGenres: [],
     preferredMechanics: [],
     steamSummary: null,
@@ -223,37 +231,58 @@ export async function buildUserTasteProfile(userId: string): Promise<UserTastePr
     }
   }
 
-  // Steam import → taste DNA + top-played games
+  // Steam import → owned/played games + (optional) AI taste DNA.
+  //
+  // IMPORTANT: ingest the real owned/played library DIRECTLY from user_steam_games
+  // and the connection row — do NOT gate this on taste_dna validating. The
+  // AI-enriched taste_dna can be missing or fail validation, but an imported
+  // library is itself a strong, real signal. (Gating Steam ingestion on taste_dna
+  // is exactly what made premium pages miss an existing Steam import until the
+  // user visited /settings/account, which re-imported and rebuilt taste_dna.)
   let steamSummary: UserTasteProfile["steamSummary"] = null;
-  const dnaRaw = steamConn ? (steamConn as Record<string, unknown>).taste_dna : null;
-  if (isTasteDna(dnaRaw)) {
-    const sig = tasteDnaSignals(dnaRaw);
-    likes.push(...sig.likes);
-    avoid.push(...sig.avoid);
-    mechanics.push(...sig.mechanics);
+  const steamConnected = Boolean(steamConn);
+  const ownedTitleNorms: string[] = [];
+
+  for (const g of steamGames) {
+    const title = (g as Record<string, unknown>).title;
+    const playtime = (g as Record<string, unknown>).playtime_forever;
+    if (typeof title === "string" && title.trim()) {
+      favoriteGames.push({
+        title: title.trim(),
+        playtimeMin: typeof playtime === "number" ? playtime : undefined,
+        source: "steam",
+      });
+      ownedTitleNorms.push(normTitle(title));
+    }
+  }
+
+  if (steamConnected) {
+    const dnaRaw = (steamConn as Record<string, unknown>).taste_dna;
+    const sig = isTasteDna(dnaRaw) ? tasteDnaSignals(dnaRaw) : null;
+    if (sig) {
+      likes.push(...sig.likes);
+      avoid.push(...sig.avoid);
+      mechanics.push(...sig.mechanics);
+    }
+    const stats = isTasteDna(dnaRaw) ? dnaRaw.stats : null;
+    const connGameCount = Number((steamConn as Record<string, unknown>).game_count);
+    const connPlaytime = Number((steamConn as Record<string, unknown>).total_playtime_min);
+    const playedCount = steamGames.filter((g) => {
+      const p = (g as Record<string, unknown>).playtime_forever;
+      return typeof p === "number" && p > 0;
+    }).length;
     const topPlayed = steamGames
       .map((g) => (g as Record<string, unknown>).title)
       .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
       .slice(0, 12);
     steamSummary = {
-      ownedCount: dnaRaw.stats.ownedCount,
-      playedCount: dnaRaw.stats.playedCount,
-      totalPlaytimeMin: dnaRaw.stats.totalPlaytimeMin,
+      ownedCount: stats?.ownedCount ?? (Number.isFinite(connGameCount) ? connGameCount : steamGames.length),
+      playedCount: stats?.playedCount ?? playedCount,
+      totalPlaytimeMin: stats?.totalPlaytimeMin ?? (Number.isFinite(connPlaytime) ? connPlaytime : 0),
       topPlayed,
-      archetype: sig.archetype,
-      summary: sig.summary,
+      archetype: sig?.archetype,
+      summary: sig?.summary,
     };
-    for (const g of steamGames) {
-      const title = (g as Record<string, unknown>).title;
-      const playtime = (g as Record<string, unknown>).playtime_forever;
-      if (typeof title === "string" && title.trim()) {
-        favoriteGames.push({
-          title: title.trim(),
-          playtimeMin: typeof playtime === "number" ? playtime : undefined,
-          source: "steam",
-        });
-      }
-    }
   }
 
   // de-dupe favorite games by title, keeping the strongest signal (steam > tracked > saved)
@@ -276,11 +305,12 @@ export async function buildUserTasteProfile(userId: string): Promise<UserTastePr
     likes: dedupeStrings(likes),
     avoid: dedupeStrings(avoid),
     favoriteGames: mergedFavorites,
+    ownedTitleNorms: [...new Set(ownedTitleNorms)],
     preferredGenres: dedupeStrings(genres, 16),
     preferredMechanics: dedupeStrings(mechanics, 16),
     steamSummary,
     sourceSummary: {
-      hasSteam: Boolean(steamSummary),
+      hasSteam: steamConnected,
       savedSearches: searches.length,
       savedGames: savedGamesCount,
       trackedGames: tracked.length,
@@ -293,7 +323,20 @@ export async function buildUserTasteProfile(userId: string): Promise<UserTastePr
     profile.favoriteGames.length > 0 ||
     profile.preferredGenres.length > 0 ||
     profile.likes.length > 0 ||
+    steamConnected ||
     Boolean(profile.steamSummary);
+
+  // Debug-safe server log (no titles/PII — only counts + flags) so a missing
+  // Steam signal is diagnosable without visiting /settings/account.
+  console.info("[premium:taste-profile]", {
+    userId,
+    steamConnected,
+    importedGameCount: steamGames.length,
+    ownedTitleSetSize: profile.ownedTitleNorms.length,
+    savedSearchCount: searches.length,
+    trackedGameCount: tracked.length,
+    complete: profile.complete,
+  });
 
   // best-effort persist (never throws into the caller)
   await persistTasteProfile(profile);

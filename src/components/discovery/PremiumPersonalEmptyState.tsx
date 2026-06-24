@@ -5,13 +5,12 @@ import {
   APP_PRIMARY_CTA_ACCENT_SM,
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
-import DiscoveryComingSoonBadge from "@/components/discovery/DiscoveryComingSoonBadge";
 
 /**
  * Premium "make it personal" empty state. Shown when a premium/admin user has no
- * Steam-import / taste data yet (status "needs-steam-import"). It explains the
- * future per-user feature and points to Steam import. It never shows fake personal
- * data; any sample content below it on the page stays clearly labeled as a preview.
+ * usable taste data yet. The feature is LIVE — this just asks the user to add a
+ * signal (Steam import / saved search / tracked game). It never shows fake personal
+ * data; any sample content below it on the page stays clearly labeled as a sample.
  */
 export default function PremiumPersonalEmptyState({
   eyebrow,
@@ -33,7 +32,6 @@ export default function PremiumPersonalEmptyState({
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
           {eyebrow}
         </p>
-        <DiscoveryComingSoonBadge variant="premium" />
       </div>
       <h2
         id="premium-personal-empty-heading"

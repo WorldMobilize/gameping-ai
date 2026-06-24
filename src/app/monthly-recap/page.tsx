@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import { APP_CARD, APP_CARD_HEADING, APP_MUTED } from "@/components/app/app-styles";
-import DiscoveryFutureCard from "@/components/discovery/DiscoveryFutureCard";
+import PremiumAutoGenerate from "@/components/discovery/PremiumAutoGenerate";
+import PremiumComingNext from "@/components/discovery/PremiumComingNext";
 import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsell";
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
 import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
@@ -12,8 +13,9 @@ import {
   type WeeklyPickCardData,
 } from "@/lib/discovery/premium-demo-data";
 import { resolvePremiumPageAccess } from "@/lib/discovery/premium-page-access";
-import { ensureUserPremiumRotation } from "@/lib/discovery/ensure-premium-rotation";
+import { buildUserTasteProfile } from "@/lib/discovery/user-taste-profile";
 import {
+  resolveUserRotation,
   type MonthlyRecapCore,
   type PremiumRotationMeta,
 } from "@/lib/discovery/user-rotation-store";
@@ -23,9 +25,8 @@ import type { Metadata } from "next";
 // Premium/personalized page — personalized & private, so keep it out of the index.
 export const metadata: Metadata = buildNoIndexMetadata("Your monthly recap | GamePing AI");
 
+// Cache-first: read the cached recap fast; generation happens off-render.
 export const dynamic = "force-dynamic";
-// Allow the first-visit lazy generation (activity stats + optional OpenAI) to run.
-export const maxDuration = 60;
 
 export default async function MonthlyRecapPage({
   searchParams,
@@ -39,35 +40,52 @@ export default async function MonthlyRecapPage({
   let generatedPredictions: WeeklyPickCardData[] = [];
   let aiSummary: { headline: string; summary: string } | null = null;
   let meta: PremiumRotationMeta | null = null;
+  let hasSignal = false;
   if (access.canViewPersonalized && access.userId) {
-    // Read cache, generating once on this visit if missing/stale (cooldown-guarded).
-    const resolved = await ensureUserPremiumRotation(access.userId, "monthly_recap");
+    const resolved = await resolveUserRotation(access.userId, "monthly_recap");
     const core = resolved.rotation?.featuredItem as MonthlyRecapCore | null;
     if (resolved.rotation && core && core.personality) {
       generatedCore = core;
       generatedPredictions = (resolved.rotation.items as WeeklyPickCardData[]) ?? [];
       aiSummary = resolved.rotation.aiSummary;
       meta = resolved.meta;
+      console.info("[premium:monthly-recap] cacheHit", { userId: access.userId });
+    } else {
+      const profile = await buildUserTasteProfile(access.userId);
+      hasSignal = profile.complete;
+      console.info("[premium:monthly-recap] cacheMiss", {
+        userId: access.userId,
+        hasSignal,
+        steamConnected: profile.sourceSummary.hasSteam,
+      });
     }
   }
 
   const sp = await searchParams;
   const stateParam = Array.isArray(sp?.state) ? sp.state[0] : sp?.state;
   const override = access.viewer === "admin" ? stateParam : undefined;
-  const state: "generated" | "empty" | "locked" =
+
+  const baseState: "generated" | "generating" | "empty" | "locked" =
+    !access.canViewPersonalized
+      ? "locked"
+      : generatedCore
+        ? "generated"
+        : hasSignal
+          ? "generating"
+          : "empty";
+  const state =
     override === "locked"
       ? "locked"
       : override === "empty"
         ? "empty"
-        : override === "generated" && generatedCore
-          ? "generated"
-          : access.canViewPersonalized
-            ? generatedCore
-              ? "generated"
-              : "empty"
-            : "locked";
+        : override === "generating"
+          ? "generating"
+          : override === "generated" && generatedCore
+            ? "generated"
+            : baseState;
 
   const isGenerated = state === "generated";
+  const isGenerating = state === "generating";
   const personality = isGenerated && generatedCore ? generatedCore.personality : MONTHLY_RECAP_DEMO_DATA.personality;
   const month = isGenerated && generatedCore ? generatedCore.month : MONTHLY_RECAP_DEMO_DATA.month;
   const evolution = isGenerated && generatedCore ? generatedCore.evolution : MONTHLY_RECAP_DEMO_DATA.evolution;
@@ -120,154 +138,154 @@ export default async function MonthlyRecapPage({
           {state === "empty" ? (
             <PremiumPersonalEmptyState
               eyebrow="Make it personal"
-              title="Import your Steam library to make this personal"
-              description="Monthly Recap will summarize your month — what you searched, saved, and tracked, what your Steam library suggests, and how your taste evolved. Connect your Steam library to personalize the preview below."
+              title="Not enough activity yet for a recap"
+              description="Monthly Recap summarizes your month — what you searched, saved, and tracked, what your Steam library suggests, and how your taste evolved. Import your Steam library, save a search, or track a game to build your first recap."
               signals={[
                 "Searches & saved games",
                 "Tracked games & price alerts",
                 "Steam library & playtime",
-                "Taste evolution over time",
               ]}
-              demoNote="The stats below are a labeled demo — not real tracking yet."
+              demoNote="The recap below is a labeled sample — yours is built from real activity."
             />
           ) : null}
 
-          {/* Section 1 — Gaming personality */}
-          <section className="mt-14" aria-labelledby="recap-personality-heading">
-            <h2 id="recap-personality-heading" className="text-2xl font-extrabold text-white">
-              Gaming personality
-            </h2>
-            <div className={`mt-6 ${APP_CARD} p-6 sm:p-8`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--page-accent-text)]">
-                You are
-              </p>
-              <p className="mt-2 text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white gp-home-display">
-                The {personality.name.replace(/^The /i, "")}
-              </p>
-              <p className={`mt-3 max-w-2xl ${APP_MUTED}`}>{personality.summary}</p>
-
-              <div className="mt-6 space-y-4">
-                <p className="text-sm font-bold text-slate-900 dark:text-white">Taste DNA</p>
-                {personality.dna.map((bar) => (
-                  <div key={bar.label}>
-                    <div className="flex items-baseline justify-between text-sm">
-                      <span className="font-semibold text-slate-700 dark:text-slate-200">{bar.label}</span>
-                      <span className="tabular-nums font-bold text-[color:var(--page-accent-text)]">
-                        {bar.value}%
-                      </span>
-                    </div>
-                    <div
-                      className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-200/70 dark:bg-white/10"
-                      role="img"
-                      aria-label={`${bar.label}: ${bar.value} percent`}
-                    >
-                      <div
-                        className="h-full rounded-full bg-[var(--page-accent-strong)]"
-                        style={{ width: `${bar.value}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {!isGenerated ? (
-                <p className="mt-5 text-[11px] text-slate-500 dark:text-slate-400">
-                  Demo profile — real Taste DNA will be generated from your activity.
-                </p>
-              ) : null}
-            </div>
-          </section>
-
-          {/* Section 2 — Your month */}
-          <section className="mt-14" aria-labelledby="recap-month-heading">
-            <h2 id="recap-month-heading" className="text-2xl font-extrabold text-white">
-              Your month
-            </h2>
-            <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {monthStats.map((stat) => (
-                <li key={stat.label} className={`${APP_CARD} p-6`}>
-                  <p className="text-3xl font-extrabold tabular-nums text-[color:var(--page-accent-text)]">
-                    {stat.value}
+          {isGenerating ? (
+            <PremiumAutoGenerate type="monthly_recap" noun="recap" />
+          ) : (
+            <>
+              {/* Section 1 — Gaming personality */}
+              <section className="mt-14" aria-labelledby="recap-personality-heading">
+                <h2 id="recap-personality-heading" className="text-2xl font-extrabold text-white">
+                  Gaming personality
+                </h2>
+                <div className={`mt-6 ${APP_CARD} p-6 sm:p-8`}>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--page-accent-text)]">
+                    You are
                   </p>
-                  <p className={`mt-1 text-sm ${APP_MUTED}`}>{stat.label}</p>
-                </li>
-              ))}
-            </ul>
-            {!isGenerated ? (
-              <p className="mt-3 text-[11px] text-slate-400">Sample stats — not real tracking yet.</p>
-            ) : null}
-          </section>
+                  <p className="mt-2 text-3xl font-black uppercase tracking-tight text-slate-900 dark:text-white gp-home-display">
+                    The {personality.name.replace(/^The /i, "")}
+                  </p>
+                  <p className={`mt-3 max-w-2xl ${APP_MUTED}`}>{personality.summary}</p>
 
-          {/* Section 3 — Taste evolution */}
-          <section className="mt-14" aria-labelledby="recap-evolution-heading">
-            <h2 id="recap-evolution-heading" className="text-2xl font-extrabold text-white">
-              Taste evolution
-            </h2>
-            <div className="mt-6 grid gap-6 sm:grid-cols-2">
-              <div className={`${APP_CARD} p-6`}>
-                <h3 className={APP_CARD_HEADING}>Before</h3>
-                <ul className="mt-4 flex flex-wrap gap-2">
-                  {evolution.before.length > 0 ? (
-                    evolution.before.map((tag) => (
-                      <li
-                        key={tag}
-                        className="inline-flex rounded-full border border-slate-200/80 bg-white/70 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200"
-                      >
-                        {tag}
-                      </li>
-                    ))
-                  ) : (
-                    <li className={`text-sm ${APP_MUTED}`}>Not enough history yet.</li>
-                  )}
+                  <div className="mt-6 space-y-4">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">Taste DNA</p>
+                    {personality.dna.map((bar) => (
+                      <div key={bar.label}>
+                        <div className="flex items-baseline justify-between text-sm">
+                          <span className="font-semibold text-slate-700 dark:text-slate-200">{bar.label}</span>
+                          <span className="tabular-nums font-bold text-[color:var(--page-accent-text)]">
+                            {bar.value}%
+                          </span>
+                        </div>
+                        <div
+                          className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-slate-200/70 dark:bg-white/10"
+                          role="img"
+                          aria-label={`${bar.label}: ${bar.value} percent`}
+                        >
+                          <div
+                            className="h-full rounded-full bg-[var(--page-accent-strong)]"
+                            style={{ width: `${bar.value}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {!isGenerated ? (
+                    <p className="mt-5 text-[11px] text-slate-500 dark:text-slate-400">
+                      Labeled sample — your Taste DNA is built from your real activity.
+                    </p>
+                  ) : null}
+                </div>
+              </section>
+
+              {/* Section 2 — Your month */}
+              <section className="mt-14" aria-labelledby="recap-month-heading">
+                <h2 id="recap-month-heading" className="text-2xl font-extrabold text-white">
+                  Your month
+                </h2>
+                <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {monthStats.map((stat) => (
+                    <li key={stat.label} className={`${APP_CARD} p-6`}>
+                      <p className="text-3xl font-extrabold tabular-nums text-[color:var(--page-accent-text)]">
+                        {stat.value}
+                      </p>
+                      <p className={`mt-1 text-sm ${APP_MUTED}`}>{stat.label}</p>
+                    </li>
+                  ))}
                 </ul>
-              </div>
-              <div className={`${APP_CARD} p-6`}>
-                <h3 className={APP_CARD_HEADING}>Now</h3>
-                <ul className="mt-4 flex flex-wrap gap-2">
-                  {evolution.now.length > 0 ? (
-                    evolution.now.map((tag) => (
-                      <li
-                        key={tag}
-                        className="inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1.5 text-sm font-semibold text-[color:var(--page-accent-text)]"
-                      >
-                        {tag}
+                {!isGenerated ? (
+                  <p className="mt-3 text-[11px] text-slate-400">Labeled sample — yours uses your real counts.</p>
+                ) : null}
+              </section>
+
+              {/* Section 3 — Taste evolution */}
+              <section className="mt-14" aria-labelledby="recap-evolution-heading">
+                <h2 id="recap-evolution-heading" className="text-2xl font-extrabold text-white">
+                  Taste evolution
+                </h2>
+                <div className="mt-6 grid gap-6 sm:grid-cols-2">
+                  <div className={`${APP_CARD} p-6`}>
+                    <h3 className={APP_CARD_HEADING}>Before</h3>
+                    <ul className="mt-4 flex flex-wrap gap-2">
+                      {evolution.before.length > 0 ? (
+                        evolution.before.map((tag) => (
+                          <li
+                            key={tag}
+                            className="inline-flex rounded-full border border-slate-200/80 bg-white/70 px-3 py-1.5 text-sm font-semibold text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200"
+                          >
+                            {tag}
+                          </li>
+                        ))
+                      ) : (
+                        <li className={`text-sm ${APP_MUTED}`}>Not enough history yet.</li>
+                      )}
+                    </ul>
+                  </div>
+                  <div className={`${APP_CARD} p-6`}>
+                    <h3 className={APP_CARD_HEADING}>Now</h3>
+                    <ul className="mt-4 flex flex-wrap gap-2">
+                      {evolution.now.length > 0 ? (
+                        evolution.now.map((tag) => (
+                          <li
+                            key={tag}
+                            className="inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1.5 text-sm font-semibold text-[color:var(--page-accent-text)]"
+                          >
+                            {tag}
+                          </li>
+                        ))
+                      ) : (
+                        <li className={`text-sm ${APP_MUTED}`}>Keep using GamePing to build this.</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              {/* Section 4 — Next month predictions */}
+              {predictions.length > 0 ? (
+                <section className="mt-14" aria-labelledby="recap-predictions-heading">
+                  <h2 id="recap-predictions-heading" className="text-2xl font-extrabold text-white">
+                    Next month predictions
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-300">Games you might love next month.</p>
+                  <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {predictions.map((pick) => (
+                      <li key={pick.id} className="flex">
+                        <WeeklyPickPremiumCard pick={pick} />
                       </li>
-                    ))
-                  ) : (
-                    <li className={`text-sm ${APP_MUTED}`}>Keep using GamePing to build this.</li>
-                  )}
-                </ul>
-              </div>
-            </div>
-          </section>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+            </>
+          )}
 
-          {/* Section 4 — Next month predictions */}
-          {predictions.length > 0 ? (
-            <section className="mt-14" aria-labelledby="recap-predictions-heading">
-              <h2 id="recap-predictions-heading" className="text-2xl font-extrabold text-white">
-                Next month predictions
-              </h2>
-              <p className="mt-2 text-sm text-slate-300">Games you might love next month.</p>
-              <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {predictions.map((pick) => (
-                  <li key={pick.id} className="flex">
-                    <WeeklyPickPremiumCard pick={pick} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          <div className="mt-14">
-            <DiscoveryFutureCard
-              title="Future monthly recap"
-              bullets={[
-                "Playtime and library signals",
-                "Genre and tag trends",
-                "Standout games and discovery stats",
-                "Taste evolution over time",
-              ]}
-            />
-          </div>
+          <PremiumComingNext
+            items={[
+              { label: "Trends over time", description: "Month-over-month genre and tag shifts." },
+              { label: "Standout games", description: "Your most-played and best discoveries each month." },
+            ]}
+          />
         </AppSection>
       </div>
     </AppPageShell>

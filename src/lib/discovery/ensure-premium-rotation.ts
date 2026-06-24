@@ -14,37 +14,52 @@ import {
 } from "@/lib/discovery/user-rotation-store";
 
 /**
- * Lazy generation orchestrator for the premium pages
+ * Generation orchestrator for the premium pages
  *   /weekly-picks · /deals-for-you · /monthly-recap
  *
- * Pages call ensureUserPremiumRotation() for premium/admin viewers. It:
+ * IMPORTANT: pages no longer call this during render — it can take many seconds
+ * (RAWG + pricing + OpenAI) and would block the page. Pages read the cache
+ * directly (fast) and, when there's no cached content yet, trigger generation
+ * client-side via /api/premium/generate-mine, which calls this. It:
  *   1. returns the current-period published rotation when it already exists
- *      (the common case — NO regeneration on a normal visit),
+ *      (the common case — NO regeneration),
  *   2. otherwise generates once, caches + publishes, and returns it,
  *   3. on failure / not-enough-data, falls back to the last successful cached
- *      rotation (shown as stale) or null (page renders the empty state).
+ *      rotation (shown as stale) or null.
  *
- * A retry cooldown stops a failing or content-less generation from being
- * re-attempted on every visit (which would hammer RAWG/OpenAI/pricing). The
- * natural cache key is the period (ISO week / month), so a healthy rotation is
- * generated at most once per period per user.
+ * A short anti-storm cooldown stops a just-attempted generation from being
+ * re-run by a double request, without masking newly-imported data (the old 6h
+ * window made premium pages keep showing the empty state after a Steam import).
  *
- * This is orchestration only — it reuses the existing generators, store, and
- * service-role credentials. It never touches /api/recommend, billing, or auth.
+ * Orchestration only — reuses the existing generators, store, and service-role
+ * credentials. Never touches /api/recommend, billing, or auth.
  */
 
-// Don't auto-retry a failed / empty generation more than once per this window.
-const AUTO_RETRY_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6h
+// Anti-storm window: don't re-run a generation we JUST attempted (dedupes double
+// requests). Short on purpose so a fresh Steam import / saved search is picked up
+// on the next trigger rather than masked for hours.
+const AUTO_RETRY_COOLDOWN_MS = 60 * 1000; // 60s
 // Manual "Refresh" min interval between successful regenerations.
 const REFRESH_COOLDOWN_MS = 15 * 60 * 1000; // 15m
 
-// Generator errors that mean "this user simply doesn't have enough signal yet"
-// (→ encourage Steam import / saved searches), as opposed to a transient failure.
+// Generator errors that mean "this user simply doesn't have enough usable signal
+// yet" (→ encourage Steam import / saved searches / tracking), as opposed to a
+// transient failure.
 const INSUFFICIENT_DATA_ERRORS = new Set([
   "insufficient_taste_signal",
   "insufficient_activity",
+  "insufficient_credible_candidates",
+  "not_enough_candidates",
+  "no_matching_deals",
   "no_titles_to_price",
+  "RAWG_API_KEY is not configured",
 ]);
+
+/** True when a rotation has real content to display. */
+export function rotationHasContent(rotation: UserPremiumRotation | null): boolean {
+  if (!rotation) return false;
+  return rotation.items.length > 0 || Boolean(rotation.featuredItem);
+}
 
 export type EnsureStatus =
   /** Fresh current-period rotation already existed. */

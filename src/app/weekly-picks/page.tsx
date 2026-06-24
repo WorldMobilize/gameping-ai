@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
-import { APP_CARD, APP_MUTED } from "@/components/app/app-styles";
-import DiscoveryComingSoonBadge from "@/components/discovery/DiscoveryComingSoonBadge";
-import DiscoveryFutureCard from "@/components/discovery/DiscoveryFutureCard";
+import { APP_MUTED } from "@/components/app/app-styles";
+import PremiumAutoGenerate from "@/components/discovery/PremiumAutoGenerate";
+import PremiumComingNext from "@/components/discovery/PremiumComingNext";
 import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsell";
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
 import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
@@ -13,17 +13,20 @@ import {
   type WeeklyPickCardData,
 } from "@/lib/discovery/premium-demo-data";
 import { resolvePremiumPageAccess } from "@/lib/discovery/premium-page-access";
-import { ensureUserPremiumRotation } from "@/lib/discovery/ensure-premium-rotation";
-import { type PremiumRotationMeta } from "@/lib/discovery/user-rotation-store";
+import { buildUserTasteProfile } from "@/lib/discovery/user-taste-profile";
+import {
+  resolveUserRotation,
+  type PremiumRotationMeta,
+} from "@/lib/discovery/user-rotation-store";
 import { buildNoIndexMetadata } from "@/lib/seo/site";
 import type { Metadata } from "next";
 
 // Premium/personalized page — personalized & private, so keep it out of the index.
 export const metadata: Metadata = buildNoIndexMetadata("Your weekly picks | GamePing AI");
 
+// Cache-first: read the cached rotation fast and NEVER block render on generation
+// (that happens off-render via /api/premium/generate-mine).
 export const dynamic = "force-dynamic";
-// Allow the first-visit lazy generation (RAWG + optional OpenAI) to complete.
-export const maxDuration = 60;
 
 export default async function WeeklyPicksPage({
   searchParams,
@@ -33,40 +36,58 @@ export default async function WeeklyPicksPage({
   const access = await resolvePremiumPageAccess();
   if (!access.reachable) notFound();
 
-  const { moods, tasteEvolution } = WEEKLY_PICKS_DEMO_DATA;
-
-  // Resolve the user's cached, published rotation (admin/premium only).
+  // Fast path: read the cached, published rotation only — no inline generation.
   let generatedPicks: WeeklyPickCardData[] | null = null;
   let aiSummary: { headline: string; summary: string } | null = null;
   let meta: PremiumRotationMeta | null = null;
+  let hasSignal = false;
   if (access.canViewPersonalized && access.userId) {
-    // Read cache, generating once on this visit if missing/stale (cooldown-guarded).
-    const resolved = await ensureUserPremiumRotation(access.userId, "weekly_picks");
+    const resolved = await resolveUserRotation(access.userId, "weekly_picks");
     if (resolved.rotation && resolved.rotation.items.length > 0) {
       generatedPicks = resolved.rotation.items as WeeklyPickCardData[];
       aiSummary = resolved.rotation.aiSummary;
       meta = resolved.meta;
+      console.info("[premium:weekly-picks] cacheHit", { userId: access.userId });
+    } else {
+      // No cached content — build the taste profile (fast Supabase reads; this is
+      // also where Steam import is detected) to decide generate vs empty.
+      const profile = await buildUserTasteProfile(access.userId);
+      hasSignal = profile.complete;
+      console.info("[premium:weekly-picks] cacheMiss", {
+        userId: access.userId,
+        hasSignal,
+        steamConnected: profile.sourceSummary.hasSteam,
+        ownedTitleSetSize: profile.ownedTitleNorms.length,
+      });
     }
   }
 
-  // Admin-only state override for testing every state: ?state=empty|locked|generated
+  // Admin-only state override for testing: ?state=empty|locked|generated|generating
   const sp = await searchParams;
   const stateParam = Array.isArray(sp?.state) ? sp.state[0] : sp?.state;
   const override = access.viewer === "admin" ? stateParam : undefined;
-  const state: "generated" | "empty" | "locked" =
+
+  const baseState: "generated" | "generating" | "empty" | "locked" =
+    !access.canViewPersonalized
+      ? "locked"
+      : generatedPicks
+        ? "generated"
+        : hasSignal
+          ? "generating"
+          : "empty";
+  const state =
     override === "locked"
       ? "locked"
       : override === "empty"
         ? "empty"
-        : override === "generated" && generatedPicks
-          ? "generated"
-          : access.canViewPersonalized
-            ? generatedPicks
-              ? "generated"
-              : "empty"
-            : "locked";
+        : override === "generating"
+          ? "generating"
+          : override === "generated" && generatedPicks
+            ? "generated"
+            : baseState;
 
   const isGenerated = state === "generated";
+  const isGenerating = state === "generating";
   const picks = isGenerated && generatedPicks ? generatedPicks : WEEKLY_PICKS_DEMO_DATA.picks;
 
   return (
@@ -110,111 +131,49 @@ export default async function WeeklyPicksPage({
             <PremiumPersonalEmptyState
               eyebrow="Make it personal"
               title="Import your Steam library to make this personal"
-              description="Weekly Picks will analyze the games you own and play, plus your taste signals, to suggest games you may like next. Connect your Steam library to turn the preview below into picks chosen for you."
+              description="Weekly Picks analyzes the games you own and play, plus your taste signals, to suggest games you may like next. Connect your Steam library, save a search, or track a game to get picks chosen for you."
               signals={[
                 "Owned & played games (Steam library)",
                 "Your taste profile",
                 "Saved & tracked games",
-                "Recommendation history",
               ]}
-              demoNote="The picks below are a labeled preview — not personalized yet."
+              demoNote="The picks below are a labeled sample — yours appear once you add a signal."
             />
           ) : null}
 
-          {/* Section 1 — Your games this week */}
-          <section className="mt-14" aria-labelledby="weekly-games-heading">
-            <h2 id="weekly-games-heading" className="text-2xl font-extrabold text-white">
-              Your games this week
-            </h2>
-            <p className="mt-2 text-sm text-slate-300">
-              {isGenerated
-                ? aiSummary?.headline ?? "Picked for your taste."
-                : "Sample picks — personalization isn't live yet."}
-            </p>
-            <ul className="mt-8 grid gap-6 md:grid-cols-2">
-              {picks.map((pick) => (
-                <li key={pick.id} className="flex">
-                  <WeeklyPickPremiumCard pick={pick} />
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Section 2 — Pick your current mood (future feature in all states) */}
-          <section className="mt-14" aria-labelledby="weekly-mood-heading">
-            <h2 id="weekly-mood-heading" className="text-2xl font-extrabold text-white">
-              Pick your current mood
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm text-slate-300">
-              Future AI will re-tune your weekly picks around the mood you&apos;re in.
-            </p>
-            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {moods.map((mood) => (
-                <li key={mood.id} className={APP_CARD}>
-                  <p className="font-bold text-slate-900 dark:text-white">{mood.label}</p>
-                  <p className={`mt-2 text-sm leading-6 ${APP_MUTED}`}>{mood.description}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          {/* Section 3 — Taste evolution preview (future feature in all states) */}
-          <section className="mt-14" aria-labelledby="weekly-evolution-heading">
-            <h2 id="weekly-evolution-heading" className="text-2xl font-extrabold text-white">
-              Taste evolution preview
-            </h2>
-            <div className={`mt-6 ${APP_CARD} p-6`}>
-              <div className="flex flex-wrap items-center gap-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--page-accent-text)]">
-                  GamePing noticed
-                </p>
-                <DiscoveryComingSoonBadge variant="premium" />
-              </div>
-              <div className="mt-5 grid gap-6 sm:grid-cols-2">
-                <div>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">Leaning into</p>
-                  <ul className="mt-3 space-y-1.5">
-                    {tasteEvolution.more.map((item) => (
-                      <li key={item} className={`flex gap-2 text-sm leading-6 ${APP_MUTED}`}>
-                        <span aria-hidden className="font-bold text-[color:var(--page-accent-text)]">
-                          +
-                        </span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">Cooling on</p>
-                  <ul className="mt-3 space-y-1.5">
-                    {tasteEvolution.less.map((item) => (
-                      <li key={item} className={`flex gap-2 text-sm leading-6 ${APP_MUTED}`}>
-                        <span aria-hidden className="text-slate-400 dark:text-slate-500">
-                          –
-                        </span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-              <p className="mt-5 text-[11px] text-slate-500 dark:text-slate-400">
-                Demo insight — full taste tracking is coming with Steam import and saved-game history.
+          {/* Content — real picks, the generating island, or the labeled sample. */}
+          {isGenerating ? (
+            <PremiumAutoGenerate type="weekly_picks" noun="weekly picks" />
+          ) : (
+            <section className="mt-14" aria-labelledby="weekly-games-heading">
+              <h2 id="weekly-games-heading" className="text-2xl font-extrabold text-white">
+                {isGenerated ? "Your games this week" : "Sample picks"}
+              </h2>
+              <p className="mt-2 text-sm text-slate-300">
+                {isGenerated
+                  ? aiSummary?.headline ?? "Picked for your taste."
+                  : "A labeled sample of the format — yours are personalized."}
               </p>
-            </div>
-          </section>
+              <ul className="mt-8 grid gap-6 md:grid-cols-2">
+                {picks.map((pick) => (
+                  <li key={pick.id} className="flex">
+                    <WeeklyPickPremiumCard pick={pick} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
-          <div className="mt-14">
-            <DiscoveryFutureCard
-              title="How it will personalize"
-              bullets={[
-                "Previous searches",
-                "Saved games",
-                "Steam library (future)",
-                "Playtime patterns (future)",
-              ]}
-            />
-          </div>
+          {/* Honest, small "what's next" — never implies the current picks are fake. */}
+          <PremiumComingNext
+            items={[
+              { label: "Mood tuning", description: "Re-tune your picks around the mood you're in." },
+              { label: "Taste evolution", description: "Track how your taste shifts over time." },
+            ]}
+          />
+          <p className={`mt-10 text-xs ${APP_MUTED}`}>
+            Personalized from your Steam library, playtime, saved searches, and tracked games.
+          </p>
         </AppSection>
       </div>
     </AppPageShell>
