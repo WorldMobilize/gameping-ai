@@ -108,7 +108,7 @@ export default async function DealsForYouPage({
           <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">
             {isGenerated && aiSummary?.summary
               ? aiSummary.summary
-              : "Discounts ranked by how well they fit your taste — not random sales."}
+              : "Taste-matched games with prices worth checking — not random sales."}
           </p>
           <PremiumRotationAdminLine viewer={access.viewer} meta={meta} aiUsed={meta?.sourceSummary?.aiUsed} />
 
@@ -128,14 +128,14 @@ export default async function DealsForYouPage({
           {state === "empty" ? (
             <PremiumPersonalEmptyState
               eyebrow="Make it personal"
-              title="Track or save games to surface deals you'll care about"
-              description="Deals For You ranks live discounts by taste fit (not biggest discount) on the games you track and save — and never on games you already own. Track a game or save a search to start your deal radar."
+              title="Add a taste signal to build your deal radar"
+              description="Deals For You finds games that fit your taste, then surfaces the best prices for them — never games you already own. Import your Steam library, save a search, or track a game to begin."
               signals={[
-                "Tracked games & saved searches",
-                "Your taste profile",
+                "Steam library & playtime",
+                "Saved searches & tracked games",
                 "Live store pricing (ITAD / Steam / CheapShark)",
               ]}
-              demoNote="The prices below are a labeled sample — yours are live once you add games."
+              demoNote="The cards below are a labeled sample — yours use live prices once you add a signal."
             />
           ) : null}
 
@@ -144,17 +144,17 @@ export default async function DealsForYouPage({
             <PremiumAutoGenerate
               type="deals_for_you"
               noun="deals"
-              insufficientTitle="No great matches right now"
-              insufficientBody="We won't pad this with random cheap games. There aren't any real discounts on strong taste matches right now — track or save a few games and check back."
+              insufficientTitle="Add a taste signal to build your deal radar"
+              insufficientBody="We couldn't find taste-matched games to price yet. Import your Steam library, save a search, or track a game, and we'll surface taste matches with the best prices we can find."
             />
           ) : (
             <section className="mt-14" aria-labelledby="deals-best-heading">
               <h2 id="deals-best-heading" className="text-2xl font-extrabold text-white">
-                {isGenerated ? "Best matches on sale" : "Sample deals"}
+                {isGenerated ? "Worth checking at today's prices" : "Sample deals"}
               </h2>
               <p className="mt-2 text-sm text-slate-300">
                 {isGenerated
-                  ? aiSummary?.headline ?? "Live deals ranked by how well they fit your taste."
+                  ? aiSummary?.headline ?? "Games that fit your taste and are worth checking at today's prices."
                   : "A labeled sample of the format — yours use live prices."}
               </p>
               <ul className="mt-8 grid gap-6 md:grid-cols-2">

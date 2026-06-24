@@ -6,7 +6,7 @@ import {
   searchRawgByTitle,
   type RawgCandidate,
 } from "@/lib/rawg-discovery";
-import { lookupDeals } from "@/lib/pricing/price-service";
+import { lookupBestPrice, lookupDeals } from "@/lib/pricing/price-service";
 import { getServiceSupabase } from "@/lib/discovery/rotation-store";
 import {
   MIN_CREDIBLE_PICKS,
@@ -24,6 +24,7 @@ import {
 } from "@/lib/discovery/premium-ai";
 import type {
   DealCardData,
+  DealLabel,
   WeeklyPickCardData,
 } from "@/lib/discovery/premium-demo-data";
 import type {
@@ -250,21 +251,36 @@ function dealConfidence(matchScore: number): "high" | "medium" | "low" {
   return "low";
 }
 
-function deterministicWhyNow(discountPercent: number, intent: boolean): string {
-  if (intent) return `On your list and ${discountPercent}% off right now.`;
-  if (discountPercent >= 60) return `Steep ${discountPercent}% discount on a strong taste match.`;
-  if (discountPercent >= 30) return `${discountPercent}% off — a solid moment to grab a taste match.`;
-  return `${discountPercent}% off a game that fits your taste.`;
+/** Tiered deal label — lets us surface taste matches even without a steep discount. */
+function dealLabelFor(discountPercent: number | null, hasPrice: boolean): DealLabel {
+  if (discountPercent != null && discountPercent >= 40) return "Great deal";
+  if (discountPercent != null && discountPercent >= 15) return "Good price";
+  if (hasPrice) return "Price found";
+  return "Watch price";
+}
+
+function whyNowText(opts: { discountPercent: number | null; hasPrice: boolean; intent: boolean }): string {
+  const { discountPercent, hasPrice, intent } = opts;
+  if (discountPercent != null && discountPercent >= 40) return `${discountPercent}% off right now — a strong moment to grab it.`;
+  if (discountPercent != null && discountPercent > 0) return `${discountPercent}% off and a clean taste fit.`;
+  if (hasPrice) {
+    return intent
+      ? "On your list — priced and ready when you are."
+      : "Not on sale, but priced low enough to be worth a look.";
+  }
+  return "Not on sale right now — track it to catch the next drop.";
 }
 
 /**
- * Deals For You — "games you'd actually like that happen to be on sale".
+ * Deals For You — "games that fit your taste, then the best prices for them".
  *
- * Candidates come from BOTH the user's intent signals (tracked + saved games)
- * AND fresh taste-matched discovery (RAWG from the taste profile) so a Steam-only
- * user still gets deals. Owned games are excluded. We keep ONLY games with a real
- * verified discount, rank by taste fit first (discount is a tiebreaker, never the
- * driver), and return "no_good_deals" rather than padding with bad cheap games.
+ * Pipeline: taste profile → broad taste-matched candidate pool (tracked/saved
+ * INTENT + RAWG DISCOVERY, owned games excluded, noise/franchise-deduped) →
+ * enrich each with the best available price/deal (lookupDeals + lookupBestPrice)
+ * → rank by TASTE FIT first, price quality second. We surface a game whenever it
+ * fits the user and has a price OR is worth watching — a modest price or a
+ * "track price" card beats an empty page. Empty only when there's no signal or no
+ * candidate at all.
  */
 export async function generateDealsForYou(userId: string): Promise<GeneratePremiumResult> {
   const rawgApiKey = process.env.RAWG_API_KEY?.trim();
@@ -297,19 +313,19 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
       });
       const discovery = selectCredibleCandidates(dedupeCandidates(raw), {
         ownedNorms: ownedAndKnownNorms(profile),
-        limit: 10,
+        limit: 12,
       });
       for (const c of discovery) candidates.push({ title: c.name, rawg: c, intent: false });
     } catch {
       // discovery is best-effort; intent candidates still flow through
     }
 
-    if (candidates.length === 0) return { ok: false, error: "no_titles_to_price" };
+    if (candidates.length === 0) return { ok: false, error: "no_deal_candidates" };
 
-    const toPrice = candidates.slice(0, MAX_DEAL_TITLES + 2);
+    const toEnrich = candidates.slice(0, MAX_DEAL_TITLES + 4);
 
     const built = await Promise.all(
-      toPrice.map(async (cand) => {
+      toEnrich.map(async (cand) => {
         let rawg = cand.rawg;
         if (!rawg) {
           const list = await searchRawgByTitle({ rawgApiKey, title: cand.title, pageSize: 5 }).catch(
@@ -318,50 +334,83 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
           rawg = list.find((c) => candidateImage(c)) ?? list[0] ?? null;
         }
         const image = rawg ? candidateImage(rawg) : null;
-        if (!image) return null;
+        if (!image) return null; // need a real cover to show the card
 
-        const dealsResult = await lookupDeals({ title: cand.title, limit: 4 }).catch(() => ({
-          deals: [] as Awaited<ReturnType<typeof lookupDeals>>["deals"],
-        }));
+        // Best available price/deal — a discount is NOT required.
+        const [dealsResult, best] = await Promise.all([
+          lookupDeals({ title: cand.title, limit: 4 }).catch(() => ({
+            deals: [] as Awaited<ReturnType<typeof lookupDeals>>["deals"],
+          })),
+          lookupBestPrice({ title: cand.title }).catch(() => null),
+        ]);
+
+        let newPrice = NaN;
+        let oldPrice = NaN;
+        let discountPercent: number | null = null;
+        let store: string | undefined;
+        let dealUrl: string | undefined;
+
         const cheapest = dealsResult.deals[0]; // sorted ascending sale price
-        if (!cheapest) return null;
+        if (cheapest) {
+          const sale = parsePrice(cheapest.salePrice);
+          const normal = parsePrice(cheapest.normalPrice);
+          if (!Number.isNaN(sale)) {
+            newPrice = sale;
+            store = cheapest.store?.name || cheapest.provider || undefined;
+            dealUrl = cheapest.deal?.url || undefined;
+            if (!Number.isNaN(normal) && normal > sale) {
+              oldPrice = normal;
+              discountPercent = Math.round((1 - sale / normal) * 100);
+            }
+          }
+        }
+        if (Number.isNaN(newPrice) && best) {
+          const p = parsePrice(best.price);
+          if (!Number.isNaN(p)) {
+            newPrice = p;
+            store = best.store?.name || best.provider || undefined;
+            dealUrl = best.deal?.url || undefined;
+          }
+        }
 
-        const sale = parsePrice(cheapest.salePrice);
-        const normal = parsePrice(cheapest.normalPrice);
-        if (Number.isNaN(sale) || Number.isNaN(normal) || normal <= sale) return null; // real discounts only
-
-        const discountPercent = Math.round((1 - sale / normal) * 100);
-        if (discountPercent <= 0) return null;
-
+        const hasPrice = !Number.isNaN(newPrice);
+        const label = dealLabelFor(discountPercent, hasPrice);
         const matchScore = rawg ? baseMatchScore(rawg) : cand.intent ? 80 : 72;
-        const store = cheapest.store?.name || cheapest.provider || undefined;
+
         const card: DealCardData = {
           id: `deal-${rawg?.id ?? norm(cand.title).replace(/\s+/g, "-")}`,
           title: cand.title,
           image,
-          oldPrice: `$${normal.toFixed(2)}`,
-          newPrice: `$${sale.toFixed(2)}`,
-          discount: `-${discountPercent}%`,
           matchScore,
           whyDealFits: rawg
             ? deterministicWhyPicked(profile, rawg)
-            : [`On your tracked/saved list — and discounted now`],
-          whyNow: deterministicWhyNow(discountPercent, cand.intent),
+            : ["On your tracked/saved list, matched to your taste"],
+          dealLabel: label,
+          newPrice: hasPrice ? `$${newPrice.toFixed(2)}` : undefined,
+          oldPrice: !Number.isNaN(oldPrice) ? `$${oldPrice.toFixed(2)}` : undefined,
+          discount: discountPercent != null ? `-${discountPercent}%` : undefined,
+          dealUrl,
+          whyNow: whyNowText({ discountPercent, hasPrice, intent: cand.intent }),
           confidence: dealConfidence(matchScore),
           store,
         };
-        return { card, genres: rawg ? candidateGenres(rawg) : [], discountPercent };
+        const priceRank =
+          label === "Great deal" ? 3 : label === "Good price" ? 2 : label === "Price found" ? 1 : 0;
+        return { card, genres: rawg ? candidateGenres(rawg) : [], discountPercent: discountPercent ?? 0, priceRank };
       })
     );
 
-    const valid = built.filter((b): b is NonNullable<typeof b> => b !== null).slice(0, MAX_DEALS);
-    // No real, taste-matched discounts → "No great matches right now" (never filler).
-    if (valid.length === 0) return { ok: false, error: "no_good_deals" };
+    const valid = built.filter((b): b is NonNullable<typeof b> => b !== null);
+    if (valid.length === 0) return { ok: false, error: "no_deal_candidates" };
 
-    // Rank by TASTE FIT first (discount is a tiebreaker) — AI if available.
+    // Rank: TASTE FIT first, price/deal quality second.
+    valid.sort((a, b) => b.card.matchScore - a.card.matchScore || b.priceRank - a.priceRank);
+    const top = valid.slice(0, MAX_DEALS);
+
+    // AI re-rank + personalized copy (best-effort; deterministic copy stands in).
     const ai = await rankDealsWithAi({
       profile,
-      deals: valid.map((v) => ({
+      deals: top.map((v) => ({
         id: v.card.id,
         title: v.card.title,
         discountPercent: v.discountPercent,
@@ -373,7 +422,7 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
     if (ai?.deals?.length) {
       const order = new Map(ai.deals.map((d, i) => [d.id, i]));
       const aiById = new Map(ai.deals.map((d) => [d.id, d]));
-      deals = valid
+      deals = top
         .map((v) => {
           const enriched = aiById.get(v.card.id);
           return {
@@ -386,13 +435,10 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
         })
         .sort((a, b) => (order.get(a.id) ?? 99) - (order.get(b.id) ?? 99));
     } else {
-      // taste match desc, then discount desc as a tiebreaker
-      deals = valid
-        .slice()
-        .sort((a, b) => b.card.matchScore - a.card.matchScore || b.discountPercent - a.discountPercent)
-        .map((v) => v.card);
+      deals = top.map((v) => v.card);
     }
 
+    const pricedCount = deals.filter((d) => d.newPrice).length;
     return {
       ok: true,
       data: {
@@ -401,15 +447,16 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
         aiSummary: ai
           ? { headline: ai.headline, summary: ai.summary }
           : {
-              headline: "Deals that fit your taste",
-              summary: "Real discounts on games that match your taste — ranked by fit, not by biggest markdown.",
+              headline: "Games that fit your taste",
+              summary:
+                "Taste-matched games with the best prices we can find right now — ranked by fit, not by markdown.",
             },
         sourceSummary: {
           generator: "premium:generateDealsForYou",
           sources: ["taste_profile", "rawg", "pricing", ai ? "openai" : "deterministic"],
           itemCount: deals.length,
           aiUsed: Boolean(ai),
-          note: "Live prices via ITAD/Steam/CheapShark, ranked by taste fit. Owned games excluded.",
+          note: `Taste-first; ${pricedCount}/${deals.length} have a verified price. Owned games excluded.`,
         },
       },
     };

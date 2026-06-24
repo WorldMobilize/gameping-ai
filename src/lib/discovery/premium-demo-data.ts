@@ -117,18 +117,28 @@ export const WEEKLY_PICKS_DEMO_DATA: WeeklyPicksDemoData = {
 // Deals For You — "a Steam sale filtered through my taste"
 // ---------------------------------------------------------------------------
 
+/** Deal label tier — reflects how strong the current price is, not whether it's "on sale". */
+export type DealLabel = "Great deal" | "Good price" | "Price found" | "Watch price";
+
 export type DealCardData = {
   id: string;
   title: string;
   image: string;
-  oldPrice: string;
-  newPrice: string;
-  discount: string;
   matchScore: number;
   whyDealFits: string[];
+  /** Tiered label so we can surface taste matches even without a steep discount. */
+  dealLabel: DealLabel;
+  /** Current/best price (sale or regular). Absent when no verified price exists. */
+  newPrice?: string;
+  /** Original price — present only when there's a genuine discount. */
+  oldPrice?: string;
+  /** Discount badge (e.g. "-45%") — present only when there's a genuine discount. */
+  discount?: string;
+  /** External store deal/price link (drives "View deal"). */
+  dealUrl?: string;
   /** Why now is a good time to act on this deal. */
   whyNow?: string;
-  /** Taste-fit confidence for this deal. */
+  /** Taste-fit confidence. */
   confidence?: "high" | "medium" | "low";
   /** Store/provider the price came from (e.g. "Steam"). */
   store?: string;
@@ -149,6 +159,7 @@ export const DEALS_FOR_YOU_DEMO_DATA: DealsForYouDemoData = {
       oldPrice: "$59.99",
       newPrice: "$19.99",
       discount: "-67%",
+      dealLabel: "Great deal",
       matchScore: 92,
       whyDealFits: ["Open worlds", "RPG choices", "Dark atmosphere"],
     },
@@ -159,6 +170,7 @@ export const DEALS_FOR_YOU_DEMO_DATA: DealsForYouDemoData = {
       oldPrice: "$39.99",
       newPrice: "$9.99",
       discount: "-75%",
+      dealLabel: "Great deal",
       matchScore: 90,
       whyDealFits: ["Story-rich quests", "Big open world", "Meaningful choices"],
     },
@@ -169,6 +181,7 @@ export const DEALS_FOR_YOU_DEMO_DATA: DealsForYouDemoData = {
       oldPrice: "$39.99",
       newPrice: "$11.99",
       discount: "-70%",
+      dealLabel: "Great deal",
       matchScore: 88,
       whyDealFits: ["Dialogue-driven", "Consequence over combat", "Unusual writing"],
     },
@@ -179,6 +192,7 @@ export const DEALS_FOR_YOU_DEMO_DATA: DealsForYouDemoData = {
       oldPrice: "$29.99",
       newPrice: "$7.49",
       discount: "-75%",
+      dealLabel: "Great deal",
       matchScore: 85,
       whyDealFits: ["Immersive sim freedom", "Stealth options", "Atmospheric world"],
     },

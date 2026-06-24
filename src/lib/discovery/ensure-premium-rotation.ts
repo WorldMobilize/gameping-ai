@@ -52,6 +52,7 @@ const INSUFFICIENT_DATA_ERRORS = new Set([
   "not_enough_candidates",
   "no_matching_deals",
   "no_good_deals",
+  "no_deal_candidates",
   "no_titles_to_price",
   "RAWG_API_KEY is not configured",
 ]);
