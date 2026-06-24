@@ -1,8 +1,14 @@
 import "server-only";
 
 import {
+  curateHiddenGemsWithAi,
+  curateWeeklyWithAi,
+} from "@/lib/discovery/ai-curator";
+import {
+  getHiddenGemCandidatePool,
   getLiveHiddenGemPicks,
   getLiveWeeklyGamePicks,
+  getWeeklyCandidatePool,
 } from "@/lib/discovery/live-discovery";
 import type {
   HiddenGemsRotationData,
@@ -12,13 +18,19 @@ import type {
 } from "@/lib/discovery/rotation-store";
 
 /**
- * Turns the existing RAWG-backed discovery generators (live-discovery.ts) into a
- * rotation payload + a small source summary, ready to be cached by the rotation
- * store. This is the only "generation" entrypoint the admin/cron route needs.
+ * Curation pipeline that produces a rotation payload + a small source summary,
+ * ready to be cached by the rotation store. This is the only "generation"
+ * entrypoint the admin/cron route needs.
  *
- * Reuses the EXISTING RAWG integration — no new API client, env var, or key.
- * ITAD/price enrichment is intentionally left for a later pass (the generators
- * leave price fields optional), so deal data is not fabricated here.
+ * Pipeline:  RAWG candidate pool → AI curator (best-effort) → deterministic
+ * fallback. The AI curator selects from and writes editorial copy about the
+ * REAL RAWG candidates (it never invents games/ids/images). If OpenAI is
+ * unconfigured or the curation is too thin, we fall back to the deterministic
+ * RAWG generator so generation never depends on OpenAI.
+ *
+ * Reuses the EXISTING RAWG + OpenAI integrations — no new API client, env var,
+ * or key. This is NOT the recommendation pipeline. ITAD/price enrichment is left
+ * for a later pass (price fields stay optional), so deal data is not fabricated.
  */
 
 export type GenerateResult =
@@ -38,6 +50,23 @@ export async function generateRotationData(
 
   try {
     if (type === "hidden_gems") {
+      const pool = await getHiddenGemCandidatePool();
+
+      const ai = await curateHiddenGemsWithAi(pool);
+      if (ai) {
+        return {
+          ok: true,
+          data: ai,
+          sourceSummary: {
+            source: "rawg",
+            generator: "ai-curator:curateHiddenGemsWithAi",
+            featuredCount: 1,
+            itemCount: ai.picks.length,
+            note: "AI-curated monthly hidden gems from the RAWG candidate pool. Price/deal enrichment not wired yet.",
+          },
+        };
+      }
+
       const live = await getLiveHiddenGemPicks();
       if (!live) {
         return {
@@ -53,7 +82,24 @@ export async function generateRotationData(
           generator: "live-discovery:getLiveHiddenGemPicks",
           featuredCount: 1,
           itemCount: live.picks.length,
-          note: "Monthly hidden-gem rotation. Price/deal enrichment not wired yet.",
+          note: "Deterministic hidden-gem rotation (AI curator unavailable). Price/deal enrichment not wired yet.",
+        },
+      };
+    }
+
+    const pool = await getWeeklyCandidatePool();
+
+    const ai = await curateWeeklyWithAi(pool);
+    if (ai) {
+      return {
+        ok: true,
+        data: ai,
+        sourceSummary: {
+          source: "rawg",
+          generator: "ai-curator:curateWeeklyWithAi",
+          featuredCount: 1,
+          itemCount: ai.picks.length,
+          note: "AI-curated weekly mix from the RAWG candidate pool. ITAD/deal enrichment not wired yet.",
         },
       };
     }
@@ -73,7 +119,7 @@ export async function generateRotationData(
         generator: "live-discovery:getLiveWeeklyGamePicks",
         featuredCount: 1,
         itemCount: live.picks.length,
-        note: "Weekly rotation. ITAD/deal enrichment not wired yet.",
+        note: "Deterministic weekly rotation (AI curator unavailable). ITAD/deal enrichment not wired yet.",
       },
     };
   } catch (err) {

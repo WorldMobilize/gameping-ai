@@ -66,7 +66,7 @@ const BLOCKED_EXACT_TITLES = [
   "firewatch", "gris", "ori and the blind forest", "ori and the will of the wisps",
 ];
 
-function isBlockedTitle(name: string): boolean {
+export function isBlockedTitle(name: string): boolean {
   const n = normalize(name);
   if (BLOCKED_FRANCHISE_SUBSTRINGS.some((bad) => n.includes(normalize(bad)))) {
     return true;
@@ -124,7 +124,7 @@ function qualityPhrase(c: RawgCandidate): string {
 // Hidden Gems
 // ---------------------------------------------------------------------------
 
-function assignHiddenCategory(c: RawgCandidate): HiddenGemCategory {
+export function assignHiddenCategory(c: RawgCandidate): HiddenGemCategory {
   const blob = metaBlob(c);
   if (/horror/.test(blob)) return "Cult favorites";
   if (/role playing|rpg/.test(blob)) return "Underplayed RPGs";
@@ -168,7 +168,7 @@ const HIDDEN_GEM_STANDOUT_BY_CATEGORY: Record<HiddenGemCategory, string> = {
   "Difficult but rewarding": "Punishing at first, deeply satisfying once it clicks.",
 };
 
-function toHiddenGemPick(c: RawgCandidate): HiddenGemPick | null {
+export function toHiddenGemPick(c: RawgCandidate): HiddenGemPick | null {
   const image = candidateImage(c);
   if (!image) return null;
   const genre = primaryGenre(c).toLowerCase();
@@ -266,17 +266,17 @@ function hiddenGemScore(c: RawgCandidate): number {
 }
 
 /**
- * Real "hidden gem" candidates: overlooked / cult / lesser-known. Pulled from
- * niche genre/tag pools, filtered by popularity caps + a famous-title blocklist,
- * scored by underexposure (not Metacritic), then validated. If fewer than
- * HIDDEN_GEM_MIN_PICKS survive, returns null → caller uses the static curated
- * list (better to show fewer good gems than famous filler).
+ * Build the ordered RAWG candidate pool for Hidden Gems: pull from niche
+ * genre/tag pools, dedupe, apply popularity caps + the famous-title blocklist,
+ * score by underexposure (not Metacritic), and diversify across categories.
+ *
+ * This is the shared candidate pool consumed by BOTH the deterministic
+ * generator below and the AI curator (ai-curator.ts). Returns [] on any failure
+ * or when RAWG isn't configured, so every caller can fall back gracefully.
  */
-export async function getLiveHiddenGemPicks(): Promise<
-  { featured: HiddenGemPick; picks: HiddenGemPick[] } | null
-> {
+export async function getHiddenGemCandidatePool(): Promise<RawgCandidate[]> {
   const rawgApiKey = process.env.RAWG_API_KEY?.trim();
-  if (!rawgApiKey) return null;
+  if (!rawgApiKey) return [];
 
   try {
     const pools = await Promise.all(
@@ -317,31 +317,45 @@ export async function getLiveHiddenGemPicks(): Promise<
       .map((c) => ({ c, score: hiddenGemScore(c) }))
       .sort((a, b) => b.score - a.score)
       .map((s) => s.c);
-    const ordered = diversifyByKey(scored, (c) => assignHiddenCategory(c));
-
-    // Build picks, then a final validation pass (belt-and-braces) drops anything
-    // that still matches a blocked franchise/title keyword.
-    const picks = ordered
-      .map(toHiddenGemPick)
-      .filter(notNullPick)
-      .filter((p) => !isBlockedTitle(p.title));
-
-    if (picks.length < HIDDEN_GEM_MIN_PICKS) return null; // → static curated fallback
-
-    return {
-      featured: picks[0],
-      picks: picks.slice(1, 13),
-    };
+    return diversifyByKey(scored, (c) => assignHiddenCategory(c));
   } catch {
-    return null;
+    return [];
   }
+}
+
+/**
+ * Real "hidden gem" candidates: overlooked / cult / lesser-known. Uses the
+ * shared candidate pool above, then a final blocklist pass. If fewer than
+ * HIDDEN_GEM_MIN_PICKS survive, returns null → caller uses the static curated
+ * list (better to show fewer good gems than famous filler). Deterministic copy
+ * (no OpenAI) — the AI curator is layered on top in generate-rotation.ts.
+ */
+export async function getLiveHiddenGemPicks(): Promise<
+  { featured: HiddenGemPick; picks: HiddenGemPick[] } | null
+> {
+  const ordered = await getHiddenGemCandidatePool();
+  if (ordered.length === 0) return null;
+
+  // Build picks, then a final validation pass (belt-and-braces) drops anything
+  // that still matches a blocked franchise/title keyword.
+  const picks = ordered
+    .map(toHiddenGemPick)
+    .filter(notNullPick)
+    .filter((p) => !isBlockedTitle(p.title));
+
+  if (picks.length < HIDDEN_GEM_MIN_PICKS) return null; // → static curated fallback
+
+  return {
+    featured: picks[0],
+    picks: picks.slice(1, 13),
+  };
 }
 
 // ---------------------------------------------------------------------------
 // Games of the Week
 // ---------------------------------------------------------------------------
 
-function assignWeeklyCategory(c: RawgCandidate): WeeklyCategory {
+export function assignWeeklyCategory(c: RawgCandidate): WeeklyCategory {
   const blob = metaBlob(c);
   if (/co op|cooperative|multiplayer|online co op/.test(blob)) return "Co-op pick";
   if (/story|narrative|visual novel|interactive fiction/.test(blob)) return "Story pick";
@@ -350,7 +364,7 @@ function assignWeeklyCategory(c: RawgCandidate): WeeklyCategory {
   return "New & interesting";
 }
 
-function toWeeklyGamePick(c: RawgCandidate): WeeklyGamePick | null {
+export function toWeeklyGamePick(c: RawgCandidate): WeeklyGamePick | null {
   const image = candidateImage(c);
   if (!image) return null;
   const genre = primaryGenre(c).toLowerCase();
@@ -378,15 +392,14 @@ function ymd(d: Date): string {
 }
 
 /**
- * Real "this week" candidates: recent releases with decent quality, mixed across
- * categories. Deal/price fields are left optional (no reliable RAWG→store deal
- * mapping). Returns null → caller uses the static curated list.
+ * Build the ordered RAWG candidate pool for Games of the Week: recent releases
+ * (last 150 days) with decent quality, mixed across categories. Shared by the
+ * deterministic generator below and the AI curator. Returns [] on failure / no
+ * RAWG key.
  */
-export async function getLiveWeeklyGamePicks(): Promise<
-  { featured: WeeklyGamePick; picks: WeeklyGamePick[] } | null
-> {
+export async function getWeeklyCandidatePool(): Promise<RawgCandidate[]> {
   const rawgApiKey = process.env.RAWG_API_KEY?.trim();
-  if (!rawgApiKey) return null;
+  if (!rawgApiKey) return [];
 
   try {
     const today = new Date();
@@ -427,18 +440,31 @@ export async function getLiveWeeklyGamePicks(): Promise<
       return true;
     });
 
-    const ordered = diversifyByKey(filtered, (c) => assignWeeklyCategory(c));
-
-    const picks = ordered.map(toWeeklyGamePick).filter(notNullWeekly);
-    if (picks.length < 6) return null;
-
-    return {
-      featured: picks[0],
-      picks: picks.slice(1, 10),
-    };
+    return diversifyByKey(filtered, (c) => assignWeeklyCategory(c));
   } catch {
-    return null;
+    return [];
   }
+}
+
+/**
+ * Real "this week" candidates: recent releases with decent quality, mixed across
+ * categories. Deal/price fields are left optional (no reliable RAWG→store deal
+ * mapping). Returns null → caller uses the static curated list. Deterministic
+ * copy (no OpenAI).
+ */
+export async function getLiveWeeklyGamePicks(): Promise<
+  { featured: WeeklyGamePick; picks: WeeklyGamePick[] } | null
+> {
+  const ordered = await getWeeklyCandidatePool();
+  if (ordered.length === 0) return null;
+
+  const picks = ordered.map(toWeeklyGamePick).filter(notNullWeekly);
+  if (picks.length < 6) return null;
+
+  return {
+    featured: picks[0],
+    picks: picks.slice(1, 10),
+  };
 }
 
 // ---------------------------------------------------------------------------

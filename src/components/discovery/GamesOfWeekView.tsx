@@ -133,7 +133,6 @@ export default function GamesOfWeekView({
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
           Weekly discovery
         </p>
-        <DiscoveryComingSoonBadge />
       </div>
       <DiscoveryRotationMeta meta={meta} />
       <h1 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">

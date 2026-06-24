@@ -1,17 +1,29 @@
 /**
  * Admin/cron generator for cached discovery rotations.
  *
- *   POST /api/admin/discovery/generate   { "type": "hidden_gems" | "games_of_the_week", "publish": true }
- *   GET  /api/admin/discovery/generate?type=hidden_gems&publish=1   (Vercel cron / manual curl)
+ *   POST /api/admin/discovery/generate
+ *     {
+ *       "type": "hidden_gems" | "games_of_the_week" | "hidden-gems" | "games-of-the-week",
+ *       "mode": "preview" | "draft" | "publish",   // default: draft (or publish if legacy publish=true)
+ *       "periodOffsetWeeks": 0,                      // 1 = simulate next period
+ *       "force": false                               // regenerate even if a rotation already exists
+ *     }
+ *   GET /api/admin/discovery/generate?type=hidden_gems&mode=publish   (Vercel cron / manual curl)
  *
- * Generates a rotation from the EXISTING RAWG integration, saves it as a draft,
- * and (optionally) publishes it. Reads/writes the discovery_rotations table via
- * the service role — never exposed to the client.
+ * Pipeline: RAWG candidate pool → AI curator (best-effort) → deterministic
+ * fallback → validation → save/publish. Reads/writes the discovery_rotations
+ * table via the service role — never exposed to the client.
+ *
+ *   preview = generate + validate, return JSON only (NO DB write)
+ *   draft   = generate + validate + save as draft (does NOT affect public pages)
+ *   publish = generate + validate + save + publish (validation must pass)
+ *
+ * If validation fails (or generation fails), we record a failed status and the
+ * previously published rotation stays live — reads never break.
  *
  * Auth (either is accepted):
  *   - Admin session: logged-in user whose profiles.plan = 'admin'
  *   - Cron secret:   Authorization: Bearer <CRON_SECRET>  OR  ?secret=<CRON_SECRET>
- *     (same pattern as /api/cron — used by Vercel cron and manual testing)
  *
  * There is NO anonymous/public write path.
  */
@@ -19,20 +31,29 @@ import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateRotationData } from "@/lib/discovery/generate-rotation";
+import { validateRotation } from "@/lib/discovery/validate-rotation";
 import {
-  currentPeriodKey,
+  getAnyRotation,
+  periodKeyForOffset,
   publishRotation,
   saveFailedRotation,
   saveRotation,
+  type HiddenGemsRotationData,
   type RotationType,
+  type WeeklyRotationData,
 } from "@/lib/discovery/rotation-store";
 
 export const dynamic = "force-dynamic";
 
-const VALID_TYPES: RotationType[] = ["hidden_gems", "games_of_the_week"];
+type GenerationMode = "preview" | "draft" | "publish";
+const VALID_MODES: GenerationMode[] = ["preview", "draft", "publish"];
 
-function isRotationType(value: unknown): value is RotationType {
-  return typeof value === "string" && VALID_TYPES.includes(value as RotationType);
+/** Accepts hyphen or underscore forms. */
+function normalizeType(value: unknown): RotationType | null {
+  if (typeof value !== "string") return null;
+  const v = value.trim().toLowerCase().replace(/-/g, "_");
+  if (v === "hidden_gems" || v === "games_of_the_week") return v;
+  return null;
 }
 
 function parseBool(value: unknown): boolean {
@@ -41,6 +62,23 @@ function parseBool(value: unknown): boolean {
     return value === "1" || value.toLowerCase() === "true";
   }
   return false;
+}
+
+function parseInteger(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.trunc(value);
+  if (typeof value === "string") {
+    const n = Number.parseInt(value, 10);
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
+
+function resolveMode(raw: unknown, legacyPublish: unknown): GenerationMode {
+  if (typeof raw === "string" && VALID_MODES.includes(raw as GenerationMode)) {
+    return raw as GenerationMode;
+  }
+  // Back-compat: old callers used { publish: true } with no mode.
+  return parseBool(legacyPublish) ? "publish" : "draft";
 }
 
 // --- cron secret check (mirrors /api/cron) ---------------------------------
@@ -108,24 +146,43 @@ async function authorize(
 
 async function runGeneration(params: {
   type: RotationType;
-  publish: boolean;
+  mode: GenerationMode;
+  periodOffsetWeeks: number;
+  force: boolean;
   via: "cron" | "admin";
 }): Promise<NextResponse> {
-  const { type, publish, via } = params;
-  const periodKey = currentPeriodKey(type);
+  const { type, mode, periodOffsetWeeks, force, via } = params;
+  const periodKey = periodKeyForOffset(type, periodOffsetWeeks);
+
+  // Skip regeneration if a published rotation already exists for this period
+  // (unless forced). Preview never writes, so it always regenerates.
+  if (mode !== "preview" && !force) {
+    const existing = await getAnyRotation(type, periodKey);
+    if (existing && existing.status === "published") {
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        type,
+        periodKey,
+        status: existing.status,
+        message: "A published rotation already exists for this period. Pass force=true to regenerate.",
+      });
+    }
+  }
 
   const generated = await generateRotationData(type);
 
   if (!generated.ok) {
-    // Record the failure so admins can see why; the page keeps showing the last
-    // published rotation (or static fallback) — generation never breaks reads.
-    await saveFailedRotation(type, periodKey, generated.error);
-    console.warn("[discovery:generate] failed", { type, periodKey, error: generated.error });
+    if (mode !== "preview") {
+      await saveFailedRotation(type, periodKey, generated.error);
+    }
+    console.warn("[discovery:generate] failed", { type, periodKey, mode, error: generated.error });
     return NextResponse.json(
       {
         ok: false,
         type,
         periodKey,
+        mode,
         status: "failed",
         error: generated.error,
         message: "Generation failed; previous published rotation is unaffected.",
@@ -134,22 +191,61 @@ async function runGeneration(params: {
     );
   }
 
-  const saved = await saveRotation(
-    type,
-    periodKey,
-    generated.data,
-    generated.sourceSummary
-  );
+  // Validate before any publish/draft write.
+  const validation =
+    type === "hidden_gems"
+      ? validateRotation(type, generated.data as HiddenGemsRotationData)
+      : validateRotation(type, generated.data as WeeklyRotationData);
+
+  if (!validation.ok) {
+    if (mode !== "preview") {
+      await saveFailedRotation(type, periodKey, validation.errors.join("; "));
+    }
+    console.warn("[discovery:generate] validation failed", { type, periodKey, mode, errors: validation.errors });
+    return NextResponse.json(
+      {
+        ok: false,
+        type,
+        periodKey,
+        mode,
+        status: "failed",
+        errors: validation.errors,
+        message: "Validation failed; previous published rotation is unaffected.",
+      },
+      { status: 200 }
+    );
+  }
+
+  const validData = validation.data;
+
+  // Preview: return the curated+validated payload, no DB write.
+  if (mode === "preview") {
+    return NextResponse.json({
+      ok: true,
+      mode,
+      type,
+      periodKey,
+      via,
+      warnings: validation.warnings,
+      sourceSummary: generated.sourceSummary,
+      itemCount: validData.picks.length,
+      featuredCount: 1,
+      data: validData,
+    });
+  }
+
+  // Draft / publish: persist the validated payload.
+  const saved = await saveRotation(type, periodKey, validData, generated.sourceSummary);
   if (!saved.ok) {
     console.error("[discovery:generate] save failed", { type, periodKey, error: saved.error });
     return NextResponse.json(
-      { ok: false, type, periodKey, error: saved.error ?? "save_failed" },
+      { ok: false, type, periodKey, mode, error: saved.error ?? "save_failed" },
       { status: 500 }
     );
   }
 
   let status: "draft" | "published" = "draft";
-  if (publish) {
+  if (mode === "publish") {
     const published = await publishRotation(type, periodKey);
     if (!published.ok) {
       console.error("[discovery:generate] publish failed", { type, periodKey, error: published.error });
@@ -158,6 +254,7 @@ async function runGeneration(params: {
           ok: false,
           type,
           periodKey,
+          mode,
           status: "draft",
           error: published.error ?? "publish_failed",
           message: "Saved as draft but failed to publish.",
@@ -168,21 +265,33 @@ async function runGeneration(params: {
     status = "published";
   }
 
-  console.log("[discovery:generate] ok", { type, periodKey, status, via });
+  console.log("[discovery:generate] ok", { type, periodKey, mode, status, via, generator: generated.sourceSummary.generator });
 
   return NextResponse.json({
     ok: true,
+    mode,
     type,
     periodKey,
     status,
     via,
-    itemCount: generated.sourceSummary.itemCount,
-    featuredCount: generated.sourceSummary.featuredCount,
+    warnings: validation.warnings,
+    itemCount: validData.picks.length,
+    featuredCount: 1,
     sourceSummary: generated.sourceSummary,
   });
 }
 
 // --- handlers --------------------------------------------------------------
+
+function invalidTypeResponse(): NextResponse {
+  return NextResponse.json(
+    {
+      error:
+        "Invalid 'type'. Use 'hidden_gems'/'hidden-gems' or 'games_of_the_week'/'games-of-the-week'.",
+    },
+    { status: 400 }
+  );
+}
 
 export async function POST(req: Request) {
   const url = new URL(req.url);
@@ -197,16 +306,19 @@ export async function POST(req: Request) {
   }
   const record = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
 
-  const type = record.type ?? url.searchParams.get("type");
-  if (!isRotationType(type)) {
-    return NextResponse.json(
-      { error: "Invalid 'type'. Use 'hidden_gems' or 'games_of_the_week'." },
-      { status: 400 }
-    );
-  }
+  const type = normalizeType(record.type ?? url.searchParams.get("type"));
+  if (!type) return invalidTypeResponse();
 
-  const publish = parseBool(record.publish ?? url.searchParams.get("publish"));
-  return runGeneration({ type, publish, via: auth.via });
+  const mode = resolveMode(
+    record.mode ?? url.searchParams.get("mode"),
+    record.publish ?? url.searchParams.get("publish")
+  );
+  const periodOffsetWeeks = parseInteger(
+    record.periodOffsetWeeks ?? url.searchParams.get("periodOffsetWeeks")
+  );
+  const force = parseBool(record.force ?? url.searchParams.get("force"));
+
+  return runGeneration({ type, mode, periodOffsetWeeks, force, via: auth.via });
 }
 
 export async function GET(req: Request) {
@@ -214,14 +326,12 @@ export async function GET(req: Request) {
   const auth = await authorize(req, url);
   if (!auth.ok) return auth.response;
 
-  const type = url.searchParams.get("type");
-  if (!isRotationType(type)) {
-    return NextResponse.json(
-      { error: "Invalid 'type'. Use 'hidden_gems' or 'games_of_the_week'." },
-      { status: 400 }
-    );
-  }
+  const type = normalizeType(url.searchParams.get("type"));
+  if (!type) return invalidTypeResponse();
 
-  const publish = parseBool(url.searchParams.get("publish"));
-  return runGeneration({ type, publish, via: auth.via });
+  const mode = resolveMode(url.searchParams.get("mode"), url.searchParams.get("publish"));
+  const periodOffsetWeeks = parseInteger(url.searchParams.get("periodOffsetWeeks"));
+  const force = parseBool(url.searchParams.get("force"));
+
+  return runGeneration({ type, mode, periodOffsetWeeks, force, via: auth.via });
 }

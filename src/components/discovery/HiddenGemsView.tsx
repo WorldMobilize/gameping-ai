@@ -135,7 +135,6 @@ export default function HiddenGemsView({
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
           Discovery
         </p>
-        <DiscoveryComingSoonBadge />
       </div>
       <DiscoveryRotationMeta meta={meta} />
       <h1 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">

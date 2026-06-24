@@ -130,6 +130,22 @@ export function currentPeriodKey(type: RotationType, now: Date = new Date()): st
   return type === "hidden_gems" ? monthlyPeriodKey(now) : isoWeekPeriodKey(now);
 }
 
+/**
+ * Period key shifted by a number of weeks (for admin testing — e.g. simulate
+ * "next week"). For weekly rotations this lands on the next ISO week; for
+ * monthly hidden-gems it shifts the underlying date, which may cross a month
+ * boundary. offsetWeeks=0 → current period.
+ */
+export function periodKeyForOffset(
+  type: RotationType,
+  offsetWeeks: number,
+  now: Date = new Date()
+): string {
+  if (!offsetWeeks) return currentPeriodKey(type, now);
+  const shifted = new Date(now.getTime() + offsetWeeks * 7 * 24 * 60 * 60 * 1000);
+  return currentPeriodKey(type, shifted);
+}
+
 // ---------------------------------------------------------------------------
 // Row mapping
 // ---------------------------------------------------------------------------
@@ -178,6 +194,30 @@ export async function getPublishedRotation(
       .eq("type", type)
       .eq("period_key", periodKey)
       .eq("status", "published")
+      .maybeSingle();
+    if (error || !data) return null;
+    return mapRow(data as RotationRow);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Any rotation for a specific period regardless of status (draft/published/
+ * failed). Used to decide whether generation should be skipped unless forced.
+ */
+export async function getAnyRotation(
+  type: RotationType,
+  periodKey: string
+): Promise<DiscoveryRotation | null> {
+  const supabase = getServiceSupabase();
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from(ROTATIONS_TABLE)
+      .select(ROW_COLUMNS)
+      .eq("type", type)
+      .eq("period_key", periodKey)
       .maybeSingle();
     if (error || !data) return null;
     return mapRow(data as RotationRow);

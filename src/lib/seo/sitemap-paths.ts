@@ -7,6 +7,8 @@ export const STATIC_PUBLIC_PATHS = [
   "/",
   "/recommend",
   "/games",
+  "/hidden-gems",
+  "/games-of-the-week",
   "/curated",
   "/about",
   "/contact",

@@ -17,6 +17,11 @@ import {
   type MonthlyRecapCore,
   type PremiumRotationMeta,
 } from "@/lib/discovery/user-rotation-store";
+import { buildNoIndexMetadata } from "@/lib/seo/site";
+import type { Metadata } from "next";
+
+// Premium/personalized page — keep out of the index until it ships publicly.
+export const metadata: Metadata = buildNoIndexMetadata("Your monthly recap | GamePing AI");
 
 export const dynamic = "force-dynamic";
 
