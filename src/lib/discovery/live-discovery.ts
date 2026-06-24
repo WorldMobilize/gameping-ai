@@ -63,6 +63,25 @@ const BLOCKED_FRANCHISE_SUBSTRINGS = [
   "silksong", "disco elysium", "outer wilds", "life is strange", "edith finch",
 ];
 
+// "Old but famous" publisher/franchise classics — a Hidden Gem is NEVER a
+// well-known console classic that younger players merely missed. The candidate
+// pool has no publisher field, so these are title/franchise tokens (substring
+// match, so editions/sequels/spin-offs are caught too). Hidden Gems only.
+const BLOCKED_VISIBILITY_SUBSTRINGS = [
+  // Rockstar (publisher) — title-based (GTA / Red Dead already above).
+  "rockstar", "bully", "manhunt", "max payne", "midnight club", "l a noire", "la noire",
+  // Nintendo first-party / closely associated major IPs (most are above; these
+  // are the older/less-obvious ones that slip past the popularity caps).
+  "nintendo", "fire emblem", "professor layton", "xenoblade", "star fox",
+  "earthbound", "advance wars", "golden sun", "f zero", "punch out", "wario",
+  "yoshi", "kid icarus", "captain toad", "luigis mansion",
+  // Famous console classics / long-running franchises (widely known even if old).
+  "castlevania", "mega man", "megaman", "metal slug", "double dragon",
+  "ninja gaiden", "silent hill", "onimusha", "shenmue", "shadow of the colossus",
+  "katamari", "jak and daxter", "sly cooper", "ape escape", "twisted metal",
+  "tony hawk", "burnout paradise",
+];
+
 // Famous indie classics / press darlings — exact normalized title match
 // (short/common words where a substring match would over-reject).
 const BLOCKED_EXACT_TITLES = [
@@ -74,7 +93,10 @@ const BLOCKED_EXACT_TITLES = [
 
 export function isBlockedTitle(name: string): boolean {
   const n = normalize(name);
-  if (BLOCKED_FRANCHISE_SUBSTRINGS.some((bad) => n.includes(normalize(bad)))) {
+  if (
+    BLOCKED_FRANCHISE_SUBSTRINGS.some((bad) => n.includes(normalize(bad))) ||
+    BLOCKED_VISIBILITY_SUBSTRINGS.some((bad) => n.includes(normalize(bad)))
+  ) {
     return true;
   }
   return BLOCKED_EXACT_TITLES.some((t) => normalize(t) === n);

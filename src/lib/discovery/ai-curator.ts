@@ -52,6 +52,9 @@ const HIDDEN_GEM_AVOID = [
   "Hollow Knight: Silksong", "Hades", "Celeste", "Hollow Knight",
   "Stardew Valley", "Undertale", "Disco Elysium", "Outer Wilds", "Firewatch",
   "Journey", "Life is Strange", "What Remains of Edith Finch", "GRIS",
+  // Old-but-famous publisher/franchise classics — never hidden gems.
+  "Bully", "Professor Layton", "Fire Emblem", "Pokémon", "Mario", "Zelda",
+  "Metroid", "Kirby", "Animal Crossing", "Castlevania", "Mega Man", "Silent Hill",
 ];
 
 function getClient(): OpenAI | null {
@@ -156,7 +159,8 @@ export async function curateHiddenGemsWithAi(
     "You are given a pre-filtered pool of overlooked games (already fetched from a game database). " +
     `Choose the ${HIDDEN_GEM_MIN}-${HIDDEN_GEM_MAX} BEST genuine hidden gems: underplayed, under-discussed, high-quality games with a strong identity. ` +
     "THE TEST FOR EVERY PICK: if an average gamer who follows indie or gaming news has probably heard of it, REJECT it. " +
-    "REJECT, no matter how good: famous indies; viral hits; huge publisher/franchise games; highly anticipated recent or upcoming games; mainstream award or press darlings; Nintendo/Sony/Xbox first-party classics; and anything with very high visibility even if it is not AAA. " +
+    "REJECT, no matter how good or how old: famous indies; viral hits; huge publisher/franchise games (e.g. Rockstar titles, Nintendo first-party, and ANY long-running franchise even an older entry); famous console classics that younger players merely missed; highly anticipated recent or upcoming games; mainstream award or press darlings; Nintendo/Sony/Xbox first-party classics; and anything with very high visibility even if it is not AAA. " +
+    "A hidden gem is NOT 'a classic younger players missed' — it is a genuinely overlooked game from a smaller studio. " +
     `Never pick these or anything like them: ${HIDDEN_GEM_AVOID.join(", ")}. ` +
     "PREFER: overlooked games; older cult favorites; small/medium games with strong quality; titles with credible ratings but modest visibility; and variety across genres and moods. " +
     "Only select from the provided candidates — never invent a game or an id. Ground every reason in the candidate's own genres/tags/era; do not fabricate awards, sales, or studios. " +
