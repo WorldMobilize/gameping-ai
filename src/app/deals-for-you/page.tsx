@@ -6,23 +6,24 @@ import DiscoveryComingSoonBadge from "@/components/discovery/DiscoveryComingSoon
 import DiscoveryFutureCard from "@/components/discovery/DiscoveryFutureCard";
 import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsell";
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
+import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
 import PremiumRotationAdminLine from "@/components/discovery/PremiumRotationAdminLine";
 import {
   DEALS_FOR_YOU_DEMO_DATA,
   type DealCardData,
 } from "@/lib/discovery/premium-demo-data";
 import { resolvePremiumPageAccess } from "@/lib/discovery/premium-page-access";
-import {
-  resolveUserRotation,
-  type PremiumRotationMeta,
-} from "@/lib/discovery/user-rotation-store";
+import { ensureUserPremiumRotation } from "@/lib/discovery/ensure-premium-rotation";
+import { type PremiumRotationMeta } from "@/lib/discovery/user-rotation-store";
 import { buildNoIndexMetadata } from "@/lib/seo/site";
 import type { Metadata } from "next";
 
-// Premium/personalized page — keep out of the index until it ships publicly.
+// Premium/personalized page — personalized & private, so keep it out of the index.
 export const metadata: Metadata = buildNoIndexMetadata("Deals for you | GamePing AI");
 
 export const dynamic = "force-dynamic";
+// Allow the first-visit lazy generation (RAWG + pricing + optional OpenAI) to run.
+export const maxDuration = 60;
 
 export default async function DealsForYouPage({
   searchParams,
@@ -38,7 +39,8 @@ export default async function DealsForYouPage({
   let aiSummary: { headline: string; summary: string } | null = null;
   let meta: PremiumRotationMeta | null = null;
   if (access.canViewPersonalized && access.userId) {
-    const resolved = await resolveUserRotation(access.userId, "deals_for_you");
+    // Read cache, generating once on this visit if missing/stale (cooldown-guarded).
+    const resolved = await ensureUserPremiumRotation(access.userId, "deals_for_you");
     if (resolved.rotation && resolved.rotation.items.length > 0) {
       generatedDeals = resolved.rotation.items as DealCardData[];
       aiSummary = resolved.rotation.aiSummary;
@@ -76,7 +78,11 @@ export default async function DealsForYouPage({
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
               Personal deal radar
             </p>
-            {!isGenerated ? <DiscoveryComingSoonBadge variant="premium" /> : null}
+            {state === "locked" ? (
+              <span className="inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--page-accent-strong)]">
+                Premium
+              </span>
+            ) : null}
           </div>
           <h1 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">
             Deals picked for <span className="text-[color:var(--page-accent-strong)]">you</span>
@@ -87,6 +93,12 @@ export default async function DealsForYouPage({
               : "Find discounts on games you are actually likely to enjoy."}
           </p>
           <PremiumRotationAdminLine viewer={access.viewer} meta={meta} aiUsed={meta?.sourceSummary?.aiUsed} />
+
+          {access.canViewPersonalized && isGenerated ? (
+            <div className="mt-6">
+              <PremiumRefreshButton type="deals_for_you" label="Refresh deals" />
+            </div>
+          ) : null}
 
           {state === "locked" ? (
             <PremiumDiscoveryUpsell showLogin={access.viewer === "anon"} />

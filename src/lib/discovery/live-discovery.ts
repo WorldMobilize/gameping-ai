@@ -61,6 +61,10 @@ const BLOCKED_FRANCHISE_SUBSTRINGS = [
   // never "hidden" (substring match catches editions/spin-offs too).
   "split fiction", "it takes two", "clair obscur", "expedition 33", "ultrakill",
   "silksong", "disco elysium", "outer wilds", "life is strange", "edith finch",
+  // Viral / award-winning puzzle + roguelike darlings — widely known, so not
+  // hidden gems even though they're "indie" (substring catches sequels/editions).
+  "inscryption", "baba is you", "monument valley", "tunic", "cocoon",
+  "animal well", "balatro", "vampire survivors", "lethal company", "papers please",
 ];
 
 // "Old but famous" publisher/franchise classics — a Hidden Gem is NEVER a
@@ -145,55 +149,130 @@ function releaseYear(c: RawgCandidate): string | null {
 export function assignHiddenCategory(c: RawgCandidate): HiddenGemCategory {
   const blob = metaBlob(c);
   if (/horror/.test(blob)) return "Cult favorites";
-  if (/role playing|rpg/.test(blob)) return "Underplayed RPGs";
-  if (/visual novel|story|narrative|interactive fiction/.test(blob)) return "Story-first discoveries";
-  if (/puzzle|souls like|difficult|roguelike|roguelite/.test(blob)) return "Difficult but rewarding";
+  // Narrative / adventure / point-and-click / detective games are story-first —
+  // check these BEFORE "puzzle" so a point-and-click mystery (which RAWG tags
+  // with "puzzle") isn't mislabeled "Difficult but rewarding".
+  if (
+    /visual novel|interactive fiction|point and click|point-and-click|adventure|detective|mystery|narrative|story rich|story-rich|story/.test(
+      blob
+    )
+  )
+    return "Story-first discoveries";
+  if (/role playing|rpg|tactical|tactics|turn based|turn-based/.test(blob)) return "Underplayed RPGs";
+  // "Difficult but rewarding" requires an ACTUAL difficulty signal — not merely
+  // the presence of puzzles (most adventure/puzzle games are not "punishing").
+  if (/souls|soulslike|souls like|difficult|brutal|hardcore|punishing|bullet hell|permadeath/.test(blob))
+    return "Difficult but rewarding";
   if (/casual|relaxing|cozy|wholesome|cute/.test(blob)) return "Cozy hidden picks";
+  if (/puzzle|logic|experimental|unique|surreal|sandbox|abstract|physics/.test(blob))
+    return "Experimental mechanics";
   if (/short|atmospheric/.test(blob)) return "Short unforgettable games";
-  if (/experimental|unique|surreal|sandbox/.test(blob)) return "Experimental mechanics";
   return "Weird but brilliant";
 }
 
 // Category-based reason/standout copy — NO "critically praised (Metacritic XX)"
 // line (absurd for famous games, and Metacritic is no longer how we pick).
-const HIDDEN_GEM_REASON_BY_CATEGORY: Record<HiddenGemCategory, string> = {
-  "Weird but brilliant":
+//
+// Each category has SEVERAL variants; the deterministic generator rotates between
+// them by candidate id so the fallback list doesn't read as the same sentence
+// repeated. (The AI curator overrides this copy when it's available.)
+const HIDDEN_GEM_REASON_VARIANTS: Record<HiddenGemCategory, string[]> = {
+  "Weird but brilliant": [
     "An unusual genre mix that doesn't fit the normal store categories — strange, specific, and easy to miss.",
-  "Underplayed RPGs":
+    "Too odd to market and too good to ignore — the kind of swing that slips past the algorithm.",
+  ],
+  "Underplayed RPGs": [
     "A systems-heavy RPG with a small but devoted audience rather than mainstream reach.",
-  "Short unforgettable games":
-    "A compact, story-driven experience that rewards curiosity in a single sitting.",
-  "Cult favorites":
+    "Real build depth and reactivity, but without the marketing budget that usually gets an RPG noticed.",
+  ],
+  "Short unforgettable games": [
+    "A compact, focused experience that rewards curiosity in a single sitting.",
+    "Short by design — it makes its point cleanly and leaves before it wears out its welcome.",
+  ],
+  "Cult favorites": [
     "A cult pick with a loyal niche following that most players never stumble onto.",
-  "Experimental mechanics":
+    "It never broke through to the mainstream, but the people who found it tend to stay obsessed.",
+  ],
+  "Experimental mechanics": [
     "Built around one unusual mechanic you won't find in the big-name releases.",
-  "Story-first discoveries":
+    "A single bold idea taken further than a bigger studio would have risked.",
+  ],
+  "Story-first discoveries": [
     "A narrative game with a specific mood and voice that most players overlook.",
-  "Cozy hidden picks":
+    "Writing-led and atmosphere-first — quiet enough that it never got the audience it earned.",
+  ],
+  "Cozy hidden picks": [
     "A quiet, low-stress game that slipped past the mainstream spotlight.",
-  "Difficult but rewarding":
+    "Gentle, unhurried, and easy to miss between the louder releases.",
+  ],
+  "Difficult but rewarding": [
     "A demanding game with a hard-earned payoff that never went mainstream.",
+    "Steep on purpose — it asks for real effort and pays it back once it clicks.",
+  ],
 };
 
-const HIDDEN_GEM_STANDOUT_BY_CATEGORY: Record<HiddenGemCategory, string> = {
-  "Weird but brilliant": "A genuinely strange premise executed with conviction.",
-  "Underplayed RPGs": "Deep systems and choices with a cult-sized audience.",
-  "Short unforgettable games": "Says what it needs to and ends before it overstays.",
-  "Cult favorites": "The kind of game its small fanbase won't stop recommending.",
-  "Experimental mechanics": "One distinctive mechanic the whole game is built around.",
-  "Story-first discoveries": "Writing and mood over spectacle.",
-  "Cozy hidden picks": "Calm, characterful, and quietly absorbing.",
-  "Difficult but rewarding": "Punishing at first, deeply satisfying once it clicks.",
+const HIDDEN_GEM_HOOK_VARIANTS: Record<HiddenGemCategory, string[]> = {
+  "Weird but brilliant": [
+    "A genuinely strange premise executed with conviction.",
+    "Unclassifiable in the best way.",
+  ],
+  "Underplayed RPGs": [
+    "Deep systems and choices with a cult-sized audience.",
+    "More mechanical depth than its install base suggests.",
+  ],
+  "Short unforgettable games": [
+    "Says what it needs to and ends before it overstays.",
+    "One sitting, long afterglow.",
+  ],
+  "Cult favorites": [
+    "Quietly beloved by the few who found it.",
+    "A small, fiercely loyal following for a reason.",
+  ],
+  "Experimental mechanics": [
+    "One distinctive mechanic the whole game is built around.",
+    "A mechanic you haven't seen done quite this way.",
+  ],
+  "Story-first discoveries": [
+    "Writing and mood over spectacle.",
+    "Character and place doing the heavy lifting.",
+  ],
+  "Cozy hidden picks": [
+    "Calm, characterful, and quietly absorbing.",
+    "Low-stakes, easy to sink into.",
+  ],
+  "Difficult but rewarding": [
+    "Punishing at first, deeply satisfying once it clicks.",
+    "Earns every win it gives you.",
+  ],
 };
+
+const HIDDEN_GEM_WHOFOR_VARIANTS = [
+  (genre: string) => `Players hunting for overlooked ${genre} games with a strong identity.`,
+  (genre: string) => `Anyone who has run dry on the famous ${genre} picks and wants something fresher.`,
+  (genre: string) => `Curious players who'd rather find a ${genre} nobody's told them about yet.`,
+];
+
+/** Deterministic variant pick — same candidate always yields the same copy. */
+function variant<T>(arr: T[], seed: number): T {
+  return arr[Math.abs(seed) % arr.length];
+}
 
 export function toHiddenGemPick(c: RawgCandidate): HiddenGemPick | null {
   const image = candidateImage(c);
   if (!image) return null;
   const genre = primaryGenre(c).toLowerCase();
   const category = assignHiddenCategory(c);
-  const whyHidden = HIDDEN_GEM_REASON_BY_CATEGORY[category];
-  const whoFor = `Players hunting for overlooked ${genre} games with a strong identity.`;
-  const hook = HIDDEN_GEM_STANDOUT_BY_CATEGORY[category];
+  const seed = c.id;
+
+  const whyHidden = variant(HIDDEN_GEM_REASON_VARIANTS[category], seed);
+  const hook = variant(HIDDEN_GEM_HOOK_VARIANTS[category], seed + 1);
+  const whoFor = variant(HIDDEN_GEM_WHOFOR_VARIANTS, seed + 2)(genre);
+
+  // Confidence tracks the hidden-gem score (underexposure + quality + uniqueness)
+  // so it VARIES per pick instead of a flat 60 — a stronger candidate reads as a
+  // more confident pick. Bounded to a conservative deterministic range.
+  const confidence = Math.max(45, Math.min(78, Math.round(46 + hiddenGemScore(c) * 0.32)));
+
   return {
     id: `rawg-${c.id}`,
     title: c.name,
@@ -211,7 +290,7 @@ export function toHiddenGemPick(c: RawgCandidate): HiddenGemPick | null {
     whyHidden,
     whoFor,
     discoveryTag: category,
-    confidence: 60,
+    confidence,
     gameId: c.id,
     rating: typeof c.rating === "number" ? c.rating : null,
     released: c.released ?? null,
@@ -224,27 +303,53 @@ export function toHiddenGemPick(c: RawgCandidate): HiddenGemPick | null {
 // Pull from NICHE genre/tag pools ordered by rating (NOT metacritic-descending,
 // which surfaced all-time classics). Heavy popularity caps + blocklist then keep
 // only genuinely overlooked games.
+//
+// The pools intentionally span SEVERAL niches and reach into the TAIL of each
+// (multiple pages), because ordering by -rating alone surfaces the all-time
+// classics at the top — those get blocked, so a single page left only a thin
+// pool. Deeper pages + more niches widen the funnel to 40-100 real candidates
+// before the AI curator ever sees them.
 const HIDDEN_GEM_QUERY_POOLS: Array<Record<string, string>> = [
+  // Small/medium indie quality — reach pages 1-3 for the overlooked tail.
   { genres: "indie", ordering: "-rating", page_size: "40", exclude_additions: "true" },
   { genres: "indie", ordering: "-rating", page_size: "40", page: "2", exclude_additions: "true" },
+  { genres: "indie", ordering: "-rating", page_size: "40", page: "3", exclude_additions: "true" },
+  // Older overlooked adventure / narrative.
   { genres: "adventure", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { genres: "adventure", ordering: "-rating", page_size: "40", page: "2", exclude_additions: "true" },
+  // Lesser-known puzzle / experimental.
   { genres: "puzzle", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { genres: "puzzle", ordering: "-rating", page_size: "40", page: "2", exclude_additions: "true" },
+  // Underplayed RPGs.
   { genres: "role-playing-games-rpg", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { genres: "role-playing-games-rpg", ordering: "-rating", page_size: "40", page: "2", exclude_additions: "true" },
+  // Overlooked strategy / tactics.
   { genres: "strategy", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { genres: "strategy", ordering: "-rating", page_size: "40", page: "2", exclude_additions: "true" },
+  // Niche simulation.
   { genres: "simulation", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  // Cult / mood / experimental tag pools.
   { tags: "atmospheric", ordering: "-rating", page_size: "40", exclude_additions: "true" },
   { tags: "story-rich", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { tags: "cult-classic", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { tags: "surreal", ordering: "-rating", page_size: "40", exclude_additions: "true" },
+  { tags: "tactical", ordering: "-rating", page_size: "40", exclude_additions: "true" },
 ];
 
 // Popularity ceilings — anything above is "too mainstream" to be a hidden gem.
-const HIDDEN_GEM_MAX_ADDED = 9000;
-const HIDDEN_GEM_MIN_ADDED = 80;
-const HIDDEN_GEM_MAX_RATINGS_COUNT = 2500;
-const HIDDEN_GEM_MIN_RATINGS_COUNT = 40;
-const HIDDEN_GEM_MAX_REVIEWS_COUNT = 900;
-const HIDDEN_GEM_MAX_SUGGESTIONS_COUNT = 500;
-const HIDDEN_GEM_MAX_METACRITIC = 89; // 90+ = universally-known classic → reject
-const HIDDEN_GEM_MIN_RATING = 3.6;
+// These are deliberately MODERATE rather than tight: the franchise/visibility
+// blocklist (above) is the primary "is this famous?" filter, and the score below
+// pushes the most-overlooked candidates to the top. Caps that were too tight
+// collapsed the pool to single digits, forcing the fallback. A genuinely niche
+// game can still have ~15-20k RAWG "adds" without being a household name.
+const HIDDEN_GEM_MAX_ADDED = 20000;
+const HIDDEN_GEM_MIN_ADDED = 60;
+const HIDDEN_GEM_MAX_RATINGS_COUNT = 5000;
+const HIDDEN_GEM_MIN_RATINGS_COUNT = 30;
+const HIDDEN_GEM_MAX_REVIEWS_COUNT = 1600;
+const HIDDEN_GEM_MAX_SUGGESTIONS_COUNT = 700;
+const HIDDEN_GEM_MAX_METACRITIC = 92; // 93+ = universally-known classic → reject
+const HIDDEN_GEM_MIN_RATING = 3.4;
 const HIDDEN_GEM_MIN_PICKS = 8; // else fall back to static curated (no famous filler)
 
 function clamp01(n: number): number {

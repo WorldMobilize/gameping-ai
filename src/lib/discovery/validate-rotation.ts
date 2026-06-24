@@ -47,6 +47,65 @@ const GENERIC_PHRASES = [
   "you'll love it",
 ];
 
+// --- GOTW quality tightening ----------------------------------------------
+// Huge franchises / hyped IPs that must NOT ride on hype: a weekly pick from one
+// of these is only justified by a concrete this-week reason (date/update/deal/
+// event). Substring match on the normalized title (catches sequels/subtitles).
+const WEEKLY_HUGE_FRANCHISES = [
+  "resident evil", "final fantasy", "life is strange", "call of duty", "zelda",
+  "grand theft auto", "gta", "assassins creed", "elder scrolls", "fallout",
+  "god of war", "halo", "the last of us", "spider man", "spider-man", "mario",
+  "pokemon", "metroid", "far cry", "dragon age", "mass effect", "diablo",
+  "elden ring", "the witcher", "horizon", "ghost of", "cyberpunk", "battlefield",
+  "star wars", "metal gear", "silent hill", "monster hunter", "dragon quest",
+  "kingdom hearts", "persona", "tomb raider", "forza", "gran turismo",
+];
+
+// A concrete, datable this-week reason. If a huge-franchise pick has NONE of
+// these signals in its "why this week" copy, it's hype-driven → reject.
+const CONCRETE_REASON_RE =
+  /\b(releas|launch|out now|available now|drop|update|patch|hotfix|dlc|expansion|season|deal|sale|discount|free|early access|anniversar|event|remaster|remake|return|today|this week|this month|now playable|new content)\w*\b/i;
+const DATE_HINT_RE =
+  /\b(20\d{2}|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i;
+
+// Marketing hype with no substance — flagged when it's the whole pitch.
+const HYPE_PHRASES = [
+  "most anticipated",
+  "highly anticipated",
+  "hotly anticipated",
+  "long-awaited",
+  "long awaited",
+  "can't wait",
+  "cannot wait",
+  "biggest release",
+  "biggest game",
+  "blockbuster",
+  "fans are hyped",
+  "everyone is talking about",
+  "game of the year contender",
+  "epic adventure",
+];
+
+function normalizeTitle(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function isHugeFranchise(title: string): boolean {
+  const n = normalizeTitle(title);
+  return WEEKLY_HUGE_FRANCHISES.some((f) => n.includes(normalizeTitle(f)));
+}
+
+function hasConcreteReason(text: string | undefined): boolean {
+  if (!text) return false;
+  return CONCRETE_REASON_RE.test(text) || DATE_HINT_RE.test(text);
+}
+
+function looksHype(text: string | undefined): boolean {
+  if (!text) return false;
+  const t = text.toLowerCase();
+  return HYPE_PHRASES.some((p) => t.includes(p));
+}
+
 export type RejectedExample = { title: string; reason: string };
 
 export type ValidationResult<T> =
@@ -179,13 +238,26 @@ export function validateRotation(
   const passing: WeeklyGamePick[] = [];
   for (const p of all) {
     const reason = weeklyReject(p);
-    if (reason) pushRejected(rejected, p.title, reason);
-    else passing.push(p);
+    if (reason) {
+      pushRejected(rejected, p.title, reason);
+      continue;
+    }
+    // GOTW tightening: a huge-franchise / hyped IP with no concrete this-week
+    // reason (date/update/deal/event) is hype-driven filler → drop it.
+    if (isHugeFranchise(p.title) && !hasConcreteReason(p.whyThisWeek)) {
+      pushRejected(rejected, p.title, "huge franchise with no concrete this-week reason");
+      continue;
+    }
+    passing.push(p);
   }
   const usable = dedupeByTitle(passing, rejected);
 
   const genericCount = usable.filter((p) => looksGeneric(p.whyThisWeek)).length;
   if (genericCount > 0) warnings.push(`${genericCount} weekly pick(s) have generic "why this week" copy`);
+
+  // Hype copy: concrete-reason-free marketing language is a soft signal.
+  const hypeCount = usable.filter((p) => looksHype(p.whyThisWeek) && !hasConcreteReason(p.whyThisWeek)).length;
+  if (hypeCount > 0) warnings.push(`${hypeCount} weekly pick(s) read as marketing hype, not a concrete weekly reason`);
 
   // Reason-type variety: warn if one reasonType dominates the mix.
   const counts = new Map<string, number>();
@@ -197,6 +269,14 @@ export function validateRotation(
   if (topReason && usable.length >= 4 && topReason[1] > Math.ceil(usable.length * 0.6)) {
     warnings.push(`low reasonType variety: ${topReason[1]}/${usable.length} are "${topReason[0]}"`);
   }
+
+  // Upcoming-watch dominance: a weekly mix that's mostly unreleased titles is too
+  // hype/wishlist-driven. Warn past ~one third of the list.
+  const upcomingCount = counts.get("upcoming-watch") ?? 0;
+  if (usable.length >= 4 && upcomingCount > Math.ceil(usable.length / 3)) {
+    warnings.push(`too many "upcoming-watch" picks: ${upcomingCount}/${usable.length} are unreleased/watch items`);
+  }
+
   if (rejected.length > 0) warnings.push(`${rejected.length} weekly item(s) rejected`);
 
   if (usable.length < MIN_ITEMS) {

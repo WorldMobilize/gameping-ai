@@ -1,6 +1,10 @@
 /**
- * Marketing teaser only — no Steam integration, APIs, or auth.
+ * Steam import promo for /upgrade. Steam import is LIVE (premium-gated), so this
+ * presents it as usable and links to the real import in account settings — the
+ * preview card below is a labeled sample, not a live account.
  */
+
+import Link from "next/link";
 
 function LibraryGlyph({
   className,
@@ -87,10 +91,10 @@ export default function SteamTasteComingSoon({
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex rounded-full border border-amber-300/80 bg-amber-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8a6a14] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
-                Coming soon
+                Available now
               </span>
               <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400 dark:text-slate-400">
-                Future Premium feature
+                Premium feature
               </span>
             </div>
 
@@ -142,17 +146,14 @@ export default function SteamTasteComingSoon({
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button
-                type="button"
-                disabled
-                aria-disabled
-                title="Steam import is not available yet"
-                className="inline-flex cursor-not-allowed items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-8 py-3.5 text-sm font-semibold text-slate-400 opacity-70 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-500"
+              <Link
+                href="/settings/account#steam-library-import"
+                className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#B98224] to-[#D6A84F] px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
               >
-                Join early access
-              </button>
+                Import your Steam library
+              </Link>
               <p className="text-xs text-slate-300 dark:text-slate-400 sm:max-w-[14rem]">
-                No connection yet—this button is disabled until the feature ships.
+                Connect from your account settings — Premium &amp; available now.
               </p>
             </div>
           </div>
@@ -171,7 +172,7 @@ export default function SteamTasteComingSoon({
                   </div>
                 </div>
                 <span className="rounded-full border border-amber-300/80 bg-amber-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#8a6a14] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-200">
-                  Mock UI
+                  Sample
                 </span>
               </div>
 

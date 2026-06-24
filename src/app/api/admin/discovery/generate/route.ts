@@ -277,6 +277,19 @@ async function runGeneration(params: {
 
   const validData = validation.data;
 
+  // Surface the deterministic-fallback / "AI selected 0" condition prominently so
+  // admins/cron see it in every mode — a fallback rotation is not the same quality
+  // bar as an AI-curated one and must be reviewed before it goes public.
+  const fallbackWarnings: string[] = [];
+  if (generated.debug.fallbackUsed) {
+    fallbackWarnings.push(
+      generated.debug.aiSelectedCount === 0
+        ? "AI selected 0; fallback used — review copy before publishing."
+        : "AI curation unavailable; deterministic fallback used."
+    );
+  }
+  const warnings = [...fallbackWarnings, ...validation.warnings];
+
   // Admin/cron-only debug telemetry (never returned to public page reads).
   const debug = {
     periodKey,
@@ -297,13 +310,42 @@ async function runGeneration(params: {
       type,
       periodKey,
       via,
-      warnings: validation.warnings,
+      warnings,
       sourceSummary: generated.sourceSummary,
       itemCount: validData.picks.length,
       featuredCount: 1,
       debug,
       data: validData,
     });
+  }
+
+  // Quality gate: never auto-PUBLISH a Hidden Gems rotation that collapsed into
+  // the deterministic fallback (AI selected 0). The fallback can be saved as a
+  // draft for review, but publishing it would silently replace a good live
+  // rotation with lower-quality copy — so block the publish and leave the
+  // currently published rotation untouched. (Drafts still persist below.)
+  if (mode === "publish" && type === "hidden_gems" && generated.debug.fallbackUsed) {
+    await saveFailedRotation(
+      type,
+      periodKey,
+      "Hidden Gems AI selected 0; fallback not auto-published (saved nothing — previous rotation kept)."
+    );
+    console.warn("[discovery:generate] publish blocked (hidden-gems fallback)", { type, periodKey, debug });
+    return NextResponse.json(
+      {
+        ok: false,
+        type,
+        periodKey,
+        mode,
+        status: "failed",
+        error: "ai_selected_zero_fallback",
+        message:
+          "AI selected 0 hidden gems and only the deterministic fallback was available. Publish blocked; the previously published rotation is unchanged. Use mode=draft to save it for review.",
+        warnings,
+        debug,
+      },
+      { status: 200 }
+    );
   }
 
   // Draft / publish: persist the validated payload.
@@ -346,7 +388,7 @@ async function runGeneration(params: {
     periodKey,
     status,
     via,
-    warnings: validation.warnings,
+    warnings,
     itemCount: validData.picks.length,
     featuredCount: 1,
     debug,

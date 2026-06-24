@@ -36,8 +36,10 @@ import type { RawgCandidate } from "@/lib/rawg-discovery";
 const MODEL = "gpt-4o-mini";
 const TIMEOUT_MS = 30_000;
 
-// How many candidates we show the model (kept small to bound tokens/cost).
-const MAX_CANDIDATES = 40;
+// How many candidates we show the model. Wide enough that the model can reject
+// anything too visible and still comfortably reach the minimum pick count,
+// bounded so token cost stays predictable.
+const MAX_CANDIDATES = 50;
 // Final pick counts (featured + grid). Mirrors the deterministic generator.
 const HIDDEN_GEM_MIN = 8;
 const HIDDEN_GEM_MAX = 13;
@@ -52,6 +54,9 @@ const HIDDEN_GEM_AVOID = [
   "Hollow Knight: Silksong", "Hades", "Celeste", "Hollow Knight",
   "Stardew Valley", "Undertale", "Disco Elysium", "Outer Wilds", "Firewatch",
   "Journey", "Life is Strange", "What Remains of Edith Finch", "GRIS",
+  // Viral / award-winning indie darlings that are widely known — NOT hidden.
+  "Inscryption", "Baba Is You", "Monument Valley", "Monument Valley 2", "Tunic",
+  "Cocoon", "Animal Well", "Balatro", "Vampire Survivors", "Papers, Please",
   // Old-but-famous publisher/franchise classics — never hidden gems.
   "Bully", "Professor Layton", "Fire Emblem", "Pokémon", "Mario", "Zelda",
   "Metroid", "Kirby", "Animal Crossing", "Castlevania", "Mega Man", "Silent Hill",
@@ -278,9 +283,11 @@ export async function curateWeeklyWithAi(
   const system =
     "You are GamePing's weekly games editor. You are given a pool of recent and notable games (already fetched from a game database). " +
     `Curate a varied mix of ${WEEKLY_MIN}-${WEEKLY_MAX} games that answer ONE question: 'why is this worth paying attention to THIS WEEK?' — this is NOT just a list of recent releases. ` +
-    "Every 'whyThisWeek' must give a concrete, current reason (a fresh release, a reason to rediscover it now, momentum/buzz, an under-the-radar gem to catch, a timeless pick for right now, or an upcoming title to watch). " +
+    "Every 'whyThisWeek' must give a concrete, CURRENT reason: a dated release/launch, a patch or update, a deal/sale/free offer, an event or anniversary, a reason to rediscover it now, or an under-the-radar gem to catch. " +
     "VARY the reasonType across picks — do not give most picks the same reasonType. " +
-    "You MAY include a well-known or franchise game ONLY if there is a specific, real this-week angle; otherwise skip it. " +
+    "Do NOT fill the list with upcoming/unreleased games: AT MOST about one in four picks may be 'upcoming-watch', and only when there is a concrete announced date or event — never on hype alone. " +
+    "A huge franchise, sequel, or hyped IP (e.g. Resident Evil, Final Fantasy, Life is Strange, Call of Duty, Zelda, Grand Theft Auto, Assassin's Creed) may ONLY appear if there is a SPECIFIC, concrete this-week reason (a dated launch, a real patch/update, a deal, or an event). " +
+    "Marketing hype is NOT a reason: BAN phrases like 'most anticipated', 'highly anticipated', 'long-awaited', 'biggest release', 'blockbuster', 'fans can't wait' — if the only reason you can give is excitement, skip the game. " +
     "Only select from the provided candidates — never invent a game or an id. Ground every reason in the candidate's own genres/tags/era; do not fabricate prices, deals, or awards. " +
     "Write specific copy — BAN generic filler like 'worth a look', 'great gameplay', 'fans will enjoy', 'worth checking out', or 'a must-play'. " +
     "Order best-first (the first pick becomes the featured pick of the week). " +

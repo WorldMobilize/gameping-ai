@@ -13,14 +13,15 @@ import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
  *   free    → locked preview + upgrade CTA
  *   anon    → locked preview + login/signup CTA
  *
- * BUT these pages are not exposed publicly yet. While PREMIUM_DISCOVERY_PUBLIC is
- * false, only admins can reach the route (everyone else gets a 404 via the page's
- * notFound()), exactly like the previous admin-only gate. All of the premium /
- * free / anon rendering logic is built and ready — flip the flag to go live.
+ * LIVE: the pages are public. premium/admin get real personalized content,
+ * free/anon get a locked preview + upgrade/login CTA (handled in each page). The
+ * pages stay noindex (buildNoIndexMetadata) and out of the sitemap because the
+ * content is personalized/private. Set PREMIUM_DISCOVERY_PUBLIC back to false to
+ * re-gate them to admins only (everyone else 404s) without other changes.
  */
 
-/** Master switch. Set to true to expose these pages to premium + the public preview. */
-export const PREMIUM_DISCOVERY_PUBLIC = false;
+/** Master switch. true = pages reachable by everyone (premium content vs locked preview). */
+export const PREMIUM_DISCOVERY_PUBLIC = true;
 
 export type PremiumViewer = "admin" | "premium" | "free" | "anon";
 

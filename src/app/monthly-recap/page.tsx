@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import { APP_CARD, APP_CARD_HEADING, APP_MUTED } from "@/components/app/app-styles";
-import DiscoveryComingSoonBadge from "@/components/discovery/DiscoveryComingSoonBadge";
 import DiscoveryFutureCard from "@/components/discovery/DiscoveryFutureCard";
 import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsell";
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
+import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
 import PremiumRotationAdminLine from "@/components/discovery/PremiumRotationAdminLine";
 import WeeklyPickPremiumCard from "@/components/discovery/WeeklyPickPremiumCard";
 import {
@@ -12,18 +12,20 @@ import {
   type WeeklyPickCardData,
 } from "@/lib/discovery/premium-demo-data";
 import { resolvePremiumPageAccess } from "@/lib/discovery/premium-page-access";
+import { ensureUserPremiumRotation } from "@/lib/discovery/ensure-premium-rotation";
 import {
-  resolveUserRotation,
   type MonthlyRecapCore,
   type PremiumRotationMeta,
 } from "@/lib/discovery/user-rotation-store";
 import { buildNoIndexMetadata } from "@/lib/seo/site";
 import type { Metadata } from "next";
 
-// Premium/personalized page — keep out of the index until it ships publicly.
+// Premium/personalized page — personalized & private, so keep it out of the index.
 export const metadata: Metadata = buildNoIndexMetadata("Your monthly recap | GamePing AI");
 
 export const dynamic = "force-dynamic";
+// Allow the first-visit lazy generation (activity stats + optional OpenAI) to run.
+export const maxDuration = 60;
 
 export default async function MonthlyRecapPage({
   searchParams,
@@ -38,7 +40,8 @@ export default async function MonthlyRecapPage({
   let aiSummary: { headline: string; summary: string } | null = null;
   let meta: PremiumRotationMeta | null = null;
   if (access.canViewPersonalized && access.userId) {
-    const resolved = await resolveUserRotation(access.userId, "monthly_recap");
+    // Read cache, generating once on this visit if missing/stale (cooldown-guarded).
+    const resolved = await ensureUserPremiumRotation(access.userId, "monthly_recap");
     const core = resolved.rotation?.featuredItem as MonthlyRecapCore | null;
     if (resolved.rotation && core && core.personality) {
       generatedCore = core;
@@ -88,7 +91,11 @@ export default async function MonthlyRecapPage({
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
               Monthly recap
             </p>
-            {!isGenerated ? <DiscoveryComingSoonBadge variant="premium" /> : null}
+            {state === "locked" ? (
+              <span className="inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--page-accent-strong)]">
+                Premium
+              </span>
+            ) : null}
           </div>
           <h1 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">
             Your month in <span className="text-[color:var(--page-accent-strong)]">gaming</span>
@@ -99,6 +106,12 @@ export default async function MonthlyRecapPage({
               : "See how your taste evolved and discover what to play next."}
           </p>
           <PremiumRotationAdminLine viewer={access.viewer} meta={meta} aiUsed={meta?.sourceSummary?.aiUsed} />
+
+          {access.canViewPersonalized && isGenerated ? (
+            <div className="mt-6">
+              <PremiumRefreshButton type="monthly_recap" label="Refresh recap" />
+            </div>
+          ) : null}
 
           {state === "locked" ? (
             <PremiumDiscoveryUpsell showLogin={access.viewer === "anon"} />

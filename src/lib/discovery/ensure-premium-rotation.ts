@@ -1,0 +1,172 @@
+import "server-only";
+
+import { generatePremiumRotation } from "@/lib/discovery/premium-generators";
+import {
+  currentPremiumPeriodKey,
+  getAnyUserRotation,
+  publishUserRotation,
+  resolveUserRotation,
+  saveFailedUserRotation,
+  saveUserRotation,
+  type PremiumRotationMeta,
+  type PremiumRotationType,
+  type UserPremiumRotation,
+} from "@/lib/discovery/user-rotation-store";
+
+/**
+ * Lazy generation orchestrator for the premium pages
+ *   /weekly-picks · /deals-for-you · /monthly-recap
+ *
+ * Pages call ensureUserPremiumRotation() for premium/admin viewers. It:
+ *   1. returns the current-period published rotation when it already exists
+ *      (the common case — NO regeneration on a normal visit),
+ *   2. otherwise generates once, caches + publishes, and returns it,
+ *   3. on failure / not-enough-data, falls back to the last successful cached
+ *      rotation (shown as stale) or null (page renders the empty state).
+ *
+ * A retry cooldown stops a failing or content-less generation from being
+ * re-attempted on every visit (which would hammer RAWG/OpenAI/pricing). The
+ * natural cache key is the period (ISO week / month), so a healthy rotation is
+ * generated at most once per period per user.
+ *
+ * This is orchestration only — it reuses the existing generators, store, and
+ * service-role credentials. It never touches /api/recommend, billing, or auth.
+ */
+
+// Don't auto-retry a failed / empty generation more than once per this window.
+const AUTO_RETRY_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6h
+// Manual "Refresh" min interval between successful regenerations.
+const REFRESH_COOLDOWN_MS = 15 * 60 * 1000; // 15m
+
+// Generator errors that mean "this user simply doesn't have enough signal yet"
+// (→ encourage Steam import / saved searches), as opposed to a transient failure.
+const INSUFFICIENT_DATA_ERRORS = new Set([
+  "insufficient_taste_signal",
+  "insufficient_activity",
+  "no_titles_to_price",
+]);
+
+export type EnsureStatus =
+  /** Fresh current-period rotation already existed. */
+  | "fresh"
+  /** Generated a new rotation on this visit. */
+  | "generated"
+  /** No fresh rotation, but a recent attempt is cooling down — used cache/empty. */
+  | "cooldown"
+  /** Served a previous (stale) cached rotation because current-period gen failed. */
+  | "stale"
+  /** User doesn't have enough signal to personalize yet → empty state. */
+  | "insufficient_data"
+  /** Generation failed transiently and there was nothing cached to fall back to. */
+  | "failed";
+
+export type EnsureResult = {
+  rotation: UserPremiumRotation | null;
+  meta: PremiumRotationMeta | null;
+  status: EnsureStatus;
+};
+
+function withinCooldown(generatedAt: string | null, windowMs: number): boolean {
+  if (!generatedAt) return false;
+  const t = Date.parse(generatedAt);
+  if (!Number.isFinite(t)) return false;
+  return Date.now() - t < windowMs;
+}
+
+type GenerateOutcome = "generated" | "insufficient_data" | "failed";
+
+/** Generate → save → publish for the current period. Records failures. */
+async function generateAndPublish(
+  userId: string,
+  type: PremiumRotationType,
+  periodKey: string
+): Promise<GenerateOutcome> {
+  const generated = await generatePremiumRotation(type, userId);
+  if (!generated.ok) {
+    await saveFailedUserRotation(userId, type, periodKey, generated.error);
+    return INSUFFICIENT_DATA_ERRORS.has(generated.error) ? "insufficient_data" : "failed";
+  }
+  const saved = await saveUserRotation(userId, type, periodKey, generated.data);
+  if (!saved.ok) {
+    await saveFailedUserRotation(userId, type, periodKey, saved.error ?? "save_failed");
+    return "failed";
+  }
+  const published = await publishUserRotation(userId, type, periodKey);
+  if (!published.ok) return "failed";
+  return "generated";
+}
+
+/**
+ * Read-or-generate the user's rotation for this visit. Safe to call on every
+ * page render: it only generates when there's no fresh content AND no recent
+ * attempt to cool down.
+ */
+export async function ensureUserPremiumRotation(
+  userId: string,
+  type: PremiumRotationType
+): Promise<EnsureResult> {
+  // 1) Fresh current-period published rotation already cached → just use it.
+  const resolved = await resolveUserRotation(userId, type);
+  if (resolved.rotation && resolved.meta && !resolved.meta.stale) {
+    return { rotation: resolved.rotation, meta: resolved.meta, status: "fresh" };
+  }
+
+  const periodKey = currentPremiumPeriodKey(type);
+
+  // 2) Was there a recent attempt (failed or content-less) this period? If so,
+  //    don't regenerate — fall back to the last good cached rotation or empty.
+  const attempt = await getAnyUserRotation(userId, type, periodKey);
+  if (attempt && withinCooldown(attempt.generatedAt, AUTO_RETRY_COOLDOWN_MS)) {
+    return {
+      rotation: resolved.rotation,
+      meta: resolved.meta,
+      status: resolved.rotation ? "stale" : "cooldown",
+    };
+  }
+
+  // 3) Generate once for this period.
+  const outcome = await generateAndPublish(userId, type, periodKey);
+  if (outcome === "generated") {
+    const after = await resolveUserRotation(userId, type);
+    return { rotation: after.rotation, meta: after.meta, status: "generated" };
+  }
+
+  // 4) Generation failed / not enough data — serve the last good cache if any.
+  return {
+    rotation: resolved.rotation,
+    meta: resolved.meta,
+    status: outcome === "insufficient_data" ? "insufficient_data" : resolved.rotation ? "stale" : "failed",
+  };
+}
+
+export type RefreshResult = {
+  ok: boolean;
+  status: EnsureStatus | "cooldown";
+  /** Seconds until refresh is allowed again (cooldown only). */
+  retryAfterSec?: number;
+};
+
+/**
+ * Manual "Refresh picks" — force a regeneration for the current period, guarded
+ * by a short cooldown so it can't be spammed. Premium/admin only (callers must
+ * authorize the user first).
+ */
+export async function refreshUserPremiumRotation(
+  userId: string,
+  type: PremiumRotationType
+): Promise<RefreshResult> {
+  const periodKey = currentPremiumPeriodKey(type);
+  const current = await getAnyUserRotation(userId, type, periodKey);
+  if (current?.generatedAt) {
+    const elapsed = Date.now() - Date.parse(current.generatedAt);
+    if (Number.isFinite(elapsed) && elapsed < REFRESH_COOLDOWN_MS) {
+      return {
+        ok: false,
+        status: "cooldown",
+        retryAfterSec: Math.ceil((REFRESH_COOLDOWN_MS - elapsed) / 1000),
+      };
+    }
+  }
+  const outcome = await generateAndPublish(userId, type, periodKey);
+  return { ok: outcome === "generated", status: outcome };
+}

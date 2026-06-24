@@ -175,6 +175,33 @@ export async function getPublishedUserRotation(
   }
 }
 
+/**
+ * Read the row for (user, type, period) regardless of status (draft / published
+ * / failed). Used by the lazy-generation orchestrator to apply a retry cooldown
+ * so a failed or empty generation isn't re-attempted on every page visit.
+ */
+export async function getAnyUserRotation(
+  userId: string,
+  type: PremiumRotationType,
+  periodKey: string = currentPremiumPeriodKey(type)
+): Promise<UserPremiumRotation | null> {
+  const supabase = getServiceSupabase();
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select(COLUMNS)
+      .eq("user_id", userId)
+      .eq("type", type)
+      .eq("period_key", periodKey)
+      .maybeSingle();
+    if (error || !data) return null;
+    return mapRow(data as Row);
+  } catch {
+    return null;
+  }
+}
+
 export async function getLatestUserRotation(
   userId: string,
   type: PremiumRotationType

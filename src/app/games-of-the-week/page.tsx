@@ -1,6 +1,7 @@
 import AppPageShell from "@/components/app/AppPageShell";
 import GamesOfWeekView from "@/components/discovery/GamesOfWeekView";
 import { resolveRotation } from "@/lib/discovery/rotation-store";
+import { resolvePremiumPageAccess } from "@/lib/discovery/premium-page-access";
 import type { WeeklyGamePick } from "@/lib/discovery/curated-picks";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 import type { Metadata } from "next";
@@ -20,7 +21,10 @@ export const dynamic = "force-dynamic";
 // the discovery cron / admin route — never on a page visit). Fallback order:
 // current published rotation → latest published rotation → static curated list.
 export default async function GamesOfTheWeekPage() {
-  const { data, meta } = await resolveRotation<WeeklyGamePick>("games_of_the_week");
+  const [{ data, meta }, access] = await Promise.all([
+    resolveRotation<WeeklyGamePick>("games_of_the_week"),
+    resolvePremiumPageAccess(),
+  ]);
 
   return (
     <AppPageShell hideAmbient>
@@ -31,6 +35,7 @@ export default async function GamesOfTheWeekPage() {
           featured={data?.featured}
           picks={data?.picks}
           meta={meta ?? undefined}
+          canViewWeeklyPicks={access.canViewPersonalized}
         />
       </div>
     </AppPageShell>

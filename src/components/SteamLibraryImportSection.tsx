@@ -160,6 +160,7 @@ export default function SteamLibraryImportSection() {
   if (loading || !visible) return null;
 
   const connected = summary?.connected === true;
+  const connectedNoGames = connected && (summary?.gameCount ?? 0) === 0;
 
   return (
     <section
@@ -170,8 +171,8 @@ export default function SteamLibraryImportSection() {
         Steam Library Import
       </p>
       <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
-        Import your public Steam library so GamePing can learn your taste. Taste-based
-        recommendations are coming next.
+        Import your public Steam library so GamePing can learn your taste. It powers your
+        personalized Weekly Picks, Deals For You, and Monthly Recap.
       </p>
       <p className="mt-3 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
         We only read game names and playtime. We never access friends, chat, inventory,
@@ -235,6 +236,37 @@ export default function SteamLibraryImportSection() {
               ) : null}
             </dl>
           </div>
+
+          {connectedNoGames ? (
+            <div className="space-y-3 rounded-2xl border border-amber-300/70 bg-amber-50/80 p-4 dark:border-amber-500/30 dark:bg-amber-500/10">
+              <p className="text-sm leading-6 text-amber-900 dark:text-amber-200">
+                Connected, but we couldn&apos;t see any games. Your Steam{" "}
+                <span className="font-semibold">profile and game details</span> may be set to private
+                — set &ldquo;Game details&rdquo; to <span className="font-semibold">Public</span> in
+                your Steam privacy settings, then re-import.
+              </p>
+              <input
+                type="text"
+                value={profileInput}
+                onChange={(e) => setProfileInput(e.target.value)}
+                placeholder="https://steamcommunity.com/id/yourname"
+                className={APP_INPUT}
+                disabled={importing}
+              />
+              <button
+                type="button"
+                disabled={importing}
+                onClick={() => void onImport()}
+                className={STEAM_IMPORT_CTA}
+              >
+                {importing ? "Importing…" : "Re-import library"}
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs leading-6 text-slate-600 dark:text-slate-400">
+              Used to personalize your Weekly Picks, Deals For You, and Monthly Recap.
+            </p>
+          )}
 
           {summary.topGames && summary.topGames.length > 0 ? (
             <div>

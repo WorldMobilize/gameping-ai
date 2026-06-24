@@ -5,6 +5,7 @@ import DiscoveryComingSoonBadge from "@/components/discovery/DiscoveryComingSoon
 import DiscoveryFutureCard from "@/components/discovery/DiscoveryFutureCard";
 import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsell";
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
+import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
 import PremiumRotationAdminLine from "@/components/discovery/PremiumRotationAdminLine";
 import WeeklyPickPremiumCard from "@/components/discovery/WeeklyPickPremiumCard";
 import {
@@ -12,17 +13,17 @@ import {
   type WeeklyPickCardData,
 } from "@/lib/discovery/premium-demo-data";
 import { resolvePremiumPageAccess } from "@/lib/discovery/premium-page-access";
-import {
-  resolveUserRotation,
-  type PremiumRotationMeta,
-} from "@/lib/discovery/user-rotation-store";
+import { ensureUserPremiumRotation } from "@/lib/discovery/ensure-premium-rotation";
+import { type PremiumRotationMeta } from "@/lib/discovery/user-rotation-store";
 import { buildNoIndexMetadata } from "@/lib/seo/site";
 import type { Metadata } from "next";
 
-// Premium/personalized page — keep out of the index until it ships publicly.
+// Premium/personalized page — personalized & private, so keep it out of the index.
 export const metadata: Metadata = buildNoIndexMetadata("Your weekly picks | GamePing AI");
 
 export const dynamic = "force-dynamic";
+// Allow the first-visit lazy generation (RAWG + optional OpenAI) to complete.
+export const maxDuration = 60;
 
 export default async function WeeklyPicksPage({
   searchParams,
@@ -39,7 +40,8 @@ export default async function WeeklyPicksPage({
   let aiSummary: { headline: string; summary: string } | null = null;
   let meta: PremiumRotationMeta | null = null;
   if (access.canViewPersonalized && access.userId) {
-    const resolved = await resolveUserRotation(access.userId, "weekly_picks");
+    // Read cache, generating once on this visit if missing/stale (cooldown-guarded).
+    const resolved = await ensureUserPremiumRotation(access.userId, "weekly_picks");
     if (resolved.rotation && resolved.rotation.items.length > 0) {
       generatedPicks = resolved.rotation.items as WeeklyPickCardData[];
       aiSummary = resolved.rotation.aiSummary;
@@ -78,7 +80,11 @@ export default async function WeeklyPicksPage({
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
               Personal picks
             </p>
-            {!isGenerated ? <DiscoveryComingSoonBadge variant="premium" /> : null}
+            {state === "locked" ? (
+              <span className="inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--page-accent-strong)]">
+                Premium
+              </span>
+            ) : null}
           </div>
           <h1 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">
             Your weekly <span className="text-[color:var(--page-accent-strong)]">picks</span>
@@ -89,6 +95,12 @@ export default async function WeeklyPicksPage({
               : "Fresh recommendations based on your taste, library, and what you might enjoy next."}
           </p>
           <PremiumRotationAdminLine viewer={access.viewer} meta={meta} aiUsed={meta?.sourceSummary?.aiUsed} />
+
+          {access.canViewPersonalized && isGenerated ? (
+            <div className="mt-6">
+              <PremiumRefreshButton type="weekly_picks" />
+            </div>
+          ) : null}
 
           {state === "locked" ? (
             <PremiumDiscoveryUpsell showLogin={access.viewer === "anon"} />

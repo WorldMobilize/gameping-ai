@@ -107,12 +107,19 @@ export default function GamesOfWeekView({
   featured = WEEKLY_FEATURED,
   picks = WEEKLY_GAME_PICKS,
   meta,
+  canViewWeeklyPicks = false,
 }: {
   /** Cached RAWG-derived picks (admin testing); falls back to static curated data. */
   featured?: WeeklyGamePick;
   picks?: WeeklyGamePick[];
   /** Admin-only cached-rotation metadata (period, generated_at, source). */
   meta?: DiscoveryRotationMetaData;
+  /**
+   * Whether the viewer (admin/premium) can already see personalized Weekly Picks.
+   * Drives the hero CTA copy; the destination is always /weekly-picks (personalized
+   * weekly discovery lives there now — never /recommend, which is manual search).
+   */
+  canViewWeeklyPicks?: boolean;
 } = {}) {
   const [active, setActive] = useState<WeeklyCategory | "All">("All");
 
@@ -143,8 +150,8 @@ export default function GamesOfWeekView({
         right now.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
-        <Link href="/recommend" className={APP_PRIMARY_CTA_ACCENT_SM}>
-          Get my weekly-style picks
+        <Link href="/weekly-picks" className={APP_PRIMARY_CTA_ACCENT_SM}>
+          {canViewWeeklyPicks ? "See your Weekly Picks" : "Unlock your Weekly Picks"}
         </Link>
         <Link href="/hidden-gems" className={APP_SECONDARY_CTA}>
           Browse hidden gems
