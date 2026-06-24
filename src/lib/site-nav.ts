@@ -20,11 +20,10 @@ export const SITE_NAV_ITEMS: SiteNavItem[] = [
 ];
 
 /**
- * Discovery feature pages — incomplete/future features, gated ADMIN ONLY for now
- * (same profiles.plan === "admin" check as AdminOnlyPageGate). Hidden from the
- * public nav, drawer, and footer until they ship.
+ * Discovery feature pages — now PUBLIC (cached, cron-published rotations). Shown
+ * to everyone in the drawer and, space permitting, in the desktop nav.
  */
-export const ADMIN_DISCOVERY_NAV_ITEMS: SiteNavItem[] = [
+export const DISCOVERY_NAV_ITEMS: SiteNavItem[] = [
   { label: "Hidden Gems", href: "/hidden-gems", matchPrefix: "/hidden-gems" },
   {
     label: "Games of the Week",

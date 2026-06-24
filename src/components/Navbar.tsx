@@ -73,7 +73,7 @@ const HOME_NAV_CORE_LINKS = [
   { label: "Games", href: "/games" },
 ] as const;
 
-/** Discovery links shown inline only at 2xl. */
+/** Discovery links (public). Shown inline only at 2xl, space permitting. */
 const HOME_NAV_DISCOVERY_LINKS = [
   { label: "Hidden gems", href: "/hidden-gems" },
   { label: "Games of the week", href: "/games-of-the-week" },
@@ -441,16 +441,18 @@ export default function Navbar({
         <nav className="gp-nav-home-links" aria-label="Primary navigation">
           {HOME_NAV_CORE_LINKS.map((item) => renderHomeNavLink(item))}
 
-          {/* Discovery / Premium / Future feature pages. Admin-only VISIBILITY for
-           * now (same profiles.plan === "admin" check), but grouped by what the
-           * features actually are — Discovery is global, Premium is a tier,
-           * Parties is a future feature. No "Admin" product category. */}
+          {/* Discovery — global PUBLIC pages (Hidden Gems / Games of the Week).
+           * Shown inline at 2xl, space permitting; always available in the drawer. */}
+          <span className="hidden items-center gap-7 2xl:flex">
+            <NavGroupSeparator isLight={isLight} />
+            {HOME_NAV_DISCOVERY_LINKS.map((item) => renderHomeNavLink(item))}
+          </span>
+
+          {/* Premium + Parties — admin-only VISIBILITY for now (same
+           * profiles.plan === "admin" check). Premium is a tier, Parties is a
+           * future feature. No "Admin" product category. */}
           {isAdmin ? (
             <span className="hidden items-center gap-7 2xl:flex">
-              {/* Discovery — global pages (Hidden Gems / Games of the Week) */}
-              <NavGroupSeparator isLight={isLight} />
-              {HOME_NAV_DISCOVERY_LINKS.map((item) => renderHomeNavLink(item))}
-
               {/* Premium — per-user personalized features */}
               <NavGroupSeparator isLight={isLight} />
               <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.22em] text-[color:var(--page-accent-text)]">

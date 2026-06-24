@@ -70,6 +70,9 @@ type TypeResult = {
   status: "published" | "failed";
   generator?: string;
   itemCount?: number;
+  candidateCount?: number;
+  aiSelectedCount?: number;
+  fallbackUsed?: boolean;
   error?: string;
 };
 
@@ -118,7 +121,10 @@ async function refreshRotation(type: RotationType): Promise<TypeResult> {
     periodKey,
     status: "published",
     generator: generated.sourceSummary.generator,
-    itemCount: validation.data.picks.length,
+    itemCount: validation.data.picks.length + 1, // incl. featured
+    candidateCount: generated.debug.candidateCount,
+    aiSelectedCount: generated.debug.aiSelectedCount,
+    fallbackUsed: generated.debug.fallbackUsed,
   };
 }
 

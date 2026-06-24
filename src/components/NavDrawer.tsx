@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import {
-  ADMIN_DISCOVERY_NAV_ITEMS,
+  DISCOVERY_NAV_ITEMS,
   isSiteNavItemActive,
   PARTIES_NAV_ITEM,
   PARTIES_SUBNAV_ITEMS,
@@ -159,16 +159,16 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
         <nav className="relative flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
           {SITE_NAV_ITEMS.map(renderNavItem)}
 
+          {/* Discovery — global public pages (visible to everyone). */}
+          <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
+            <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
+              Discovery
+            </p>
+            {DISCOVERY_NAV_ITEMS.map(renderNavItem)}
+          </div>
+
           {isAdmin ? (
             <>
-              {/* Discovery — global pages (admin-only visibility for now). */}
-              <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
-                <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
-                  Discovery
-                </p>
-                {ADMIN_DISCOVERY_NAV_ITEMS.map(renderNavItem)}
-              </div>
-
               {/* Premium — per-user personalized features. */}
               <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
                 <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">

@@ -33,13 +33,29 @@ import type {
  * for a later pass (price fields stay optional), so deal data is not fabricated.
  */
 
+/**
+ * Internal generation telemetry — surfaced to admins/cron (preview debug, cron
+ * logs), never to public page reads. "Selected" counts include the featured pick.
+ */
+export type GenerateDebug = {
+  /** Size of the RAWG candidate pool fed to curation. */
+  candidateCount: number;
+  /** Picks the AI curator returned (0 when it was unavailable / fell back). */
+  aiSelectedCount: number;
+  /** Picks the chosen generator produced (AI or deterministic), incl. featured. */
+  generatedCount: number;
+  /** True when the AI curator was unavailable and we used the deterministic path. */
+  fallbackUsed: boolean;
+};
+
 export type GenerateResult =
   | {
       ok: true;
       data: HiddenGemsRotationData | WeeklyRotationData;
       sourceSummary: RotationSourceSummary;
+      debug: GenerateDebug;
     }
-  | { ok: false; error: string };
+  | { ok: false; error: string; debug?: GenerateDebug };
 
 export async function generateRotationData(
   type: RotationType
@@ -54,6 +70,7 @@ export async function generateRotationData(
 
       const ai = await curateHiddenGemsWithAi(pool);
       if (ai) {
+        const generatedCount = ai.picks.length + 1;
         return {
           ok: true,
           data: ai,
@@ -64,6 +81,12 @@ export async function generateRotationData(
             itemCount: ai.picks.length,
             note: "AI-curated monthly hidden gems from the RAWG candidate pool. Price/deal enrichment not wired yet.",
           },
+          debug: {
+            candidateCount: pool.length,
+            aiSelectedCount: generatedCount,
+            generatedCount,
+            fallbackUsed: false,
+          },
         };
       }
 
@@ -72,6 +95,12 @@ export async function generateRotationData(
         return {
           ok: false,
           error: "Not enough RAWG hidden-gem candidates passed the filters",
+          debug: {
+            candidateCount: pool.length,
+            aiSelectedCount: 0,
+            generatedCount: 0,
+            fallbackUsed: true,
+          },
         };
       }
       return {
@@ -84,6 +113,12 @@ export async function generateRotationData(
           itemCount: live.picks.length,
           note: "Deterministic hidden-gem rotation (AI curator unavailable). Price/deal enrichment not wired yet.",
         },
+        debug: {
+          candidateCount: pool.length,
+          aiSelectedCount: 0,
+          generatedCount: live.picks.length + 1,
+          fallbackUsed: true,
+        },
       };
     }
 
@@ -91,6 +126,7 @@ export async function generateRotationData(
 
     const ai = await curateWeeklyWithAi(pool);
     if (ai) {
+      const generatedCount = ai.picks.length + 1;
       return {
         ok: true,
         data: ai,
@@ -101,6 +137,12 @@ export async function generateRotationData(
           itemCount: ai.picks.length,
           note: "AI-curated weekly mix from the RAWG candidate pool. ITAD/deal enrichment not wired yet.",
         },
+        debug: {
+          candidateCount: pool.length,
+          aiSelectedCount: generatedCount,
+          generatedCount,
+          fallbackUsed: false,
+        },
       };
     }
 
@@ -109,6 +151,12 @@ export async function generateRotationData(
       return {
         ok: false,
         error: "Not enough RAWG weekly candidates passed the filters",
+        debug: {
+          candidateCount: pool.length,
+          aiSelectedCount: 0,
+          generatedCount: 0,
+          fallbackUsed: true,
+        },
       };
     }
     return {
@@ -120,6 +168,12 @@ export async function generateRotationData(
         featuredCount: 1,
         itemCount: live.picks.length,
         note: "Deterministic weekly rotation (AI curator unavailable). ITAD/deal enrichment not wired yet.",
+      },
+      debug: {
+        candidateCount: pool.length,
+        aiSelectedCount: 0,
+        generatedCount: live.picks.length + 1,
+        fallbackUsed: true,
       },
     };
   } catch (err) {

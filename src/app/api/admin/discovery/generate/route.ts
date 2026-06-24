@@ -4,7 +4,7 @@
  *   POST /api/admin/discovery/generate
  *     {
  *       "type": "hidden_gems" | "games_of_the_week" | "hidden-gems" | "games-of-the-week",
- *       "mode": "preview" | "draft" | "publish",   // default: draft (or publish if legacy publish=true)
+ *       "mode": "preview" | "draft" | "publish" | "inspect",  // default: draft (or publish if legacy publish=true)
  *       "periodOffsetWeeks": 0,                      // 1 = simulate next period
  *       "force": false                               // regenerate even if a rotation already exists
  *     }
@@ -14,9 +14,13 @@
  * fallback → validation → save/publish. Reads/writes the discovery_rotations
  * table via the service role — never exposed to the client.
  *
- *   preview = generate + validate, return JSON only (NO DB write)
+ *   preview = generate + validate, return JSON only (NO DB write); includes a
+ *             `debug` block (candidate/AI/validated counts, fallbackUsed, periodKey)
  *   draft   = generate + validate + save as draft (does NOT affect public pages)
  *   publish = generate + validate + save + publish (validation must pass)
+ *   inspect = read the currently published rotation items (no generation/write)
+ *
+ * The `debug` block is admin/cron-only — it is never part of a public page read.
  *
  * If validation fails (or generation fails), we record a failed status and the
  * previously published rotation stays live — reads never break.
@@ -34,6 +38,8 @@ import { generateRotationData } from "@/lib/discovery/generate-rotation";
 import { validateRotation } from "@/lib/discovery/validate-rotation";
 import {
   getAnyRotation,
+  getLatestRotation,
+  getPublishedRotation,
   periodKeyForOffset,
   publishRotation,
   saveFailedRotation,
@@ -45,8 +51,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type GenerationMode = "preview" | "draft" | "publish";
-const VALID_MODES: GenerationMode[] = ["preview", "draft", "publish"];
+// "inspect" reads the currently published rotation (no generation, no write);
+// the rest run the generate → validate → save/publish pipeline.
+type GenerationMode = "preview" | "draft" | "publish" | "inspect";
+const VALID_MODES: GenerationMode[] = ["preview", "draft", "publish", "inspect"];
 
 /** Accepts hyphen or underscore forms. */
 function normalizeType(value: unknown): RotationType | null {
@@ -154,6 +162,39 @@ async function runGeneration(params: {
   const { type, mode, periodOffsetWeeks, force, via } = params;
   const periodKey = periodKeyForOffset(type, periodOffsetWeeks);
 
+  // Inspect: read the currently published rotation (current period → latest
+  // published). No generation, no write. Lets admins eyeball exactly what the
+  // public pages are serving. Auth-gated like everything else here.
+  if (mode === "inspect") {
+    const current = await getPublishedRotation(type, periodKey);
+    const rotation = current ?? (await getLatestRotation(type));
+    if (!rotation) {
+      return NextResponse.json({
+        ok: true,
+        mode,
+        type,
+        periodKey,
+        published: null,
+        message: "No published rotation found — public pages are using the static fallback.",
+      });
+    }
+    return NextResponse.json({
+      ok: true,
+      mode,
+      type,
+      requestedPeriodKey: periodKey,
+      periodKey: rotation.periodKey,
+      stale: rotation.periodKey !== periodKey,
+      status: rotation.status,
+      generatedAt: rotation.generatedAt,
+      publishedAt: rotation.publishedAt,
+      itemCount: rotation.items.length,
+      sourceSummary: rotation.sourceSummary,
+      featured: rotation.featuredItem,
+      items: rotation.items,
+    });
+  }
+
   // Skip regeneration if a published rotation already exists for this period
   // (unless forced). Preview never writes, so it always regenerates.
   if (mode !== "preview" && !force) {
@@ -176,7 +217,7 @@ async function runGeneration(params: {
     if (mode !== "preview") {
       await saveFailedRotation(type, periodKey, generated.error);
     }
-    console.warn("[discovery:generate] failed", { type, periodKey, mode, error: generated.error });
+    console.warn("[discovery:generate] failed", { type, periodKey, mode, error: generated.error, debug: generated.debug });
     return NextResponse.json(
       {
         ok: false,
@@ -186,6 +227,15 @@ async function runGeneration(params: {
         status: "failed",
         error: generated.error,
         message: "Generation failed; previous published rotation is unaffected.",
+        debug: generated.debug
+          ? {
+              periodKey,
+              candidateCount: generated.debug.candidateCount,
+              aiSelectedCount: generated.debug.aiSelectedCount,
+              validatedCount: 0,
+              fallbackUsed: generated.debug.fallbackUsed,
+            }
+          : undefined,
       },
       { status: 200 }
     );
@@ -211,12 +261,29 @@ async function runGeneration(params: {
         status: "failed",
         errors: validation.errors,
         message: "Validation failed; previous published rotation is unaffected.",
+        debug: {
+          periodKey,
+          candidateCount: generated.debug.candidateCount,
+          aiSelectedCount: generated.debug.aiSelectedCount,
+          validatedCount: 0,
+          fallbackUsed: generated.debug.fallbackUsed,
+        },
       },
       { status: 200 }
     );
   }
 
   const validData = validation.data;
+
+  // Admin/cron-only debug telemetry (never returned to public page reads).
+  const debug = {
+    periodKey,
+    candidateCount: generated.debug.candidateCount,
+    aiSelectedCount: generated.debug.aiSelectedCount,
+    validatedCount: validData.picks.length + 1, // incl. featured
+    fallbackUsed: generated.debug.fallbackUsed,
+    generator: generated.sourceSummary.generator,
+  };
 
   // Preview: return the curated+validated payload, no DB write.
   if (mode === "preview") {
@@ -230,6 +297,7 @@ async function runGeneration(params: {
       sourceSummary: generated.sourceSummary,
       itemCount: validData.picks.length,
       featuredCount: 1,
+      debug,
       data: validData,
     });
   }
@@ -265,7 +333,7 @@ async function runGeneration(params: {
     status = "published";
   }
 
-  console.log("[discovery:generate] ok", { type, periodKey, mode, status, via, generator: generated.sourceSummary.generator });
+  console.log("[discovery:generate] ok", { type, mode, status, via, ...debug });
 
   return NextResponse.json({
     ok: true,
@@ -277,6 +345,7 @@ async function runGeneration(params: {
     warnings: validation.warnings,
     itemCount: validData.picks.length,
     featuredCount: 1,
+    debug,
     sourceSummary: generated.sourceSummary,
   });
 }
