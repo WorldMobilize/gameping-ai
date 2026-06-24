@@ -160,13 +160,29 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
           {SITE_NAV_ITEMS.map(renderNavItem)}
 
           {isAdmin ? (
-            <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
-              <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
-                Admin · Discovery
-              </p>
-              {ADMIN_DISCOVERY_NAV_ITEMS.map(renderNavItem)}
-              {PREMIUM_DISCOVERY_NAV_ITEMS.map(renderNavItem)}
-              <div className="mt-2 flex items-stretch gap-1">
+            <>
+              {/* Discovery — global pages (admin-only visibility for now). */}
+              <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
+                <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
+                  Discovery
+                </p>
+                {ADMIN_DISCOVERY_NAV_ITEMS.map(renderNavItem)}
+              </div>
+
+              {/* Premium — per-user personalized features. */}
+              <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
+                <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
+                  Premium
+                </p>
+                {PREMIUM_DISCOVERY_NAV_ITEMS.map(renderNavItem)}
+              </div>
+
+              {/* Community / future. */}
+              <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
+                <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
+                  Community
+                </p>
+                <div className="mt-1 flex items-stretch gap-1">
                 <Link
                   href={PARTIES_NAV_ITEM.href}
                   onClick={onClose}
@@ -210,28 +226,29 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
                   </svg>
                 </button>
               </div>
-              {partiesOpen ? (
-                <div
-                  id="parties-submenu"
-                  className="mt-1 flex max-h-48 flex-col gap-1 overflow-y-auto pl-3"
-                >
-                  {PARTIES_SUBNAV_ITEMS.map((sub) => (
-                    <Link
-                      key={sub.href}
-                      href={sub.href}
-                      onClick={onClose}
-                      className={`rounded-lg px-4 py-2.5 text-sm font-semibold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
-                        isLight
-                          ? "text-slate-600 hover:bg-cyan-500/10 hover:text-cyan-700"
-                          : "text-white/75 hover:bg-cyan-500/10 hover:text-cyan-200"
-                      }`}
-                    >
-                      {sub.label}
-                    </Link>
-                  ))}
-                </div>
-              ) : null}
-            </div>
+                {partiesOpen ? (
+                  <div
+                    id="parties-submenu"
+                    className="mt-1 flex max-h-48 flex-col gap-1 overflow-y-auto pl-3"
+                  >
+                    {PARTIES_SUBNAV_ITEMS.map((sub) => (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        onClick={onClose}
+                        className={`rounded-lg px-4 py-2.5 text-sm font-semibold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
+                          isLight
+                            ? "text-slate-600 hover:bg-cyan-500/10 hover:text-cyan-700"
+                            : "text-white/75 hover:bg-cyan-500/10 hover:text-cyan-200"
+                        }`}
+                      >
+                        {sub.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </>
           ) : null}
         </nav>
 

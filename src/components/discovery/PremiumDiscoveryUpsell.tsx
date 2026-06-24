@@ -8,7 +8,12 @@ import {
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
 
-export default function PremiumDiscoveryUpsell() {
+export default function PremiumDiscoveryUpsell({
+  /** Anonymous viewers get a login/signup CTA instead of "try a recommendation". */
+  showLogin = false,
+}: {
+  showLogin?: boolean;
+} = {}) {
   return (
     <div className={`${APP_CTA_PANEL} mt-10 p-8 sm:p-10`}>
       <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700 dark:text-violet-400">
@@ -26,9 +31,15 @@ export default function PremiumDiscoveryUpsell() {
         <Link href="/upgrade" className={APP_PRIMARY_CTA_LG}>
           Upgrade to Premium
         </Link>
-        <Link href="/recommend" className={APP_SECONDARY_CTA}>
-          Try a free recommendation
-        </Link>
+        {showLogin ? (
+          <Link href="/login" className={APP_SECONDARY_CTA}>
+            Log in or sign up
+          </Link>
+        ) : (
+          <Link href="/recommend" className={APP_SECONDARY_CTA}>
+            Try a free recommendation
+          </Link>
+        )}
       </div>
     </div>
   );

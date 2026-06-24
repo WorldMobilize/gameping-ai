@@ -53,6 +53,16 @@ function CrownIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
   );
 }
 
+/** Thin vertical divider between desktop nav groups. */
+function NavGroupSeparator({ isLight }: { isLight: boolean }) {
+  return (
+    <span
+      className={`h-5 w-px shrink-0 ${isLight ? "bg-slate-200" : "bg-white/15"}`}
+      aria-hidden
+    />
+  );
+}
+
 type MenuCoords = { top: number; right: number };
 
 /** Core links shown inline from xl (container handles the breakpoint). */
@@ -431,19 +441,25 @@ export default function Navbar({
         <nav className="gp-nav-home-links" aria-label="Primary navigation">
           {HOME_NAV_CORE_LINKS.map((item) => renderHomeNavLink(item))}
 
-          {/* Discovery + personal feature pages are admin-only for now — hidden
-           * from anonymous, free, and premium (non-admin) users. */}
+          {/* Discovery / Premium / Future feature pages. Admin-only VISIBILITY for
+           * now (same profiles.plan === "admin" check), but grouped by what the
+           * features actually are — Discovery is global, Premium is a tier,
+           * Parties is a future feature. No "Admin" product category. */}
           {isAdmin ? (
             <span className="hidden items-center gap-7 2xl:flex">
-              <span
-                className={`h-5 w-px shrink-0 ${isLight ? "bg-slate-200" : "bg-white/15"}`}
-                aria-hidden
-              />
-              <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.22em] text-[color:var(--page-accent-text)]">
-                Admin
-              </span>
+              {/* Discovery — global pages (Hidden Gems / Games of the Week) */}
+              <NavGroupSeparator isLight={isLight} />
               {HOME_NAV_DISCOVERY_LINKS.map((item) => renderHomeNavLink(item))}
+
+              {/* Premium — per-user personalized features */}
+              <NavGroupSeparator isLight={isLight} />
+              <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.22em] text-[color:var(--page-accent-text)]">
+                Premium
+              </span>
               {HOME_NAV_PREMIUM_LINKS.map((item) => renderHomeNavLink(item))}
+
+              {/* Future / community */}
+              <NavGroupSeparator isLight={isLight} />
               {renderHomeNavLink({ label: "Parties", href: "/parties" })}
             </span>
           ) : null}

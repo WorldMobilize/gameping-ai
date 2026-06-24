@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { APP_CARD, APP_INPUT, APP_SECONDARY_CTA } from "@/components/app/app-styles";
+import { APP_CARD, APP_INPUT } from "@/components/app/app-styles";
 import { useToast } from "@/components/ToastProvider";
 
 type TopGame = {
@@ -164,23 +164,23 @@ export default function SteamLibraryImportSection() {
   return (
     <section
       id="steam-library-import"
-      className={`${APP_CARD} border-[color:var(--page-accent-border)] bg-gradient-to-br from-[var(--page-accent-soft)] via-white to-white p-8`}
+      className={`${APP_CARD} border-[color:var(--page-accent-border)] p-8`}
     >
       <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
         Steam Library Import
       </p>
-      <p className="mt-3 text-sm leading-7 text-slate-600">
+      <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
         Import your public Steam library so GamePing can learn your taste. Taste-based
         recommendations are coming next.
       </p>
-      <p className="mt-3 text-xs leading-relaxed text-slate-600">
+      <p className="mt-3 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
         We only read game names and playtime. We never access friends, chat, inventory,
         payments, or your Steam account.
       </p>
 
       {!connected ? (
         <div className="mt-6 space-y-4">
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
             Steam profile URL or Steam ID
           </label>
           <input
@@ -202,22 +202,25 @@ export default function SteamLibraryImportSection() {
         </div>
       ) : (
         <div className="mt-6 space-y-5">
-          <div className="rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5">
-            <p className="text-sm font-semibold text-emerald-700">Connected</p>
-            <dl className="mt-4 space-y-2 text-sm text-slate-700">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/60 p-5 backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.04]">
+            <p className="flex items-center gap-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              <span aria-hidden className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+              Connected
+            </p>
+            <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-600">Games imported</dt>
-                <dd className="font-semibold">{summary.gameCount ?? 0}</dd>
+                <dt className="text-slate-600 dark:text-slate-400">Games imported</dt>
+                <dd className="font-semibold text-slate-900 dark:text-white">{summary.gameCount ?? 0}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-slate-600">Total playtime</dt>
-                <dd className="font-semibold">
+                <dt className="text-slate-600 dark:text-slate-400">Total playtime</dt>
+                <dd className="font-semibold text-slate-900 dark:text-white">
                   {formatPlaytime(summary.totalPlaytimeMin ?? 0)}
                 </dd>
               </div>
               {summary.profileUrl ? (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-slate-600">Profile</dt>
+                  <dt className="text-slate-600 dark:text-slate-400">Profile</dt>
                   <dd className="truncate font-semibold text-[color:var(--page-accent-text)]">
                     <a
                       href={summary.profileUrl}
@@ -235,17 +238,17 @@ export default function SteamLibraryImportSection() {
 
           {summary.topGames && summary.topGames.length > 0 ? (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-600 dark:text-slate-400">
                 Top played
               </p>
               <ol className="mt-3 space-y-2">
                 {summary.topGames.map((game) => (
                   <li
                     key={game.steamAppId}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white px-4 py-3 text-sm shadow-sm"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200/70 bg-white/60 px-4 py-3 text-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.04]"
                   >
-                    <span className="font-semibold text-slate-800">{game.title}</span>
-                    <span className="shrink-0 text-slate-600">
+                    <span className="font-semibold text-slate-800 dark:text-slate-100">{game.title}</span>
+                    <span className="shrink-0 text-slate-600 dark:text-slate-400">
                       {formatPlaytime(game.playtimeForever)}
                     </span>
                   </li>
@@ -258,7 +261,7 @@ export default function SteamLibraryImportSection() {
             type="button"
             disabled={disconnecting}
             onClick={() => void onDisconnect()}
-            className={`${APP_SECONDARY_CTA} border-rose-200 text-rose-700 hover:border-rose-300 hover:bg-rose-50 disabled:opacity-50`}
+            className="inline-flex items-center justify-center rounded-full border border-rose-300/70 bg-rose-50/70 px-6 py-3 text-sm font-semibold text-rose-700 transition hover:border-rose-400 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 disabled:opacity-50 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:border-rose-500/50 dark:hover:bg-rose-500/20"
           >
             {disconnecting ? "Disconnecting…" : "Disconnect Steam library"}
           </button>
