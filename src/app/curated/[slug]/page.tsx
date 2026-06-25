@@ -13,9 +13,9 @@ const ACCENT_LINK =
   "font-semibold text-[color:var(--page-accent-strong)] underline-offset-4 hover:underline";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import {
-  CURATED_COLLECTIONS,
   getAllCollectionSlugs,
   getCollectionBySlug,
+  getRelatedCollections,
 } from "@/lib/curated/collections";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
 import type { GameBreadcrumbItem } from "@/lib/seo/game-page";
@@ -46,7 +46,7 @@ export default async function CuratedCollectionPage({ params }: Props) {
   const collection = getCollectionBySlug(slug);
   if (!collection) notFound();
 
-  const others = CURATED_COLLECTIONS.filter((c) => c.slug !== slug).slice(0, 4);
+  const others = getRelatedCollections(slug);
 
   const breadcrumbs: GameBreadcrumbItem[] = [
     { label: "Home", href: "/" },
@@ -95,7 +95,7 @@ export default async function CuratedCollectionPage({ params }: Props) {
         </AppSection>
 
         <AppSection maxWidth="max-w-5xl" className="pt-0">
-          <h2 className="text-xl font-bold text-white md:text-2xl">Games in this angle</h2>
+          <h2 className="text-xl font-bold text-white md:text-2xl">Games in this list</h2>
           <p className="mt-2 text-sm text-slate-300">
             Each entry explains why it fits this collection—tap through to the game page when
             available.
@@ -131,7 +131,7 @@ export default async function CuratedCollectionPage({ params }: Props) {
 
         {others.length > 0 ? (
           <AppSection maxWidth="max-w-5xl" className="border-t border-[color:var(--page-accent-border)] pt-12">
-            <h2 className="text-xl font-bold text-white">More curated pages</h2>
+            <h2 className="text-xl font-bold text-white">Related collections</h2>
             <ul className="mt-6 flex flex-wrap gap-3">
               {others.map((c) => (
                 <li key={c.slug}>
@@ -144,6 +144,21 @@ export default async function CuratedCollectionPage({ params }: Props) {
                 </li>
               ))}
             </ul>
+
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-300">
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-white/55">
+                Discover more
+              </span>
+              <Link href="/hidden-gems" className={ACCENT_LINK}>
+                Hidden Gems
+              </Link>
+              <Link href="/games-of-the-week" className={ACCENT_LINK}>
+                Games of the Week
+              </Link>
+              <Link href="/recommend" className={ACCENT_LINK}>
+                AI recommendations
+              </Link>
+            </div>
           </AppSection>
         ) : null}
       </article>

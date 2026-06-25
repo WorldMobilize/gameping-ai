@@ -1255,3 +1255,62 @@ export function getCollectionBySlug(slug: string): CuratedCollection | undefined
 export function getAllCollectionSlugs(): string[] {
   return CURATED_COLLECTIONS.map((c) => c.slug);
 }
+
+/**
+ * Manually curated "related" slugs per collection. Replaces the old behavior of
+ * showing the first 4 array items (which were often unrelated). Only references
+ * existing slugs; self is filtered out at lookup. Any slug not listed falls back
+ * to the previous first-N behavior — no collection is ever orphaned.
+ */
+const RELATED_COLLECTION_SLUGS: Record<string, string[]> = {
+  "games-like-hades": ["best-roguelike-games", "games-like-slay-the-spire", "games-like-hollow-knight", "best-soulslike-games"],
+  "games-like-disco-elysium": ["games-with-deep-stories", "best-emotional-story-games", "games-like-baldurs-gate-3"],
+  "best-cozy-games": ["cozy-games-for-long-nights", "relaxing-games-after-work", "games-like-stardew-valley", "games-for-rainy-nights"],
+  "best-emotional-story-games": ["games-with-deep-stories", "emotional-indie-games", "games-like-disco-elysium"],
+  "best-underwater-exploration-games": ["games-like-subnautica", "best-island-survival-games", "atmospheric-exploration-games"],
+  "best-island-survival-games": ["relaxing-survival-games", "games-like-subnautica", "best-underwater-exploration-games"],
+  "games-like-hollow-knight": ["games-like-hades", "beautiful-indie-games", "best-soulslike-games"],
+  "games-like-stardew-valley": ["best-cozy-games", "cozy-games-for-long-nights", "relaxing-games-after-work"],
+  "games-like-terraria": ["relaxing-survival-games", "games-like-stardew-valley", "best-island-survival-games"],
+  "games-like-elden-ring": ["best-soulslike-games", "games-like-the-witcher-3", "best-open-world-games"],
+  "games-like-skyrim": ["games-like-the-witcher-3", "best-open-world-games", "games-like-elden-ring", "games-like-baldurs-gate-3"],
+  "games-like-subnautica": ["best-underwater-exploration-games", "best-island-survival-games", "relaxing-survival-games"],
+  "games-like-rimworld": ["games-like-factorio", "games-like-project-zomboid", "relaxing-survival-games"],
+  "games-like-factorio": ["games-like-rimworld", "games-like-project-zomboid"],
+  "games-like-project-zomboid": ["games-like-rimworld", "relaxing-survival-games", "best-island-survival-games"],
+  "games-like-slay-the-spire": ["best-roguelike-games", "games-like-hades"],
+  "games-like-outer-wilds": ["atmospheric-exploration-games", "games-with-deep-stories", "games-with-amazing-worlds"],
+  "games-like-baldurs-gate-3": ["games-like-disco-elysium", "games-with-deep-stories", "games-like-skyrim"],
+  "games-like-cyberpunk-2077": ["games-like-the-witcher-3", "best-open-world-games", "games-with-deep-stories"],
+  "games-like-the-witcher-3": ["games-like-skyrim", "best-open-world-games", "games-like-red-dead-redemption-2", "games-like-elden-ring"],
+  "games-like-red-dead-redemption-2": ["best-open-world-games", "games-like-the-witcher-3", "games-with-amazing-worlds"],
+  "relaxing-games-after-work": ["best-cozy-games", "cozy-games-for-long-nights", "relaxing-survival-games"],
+  "atmospheric-exploration-games": ["games-like-outer-wilds", "beautiful-indie-games", "games-with-amazing-worlds"],
+  "games-for-rainy-nights": ["best-cozy-games", "best-emotional-story-games", "games-with-deep-stories"],
+  "beautiful-indie-games": ["emotional-indie-games", "atmospheric-exploration-games", "games-like-hollow-knight"],
+  "relaxing-survival-games": ["best-island-survival-games", "games-like-subnautica", "games-like-terraria"],
+  "games-with-deep-stories": ["best-emotional-story-games", "games-like-disco-elysium", "games-like-baldurs-gate-3"],
+  "games-to-get-lost-in": ["best-open-world-games", "games-with-amazing-worlds", "games-like-skyrim"],
+  "emotional-indie-games": ["beautiful-indie-games", "best-emotional-story-games", "games-with-deep-stories"],
+  "games-with-amazing-worlds": ["best-open-world-games", "atmospheric-exploration-games", "games-like-elden-ring"],
+  "cozy-games-for-long-nights": ["best-cozy-games", "relaxing-games-after-work", "games-like-stardew-valley"],
+  "best-roguelike-games": ["games-like-hades", "games-like-slay-the-spire", "best-soulslike-games"],
+  "best-open-world-games": ["games-like-skyrim", "games-like-elden-ring", "games-like-the-witcher-3", "games-like-red-dead-redemption-2"],
+  "best-soulslike-games": ["games-like-elden-ring", "best-open-world-games", "best-roguelike-games"],
+};
+
+/**
+ * Related collections for a given slug: manual mappings first, then a fallback
+ * to the previous "first N other collections" behavior so nothing is orphaned.
+ */
+export function getRelatedCollections(slug: string, limit = 4): CuratedCollection[] {
+  const manual = (RELATED_COLLECTION_SLUGS[slug] ?? [])
+    .filter((s) => s !== slug)
+    .map((s) => getCollectionBySlug(s))
+    .filter((c): c is CuratedCollection => Boolean(c))
+    .slice(0, limit);
+
+  if (manual.length > 0) return manual;
+
+  return CURATED_COLLECTIONS.filter((c) => c.slug !== slug).slice(0, limit);
+}

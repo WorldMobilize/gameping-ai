@@ -37,9 +37,11 @@ export default function HomeHero() {
           </p>
 
           <h1
-            className={`${HOME_HERO_DISPLAY_FONT} mt-6 text-balance text-[2.35rem] leading-[1.06] tracking-tight text-slate-50 sm:text-5xl lg:text-[3.65rem]`}
+            className={`${HOME_HERO_DISPLAY_FONT} mt-6 text-balance text-[2rem] leading-[1.08] tracking-tight text-slate-50 sm:text-5xl lg:text-[3.25rem]`}
           >
-            <span className="block">
+            {/* Line 1 stays intact ("The AI companion") so it never breaks
+             * mid-phrase; line 2 may wrap cleanly on the smallest screens. */}
+            <span className="block whitespace-nowrap">
               The AI <span className={accent}>companion</span>
             </span>
             <span className="block">for your gaming life</span>
