@@ -4,7 +4,7 @@ import { buildPublicPageMetadata } from "@/lib/seo/site";
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "AI Game Recommendations | GamePing AI",
   description:
-    "Describe your mood, budget, and platform to get five tailored game picks with match scores, reasons, and real prices on GamePing AI.",
+    "Get AI game recommendations with match scores, explanations, and price information available on game pages.",
   path: "/recommend",
 });
 

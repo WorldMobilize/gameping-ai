@@ -417,7 +417,7 @@ export default function Navbar({
           : "border-white/[0.08] bg-gradient-to-b from-[#0b0f1a]/92 to-[#0b0f1a]/78 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_30px_-16px_rgba(0,0,0,0.8)]"
       }`}
     >
-      <div className="gp-nav-inner gp-nav-home-layout flex w-full items-center gap-3 py-4 sm:gap-4 sm:py-5">
+      <div className="gp-nav-inner gp-nav-home-layout flex w-full items-center gap-2 py-4 sm:gap-4 sm:py-5">
         <div className="gp-nav-brand relative z-0 flex shrink-0 items-center gap-3">
           <button
             type="button"
@@ -451,18 +451,10 @@ export default function Navbar({
             GamePing{" "}
             <span className="text-[color:var(--page-accent-text)]">AI</span>
           </span>
+          {/* Early Access badge is hidden on small phones (it caused the brand
+           * to wrap/stack). It appears inline from sm upward, where there's room. */}
           <span
-            className={`inline-flex w-fit shrink-0 items-center justify-center rounded-full border px-2 py-0.5 text-[8px] font-semibold uppercase leading-none tracking-[0.18em] [text-indent:0.18em] sm:hidden ${
-              isLight
-                ? "border-slate-200 bg-slate-50 text-slate-600"
-                : "border-white/10 bg-white/[0.04] text-white/70"
-            }`}
-            title="GamePing early access"
-          >
-            Early access
-          </span>
-          <span
-            className={`hidden w-fit shrink-0 items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.22em] [text-indent:0.22em] lg:inline-flex ${
+            className={`hidden w-fit shrink-0 items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.22em] [text-indent:0.22em] sm:inline-flex ${
               isLight
                 ? "border-slate-200 bg-slate-50 text-slate-600"
                 : "border-white/10 bg-white/[0.04] text-white/70"
@@ -507,7 +499,7 @@ export default function Navbar({
           </span>
         </nav>
 
-        <div className="gp-nav-actions relative z-0 ml-auto flex shrink-0 items-center gap-3">
+        <div className="gp-nav-actions relative z-0 ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           {/* Light mode is admin-only during live testing — the toggle is hidden
            * for anonymous / free / premium (non-admin) users, who stay in dark. */}
           {isAdmin ? (
@@ -553,7 +545,7 @@ export default function Navbar({
             <>
               <Link
                 href={ctaHref}
-                className="gp-page-cta relative z-0 shrink-0 rounded-full px-3.5 py-2 text-sm font-semibold sm:px-5 sm:py-2.5 xl:px-6 xl:py-3 xl:text-base"
+                className="gp-page-cta relative z-0 shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold sm:px-5 sm:py-2.5 sm:text-sm xl:px-6 xl:py-3 xl:text-base"
               >
                 {isHomePage ? (
                   <>
@@ -567,7 +559,7 @@ export default function Navbar({
 
               <Link
                 href="/login"
-                className={`relative z-0 inline-flex shrink-0 items-center rounded-full border px-3.5 py-2 text-sm font-semibold transition hover:border-[color:var(--page-accent-border)] sm:px-4 sm:py-2.5 md:px-5 md:py-3 md:text-base ${
+                className={`relative z-0 inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:border-[color:var(--page-accent-border)] max-[380px]:hidden sm:px-4 sm:py-2.5 sm:text-sm md:px-5 md:py-3 md:text-base ${
                   isLight
                     ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                     : "border-slate-700 bg-slate-900/80 text-slate-300 hover:bg-slate-800"

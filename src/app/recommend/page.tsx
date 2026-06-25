@@ -34,6 +34,7 @@ import { trackProductEvent } from "@/lib/product-analytics/client";
 import {
   LIMIT_TOAST_DURATION_MS,
   limitReachedToastMessage,
+  isPremiumOrAdminPlan,
 } from "@/lib/product-copy";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
@@ -367,6 +368,10 @@ export default function RecommendPage() {
   const [promptMaxForUi, setPromptMaxForUi] = useState(PROMPT_MAX_DEFAULT);
   const [refineInput, setRefineInput] = useState("");
   const [refineUsed, setRefineUsed] = useState(false);
+  // True only while a refine request is in flight. Lets us keep the previous
+  // result cards visible (with an "Updating…" hint) instead of swapping them
+  // for the full-screen skeleton the way an initial search does.
+  const [refining, setRefining] = useState(false);
   const [pingModeParam, setPingModeParam] = useState(false);
   const [pingQueryParam, setPingQueryParam] = useState<string | null>(null);
   const [pingEditing, setPingEditing] = useState(false);
@@ -857,9 +862,11 @@ export default function RecommendPage() {
 
     submitBusyRef.current = true;
     setLoading(true);
+    setRefining(true);
     setInspectedGameIndex(null);
     setLoadingStepIndex(0);
-    setResultsReveal(false);
+    // Keep the existing cards revealed during a refine (don't reset
+    // resultsReveal); they stay on screen while the new picks load.
     setApiDebug(null);
 
     const recommendStartedAt = performance.now();
@@ -983,6 +990,7 @@ export default function RecommendPage() {
     } finally {
       submitBusyRef.current = false;
       setLoading(false);
+      setRefining(false);
     }
   }
 
@@ -1294,7 +1302,7 @@ export default function RecommendPage() {
 
                   <input
                     type="number"
-                    placeholder="Es. 20"
+                    placeholder="e.g. 20"
                     aria-label="Maximum budget in dollars"
                     className={`${APP_INPUT} mt-5`}
                     value={form.budget}
@@ -1397,7 +1405,7 @@ export default function RecommendPage() {
             />
           )}
 
-          {loading && !pingModeActive && (
+          {loading && !refining && !pingModeActive && (
             <div
               className="mt-10 md:mt-12"
               role="status"
@@ -1474,13 +1482,16 @@ export default function RecommendPage() {
             </div>
           )}
 
-          {games.length > 0 && !loading && (
+          {games.length > 0 && (!loading || refining) && (
             <div
               ref={resultsRef}
+              aria-busy={refining}
               className={`transition-all duration-500 ease-out motion-reduce:transition-none motion-reduce:opacity-100 motion-reduce:translate-y-0 ${
-                resultsReveal
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-2"
+                refining
+                  ? "opacity-60"
+                  : resultsReveal
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-2"
               }`}
             >
               <div className="mt-14 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
@@ -1491,6 +1502,19 @@ export default function RecommendPage() {
                   <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white gp-home-display">
                     Curated for your search
                   </h2>
+                  {refining && (
+                    <p
+                      role="status"
+                      aria-live="polite"
+                      className="mt-3 inline-flex items-center gap-2 rounded-full border border-green-400/30 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-200"
+                    >
+                      <span
+                        aria-hidden
+                        className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400 motion-reduce:animate-none"
+                      />
+                      Updating your picks…
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -1740,7 +1764,11 @@ export default function RecommendPage() {
 
               {!emailSaved && (
                 <p className={`mt-4 ${APP_MUTED}`}>
-                  Free: 10 recommendations/day, 3 saved runs, 5 tracked games • Premium unlocks your GamePing DNA and more
+                  {!loggedUserId
+                    ? "Try GamePing without an account: 3 searches/day."
+                    : isPremiumOrAdminPlan(userPlan)
+                      ? "Premium: 50 recommendations/day, 25 saved searches, 50 tracked games, plus your GamePing DNA."
+                      : "Free: 10 recommendations/day, 3 saved searches, 5 tracked games."}
                 </p>
               )}
             </div>
@@ -1756,7 +1784,7 @@ export default function RecommendPage() {
          * recommend-page.css); only surfaces/text/accents change with theme. */}
         <div aria-hidden className="gp-recommend-bg" />
         <div className="relative z-10 mx-auto max-w-6xl">
-          <EmailVerificationNotice className="mb-8" theme="light" />
+          <EmailVerificationNotice className="mb-8" theme="dark" />
 
           {pingModeActive ? (
             <PingRecommendExperience

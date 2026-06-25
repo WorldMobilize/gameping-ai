@@ -37,10 +37,12 @@ export default function HomeHero() {
           </p>
 
           <h1
-            className={`${HOME_HERO_DISPLAY_FONT} mt-6 text-[2.35rem] leading-[1.06] tracking-tight text-slate-50 sm:text-5xl lg:text-[3.65rem]`}
+            className={`${HOME_HERO_DISPLAY_FONT} mt-6 text-balance text-[2.35rem] leading-[1.06] tracking-tight text-slate-50 sm:text-5xl lg:text-[3.65rem]`}
           >
-            <span className="block">The AI companion for</span>
-            <span className={`block ${accent}`}>your gaming life</span>
+            <span className="block">
+              The AI <span className={accent}>companion</span>
+            </span>
+            <span className="block">for your gaming life</span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-300 sm:mt-6 sm:text-xl">

@@ -1,0 +1,13 @@
+warning: in the working copy of 'src/app/recommend/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/recommend/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/Navbar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/home/HomeClosing.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/home/HomeHero.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/styles/home-light.css', LF will be replaced by CRLF the next time Git touches it
+ src/app/recommend/layout.tsx        |  2 [32m+[m[31m-[m
+ src/app/recommend/page.tsx          | 46 [32m+++++++++++++++++++++++++++++[m[31m--------[m
+ src/components/Navbar.tsx           | 22 [32m++++++[m[31m------------[m
+ src/components/home/HomeClosing.tsx | 40 [32m++++++++++++++++++++++[m[31m----------[m
+ src/components/home/HomeHero.tsx    |  8 [32m++++[m[31m---[m
+ src/styles/home-light.css           | 10 [31m--------[m
+ 6 files changed, 78 insertions(+), 50 deletions(-)

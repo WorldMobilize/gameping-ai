@@ -8,7 +8,10 @@ import {
   homeCyanAccentText,
   homeSecondaryCta,
 } from "@/components/home/home-styles";
-import { HomeCtaSectionShell } from "@/components/home/HomeVisualPrimitives";
+import {
+  HomeCtaSectionShell,
+  HomeProductPanel,
+} from "@/components/home/HomeVisualPrimitives";
 
 /** Public discovery pages — internal links for discovery + SEO. */
 const DISCOVERY_LINKS = [
@@ -36,7 +39,8 @@ export default function HomeClosing() {
 
   return (
     <HomeCtaSectionShell>
-      <div className="text-center">
+      {/* Final CTA lives inside a landing-style glass card (not a flat block). */}
+      <HomeProductPanel float={false} className="text-center">
         <h2 className={`${HOME_SECTION_TITLE} ${isDark ? "text-slate-50" : "text-slate-900"}`}>
           Ready to find your <span className={accent}>next favorite game</span>?
         </h2>
@@ -56,25 +60,37 @@ export default function HomeClosing() {
             Explore Premium
           </Link>
         </div>
-      </div>
+      </HomeProductPanel>
 
-      <div
-        className={`mt-12 border-t pt-8 ${isDark ? "border-white/10" : "border-slate-200"}`}
-      >
-        <p className={`text-center text-xs font-black uppercase tracking-[0.28em] ${accent}`}>
-          Explore more
-        </p>
-        <ul className="mt-5 grid gap-3 sm:grid-cols-3">
+      <div className="mt-10">
+        <h3
+          className={`text-center text-base font-bold ${
+            isDark ? "text-slate-200" : "text-slate-700"
+          }`}
+        >
+          More ways to discover
+        </h3>
+        <ul className="mt-5 grid gap-4 sm:grid-cols-3">
           {DISCOVERY_LINKS.map((item) => (
             <li key={item.href} className="flex">
               <Link
                 href={item.href}
-                className={`gp-home-card flex w-full flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 ${
+                className={`gp-home-card group flex h-full w-full flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 ${
                   isDark ? "gp-home-panel-dark" : "gp-home-panel-light"
                 }`}
               >
-                <span className={`text-base font-bold ${isDark ? "text-slate-50" : "text-slate-900"}`}>
+                <span
+                  className={`flex items-center justify-between gap-2 text-base font-bold ${
+                    isDark ? "text-slate-50" : "text-slate-900"
+                  }`}
+                >
                   {item.label}
+                  <span
+                    aria-hidden
+                    className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${accent}`}
+                  >
+                    →
+                  </span>
                 </span>
                 <span
                   className={`mt-2 text-sm leading-relaxed ${
