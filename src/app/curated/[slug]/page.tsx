@@ -1,5 +1,6 @@
 import Link from "next/link";
 import CuratedGameArt from "@/components/CuratedGameArt";
+import PageBreadcrumbs from "@/components/PageBreadcrumbs";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
   APP_CARD_INTERACTIVE_LG,
@@ -17,6 +18,7 @@ import {
   getCollectionBySlug,
 } from "@/lib/curated/collections";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
+import type { GameBreadcrumbItem } from "@/lib/seo/game-page";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -46,12 +48,19 @@ export default async function CuratedCollectionPage({ params }: Props) {
 
   const others = CURATED_COLLECTIONS.filter((c) => c.slug !== slug).slice(0, 4);
 
+  const breadcrumbs: GameBreadcrumbItem[] = [
+    { label: "Home", href: "/" },
+    { label: "Curated", href: "/curated" },
+    { label: collection.h1 },
+  ];
+
   return (
     <AppPageShell hideAmbient>
       <article className="gp-accent-page relative isolate min-h-0 flex-1 overflow-hidden">
         {/* Fixed cinematic background — SAME image in light + dark. */}
         <div aria-hidden className="gp-curated-bg" />
         <AppSection maxWidth="max-w-3xl">
+          <PageBreadcrumbs items={breadcrumbs} theme="dark" className="mb-6 flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-white/65" />
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
             Curated collection
           </p>

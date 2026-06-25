@@ -5,20 +5,28 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: ["/", "/recommend", "/games", "/hidden-gems", "/games-of-the-week", "/game/", "/curated", "/about", "/contact", "/legal"],
+      // Public marketing, discovery, game, collection, feature, and legal pages
+      // are crawlable. Everything not disallowed below is allowed by `/`.
+      allow: "/",
       disallow: [
+        // APIs and internal endpoints
         "/api/",
-        "/dashboard",
-        "/dashboard/",
-        "/login",
-        "/signup",
         "/auth/",
-        "/billing/",
+        // Account-only / authenticated surfaces
+        "/dashboard",
         "/settings/",
-        "/upgrade",
-        "/verify-success",
+        // Auth flows
+        "/login",
         "/reset-password",
         "/update-password",
+        "/verify-success",
+        // Premium personalized pages (user-specific data)
+        "/weekly-picks",
+        "/deals-for-you",
+        "/monthly-recap",
+        // Admin / future / experimental
+        "/parties",
+        "/companion",
       ],
     },
     sitemap: `${getSiteOrigin()}/sitemap.xml`,

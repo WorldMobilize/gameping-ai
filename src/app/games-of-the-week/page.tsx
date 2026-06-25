@@ -36,6 +36,10 @@ export default async function GamesOfTheWeekPage() {
           picks={data?.picks}
           meta={meta ?? undefined}
           canViewWeeklyPicks={access.canViewPersonalized}
+          breadcrumbs={[
+            { label: "Home", href: "/" },
+            { label: "Games of the week" },
+          ]}
         />
       </div>
     </AppPageShell>

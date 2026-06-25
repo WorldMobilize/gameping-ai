@@ -1,6 +1,7 @@
 import { CURATED_COLLECTIONS } from "@/lib/curated/collections";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import { DIRECTORY_GAMES } from "@/lib/curated/home-picks";
+import { getHowItWorksSlugs } from "@/lib/how-it-works/pages";
 
 /** Static public routes (no query strings). */
 export const STATIC_PUBLIC_PATHS = [
@@ -10,6 +11,8 @@ export const STATIC_PUBLIC_PATHS = [
   "/hidden-gems",
   "/games-of-the-week",
   "/curated",
+  "/how-it-works",
+  "/upgrade",
   "/about",
   "/contact",
   "/legal",
@@ -23,6 +26,11 @@ export const STATIC_PUBLIC_PATHS = [
 
 export function getCuratedCollectionPaths(): string[] {
   return CURATED_COLLECTIONS.map((c) => `/curated/${c.slug}`);
+}
+
+/** Public feature explanation pages under /how-it-works. */
+export function getHowItWorksPaths(): string[] {
+  return getHowItWorksSlugs().map((slug) => `/how-it-works/${slug}`);
 }
 
 /** Unique game detail paths aligned with `gameDetailPath()` (lowercase slug). */
@@ -44,6 +52,7 @@ export function getIndexableGamePaths(): string[] {
 export function getAllSitemapPaths(): string[] {
   return [
     ...STATIC_PUBLIC_PATHS,
+    ...getHowItWorksPaths(),
     ...getCuratedCollectionPaths(),
     ...getIndexableGamePaths(),
   ];

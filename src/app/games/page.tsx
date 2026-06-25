@@ -1,8 +1,10 @@
 import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import PageBreadcrumbs from "@/components/PageBreadcrumbs";
 import GamesDirectoryBrowser from "@/components/games/GamesDirectoryBrowser";
 import { DIRECTORY_GAMES } from "@/lib/curated/home-picks";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
+import type { GameBreadcrumbItem } from "@/lib/seo/game-page";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = buildPublicPageMetadata({
@@ -11,6 +13,11 @@ export const metadata: Metadata = buildPublicPageMetadata({
     "Browse popular games A–Z, open each title for verified deals and price context, then use AI recommendations to find what to play next.",
   path: "/games",
 });
+
+const BREADCRUMBS: GameBreadcrumbItem[] = [
+  { label: "Home", href: "/" },
+  { label: "Games" },
+];
 
 export default function GamesDirectoryPage() {
   const titles = DIRECTORY_GAMES.map((g) => g.title);
@@ -21,6 +28,7 @@ export default function GamesDirectoryPage() {
         {/* Fixed cinematic background — SAME image in light + dark. */}
         <div aria-hidden className="gp-games-bg" />
         <AppSection>
+        <PageBreadcrumbs items={BREADCRUMBS} theme="dark" className="mb-6 flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-white/65" />
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
           Directory
         </p>

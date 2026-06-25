@@ -16,9 +16,24 @@ export const DEFAULT_SOCIAL_DESCRIPTION =
 /** Next.js file route: `src/app/opengraph-image.tsx` (1200×630). */
 export const DEFAULT_OG_IMAGE_PATH = "/opengraph-image";
 
-/** Canonical origin for sitemap, robots, and metadata (see `NEXT_PUBLIC_SITE_URL`). */
+/**
+ * Canonical production origin — never `www`, never a `*.vercel.app` preview host.
+ * Used as the SEO fallback so sitemap/robots/canonical URLs are stable even if
+ * `NEXT_PUBLIC_SITE_URL` is unset in an environment.
+ */
+export const CANONICAL_SITE_ORIGIN = "https://gamepingai.com";
+
+/**
+ * Canonical origin for sitemap, robots, and metadata. Prefers
+ * `NEXT_PUBLIC_SITE_URL`, but for SEO output it never emits a non-canonical host:
+ * preview (`*.vercel.app`) hosts fall back to the canonical domain, and any
+ * `www.` prefix is collapsed so there are no www duplicates. Localhost is kept
+ * for local development.
+ */
 export function getSiteOrigin(): string {
-  return resolveSiteOrigin();
+  const resolved = resolveSiteOrigin();
+  if (/\.vercel\.app$/i.test(resolved)) return CANONICAL_SITE_ORIGIN;
+  return resolved.replace("://www.", "://");
 }
 
 export function getMetadataBase(): URL {

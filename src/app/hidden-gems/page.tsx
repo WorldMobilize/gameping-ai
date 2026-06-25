@@ -31,6 +31,10 @@ export default async function HiddenGemsPage() {
           featured={data?.featured}
           picks={data?.picks}
           meta={meta ?? undefined}
+          breadcrumbs={[
+            { label: "Home", href: "/" },
+            { label: "Hidden gems" },
+          ]}
         />
       </div>
     </AppPageShell>

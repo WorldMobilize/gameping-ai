@@ -100,6 +100,27 @@ export default function HomeHowItWorks() {
           </li>
         ))}
       </ol>
+
+      <div className="mt-12 flex justify-center">
+        <Link
+          href="/how-it-works"
+          className={`group inline-flex items-center gap-1.5 text-sm font-semibold transition-all ${accent} hover:gap-2.5`}
+        >
+          See how GamePing works
+          <svg
+            className="h-3.5 w-3.5"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M3 8h9M8.5 4l4 4-4 4" />
+          </svg>
+        </Link>
+      </div>
     </HomeSectionShell>
   );
 }

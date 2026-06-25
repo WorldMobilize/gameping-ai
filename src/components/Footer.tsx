@@ -97,17 +97,26 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
                 <Link href="/recommend" className={linkClass}>
                   Recommend
                 </Link>
-                <Link href="/dashboard" className={linkClass}>
-                  Dashboard
-                </Link>
-                <Link href="/upgrade" className={linkClass}>
-                  Premium
+                <Link href="/how-it-works" className={linkClass}>
+                  How it works
                 </Link>
                 <Link href="/curated" className={linkClass}>
                   Curated lists
                 </Link>
                 <Link href="/games" className={linkClass}>
                   Games A–Z
+                </Link>
+                <Link href="/hidden-gems" className={linkClass}>
+                  Hidden gems
+                </Link>
+                <Link href="/games-of-the-week" className={linkClass}>
+                  Games of the week
+                </Link>
+                <Link href="/upgrade" className={linkClass}>
+                  Premium
+                </Link>
+                <Link href="/dashboard" className={linkClass}>
+                  Dashboard
                 </Link>
               </div>
             </div>

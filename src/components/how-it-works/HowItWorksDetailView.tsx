@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import PageBreadcrumbs from "@/components/PageBreadcrumbs";
+import type { GameBreadcrumbItem } from "@/lib/seo/game-page";
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import {
   HOME_DISPLAY_FONT,
@@ -28,9 +30,11 @@ export type HowItWorksPage = {
 export default function HowItWorksDetailView({
   slug,
   page,
+  breadcrumbs,
 }: {
   slug: string;
   page: HowItWorksPage;
+  breadcrumbs?: GameBreadcrumbItem[];
 }) {
   const { theme } = useHomeTheme();
   const isDark = theme === "dark";
@@ -78,6 +82,9 @@ export default function HowItWorksDetailView({
         <main className="flex-1">
           <section className="relative z-10 px-6 pt-16 pb-10 md:pt-20">
             <div className="mx-auto max-w-3xl">
+              {breadcrumbs?.length ? (
+                <PageBreadcrumbs items={breadcrumbs} theme="dark" className="mb-6 flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-white/65" />
+              ) : null}
               {page.kicker ? (
                 <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
                   {page.kicker}
@@ -537,7 +544,7 @@ export default function HowItWorksDetailView({
   function FallbackContent({ body }: { body: string }) {
     return (
       <article className={card}>
-        <p className={cardEyebrow}>Coming soon</p>
+        <p className={cardEyebrow}>Overview</p>
         <p className={`mt-3 ${cardBody}`}>{body}</p>
       </article>
     );

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AppSection } from "@/components/app/AppPageShell";
+import PageBreadcrumbs from "@/components/PageBreadcrumbs";
+import type { GameBreadcrumbItem } from "@/lib/seo/game-page";
 import {
   APP_CARD,
   APP_CARD_LG,
@@ -108,12 +110,15 @@ export default function GamesOfWeekView({
   picks = WEEKLY_GAME_PICKS,
   meta,
   canViewWeeklyPicks = false,
+  breadcrumbs,
 }: {
   /** Cached RAWG-derived picks (admin testing); falls back to static curated data. */
   featured?: WeeklyGamePick;
   picks?: WeeklyGamePick[];
   /** Admin-only cached-rotation metadata (period, generated_at, source). */
   meta?: DiscoveryRotationMetaData;
+  /** Public breadcrumb (visible + BreadcrumbList JSON-LD). */
+  breadcrumbs?: GameBreadcrumbItem[];
   /**
    * Whether the viewer (admin/premium) can already see personalized Weekly Picks.
    * Drives the hero CTA copy; the destination is always /weekly-picks (personalized
@@ -136,6 +141,9 @@ export default function GamesOfWeekView({
   return (
     <AppSection maxWidth="max-w-6xl">
       {/* 1 — Hero */}
+      {breadcrumbs?.length ? (
+        <PageBreadcrumbs items={breadcrumbs} theme="dark" className="mb-6 flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-white/65" />
+      ) : null}
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
           Weekly discovery
