@@ -417,7 +417,7 @@ export default function Navbar({
           : "border-white/[0.08] bg-gradient-to-b from-[#0b0f1a]/92 to-[#0b0f1a]/78 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_30px_-16px_rgba(0,0,0,0.8)]"
       }`}
     >
-      <div className="gp-nav-inner gp-nav-home-layout flex w-full items-center py-4 sm:py-5">
+      <div className="gp-nav-inner gp-nav-home-layout flex w-full items-center gap-3 py-4 sm:gap-4 sm:py-5">
         <div className="gp-nav-brand relative z-0 flex shrink-0 items-center gap-3">
           <button
             type="button"

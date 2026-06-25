@@ -3,6 +3,7 @@
 import Footer from "@/components/Footer";
 import HomeLoggedInStrip from "@/components/HomeLoggedInStrip";
 import HomeAdminSection from "@/components/home/HomeAdminSection";
+import HomeClosing from "@/components/home/HomeClosing";
 import HomeComingSoon from "@/components/home/HomeComingSoon";
 import HomeFeatureCards from "@/components/home/HomeFeatureCards";
 import HomeHero from "@/components/home/HomeHero";
@@ -36,6 +37,7 @@ export default function HomePageShell() {
           <HomeFeatureCards />
           <HomeComingSoon />
           <HomeAdminSection />
+          <HomeClosing />
         </main>
         {/* Soft bridge into the footer so the page resolves instead of cutting */}
         <div

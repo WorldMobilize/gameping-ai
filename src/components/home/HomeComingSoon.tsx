@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { HOME_FUTURE_ROADMAP } from "@/components/home/home-demo-data";
+import {
+  HOME_FUTURE_ROADMAP,
+  HOME_PREMIUM_EARLY_ACCESS,
+} from "@/components/home/home-demo-data";
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import {
   HomeSteamImportRoadmapMockup,
@@ -53,11 +56,16 @@ export default function HomeComingSoon() {
           GamePing gets <span className={headerAccent}>smarter</span> with you
         </h2>
         <p className={`mt-3 max-w-xl text-base leading-relaxed sm:text-lg ${headerBody}`}>
-          Steam Library Sync and your GamePing DNA power personalized picks, deals, and your monthly recap.
+          Steam Library Sync and your GamePing DNA are live today—and they power your
+          personalized Weekly Picks, Deals For You, and Monthly Recap.
         </p>
       </header>
 
-      <ul className="mt-10 grid gap-10 lg:grid-cols-2 lg:items-stretch lg:gap-12">
+      <p className={`mt-10 text-xs font-black uppercase tracking-[0.28em] ${accent}`}>
+        Available now
+      </p>
+
+      <ul className="mt-5 grid gap-10 lg:grid-cols-2 lg:items-stretch lg:gap-12">
         {HOME_FUTURE_ROADMAP.map((item) => (
           <li key={item.id} className="flex h-full">
             <article
@@ -82,6 +90,30 @@ export default function HomeComingSoon() {
           </li>
         ))}
       </ul>
+
+      <div className="mt-14">
+        <p className={`text-xs font-black uppercase tracking-[0.28em] ${accent}`}>
+          Personalized Early Access
+        </p>
+        <p className={`mt-2 max-w-xl text-sm leading-relaxed ${headerBody}`}>
+          Live Premium discovery areas, generated from your GamePing DNA.
+        </p>
+        <ul className="mt-6 grid gap-4 sm:grid-cols-3">
+          {HOME_PREMIUM_EARLY_ACCESS.map((item) => (
+            <li key={item.id} className="flex">
+              <Link
+                href={item.href}
+                className={`gp-home-card flex w-full flex-col rounded-2xl border p-5 transition hover:-translate-y-0.5 ${
+                  isDark ? "gp-home-panel-dark" : "gp-home-panel-light"
+                }`}
+              >
+                <span className={`text-base font-bold ${text}`}>{item.title}</span>
+                <span className={`mt-2 text-sm leading-relaxed ${body}`}>{item.detail}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
     </HomeSectionShell>
   );
 }

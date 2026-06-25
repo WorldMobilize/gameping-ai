@@ -39,8 +39,14 @@ export function HomeThemeProvider({ children }: { children: ReactNode }) {
   const theme: HomeTheme = isAdmin === true ? storedTheme : "dark";
 
   useEffect(() => {
-    setStoredTheme(readStoredHomeTheme());
-    setReady(true);
+    // Resolve the stored theme on the client after mount. Deferred out of the
+    // effect body (rAF) so we never setState synchronously inside the effect;
+    // the initial render stays "dark" so there is no hydration mismatch.
+    const id = requestAnimationFrame(() => {
+      setStoredTheme(readStoredHomeTheme());
+      setReady(true);
+    });
+    return () => cancelAnimationFrame(id);
   }, []);
 
   // Same profiles.plan === "admin" check used by Navbar / AdminOnlyPageGate — no

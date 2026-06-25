@@ -139,6 +139,16 @@
   flex: 0 0 auto;
 }
 
+/* On small phones, let the brand shrink so the title truncates instead of
+ * crowding the right-side CTA / overflowing. The hamburger stays fixed (it is
+ * shrink-0); only the logo text gives way. Desktop is unaffected. */
+@media (max-width: 639px) {
+  .gp-nav-home-layout .gp-nav-brand {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+}
+
 .gp-nav-home-links {
   display: none;
   flex: 0 1 auto;

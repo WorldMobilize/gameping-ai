@@ -57,8 +57,9 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
                 isLight ? "text-slate-600" : "text-slate-400"
               }`}
             >
-              Personal game recommendations with deal-aware price lookups. Prices and
-              availability may change—always confirm on the store before purchasing.
+              Your AI companion for gaming—personal recommendations, library tracking, and
+              deal-aware price lookups. Prices and availability may change—always confirm on the
+              store before purchasing.
             </p>
             <div className="mt-5">
               <p
@@ -98,7 +99,7 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
                   Recommend
                 </Link>
                 <Link href="/how-it-works" className={linkClass}>
-                  How it works
+                  Features
                 </Link>
                 <Link href="/curated" className={linkClass}>
                   Curated lists

@@ -71,25 +71,31 @@ export default function CompanionView() {
       justPickedRef.current = false;
       return;
     }
-    if (term.length < 2) {
-      setSuggestions([]);
-      return;
-    }
     let cancelled = false;
-    const handle = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `/api/admin/companion?q=${encodeURIComponent(term)}`
-        );
-        if (!res.ok) return;
-        const data = (await res.json()) as { results?: GameSuggestion[] };
-        if (cancelled) return;
-        setSuggestions(Array.isArray(data.results) ? data.results : []);
-        setShowSuggestions(true);
-      } catch {
-        // RAWG is optional in Alpha — free-text game entry still works.
-      }
-    }, 300);
+    // Reset/fetch runs inside the timer callback (not synchronously in the
+    // effect body): clear immediately when the term is too short, otherwise
+    // debounce the lookup. Behavior is unchanged.
+    const handle = setTimeout(
+      async () => {
+        if (term.length < 2) {
+          if (!cancelled) setSuggestions([]);
+          return;
+        }
+        try {
+          const res = await fetch(
+            `/api/admin/companion?q=${encodeURIComponent(term)}`
+          );
+          if (!res.ok) return;
+          const data = (await res.json()) as { results?: GameSuggestion[] };
+          if (cancelled) return;
+          setSuggestions(Array.isArray(data.results) ? data.results : []);
+          setShowSuggestions(true);
+        } catch {
+          // RAWG is optional in Alpha — free-text game entry still works.
+        }
+      },
+      term.length < 2 ? 0 : 300
+    );
     return () => {
       cancelled = true;
       clearTimeout(handle);

@@ -561,7 +561,7 @@ export const HOME_WHY_CAROUSEL = [
   },
 ] as const;
 
-/** Future roadmap — single homepage section. */
+/** Premium foundations available now — the two rich landing cards. */
 export const HOME_FUTURE_ROADMAP = [
   {
     id: "steam-import",
@@ -578,6 +578,31 @@ export const HOME_FUTURE_ROADMAP = [
       "Your personal gaming profile evolves from your library, searches, and saved games.",
     chips: ["Steam library", "Searches", "Saved games"] as const,
     href: "/how-it-works/taste-memory",
+  },
+] as const;
+
+/**
+ * Personalized Early Access — live Premium discovery areas generated from your
+ * GamePing DNA. Linked from the landing's Premium section.
+ */
+export const HOME_PREMIUM_EARLY_ACCESS = [
+  {
+    id: "weekly-picks",
+    title: "Weekly Picks",
+    detail: "Personal recommendations generated from your taste.",
+    href: "/weekly-picks",
+  },
+  {
+    id: "deals-for-you",
+    title: "Deals For You",
+    detail: "Taste first. Deals second.",
+    href: "/deals-for-you",
+  },
+  {
+    id: "monthly-recap",
+    title: "Monthly Recap",
+    detail: "Your gaming personality and insights over time.",
+    href: "/monthly-recap",
   },
 ] as const;
 

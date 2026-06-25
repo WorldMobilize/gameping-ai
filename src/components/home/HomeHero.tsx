@@ -33,19 +33,20 @@ export default function HomeHero() {
                 : "border-cyan-200/80 bg-cyan-50/80 text-cyan-700"
             }`}
           >
-            AI game discovery
+            Your AI gaming companion
           </p>
 
           <h1
             className={`${HOME_HERO_DISPLAY_FONT} mt-6 text-[2.35rem] leading-[1.06] tracking-tight text-slate-50 sm:text-5xl lg:text-[3.65rem]`}
           >
-            <span className="block">Your personal game</span>
-            <span className={`block ${accent}`}>Discovery assistant</span>
+            <span className="block">The AI companion for</span>
+            <span className={`block ${accent}`}>your gaming life</span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-300 sm:mt-6 sm:text-xl">
-            Describe your mood, favorite games, or what you&apos;re looking for. GamePing gives you
-            personalized picks with clear reasons and prices when available.
+            GamePing learns your taste, recommends games you&apos;ll actually love, and explains
+            why each one fits. Track your library, follow the best deals, and always know what to
+            play next.
           </p>
 
           <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap lg:justify-start">

@@ -3,15 +3,15 @@ import { getSiteOrigin as resolveSiteOrigin } from "@/lib/site-url";
 
 export const SITE_NAME = "GamePing AI";
 
-export const DEFAULT_SITE_TITLE = "GamePing AI — AI game discovery with real prices";
+export const DEFAULT_SITE_TITLE = "GamePing AI — The AI companion for your gaming life";
 
 /** Default homepage / root meta description (gaming-native positioning). */
 export const DEFAULT_SITE_DESCRIPTION =
-  "Describe what you feel like playing. GamePing finds games that actually match your vibe — with real store prices and price alerts.";
+  "Your AI gaming companion. GamePing learns your taste, recommends games that fit with clear reasons, and tracks your library and the best deals so you always know what to play next.";
 
 /** Social card copy (Open Graph / Twitter) — stable branded preview text. */
 export const DEFAULT_SOCIAL_DESCRIPTION =
-  "Describe what you feel like playing. GamePing finds games that match your vibe — with real store prices and price alerts.";
+  "Your AI gaming companion — GamePing learns your taste, recommends games that fit, and tracks your library and the best deals.";
 
 /** Next.js file route: `src/app/opengraph-image.tsx` (1200×630). */
 export const DEFAULT_OG_IMAGE_PATH = "/opengraph-image";

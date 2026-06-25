@@ -16,7 +16,7 @@ export const SITE_NAV_ITEMS: SiteNavItem[] = [
     matchPrefix: "/curated",
   },
   { label: "A–Z Games Directory", href: "/games", matchPrefix: "/games" },
-  { label: "How It Works", href: "/#how-it-works" },
+  { label: "Features", href: "/how-it-works", matchPrefix: "/how-it-works" },
 ];
 
 /**

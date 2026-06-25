@@ -102,6 +102,14 @@ export function HomeSteamImportRoadmapMockup() {
   );
 }
 
+const DNA_TRAITS = [
+  { label: "Exploration", value: 92 },
+  { label: "Story-driven", value: 84 },
+  { label: "Challenge", value: 71 },
+] as const;
+
+const DNA_LOVES = ["Open worlds", "Player choices", "Progression systems"] as const;
+
 export function HomeTasteMemoryRoadmapMockup() {
   const { theme } = useHomeTheme();
   const isDark = theme === "dark";
@@ -111,40 +119,66 @@ export function HomeTasteMemoryRoadmapMockup() {
     : "border-slate-200/90 bg-white/80 shadow-sm";
   const muted = isDark ? "text-slate-400" : "text-slate-600";
   const label = isDark ? "text-slate-300" : "text-slate-700";
-  const filled = isDark ? "bg-violet-500/75" : "bg-violet-500";
-  const empty = isDark ? "bg-slate-800" : "bg-slate-200";
-
-  const bars = [
-    { label: "Exploration", bars: 5 },
-    { label: "Story", bars: 4 },
-    { label: "Strategy", bars: 2 },
-  ] as const;
+  const strong = isDark ? "text-slate-100" : "text-slate-900";
+  const track = isDark ? "bg-slate-800" : "bg-slate-200";
+  const fill = isDark ? "bg-violet-500/80" : "bg-violet-500";
+  const chip = isDark
+    ? "border-violet-400/25 bg-violet-500/10 text-violet-200"
+    : "border-violet-300/70 bg-violet-50 text-violet-700";
 
   return (
     <div
       aria-hidden
       className={`mt-6 w-full max-w-md rounded-2xl border p-4 sm:p-5 ${panel}`}
     >
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${muted}`}>
-        GamePing DNA preview
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className={`text-[10px] font-bold uppercase tracking-[0.18em] ${muted}`}>
+            Gaming DNA
+          </p>
+          <p className={`mt-1 text-sm font-bold ${strong}`}>The Explorer</p>
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-violet-500/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-violet-700 dark:text-violet-300">
+          <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-violet-500" />
+          Your profile
+        </span>
+      </div>
+
+      <p className={`mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] ${muted}`}>
+        Taste traits
       </p>
-      <ul className="mt-3 space-y-2.5">
-        {bars.map((row) => (
-          <li key={row.label} className="flex items-center gap-3">
-            <span className={`w-24 shrink-0 text-left text-xs font-medium ${label}`}>
-              {row.label}
-            </span>
-            <div className="flex flex-1 gap-0.5">
-              {Array.from({ length: 5 }, (_, i) => (
-                <span
-                  key={i}
-                  className={`h-1.5 flex-1 rounded-sm ${i < row.bars ? filled : empty}`}
-                />
-              ))}
+      <ul className="mt-2 space-y-2">
+        {DNA_TRAITS.map((trait) => (
+          <li key={trait.label}>
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className={`font-medium ${label}`}>{trait.label}</span>
+              <span className={`tabular-nums ${muted}`}>{trait.value}%</span>
+            </div>
+            <div className={`mt-1 h-1.5 overflow-hidden rounded-full ${track}`}>
+              <div className={`h-full rounded-full ${fill}`} style={{ width: `${trait.value}%` }} />
             </div>
           </li>
         ))}
       </ul>
+
+      <p className={`mt-4 text-[11px] font-semibold uppercase tracking-[0.16em] ${muted}`}>
+        You love
+      </p>
+      <ul className="mt-2 flex flex-wrap gap-2">
+        {DNA_LOVES.map((item) => (
+          <li
+            key={item}
+            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${chip}`}
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
+
+      <p className={`mt-4 text-xs leading-relaxed ${muted}`}>
+        Built from your Steam library, searches, and saved games — it personalizes your
+        Weekly Picks, Deals For You, and Monthly Recap.
+      </p>
     </div>
   );
 }
