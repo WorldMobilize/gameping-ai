@@ -12,7 +12,6 @@ import {
   APP_PRIMARY_CTA_ACCENT_SM,
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
-import DiscoveryComingSoonBadge from "@/components/discovery/DiscoveryComingSoonBadge";
 import DiscoveryCover from "@/components/discovery/DiscoveryCover";
 import DiscoveryRotationMeta, {
   type DiscoveryRotationMetaData,
@@ -271,20 +270,17 @@ export default function GamesOfWeekView({
         )}
       </section>
 
-      {/* 5 — Future data note */}
+      {/* 5 — Always-fresh note */}
       <section className={`mt-12 ${APP_CARD_LG}`} aria-labelledby="gotw-future">
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
-            What&apos;s next
-          </p>
-          <DiscoveryComingSoonBadge />
-        </div>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
+          Always fresh
+        </p>
         <h2 id="gotw-future" className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
-          A page that refreshes itself
+          A rotating set of weekly picks
         </h2>
         <p className={`mt-3 max-w-2xl ${APP_MUTED}`}>
-          Soon, this page will refresh using deal data, discovery signals, and GamePing AI
-          curation.
+          This page highlights a rotating set of weekly picks from GamePing, curated from deal
+          data and discovery signals. Check back for new games.
         </p>
       </section>
     </AppSection>

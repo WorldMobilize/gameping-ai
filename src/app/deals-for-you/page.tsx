@@ -169,8 +169,8 @@ export default async function DealsForYouPage({
 
           <PremiumComingNext
             items={[
-              { label: "Deal filters", description: "Slice your radar by wishlist, historical low, and more." },
-              { label: "Price-drop alerts", description: "Get pinged when a taste match hits your target price." },
+              { label: "Taste match first", description: "GamePing finds games that match your preferences before looking at prices." },
+              { label: "Smart tracking", description: "Follow games you care about and track price changes over time." },
             ]}
           />
           <p className={`mt-10 text-xs ${APP_MUTED}`}>

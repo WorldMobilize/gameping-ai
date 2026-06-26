@@ -44,16 +44,22 @@ export function getIndexableGamePaths(): string[] {
       titles.add(game.title.trim());
     }
   }
-  return [...titles]
+  const paths = [...titles]
     .sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }))
     .map((title) => gameDetailPath(title));
+  // Different title spellings (e.g. "DREDGE" vs "Dredge") slugify to the same
+  // path — dedupe on the final path so a game appears once in the sitemap.
+  return [...new Set(paths)];
 }
 
 export function getAllSitemapPaths(): string[] {
+  // Final safety net: collapse any duplicate URL across all path sources.
   return [
-    ...STATIC_PUBLIC_PATHS,
-    ...getHowItWorksPaths(),
-    ...getCuratedCollectionPaths(),
-    ...getIndexableGamePaths(),
+    ...new Set([
+      ...STATIC_PUBLIC_PATHS,
+      ...getHowItWorksPaths(),
+      ...getCuratedCollectionPaths(),
+      ...getIndexableGamePaths(),
+    ]),
   ];
 }

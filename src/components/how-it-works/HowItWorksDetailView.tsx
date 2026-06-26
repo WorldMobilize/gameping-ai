@@ -310,9 +310,9 @@ export default function HowItWorksDetailView({
       "Premium personalization — Weekly Picks, Deals For You, and Monthly Recap from your GamePing DNA",
     ];
     const future = [
-      "Mood tuning — re-tune picks around how you feel right now",
-      "Taste evolution — see how your taste shifts over time",
-      "GamePing Parties — find games a whole group can play together",
+      "Weekly Picks — a fresh set of recommendations from your taste profile",
+      "Deals For You — taste-matched games first, then their best prices",
+      "Monthly Recap — your gaming personality and how your taste is evolving",
     ];
 
     return (
@@ -339,9 +339,9 @@ export default function HowItWorksDetailView({
 
           <article className={card}>
             <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-cyan-300">
-              Coming next
+              Powered by your taste
             </span>
-            <h2 className={`mt-3 ${cardTitle}`}>On the roadmap</h2>
+            <h2 className={`mt-3 ${cardTitle}`}>Built around you</h2>
             <ul className="mt-5 space-y-3">
               {future.map((f) => (
                 <Bullet key={f}>{f}</Bullet>
@@ -379,9 +379,9 @@ export default function HowItWorksDetailView({
       ],
     ] as const;
     const future = [
-      "Backlog suggestions — surface owned games worth finishing",
-      "GamePing Parties — find games a whole group can play together",
-      "Party finder — match with others by overlapping taste and libraries",
+      "Personalized picks that skip games you already own",
+      "A sharper GamePing DNA built from your real playtime",
+      "Weekly Picks, Deals For You, and Monthly Recap tuned to your library",
     ];
 
     return (
@@ -440,9 +440,9 @@ export default function HowItWorksDetailView({
           className={`${card} ${isDark ? "!border-cyan-400/40" : "!border-cyan-400/50"}`}
         >
           <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-cyan-300">
-            Coming next
+            Powered by your taste
           </span>
-          <h2 className={`mt-3 ${cardTitle}`}>What it unlocks next</h2>
+          <h2 className={`mt-3 ${cardTitle}`}>What it powers today</h2>
           <ul className="mt-5 space-y-3">
             {future.map((f) => (
               <Bullet key={f}>{f}</Bullet>
@@ -472,9 +472,9 @@ export default function HowItWorksDetailView({
       "Games you track for price alerts",
     ];
     const roadmap = [
-      "Mood tuning — re-tune picks around how you feel",
-      "Taste evolution — see how your taste shifts over time",
-      "Discovery alerts tuned to how your taste evolves",
+      "Recommendations — results lean toward what you love",
+      "Personal fit — fit analysis on game pages, tuned to you",
+      "Weekly Picks, Deals For You, and Monthly Recap — your Premium personalization",
     ];
 
     return (
@@ -524,16 +524,16 @@ export default function HowItWorksDetailView({
             className={`${card} ${isDark ? "!border-cyan-400/40" : "!border-cyan-400/50"}`}
           >
             <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-cyan-300">
-              Coming next
+              Powered by your taste
             </span>
-            <h2 className={`mt-3 ${cardTitle}`}>On the roadmap</h2>
+            <h2 className={`mt-3 ${cardTitle}`}>What it sharpens</h2>
             <ul className="mt-5 space-y-3">
               {roadmap.map((r) => (
                 <Bullet key={r}>{r}</Bullet>
               ))}
             </ul>
             <p className={`mt-4 text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-              Your GamePing DNA is live as part of Premium — these refinements are coming next.
+              Your GamePing DNA is live as part of Premium and sharpens every pick the more you use GamePing.
             </p>
           </article>
         </div>

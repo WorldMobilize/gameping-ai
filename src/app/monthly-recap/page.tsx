@@ -381,9 +381,10 @@ export default async function MonthlyRecapPage({
           )}
 
           <PremiumComingNext
+            title="Built from your activity"
             items={[
-              { label: "Trends over time", description: "Month-over-month genre and tag shifts." },
-              { label: "Standout games", description: "Your most-played and best discoveries each month." },
+              { label: "Steam library", description: "Your played games and playtime shape this recap." },
+              { label: "GamePing DNA", description: "Your taste profile evolves as you discover, save, and track games." },
             ]}
           />
         </AppSection>

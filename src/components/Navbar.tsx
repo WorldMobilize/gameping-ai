@@ -493,7 +493,6 @@ export default function Navbar({
               <>
                 <NavGroupSeparator isLight={isLight} />
                 {renderHomeNavLink({ label: "Parties", href: "/parties" })}
-                {renderHomeNavLink({ label: "Companion", href: "/companion" })}
               </>
             ) : null}
           </span>

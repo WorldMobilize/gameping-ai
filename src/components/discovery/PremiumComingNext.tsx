@@ -1,24 +1,26 @@
 import { APP_CARD, APP_MUTED } from "@/components/app/app-styles";
 
 /**
- * Small, honest "Coming next" footnote for the live premium pages. Replaces the
- * old full-size "future feature" teaser sections so the page never looks
- * unfinished — these are clearly labeled as upcoming additions, NOT a hint that
- * the current personalization is fake.
+ * "Powered by your taste" — a small section on the live premium pages that
+ * explains what fuels the personalization, so Premium reads as a finished Early
+ * Access product rather than an unfinished roadmap. Copy/layout only; this makes
+ * no future-feature promises.
  */
 export default function PremiumComingNext({
   items,
+  title = "Powered by your taste",
 }: {
   items: { label: string; description: string }[];
+  title?: string;
 }) {
   if (items.length === 0) return null;
   return (
-    <section className={`mt-14 ${APP_CARD} p-6`} aria-labelledby="premium-coming-next">
+    <section className={`mt-14 ${APP_CARD} p-6`} aria-labelledby="premium-powered-by">
       <p
-        id="premium-coming-next"
+        id="premium-powered-by"
         className="text-[10px] font-black uppercase tracking-[0.28em] text-[color:var(--page-accent-text)]"
       >
-        Coming next
+        {title}
       </p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2">
         {items.map((item) => (

@@ -170,11 +170,11 @@ export default async function WeeklyPicksPage({
             </section>
           )}
 
-          {/* Honest, small "what's next" — never implies the current picks are fake. */}
+          {/* Explains what powers the picks — reads as a finished product, not a roadmap. */}
           <PremiumComingNext
             items={[
-              { label: "Mood tuning", description: "Re-tune your picks around the mood you're in." },
-              { label: "Taste evolution", description: "Track how your taste shifts over time." },
+              { label: "Steam Library", description: "Your played games help GamePing understand your preferences." },
+              { label: "GamePing DNA", description: "Your taste profile evolves as you discover, save, and track games." },
             ]}
           />
           <p className={`mt-10 text-xs ${APP_MUTED}`}>

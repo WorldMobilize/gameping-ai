@@ -26,11 +26,15 @@ function planLabel(plan: PlanKey): string {
   return "Unknown";
 }
 
-const DANGER_ZONE_CARD =
-  "rounded-3xl border border-slate-200/90 bg-white/70 p-8 shadow-sm shadow-slate-200/40 backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-900/60 dark:shadow-slate-950/40";
-
+// Trigger ("Delete my account…") — same premium pill/glass button system as the
+// rest of the page; danger is signalled only by rose text + a rose-tinted border,
+// not a filled pink block.
 const DANGER_DELETE_BTN =
-  "rounded-full border border-rose-300 bg-rose-50 px-8 py-3.5 text-sm font-semibold text-rose-800 transition hover:border-rose-400 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40";
+  "inline-flex items-center justify-center rounded-full border px-5 py-2.5 text-sm font-semibold shadow-sm backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 border-rose-200 bg-white/80 text-rose-700 hover:border-rose-300 hover:bg-white dark:border-rose-500/30 dark:bg-slate-900/70 dark:text-rose-300 dark:hover:border-rose-500/50 dark:hover:bg-slate-900";
+
+// Final confirmation — the real destructive action, so a stronger solid red.
+const DANGER_CONFIRM_BTN =
+  "inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 disabled:hover:translate-y-0";
 
 export default function AccountSettingsPage() {
   const router = useRouter();
@@ -248,7 +252,7 @@ export default function AccountSettingsPage() {
             </p>
           </section>
 
-          <section className={DANGER_ZONE_CARD}>
+          <section className={`${APP_CARD} p-8`}>
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-rose-700 dark:text-rose-300">
               Danger zone
             </p>
@@ -373,7 +377,7 @@ export default function AccountSettingsPage() {
                 type="button"
                 disabled={submitting}
                 onClick={() => void handleDeleteAccount()}
-                className={`${DANGER_DELETE_BTN} disabled:opacity-50`}
+                className={DANGER_CONFIRM_BTN}
               >
                 {submitting ? "Deleting…" : "Delete account permanently"}
               </button>
