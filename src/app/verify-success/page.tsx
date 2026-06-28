@@ -109,8 +109,12 @@ export default function VerifySuccessPage() {
               </button>
             </div>
 
+            <p className="mt-5 text-xs leading-5 text-slate-500 dark:text-slate-400">
+              If you leave this tab open, it returns to GamePing automatically.
+            </p>
+
             {closeBlocked ? (
-              <p className="mt-5 text-xs leading-5 text-slate-500 dark:text-slate-400">
+              <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
                 Your browser blocked automatic closing. You can safely close this
                 tab.
               </p>
