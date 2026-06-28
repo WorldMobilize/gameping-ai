@@ -1,7 +1,19 @@
 import { getSiteOrigin } from "@/lib/site-url";
 
-/** Post-verification landing page (no login form). */
+/** Post-verification landing page (no login form). Fallback when no session can be established. */
 export const VERIFY_SUCCESS_PATH = "/verify-success";
+
+/** Dedicated "check your email" page shown right after signup. */
+export const CHECK_EMAIL_PATH = "/check-email";
+
+/** sessionStorage key carrying the just-signed-up email to the check-email page. */
+export const PENDING_VERIFICATION_EMAIL_KEY = "gp:pending-verification-email";
+
+/**
+ * Where a freshly verified + auto-logged-in user lands after the auth callback.
+ * GamePing landing page (not /recommend) by product decision.
+ */
+export const POST_VERIFICATION_REDIRECT = "/";
 
 /** Legacy fallback for older verification email links. */
 export const LOGIN_VERIFIED_PATH = "/login?verified=1";

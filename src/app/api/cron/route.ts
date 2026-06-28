@@ -4,6 +4,10 @@
  */
 import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
+import {
+  generatePriceAlertInsight,
+  type PriceAlertTasteSignal,
+} from "@/lib/email/price-alert-insight";
 import { createPricingContext } from "@/lib/pricing/pricing-context";
 import { buildPriceAlertUnsubscribeUrl } from "@/lib/price-alert-unsubscribe";
 import { resolveResendFrom } from "@/lib/resend-from";
@@ -269,6 +273,42 @@ export async function GET(req: Request) {
     const emailByUser = new Map(
       (profiles ?? []).map((p) => [p.user_id, p.email as string])
     );
+
+    // Best-effort taste signals for the optional AI insight line. A failure here
+    // must never affect alert delivery, so it is wrapped and defaults to empty.
+    const tasteByUser = new Map<string, PriceAlertTasteSignal>();
+    try {
+      const { data: tasteRows } = await supabase
+        .from("user_taste_profiles")
+        .select(
+          "user_id, taste_summary, favorite_games, preferred_genres, favorite_patterns"
+        )
+        .in("user_id", userIds);
+      for (const row of tasteRows ?? []) {
+        const summary = (row.taste_summary ?? {}) as {
+          archetype?: string | null;
+          summary?: string | null;
+          likes?: unknown;
+        };
+        tasteByUser.set(row.user_id as string, {
+          archetype: summary.archetype ?? null,
+          summary: summary.summary ?? null,
+          likes: Array.isArray(summary.likes)
+            ? (summary.likes as string[])
+            : Array.isArray(row.favorite_patterns)
+              ? (row.favorite_patterns as string[])
+              : [],
+          favoriteGames: Array.isArray(row.favorite_games)
+            ? (row.favorite_games as string[])
+            : [],
+          preferredGenres: Array.isArray(row.preferred_genres)
+            ? (row.preferred_genres as string[])
+            : [],
+        });
+      }
+    } catch (tasteErr) {
+      console.warn("[cron] taste profiles lookup failed", tasteErr);
+    }
 
     for (const tg of rows) {
       processed += 1;
@@ -599,6 +639,17 @@ export async function GET(req: Request) {
         trackedGameId: gameId,
       });
 
+      // Optional personalization — strict timeout + null fallback inside.
+      // Never throws and never blocks the send.
+      const tasteSignal = tasteByUser.get(uid);
+      const aiInsight = tasteSignal
+        ? await generatePriceAlertInsight({
+            gameTitle: pricingTitle,
+            alertReason: threshold.reason,
+            taste: tasteSignal,
+          })
+        : null;
+
       const emailContent = {
         gameTitle: pricingTitle,
         priceDisplay,
@@ -614,6 +665,7 @@ export async function GET(req: Request) {
         currency: quoteCurrency,
         provider: best.provider,
         pricingCountry,
+        aiInsight,
       };
 
       const html = buildAlertEmailHtml(emailContent);

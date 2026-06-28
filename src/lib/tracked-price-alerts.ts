@@ -468,6 +468,8 @@ export type PriceAlertEmailContentParams = {
   currency?: string | null;
   provider?: string | null;
   pricingCountry?: string | null;
+  /** Optional AI-generated "Why GamePing thinks this matters" copy (1-3 sentences). */
+  aiInsight?: string | null;
 };
 
 export function buildAlertEmailText(params: PriceAlertEmailContentParams): string {
@@ -488,6 +490,11 @@ export function buildAlertEmailText(params: PriceAlertEmailContentParams): strin
 
   if (contextLine) {
     lines.push(contextLine);
+  }
+
+  const insight = params.aiInsight?.trim();
+  if (insight) {
+    lines.push("", "Why GamePing thinks this matters:", insight);
   }
 
   lines.push(
@@ -534,6 +541,14 @@ export function buildAlertEmailHtml(params: PriceAlertEmailContentParams): strin
     ? `<p style="margin:0 0 12px;font-size:14px;color:#a5f3fc;">${escapeHtml(contextLine)}</p>`
     : "";
 
+  const insight = params.aiInsight?.trim();
+  const insightBlock = insight
+    ? `<div style="margin:0 0 16px;padding:14px 16px;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.18);border-radius:12px;">
+                <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#67e8f9;">Why GamePing thinks this matters</p>
+                <p style="margin:0;font-size:14px;line-height:1.55;color:#e5e7eb;">${escapeHtml(insight)}</p>
+              </div>`
+    : "";
+
   return `
 <!DOCTYPE html>
 <html>
@@ -550,6 +565,7 @@ export function buildAlertEmailHtml(params: PriceAlertEmailContentParams): strin
               <p style="margin:0 0 6px;font-size:15px;color:#a5f3fc;">Verified deal: <strong>${escapeHtml(params.priceDisplay)}</strong></p>
               <p style="margin:0 0 16px;font-size:13px;color:rgba(255,255,255,0.45);">Store: ${escapeHtml(params.storeName)} · ${listingMeta}</p>
               ${contextBlock}
+              ${insightBlock}
               ${img}
               <a href="${escapeHtml(params.ctaUrl)}" style="display:inline-block;margin-top:8px;padding:14px 28px;background:#22d3ee;color:#03040a;font-weight:800;text-decoration:none;border-radius:999px;">View verified deal →</a>
             </td>

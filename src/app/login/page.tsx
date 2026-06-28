@@ -1,11 +1,14 @@
 "use client";
 
 import {
+  CHECK_EMAIL_PATH,
   getEmailVerificationRedirectUrl,
+  PENDING_VERIFICATION_EMAIL_KEY,
+  POST_VERIFICATION_REDIRECT,
   VERIFY_SUCCESS_PATH,
 } from "@/lib/auth-redirects";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
@@ -50,6 +53,7 @@ function sanitizeInternalRedirect(raw: string | null): string {
 
 function LoginForm() {
   const { showToast } = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam =
     searchParams.get("redirect") ?? searchParams.get("next");
@@ -86,9 +90,11 @@ function LoginForm() {
 
     let cancelled = false;
     void (async () => {
-      await supabase.auth.signOut();
+      // Standard Supabase auto-login: getSession() resolves the session parsed
+      // from the URL hash (detectSessionInUrl) and persists it before we move on.
+      await supabase.auth.getSession();
       if (cancelled) return;
-      window.location.replace(VERIFY_SUCCESS_PATH);
+      window.location.replace(POST_VERIFICATION_REDIRECT);
     })();
 
     return () => {
@@ -99,6 +105,17 @@ function LoginForm() {
   const redirectAfterAuth = useCallback(() => {
     window.location.href = safeRedirect;
   }, [safeRedirect]);
+
+  // If the user verifies their email in the same browser (auto-login via the
+  // auth callback), don't leave this tab stale — move it to the destination.
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        redirectAfterAuth();
+      }
+    });
+    return () => data.subscription.unsubscribe();
+  }, [redirectAfterAuth]);
 
   const signUp = async () => {
     const passwordError = validateSignupPassword(password);
@@ -141,11 +158,18 @@ function LoginForm() {
     }
 
     if (user && !data.session) {
-      showToast({
-        variant: "success",
-        message:
-          "Account created. Check your email to verify your account before using recommendations, saved runs, tracking, and Premium.",
-      });
+      // Email confirmation required: hand off to the dedicated check-email page
+      // and clear the form so no credentials linger on this tab.
+      const pendingEmail = email.trim();
+      try {
+        window.sessionStorage.setItem(
+          PENDING_VERIFICATION_EMAIL_KEY,
+          pendingEmail
+        );
+      } catch {}
+      setEmail("");
+      setPassword("");
+      router.push(CHECK_EMAIL_PATH);
       return;
     }
 
