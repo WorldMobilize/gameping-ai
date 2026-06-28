@@ -218,11 +218,11 @@ export default function CheckEmailPage() {
               ) : null}
 
               <Link
-                href="/login"
+                href="/signup"
                 onClick={clearPendingEmail}
                 className={APP_SECONDARY_CTA}
               >
-                {email ? "Use another email" : "Back to login"}
+                {email ? "Use another email" : "Back to signup"}
               </Link>
             </div>
 

@@ -21,6 +21,8 @@ function accentForPath(pathname: string): string {
   // Auth pages share the Account/Dashboard (silver) identity.
   if (
     pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname === "/check-email" ||
     pathname === "/reset-password" ||
     pathname === "/update-password" ||
     pathname === "/verify-success"

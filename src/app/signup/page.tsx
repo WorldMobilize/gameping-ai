@@ -1,12 +1,13 @@
 "use client";
 
 import {
-  POST_VERIFICATION_REDIRECT,
+  CHECK_EMAIL_PATH,
+  getEmailVerificationRedirectUrl,
+  PENDING_VERIFICATION_EMAIL_KEY,
   sanitizeInternalRedirect,
-  VERIFY_SUCCESS_PATH,
 } from "@/lib/auth-redirects";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
@@ -17,14 +18,15 @@ import {
   APP_PRIMARY_CTA_ACCENT_SM,
 } from "@/components/app/app-styles";
 import { useToast } from "@/components/ToastProvider";
+import { validateSignupPassword } from "@/lib/auth-email-verification";
+import { trackProductEvent } from "@/lib/product-analytics/client";
 
-function LoginForm() {
+function SignupForm() {
   const { showToast } = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam =
     searchParams.get("redirect") ?? searchParams.get("next");
-  const emailVerified = searchParams.get("verified") === "1";
-  const authCode = searchParams.get("code");
   const safeRedirect = useMemo(
     () => sanitizeInternalRedirect(redirectParam),
     [redirectParam]
@@ -34,48 +36,12 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (authCode && !emailVerified) {
-      const next = encodeURIComponent(VERIFY_SUCCESS_PATH);
-      window.location.replace(
-        `/auth/callback?code=${encodeURIComponent(authCode)}&next=${next}`
-      );
-    }
-  }, [authCode, emailVerified]);
-
-  useEffect(() => {
-    if (!emailVerified) return;
-    showToast({
-      variant: "success",
-      message: "Email verified. You can now log in.",
-    });
-  }, [emailVerified, showToast]);
-
-  useEffect(() => {
-    const hash = typeof window !== "undefined" ? window.location.hash : "";
-    if (!hash || hash.includes("type=recovery")) return;
-    if (!hash.includes("access_token")) return;
-
-    let cancelled = false;
-    void (async () => {
-      // Standard Supabase auto-login: getSession() resolves the session parsed
-      // from the URL hash (detectSessionInUrl) and persists it before we move on.
-      await supabase.auth.getSession();
-      if (cancelled) return;
-      window.location.replace(POST_VERIFICATION_REDIRECT);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const redirectAfterAuth = useCallback(() => {
     window.location.href = safeRedirect;
   }, [safeRedirect]);
 
-  // If the user verifies their email in the same browser (auto-login via the
-  // auth callback), don't leave this tab stale — move it to the destination.
+  // If the user verifies their email in this same browser (auto-login via the
+  // auth callback in another tab), don't leave this tab stale.
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
@@ -85,13 +51,26 @@ function LoginForm() {
     return () => data.subscription.unsubscribe();
   }, [redirectAfterAuth]);
 
-  const signIn = async () => {
+  const signUp = async () => {
     if (submitting) return;
+
+    const passwordError = validateSignupPassword(password);
+    if (passwordError) {
+      showToast({ variant: "error", message: passwordError });
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const emailRedirectTo =
+        typeof window !== "undefined"
+          ? getEmailVerificationRedirectUrl(window.location.origin)
+          : undefined;
+
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: emailRedirectTo ? { emailRedirectTo } : undefined,
       });
 
       if (error) {
@@ -99,9 +78,45 @@ function LoginForm() {
         return;
       }
 
+      const user = data.user;
+
+      if (user) {
+        await fetch("/api/create-profile", {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            email: user.email,
+          }),
+        });
+        trackProductEvent("signup_completed");
+      }
+
+      if (user && !data.session) {
+        // Email confirmation required: hand off to the dedicated check-email
+        // page and clear the form so no credentials linger on this tab.
+        const pendingEmail = email.trim();
+        try {
+          window.sessionStorage.setItem(
+            PENDING_VERIFICATION_EMAIL_KEY,
+            pendingEmail
+          );
+        } catch {}
+        setEmail("");
+        setPassword("");
+        router.push(CHECK_EMAIL_PATH);
+        return;
+      }
+
+      // No confirmation step (session returned): clear credentials and go home.
+      setEmail("");
+      setPassword("");
       showToast({
         variant: "success",
-        message: "Signed in. Redirecting…",
+        message: "Account created. Redirecting…",
       });
       setTimeout(() => {
         redirectAfterAuth();
@@ -113,7 +128,7 @@ function LoginForm() {
 
   return (
     <AppPageShell hideAmbient>
-      {/* Same cinematic background + account (silver) accent as /dashboard and /settings/account. */}
+      {/* Same cinematic background + account (silver) accent as /login. */}
       <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
         <div aria-hidden className="gp-account-bg" />
         <AppSection
@@ -122,24 +137,37 @@ function LoginForm() {
         >
           <div className={APP_AUTH_CARD}>
             <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
-              Welcome back to{" "}
+              Create your{" "}
               <span className="text-[color:var(--page-accent-text)]">
                 GamePing AI
-              </span>
+              </span>{" "}
+              account
             </h1>
 
             <p className="mt-3 text-center text-sm text-slate-600 dark:text-slate-300">
-              Log in to your game preferences and alerts.
+              Save your game preferences and get smart alerts.
             </p>
 
-            {emailVerified ? (
-              <p
-                className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800"
-                role="status"
-              >
-                Email verified. You can now log in.
-              </p>
-            ) : null}
+            <ul className="mt-6 space-y-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+              <li className="flex gap-2">
+                <span className="text-[color:var(--page-accent-text)]">✓</span>
+                <span>Save recommendation runs to your dashboard</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[color:var(--page-accent-text)]">✓</span>
+                <span>Track games and get price alerts</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-[color:var(--page-accent-text)]">✓</span>
+                <span>Keep your game discovery organized</span>
+              </li>
+            </ul>
+
+            <p className="mt-5 text-center">
+              <Link href="/upgrade" className={`text-xs ${APP_INLINE_LINK}`}>
+                Compare Free vs Premium
+              </Link>
+            </p>
 
             <input
               className={`mt-8 ${APP_INPUT}`}
@@ -153,7 +181,7 @@ function LoginForm() {
 
             <input
               type="password"
-              autoComplete="current-password"
+              autoComplete="new-password"
               className={`mt-4 ${APP_INPUT}`}
               placeholder="Password"
               aria-label="Password"
@@ -161,28 +189,23 @@ function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
             />
 
-            <p className="mt-2 text-right">
-              <Link
-                href="/reset-password"
-                className={`text-xs ${APP_INLINE_LINK}`}
-              >
-                Forgot password?
-              </Link>
+            <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+              Password: at least 8 characters with one letter and one number.
             </p>
 
             <button
               type="button"
-              onClick={signIn}
+              onClick={signUp}
               disabled={submitting}
               className={`mt-6 w-full ${APP_PRIMARY_CTA_ACCENT_SM} disabled:cursor-not-allowed disabled:opacity-60`}
             >
-              {submitting ? "Signing in…" : "Log in"}
+              {submitting ? "Creating account…" : "Create account"}
             </button>
 
             <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
-              New to GamePing?{" "}
-              <Link href="/signup" className={APP_INLINE_LINK}>
-                Create an account
+              Already have an account?{" "}
+              <Link href="/login" className={APP_INLINE_LINK}>
+                Log in
               </Link>
             </p>
 
@@ -212,7 +235,7 @@ function LoginForm() {
   );
 }
 
-function LoginFallback() {
+function SignupFallback() {
   // Navbar + account background only — no loading card/text flash.
   return (
     <AppPageShell hideAmbient>
@@ -223,10 +246,10 @@ function LoginFallback() {
   );
 }
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
-    <Suspense fallback={<LoginFallback />}>
-      <LoginForm />
+    <Suspense fallback={<SignupFallback />}>
+      <SignupForm />
     </Suspense>
   );
 }
