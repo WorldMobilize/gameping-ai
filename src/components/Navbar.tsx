@@ -544,7 +544,7 @@ export default function Navbar({
             <>
               <Link
                 href={ctaHref}
-                className="gp-page-cta relative z-0 shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold sm:px-5 sm:py-2.5 sm:text-sm xl:px-6 xl:py-3 xl:text-base"
+                className="gp-page-cta relative z-0 shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold sm:px-5 sm:py-2 sm:text-sm"
               >
                 {isHomePage ? (
                   <>
@@ -558,7 +558,7 @@ export default function Navbar({
 
               <Link
                 href="/login"
-                className={`relative z-0 inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:border-[color:var(--page-accent-border)] max-[380px]:hidden sm:px-4 sm:py-2.5 sm:text-sm md:px-5 md:py-3 md:text-base ${
+                className={`relative z-0 inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:border-[color:var(--page-accent-border)] max-[380px]:hidden sm:px-4 sm:py-2 sm:text-sm ${
                   isLight
                     ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                     : "border-slate-700 bg-slate-900/80 text-slate-300 hover:bg-slate-800"

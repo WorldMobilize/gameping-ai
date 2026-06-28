@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
   APP_AUTH_CARD,
-  APP_INLINE_LINK,
+  APP_INLINE_LINK_ACCENT,
   APP_PRIMARY_CTA_ACCENT_SM,
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
@@ -228,7 +228,7 @@ export default function CheckEmailPage() {
 
             <p className="mt-6 text-xs leading-5 text-slate-500 dark:text-slate-400">
               Check Spam or Promotions if you don&apos;t see it. Still nothing?{" "}
-              <Link href="/contact" className={APP_INLINE_LINK}>
+              <Link href="/contact" className={APP_INLINE_LINK_ACCENT}>
                 Contact support
               </Link>
               .

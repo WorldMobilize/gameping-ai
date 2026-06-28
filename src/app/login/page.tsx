@@ -12,7 +12,7 @@ import Link from "next/link";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import {
   APP_AUTH_CARD,
-  APP_INLINE_LINK,
+  APP_INLINE_LINK_ACCENT,
   APP_INPUT,
   APP_PRIMARY_CTA_ACCENT_SM,
 } from "@/components/app/app-styles";
@@ -164,7 +164,7 @@ function LoginForm() {
             <p className="mt-2 text-right">
               <Link
                 href="/reset-password"
-                className={`text-xs ${APP_INLINE_LINK}`}
+                className={`text-xs ${APP_INLINE_LINK_ACCENT}`}
               >
                 Forgot password?
               </Link>
@@ -181,26 +181,26 @@ function LoginForm() {
 
             <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
               New to GamePing?{" "}
-              <Link href="/signup" className={APP_INLINE_LINK}>
+              <Link href="/signup" className={APP_INLINE_LINK_ACCENT}>
                 Create an account
               </Link>
             </p>
 
             <p className="mt-6 text-center text-xs text-slate-600 dark:text-slate-400">
               By continuing you agree to our{" "}
-              <Link href="/terms" className={APP_INLINE_LINK}>
+              <Link href="/terms" className={APP_INLINE_LINK_ACCENT}>
                 Terms
               </Link>
               ,{" "}
-              <Link href="/privacy" className={APP_INLINE_LINK}>
+              <Link href="/privacy" className={APP_INLINE_LINK_ACCENT}>
                 Privacy Policy
               </Link>
               ,{" "}
-              <Link href="/cookies" className={APP_INLINE_LINK}>
+              <Link href="/cookies" className={APP_INLINE_LINK_ACCENT}>
                 Cookie Policy
               </Link>
               , and{" "}
-              <Link href="/disclaimer" className={APP_INLINE_LINK}>
+              <Link href="/disclaimer" className={APP_INLINE_LINK_ACCENT}>
                 Disclaimer
               </Link>
               .

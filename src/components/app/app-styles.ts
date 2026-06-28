@@ -116,6 +116,14 @@ export const APP_CALLOUT =
 export const APP_INLINE_LINK =
   "font-semibold text-cyan-700 underline-offset-4 transition hover:text-cyan-800 hover:underline dark:text-cyan-400 dark:hover:text-cyan-300";
 
+/**
+ * Inline link that follows the current page accent (silver on /login, /signup,
+ * /check-email, /verify-success, dashboard, etc.) instead of the hardcoded cyan
+ * of APP_INLINE_LINK. Use on accent/auth pages so no cyan brand colour leaks in.
+ */
+export const APP_INLINE_LINK_ACCENT =
+  "font-semibold text-[color:var(--page-accent-text)] underline-offset-4 transition hover:underline";
+
 export const APP_SECONDARY_CTA = `${HOME_SECONDARY_CTA_BASE} px-5 py-2.5 text-sm border-slate-200 bg-white/80 text-slate-700 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-900`;
 
 export const APP_INPUT =
