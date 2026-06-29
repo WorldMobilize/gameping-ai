@@ -453,11 +453,15 @@ export default function Navbar({
           </span>
           {/* Early Access badge is hidden on small phones (it caused the brand
            * to wrap/stack). It appears inline from sm upward, where there's room.
-           * The parent centres geometrically, but the wordmark's cap-height optical
-           * centre sits ~1px above the line-box centre, so a tiny downward nudge
-           * (translate-y) visually aligns the badge with the "GamePing AI" caps. */}
+           * `items-center` centres the badge on the wordmark's LINE BOX, which lands
+           * on the cap-height centre — but "GamePin*g*" has heavy descenders (g, p)
+           * that pull the logotype's visual mass down, so a cap-centred badge reads
+           * as sitting too high. Nudge it down a touch (~2px below the cap centre)
+           * so it sits at the optical centre of the full "GamePing AI" body. The
+           * wordmark is a fixed 20px (sm:text-xl) wherever the badge is visible, so
+           * this is stable across every breakpoint that shows the badge. */}
           <span
-            className={`hidden w-fit shrink-0 translate-y-[1px] items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.22em] [text-indent:0.22em] sm:inline-flex ${
+            className={`hidden w-fit shrink-0 translate-y-[3px] items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.22em] [text-indent:0.22em] sm:inline-flex ${
               isLight
                 ? "border-slate-200 bg-slate-50 text-slate-600"
                 : "border-white/10 bg-white/[0.04] text-white/70"
