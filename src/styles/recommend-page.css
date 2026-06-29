@@ -74,11 +74,39 @@ html[data-home-theme="light"] .gp-recommend .border-slate-200\/90 {
   border-color: rgba(34, 197, 94, 0.4);
 }
 
-/* Green focus glow on the prompt / refine inputs (overrides the cyan focus). */
+/* Green focus glow on the prompt / refine inputs (overrides the cyan focus).
+ * Text inputs / textareas only — the range slider is excluded so it does not pick
+ * up the boxed green glow + border (that produced a bright green rectangle around
+ * the whole slider); the slider gets its own focus treatment below. */
 .gp-recommend .gp-prompt-textarea:focus,
-.gp-recommend input:focus,
+.gp-recommend input:not([type="range"]):focus,
 .gp-recommend textarea:focus {
   border-color: #22c55e;
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.22);
   outline: none;
+}
+
+/* Budget range slider focus — no native focus rectangle in any browser, and no
+ * boxed glow. Keyboard focus gets the standard GamePing page-accent ring used by
+ * the other controls; mouse/touch focus shows nothing extra. Only the track,
+ * filled progress, and thumb (via accent-color) remain visible. */
+.gp-recommend .gp-budget-range {
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.gp-recommend .gp-budget-range:focus,
+.gp-recommend .gp-budget-range:focus-visible {
+  outline: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.gp-recommend .gp-budget-range:focus-visible {
+  box-shadow: 0 0 0 2px var(--page-accent-border);
+}
+
+/* Firefox: remove the dotted inner focus outline on the slider. */
+.gp-recommend .gp-budget-range::-moz-focus-outer {
+  border: 0;
 }

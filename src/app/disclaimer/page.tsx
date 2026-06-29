@@ -21,8 +21,10 @@ export const metadata: Metadata = legalPageMetadata(
 
 export default function DisclaimerPage() {
   return (
-    <AppPageShell>
-      <AppSection maxWidth="max-w-3xl">
+    <AppPageShell hideAmbient>
+      <div className="gp-accent-page relative isolate min-h-0 flex-1 overflow-hidden">
+        <div aria-hidden className="gp-landing-bg" />
+        <AppSection maxWidth="max-w-3xl">
         <p className={APP_KICKER}>Legal</p>
         <h1 className={APP_PAGE_TITLE}>Disclaimer</h1>
 
@@ -100,7 +102,8 @@ export default function DisclaimerPage() {
             advice.
           </div>
         </div>
-      </AppSection>
+        </AppSection>
+      </div>
     </AppPageShell>
   );
 }

@@ -34,11 +34,13 @@ export const RECOMMEND_FILTER_PLATFORM_UNSELECTED =
 export const RECOMMEND_FILTER_BUDGET_PANEL =
   "rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5 dark:border-slate-700/80 dark:bg-slate-900/50";
 
-// Budget slider: thumb/track follow the page accent (green here) and the native
-// focus outline is replaced with a soft, rounded page-accent ring so the focus
-// stays keyboard-visible without the ugly browser-default rectangle.
+// Budget slider: thumb/track follow the page accent (green here). The `.gp-budget-range`
+// class (see recommend-page.css) strips the native focus outline across browsers and
+// applies the standard GamePing page-accent ring on keyboard focus only — so no green
+// rectangle appears around the slider. Focus styling lives in CSS (not Tailwind here)
+// to reach the webkit/moz range pseudo-elements and override the shared input:focus glow.
 export const RECOMMEND_FILTER_BUDGET_RANGE =
-  "mt-6 w-full cursor-pointer rounded-full accent-[color:var(--page-accent)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent";
+  "gp-budget-range mt-6 w-full cursor-pointer rounded-full accent-[color:var(--page-accent)]";
 
 // Budget number input: same shape as APP_INPUT but the focus border/ring follow
 // the page accent instead of the global cyan, so it matches the recommend page.

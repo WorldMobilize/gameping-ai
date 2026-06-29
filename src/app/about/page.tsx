@@ -24,8 +24,10 @@ export const metadata: Metadata = legalPageMetadata(
 
 export default function AboutPage() {
   return (
-    <AppPageShell>
-      <AppSection maxWidth="max-w-4xl">
+    <AppPageShell hideAmbient>
+      <div className="gp-accent-page relative isolate min-h-0 flex-1 overflow-hidden">
+        <div aria-hidden className="gp-landing-bg" />
+        <AppSection maxWidth="max-w-4xl">
         <p className={APP_KICKER}>About</p>
         <h1 className={APP_PAGE_TITLE}>
           What is <span className={APP_ACCENT}>GamePing AI</span>?
@@ -96,7 +98,8 @@ export default function AboutPage() {
             Open GamePing AI
           </Link>
         </div>
-      </AppSection>
+        </AppSection>
+      </div>
     </AppPageShell>
   );
 }

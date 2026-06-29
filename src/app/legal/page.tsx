@@ -28,8 +28,10 @@ const LINKS = [
 
 export default function LegalHubPage() {
   return (
-    <AppPageShell>
-      <AppSection>
+    <AppPageShell hideAmbient>
+      <div className="gp-accent-page relative isolate min-h-0 flex-1 overflow-hidden">
+        <div aria-hidden className="gp-landing-bg" />
+        <AppSection>
         <p className={APP_KICKER}>Legal</p>
         <h1 className={APP_PAGE_TITLE}>Legal &amp; compliance</h1>
         <p className={APP_PAGE_LEAD}>
@@ -47,7 +49,8 @@ export default function LegalHubPage() {
             </Link>
           ))}
         </div>
-      </AppSection>
+        </AppSection>
+      </div>
     </AppPageShell>
   );
 }
