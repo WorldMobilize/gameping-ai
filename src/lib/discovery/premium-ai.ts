@@ -103,16 +103,30 @@ export type AiWeeklyResult = {
   picks: AiPickExplanation[];
 };
 
+/** Per-candidate anchor hint: the user's own game whose gameplay most resembles
+ *  this candidate, precomputed from taste clusters. The model should prefer this
+ *  anchor (or another clearly better-matching played game) and VARY it across the
+ *  list instead of citing one game for everything. */
+export type AiAnchorHint = { title: string; hours: number; facets: string[] };
+
 export async function explainWeeklyPicksWithAi(params: {
   profile: UserTasteProfile;
-  candidates: { id: string; title: string; genres: string[]; tags: string[] }[];
+  candidates: {
+    id: string;
+    title: string;
+    genres: string[];
+    tags: string[];
+    anchorHint?: AiAnchorHint;
+  }[];
 }): Promise<AiWeeklyResult | null> {
   const system =
     "You are GamePing's premium taste analyst. You are given a user's taste profile (with the games they've PLAYED on Steam and how many hours, plus games they track/save, and their preferred genres/mechanics) and a list of candidate games. " +
-    "For EACH candidate, write 2-3 reasons it fits THIS SPECIFIC user. Every reason must reference a concrete signal: a genre/mechanic they prefer, or a game they've played (you may name it and its hours) or tracked/saved — and how the candidate echoes that. " +
-    "Think 'because your library leans into X / because you put N hours into Y, this delivers the same Z'. " +
+    "The user's library spans SEVERAL distinct taste clusters (e.g. survival, RPG, simulation, horror, shooter). For EACH candidate, FIRST decide which of the user's own games is the closest match by GAMEPLAY — mechanics, progression style, player agency, pacing, long-term goals, exploration, emergent gameplay, survival systems, or simulation depth — NOT by shared marketing tags or popularity. " +
+    "Each candidate may include an 'anchorHint' (the precomputed best-matching played game and the gameplay facets they share). Prefer it, unless another played game is clearly a better gameplay match. " +
+    "CRITICAL: do NOT anchor most picks to the same game. A soulslike must not be justified by a survival sandbox; a horror game should reference their horror games; an RPG should reference their RPGs. If a candidate matches NONE of their games well, ground the reason in a preferred genre/mechanic instead — never force an unrelated game. " +
+    "Then write 2-3 reasons it fits THIS user, each naming the concrete signal (the matched played game + the shared gameplay emphasis, or a preferred genre/mechanic) and what specifically carries over. " +
     `BAN generic, reputation-based phrases that say nothing about this user, e.g. ${BANNED_REASON_PHRASES}. ` +
-    "Never claim the user owns/played a game that isn't in the provided signals. Keep each reason one short sentence. " +
+    "Never claim the user owns/played a game that isn't in the provided signals. Keep each reason one short sentence, and make every pick's reasons feel individually written. " +
     'Respond as JSON: {"headline": string (<=8 words), "summary": string (<=240 chars, why these picks for this user this week), ' +
     '"picks": [{"id": string, "matchScore": number 60-97, "category": string (<=3 words), "whyPicked": string[] (2-3 personalized reasons), "possibleConcerns": string[] (0-2 short caveats)}]}.';
   const user = JSON.stringify({
@@ -140,15 +154,23 @@ export type AiDealRanking = {
 
 export async function rankDealsWithAi(params: {
   profile: UserTasteProfile;
-  deals: { id: string; title: string; discountPercent: number; genres: string[] }[];
+  deals: {
+    id: string;
+    title: string;
+    discountPercent: number;
+    genres: string[];
+    anchorHint?: AiAnchorHint;
+    hasRealDeal?: boolean;
+  }[];
 }): Promise<AiDealRanking | null> {
   const system =
-    "You are GamePing's premium deal curator. You are given a user's taste profile (played-with-hours, tracked, saved, preferred genres/mechanics) and games CURRENTLY ON SALE (real prices already verified). " +
-    "Rank by TASTE FIT FIRST, then quality, then discount — a smaller discount on a perfect-fit game beats a huge discount on something they'd never enjoy. " +
-    "For each: 'whyDealFits' = 2-3 reasons grounded in the user's specific signals (name a played/tracked game or a preferred genre/mechanic). 'whyNow' = one short sentence on why this discount is worth acting on (e.g. size of discount, or it's a tracked game). 'confidence' = how sure the taste fit is. " +
+    "You are GamePing's premium deal curator. You are given a user's taste profile (played-with-hours, tracked, saved, preferred genres/mechanics) and games with their best current price (some are genuinely discounted; some are merely priced). " +
+    "Write copy ONLY — the final ordering is decided by the app from taste fit + real-deal quality, so you do not need to reorder, but you must keep reasons honest about whether a real discount exists ('hasRealDeal'). " +
+    "For 'whyDealFits' (2-3 reasons): match each game to the user's CLOSEST game by GAMEPLAY — mechanics, progression, player agency, pacing, survival/simulation depth — not by tags or popularity; prefer the provided 'anchorHint', and VARY the anchor across deals (don't cite one game for everything). If nothing matches well, ground it in a preferred genre/mechanic. " +
+    "'whyNow' = one short sentence: if hasRealDeal, name the discount/why it's worth acting on; if not, be honest (e.g. 'priced low' or 'track it for the next drop') — never imply a sale that isn't there. 'confidence' = how sure the taste fit is. " +
     `Do not invent prices. BAN generic phrases like ${BANNED_REASON_PHRASES}. ` +
     'Respond as JSON: {"headline": string (<=8 words), "summary": string (<=240 chars), ' +
-    '"deals": [{"id": string, "matchScore": number 60-97, "whyDealFits": string[] (2-3 personalized reasons), "whyNow": string (<=90 chars), "confidence": "high"|"medium"|"low"}]} ordered best-fit first.';
+    '"deals": [{"id": string, "matchScore": number 60-97, "whyDealFits": string[] (2-3 personalized reasons), "whyNow": string (<=90 chars), "confidence": "high"|"medium"|"low"}]}.';
   const user = JSON.stringify({
     taste: tasteContext(params.profile),
     deals: params.deals.slice(0, 12),

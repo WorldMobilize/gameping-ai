@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { HOME_PRIMARY_CTA_BASE } from "@/components/app/app-styles";
 
 /**
  * Premium feature cards for /upgrade. Premium personalization is LIVE, so these
@@ -201,7 +202,7 @@ export default function PremiumFeatureCards() {
         <div className="mt-auto pt-6">
           <Link
             href="/settings/account#steam-library-import"
-            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-600 px-6 py-3 text-sm font-semibold text-[#3a2c08] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
+            className={`${HOME_PRIMARY_CTA_BASE} px-6 py-3 text-sm`}
           >
             {connected ? "Manage Steam sync" : "Connect your Steam library"}
           </Link>

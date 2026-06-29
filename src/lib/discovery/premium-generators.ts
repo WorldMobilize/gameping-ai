@@ -18,6 +18,15 @@ import {
   type UserTasteProfile,
 } from "@/lib/discovery/user-taste-profile";
 import {
+  buildTasteClusters,
+  candidateDimensions,
+  chooseAnchor,
+  contextualReasons,
+  describeMatch,
+  tasteFitScore,
+  type TasteClusters,
+} from "@/lib/discovery/taste-clusters";
+import {
   explainWeeklyPicksWithAi,
   narrateRecapWithAi,
   rankDealsWithAi,
@@ -152,6 +161,66 @@ function deterministicWhyPicked(profile: UserTasteProfile, c: RawgCandidate): st
   return reasons.slice(0, 3);
 }
 
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
+
+function hashSeed(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+/** Taste fit (0..1) → displayed match score in the 60–97 band. */
+function matchScoreFromFit(fit: number): number {
+  return Math.round(60 + clamp01(fit) * 37);
+}
+
+/**
+ * Reason used when the candidate matches NONE of the user's gameplay clusters
+ * well — grounded in a preferred genre/mechanic, NEVER forced onto an unrelated
+ * most-played game (that single-anchor overfit is exactly what we're fixing).
+ */
+function genericTasteReason(profile: UserTasteProfile, c: RawgCandidate, seed: number): string[] {
+  const blob = norm([...candidateGenres(c), ...candidateTags(c)].join(" "));
+  const reasons: string[] = [];
+
+  const matchedGenre = profile.preferredGenres.find((g) => blob.includes(norm(g)));
+  if (matchedGenre) {
+    reasons.push(`Matches the ${matchedGenre.toLowerCase()} you gravitate toward across your library.`);
+  }
+  const matchedSignal = [...profile.preferredMechanics, ...profile.likes].find((s) => blob.includes(norm(s)));
+  if (matchedSignal) {
+    reasons.push(`Built around the ${matchedSignal.toLowerCase()} you keep coming back to.`);
+  }
+  if (reasons.length === 0) {
+    const genre = primaryGenre(c).toLowerCase();
+    const openers = [
+      `A ${genre} pick chosen to broaden your taste profile.`,
+      `Picked to add range to your ${genre} side.`,
+    ];
+    reasons.push(openers[seed % openers.length]);
+  }
+  return reasons.slice(0, 2);
+}
+
+/**
+ * Per-candidate taste enrichment shared by Weekly Picks and Deals For You:
+ * classify the candidate's gameplay dimensions, pick its MOST RELEVANT anchor
+ * (with anti-repeat variety via `usage`), and compute a real taste-fit score.
+ */
+function enrichCandidate(
+  clusters: TasteClusters,
+  c: RawgCandidate,
+  usage: Map<string, number>
+) {
+  const candDims = candidateDimensions(candidateGenres(c), candidateTags(c));
+  const match = chooseAnchor(clusters, candDims, usage);
+  if (match) usage.set(match.anchor.title, (usage.get(match.anchor.title) ?? 0) + 1);
+  const fit = tasteFitScore(clusters, candDims, match);
+  return { match, fit };
+}
+
 // ===========================================================================
 // Weekly picks
 // ===========================================================================
@@ -180,29 +249,42 @@ export async function generateWeeklyPicks(userId: string): Promise<GeneratePremi
       return { ok: false, error: "insufficient_credible_candidates" };
     }
 
-    // AI explanations (best-effort).
+    // Build the user's taste clusters and pick the MOST RELEVANT anchor per
+    // candidate (multi-cluster, with anti-repeat variety) instead of citing the
+    // single most-played game for everything.
+    const clusters = await buildTasteClusters(profile, rawgApiKey);
+    const usage = new Map<string, number>();
+    const enriched = chosen.map((c) => ({ c, ...enrichCandidate(clusters, c, usage) }));
+
+    // AI explanations (best-effort) — fed the precomputed anchor hint per pick.
     const ai = await explainWeeklyPicksWithAi({
       profile,
-      candidates: chosen.map((c) => ({
+      candidates: enriched.map(({ c, match }) => ({
         id: String(c.id),
         title: c.name,
         genres: candidateGenres(c),
         tags: candidateTags(c),
+        anchorHint: match ? describeMatch(match) : undefined,
       })),
     });
     const aiById = new Map((ai?.picks ?? []).map((p) => [p.id, p]));
 
-    const picks: WeeklyPickCardData[] = chosen.map((c) => {
-      const enriched = aiById.get(String(c.id));
+    const picks: WeeklyPickCardData[] = enriched.map(({ c, match, fit }) => {
+      const aiPick = aiById.get(String(c.id));
+      const deterministicReasons = match
+        ? contextualReasons(match, c.id)
+        : clusters.available
+          ? genericTasteReason(profile, c, c.id)
+          : deterministicWhyPicked(profile, c);
       return {
         id: `rawg-${c.id}`,
         title: c.name,
         image: candidateImage(c)!,
-        matchScore: enriched?.matchScore ?? baseMatchScore(c),
-        category: enriched?.category || primaryGenre(c),
-        whyPicked:
-          enriched?.whyPicked?.length ? enriched.whyPicked.slice(0, 3) : deterministicWhyPicked(profile, c),
-        possibleConcerns: enriched?.possibleConcerns?.slice(0, 2) ?? [],
+        matchScore:
+          aiPick?.matchScore ?? (clusters.available ? matchScoreFromFit(fit) : baseMatchScore(c)),
+        category: aiPick?.category || primaryGenre(c),
+        whyPicked: aiPick?.whyPicked?.length ? aiPick.whyPicked.slice(0, 3) : deterministicReasons,
+        possibleConcerns: aiPick?.possibleConcerns?.slice(0, 2) ?? [],
       };
     });
 
@@ -272,6 +354,33 @@ function whyNowText(opts: { discountPercent: number | null; hasPrice: boolean; i
 }
 
 /**
+ * Deal ranking score encoding the required priority order:
+ *   1) taste fit (dominant), 2) a real live deal, 3) historical price
+ *   attractiveness (discount depth), 4) general popularity (tie-break).
+ * The deal weight is large enough that a game with NO real deal can't outrank a
+ * comparable game that has one — so no-deal games never dominate the page.
+ */
+function dealComposite(opts: {
+  fit: number;
+  label: DealLabel;
+  discountPercent: number;
+  popularityNorm: number;
+  intent: boolean;
+}): number {
+  const dealScore =
+    opts.label === "Great deal"
+      ? 1
+      : opts.label === "Good price"
+        ? 0.7
+        : opts.label === "Price found"
+          ? 0.35
+          : 0; // "Watch price" — no real price/deal
+  const historical = clamp01(opts.discountPercent / 60);
+  const intentBoost = opts.intent ? 0.08 : 0;
+  return opts.fit * 1.0 + dealScore * 0.5 + historical * 0.15 + opts.popularityNorm * 0.05 + intentBoost;
+}
+
+/**
  * Deals For You — "games that fit your taste, then the best prices for them".
  *
  * Pipeline: taste profile → broad taste-matched candidate pool (tracked/saved
@@ -322,9 +431,13 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
 
     if (candidates.length === 0) return { ok: false, error: "no_deal_candidates" };
 
+    // Multi-cluster taste model (shared with Weekly Picks): picks the most
+    // relevant owned game per candidate instead of one anchor for everything.
+    const clusters = await buildTasteClusters(profile, rawgApiKey);
+
     const toEnrich = candidates.slice(0, MAX_DEAL_TITLES + 4);
 
-    const built = await Promise.all(
+    const enrichedCandidates = await Promise.all(
       toEnrich.map(async (cand) => {
         let rawg = cand.rawg;
         if (!rawg) {
@@ -375,67 +488,129 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
 
         const hasPrice = !Number.isNaN(newPrice);
         const label = dealLabelFor(discountPercent, hasPrice);
-        const matchScore = rawg ? baseMatchScore(rawg) : cand.intent ? 80 : 72;
 
-        const card: DealCardData = {
-          id: `deal-${rawg?.id ?? norm(cand.title).replace(/\s+/g, "-")}`,
-          title: cand.title,
+        // Real taste fit from gameplay clusters; tracked/saved (intent) is an
+        // explicit fit signal, so it gets a strong floor.
+        const candDims = candidateDimensions(
+          rawg ? candidateGenres(rawg) : [],
+          rawg ? candidateTags(rawg) : []
+        );
+        const rawFit = tasteFitScore(clusters, candDims);
+        const fit = cand.intent ? Math.max(0.78, rawFit) : rawFit;
+
+        return {
+          rawg,
+          candDims,
           image,
-          matchScore,
-          whyDealFits: rawg
-            ? deterministicWhyPicked(profile, rawg)
-            : ["On your tracked/saved list, matched to your taste"],
-          dealLabel: label,
-          newPrice: hasPrice ? `$${newPrice.toFixed(2)}` : undefined,
-          oldPrice: !Number.isNaN(oldPrice) ? `$${oldPrice.toFixed(2)}` : undefined,
-          discount: discountPercent != null ? `-${discountPercent}%` : undefined,
-          dealUrl,
-          whyNow: whyNowText({ discountPercent, hasPrice, intent: cand.intent }),
-          confidence: dealConfidence(matchScore),
+          title: cand.title,
+          intent: cand.intent,
+          label,
+          discountPercent: discountPercent ?? 0,
+          hasPrice,
+          newPrice,
+          oldPrice,
           store,
+          dealUrl,
+          fit,
+          popularity: typeof rawg?.added === "number" ? rawg.added : 0,
         };
-        const priceRank =
-          label === "Great deal" ? 3 : label === "Good price" ? 2 : label === "Price found" ? 1 : 0;
-        return { card, genres: rawg ? candidateGenres(rawg) : [], discountPercent: discountPercent ?? 0, priceRank };
       })
     );
 
-    const valid = built.filter((b): b is NonNullable<typeof b> => b !== null);
+    const valid = enrichedCandidates.filter((b): b is NonNullable<typeof b> => b !== null);
     if (valid.length === 0) return { ok: false, error: "no_deal_candidates" };
 
-    // Rank: TASTE FIT first, price/deal quality second.
-    valid.sort((a, b) => b.card.matchScore - a.card.matchScore || b.priceRank - a.priceRank);
+    // RANK by priority: (1) taste fit, (2) a real live deal, (3) historical
+    // discount depth, (4) general popularity. A no-deal game can't dominate a
+    // comparable game that has a real discount.
+    const maxPop = Math.max(1, ...valid.map((v) => v.popularity));
+    const composite = (v: (typeof valid)[number]) =>
+      dealComposite({
+        fit: v.fit,
+        label: v.label,
+        discountPercent: v.discountPercent,
+        popularityNorm: v.popularity / maxPop,
+        intent: v.intent,
+      });
+    valid.sort((a, b) => composite(b) - composite(a));
     const top = valid.slice(0, MAX_DEALS);
 
-    // AI re-rank + personalized copy (best-effort; deterministic copy stands in).
+    // Assign the most-relevant anchor + reasons in DISPLAY order (anti-repeat
+    // variety), then build the final cards.
+    const dealUsage = new Map<string, number>();
+    const cards = top.map((v) => {
+      const match = chooseAnchor(clusters, v.candDims, dealUsage);
+      if (match) dealUsage.set(match.anchor.title, (dealUsage.get(match.anchor.title) ?? 0) + 1);
+      const whyDealFits = match
+        ? contextualReasons(match, v.rawg?.id ?? hashSeed(v.title))
+        : v.rawg
+          ? clusters.available
+            ? genericTasteReason(profile, v.rawg, v.rawg.id)
+            : deterministicWhyPicked(profile, v.rawg)
+          : ["On your tracked or saved list, matched to your taste."];
+      const matchScore =
+        clusters.available || v.intent
+          ? matchScoreFromFit(v.fit)
+          : v.rawg
+            ? baseMatchScore(v.rawg)
+            : 72;
+      const card: DealCardData = {
+        id: `deal-${v.rawg?.id ?? norm(v.title).replace(/\s+/g, "-")}`,
+        title: v.title,
+        image: v.image,
+        matchScore,
+        whyDealFits,
+        dealLabel: v.label,
+        newPrice: v.hasPrice ? `$${v.newPrice.toFixed(2)}` : undefined,
+        oldPrice: !Number.isNaN(v.oldPrice) ? `$${v.oldPrice.toFixed(2)}` : undefined,
+        discount: v.discountPercent ? `-${v.discountPercent}%` : undefined,
+        dealUrl: v.dealUrl,
+        whyNow: whyNowText({
+          discountPercent: v.discountPercent || null,
+          hasPrice: v.hasPrice,
+          intent: v.intent,
+        }),
+        confidence: dealConfidence(matchScore),
+        store: v.store,
+      };
+      return {
+        card,
+        match,
+        genres: v.rawg ? candidateGenres(v.rawg) : [],
+        discountPercent: v.discountPercent,
+        label: v.label,
+      };
+    });
+
+    // AI personalizes COPY only — the app keeps the deterministic priority order
+    // above so a no-deal game can never be promoted over real discounts.
     const ai = await rankDealsWithAi({
       profile,
-      deals: top.map((v) => ({
+      deals: cards.map((v) => ({
         id: v.card.id,
         title: v.card.title,
         discountPercent: v.discountPercent,
         genres: v.genres,
+        anchorHint: v.match ? describeMatch(v.match) : undefined,
+        hasRealDeal: v.label === "Great deal" || v.label === "Good price",
       })),
     });
 
     let deals: DealCardData[];
     if (ai?.deals?.length) {
-      const order = new Map(ai.deals.map((d, i) => [d.id, i]));
       const aiById = new Map(ai.deals.map((d) => [d.id, d]));
-      deals = top
-        .map((v) => {
-          const enriched = aiById.get(v.card.id);
-          return {
-            ...v.card,
-            matchScore: enriched?.matchScore ?? v.card.matchScore,
-            whyDealFits: enriched?.whyDealFits?.slice(0, 3) ?? v.card.whyDealFits,
-            whyNow: enriched?.whyNow || v.card.whyNow,
-            confidence: enriched?.confidence ?? v.card.confidence,
-          };
-        })
-        .sort((a, b) => (order.get(a.id) ?? 99) - (order.get(b.id) ?? 99));
+      deals = cards.map((v) => {
+        const e = aiById.get(v.card.id);
+        return {
+          ...v.card,
+          matchScore: e?.matchScore ?? v.card.matchScore,
+          whyDealFits: e?.whyDealFits?.slice(0, 3) ?? v.card.whyDealFits,
+          whyNow: e?.whyNow || v.card.whyNow,
+          confidence: e?.confidence ?? v.card.confidence,
+        };
+      });
     } else {
-      deals = top.map((v) => v.card);
+      deals = cards.map((v) => v.card);
     }
 
     const pricedCount = deals.filter((d) => d.newPrice).length;

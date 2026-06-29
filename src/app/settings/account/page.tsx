@@ -150,10 +150,18 @@ export default function AccountSettingsPage() {
   }
 
   if (!ready) {
+    // Loading state uses the SAME shell + cinematic account background as the
+    // final page so there is no background flash on entry (no default ambient).
     return (
-      <AppPageShell>
-        <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-600 dark:text-slate-400">
-          Loading…
+      <AppPageShell hideAmbient>
+        <div className="gp-accent-page relative isolate min-h-0 flex-1 overflow-hidden">
+          {/* Fixed cinematic background — SAME image in light + dark. */}
+          <div aria-hidden className="gp-account-bg" />
+          <AppSection maxWidth="max-w-3xl">
+            <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-300">
+              Loading…
+            </div>
+          </AppSection>
         </div>
       </AppPageShell>
     );
