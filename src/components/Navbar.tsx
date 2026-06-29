@@ -452,9 +452,12 @@ export default function Navbar({
             <span className="text-[color:var(--page-accent-text)]">AI</span>
           </span>
           {/* Early Access badge is hidden on small phones (it caused the brand
-           * to wrap/stack). It appears inline from sm upward, where there's room. */}
+           * to wrap/stack). It appears inline from sm upward, where there's room.
+           * The parent centres geometrically, but the wordmark's cap-height optical
+           * centre sits ~1px above the line-box centre, so a tiny downward nudge
+           * (translate-y) visually aligns the badge with the "GamePing AI" caps. */}
           <span
-            className={`hidden w-fit shrink-0 items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.22em] [text-indent:0.22em] sm:inline-flex ${
+            className={`hidden w-fit shrink-0 translate-y-[1px] items-center justify-center rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase leading-none tracking-[0.22em] [text-indent:0.22em] sm:inline-flex ${
               isLight
                 ? "border-slate-200 bg-slate-50 text-slate-600"
                 : "border-white/10 bg-white/[0.04] text-white/70"

@@ -611,7 +611,7 @@ export default function UpgradePage() {
 
         <section className={UPGRADE_STEAM_SECTION}>
           <div className="relative z-10 mx-auto w-full max-w-5xl">
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-violet-600 dark:text-violet-300">
+            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-[#8a6a14] dark:text-amber-300">
               Premium personalization
             </p>
             <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white md:text-4xl gp-home-display">

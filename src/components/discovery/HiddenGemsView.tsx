@@ -12,7 +12,6 @@ import {
   APP_PRIMARY_CTA_ACCENT_SM,
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
-import DiscoveryComingSoonBadge from "@/components/discovery/DiscoveryComingSoonBadge";
 import DiscoveryCover from "@/components/discovery/DiscoveryCover";
 import DiscoveryRotationMeta, {
   type DiscoveryRotationMetaData,
@@ -269,20 +268,19 @@ export default function HiddenGemsView({
         )}
       </section>
 
-      {/* 5 — Future data note */}
-      <section className={`mt-12 ${APP_CARD_LG}`} aria-labelledby="hidden-gems-future">
+      {/* 5 — Fresh-discovery note */}
+      <section className={`mt-12 ${APP_CARD_LG}`} aria-labelledby="hidden-gems-fresh">
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
-            What&apos;s next
+            Fresh hidden-gem discovery
           </p>
-          <DiscoveryComingSoonBadge />
         </div>
-        <h2 id="hidden-gems-future" className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
-          Automatic hidden-gem discovery
+        <h2 id="hidden-gems-fresh" className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
+          Overlooked games, surfaced for you
         </h2>
         <p className={`mt-3 max-w-2xl ${APP_MUTED}`}>
-          Soon, this page will combine store data, player signals, and GamePing&apos;s AI taste
-          analysis to surface overlooked games automatically.
+          GamePing refreshes this page with overlooked games worth your time, combining store data,
+          player signals, and AI taste analysis.
         </p>
       </section>
     </AppSection>

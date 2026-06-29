@@ -5,6 +5,7 @@ import {
   APP_BODY,
   APP_CALLOUT,
   APP_INLINE_LINK,
+  APP_KICKER,
   APP_MUTED,
   APP_PAGE_TITLE,
   APP_PROSE_HEADING,
@@ -22,7 +23,7 @@ export default function AffiliateDisclosurePage() {
   return (
     <AppPageShell>
       <AppSection maxWidth="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700 dark:text-violet-300">Legal</p>
+        <p className={APP_KICKER}>Legal</p>
         <h1 className={APP_PAGE_TITLE}>Affiliate disclosure</h1>
 
         <p className={`mt-4 ${APP_MUTED}`}>Last updated: {LEGAL_LAST_UPDATED}</p>

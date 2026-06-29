@@ -22,14 +22,14 @@ const PREMIUM_FEATURES = [
 
 export default function PremiumComingSoonPanel() {
   return (
-    <div className="mt-6 rounded-2xl border border-cyan-400/30 bg-white bg-gradient-to-br p-5 shadow-sm dark:bg-slate-950/40 dark:border-cyan-500/20 dark:from-cyan-950/20 dark:via-slate-950/40 dark:to-violet-950/15">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">
+    <div className="mt-6 rounded-2xl border border-amber-300/50 bg-white bg-gradient-to-br p-5 shadow-sm dark:bg-slate-950/40 dark:border-amber-500/20 dark:from-amber-950/20 dark:via-slate-950/40 dark:to-amber-950/10">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#8a6a14] dark:text-amber-300">
         Included with Premium
       </p>
       <ul className="mt-4 space-y-3">
         {PREMIUM_FEATURES.map((feature) => (
           <li key={feature.title} className="flex gap-3">
-            <span className="mt-0.5 shrink-0 text-cyan-600 dark:text-cyan-400" aria-hidden>
+            <span className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden>
               ✓
             </span>
             <div>

@@ -46,10 +46,10 @@ export default function ContactPage() {
           </div>
 
           <div className={APP_CARD_LG}>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">
+            <p className={`text-xs font-semibold uppercase tracking-[0.35em] ${APP_ACCENT}`}>
               Privacy &amp; data rights
             </p>
-            <p className="mt-2 break-all text-lg font-bold text-violet-700">privacy@gamepingai.com</p>
+            <p className={`mt-2 break-all text-lg font-bold ${APP_ACCENT}`}>privacy@gamepingai.com</p>
             <p className={`mt-2 ${APP_BODY_SM}`}>
               Access, correction, deletion assistance, portability questions, and GDPR/UK GDPR
               requests. For fastest account removal, use{" "}
@@ -70,7 +70,7 @@ export default function ContactPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-cyan-200/80 bg-cyan-50/60 p-6">
+          <div className={APP_CARD_LG}>
             <p className={`text-xs font-semibold uppercase tracking-[0.35em] ${APP_ACCENT}`}>
               Billing &amp; refunds
             </p>

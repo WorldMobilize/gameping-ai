@@ -34,6 +34,17 @@ export const RECOMMEND_FILTER_PLATFORM_UNSELECTED =
 export const RECOMMEND_FILTER_BUDGET_PANEL =
   "rounded-2xl border border-slate-200/90 bg-slate-50/80 p-5 dark:border-slate-700/80 dark:bg-slate-900/50";
 
+// Budget slider: thumb/track follow the page accent (green here) and the native
+// focus outline is replaced with a soft, rounded page-accent ring so the focus
+// stays keyboard-visible without the ugly browser-default rectangle.
+export const RECOMMEND_FILTER_BUDGET_RANGE =
+  "mt-6 w-full cursor-pointer rounded-full accent-[color:var(--page-accent)] outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent";
+
+// Budget number input: same shape as APP_INPUT but the focus border/ring follow
+// the page accent instead of the global cyan, so it matches the recommend page.
+export const RECOMMEND_FILTER_BUDGET_INPUT =
+  "mt-5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[color:var(--page-accent-border)] focus:ring-2 focus:ring-[color:var(--page-accent-soft)] dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder:text-slate-500";
+
 export const RECOMMEND_FILTER_TAG_ACTIVE =
   "bg-gradient-to-r from-green-600 to-green-500 text-white shadow-sm shadow-green-600/20";
 

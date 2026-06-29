@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 const PREMIUM_CARD =
   "flex h-full flex-col rounded-3xl border border-slate-200/80 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] sm:p-7";
 const CHIP =
-  "inline-flex rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-700 dark:text-cyan-200";
+  "inline-flex rounded-full border border-amber-400/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-[#8a6a14] dark:text-amber-200";
 const CHIP_MUTED =
   "inline-flex rounded-full border border-slate-200/80 bg-white/70 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300";
 const ACTIVE_PILL =
@@ -117,7 +117,7 @@ export default function PremiumFeatureCards() {
       {/* Card 1 — Steam Library Sync */}
       <article className={PREMIUM_CARD}>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-violet-600 dark:text-violet-300">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#8a6a14] dark:text-amber-300">
             Personalization source
           </p>
           {connected ? (
@@ -135,13 +135,13 @@ export default function PremiumFeatureCards() {
         {connected ? (
           <div className="mt-5 grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
-              <p className="text-2xl font-extrabold tabular-nums text-cyan-700 dark:text-cyan-300">
+              <p className="text-2xl font-extrabold tabular-nums text-amber-700 dark:text-amber-300">
                 {library?.gameCount ?? 0}
               </p>
               <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">games synced</p>
             </div>
             <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
-              <p className="text-2xl font-extrabold tabular-nums text-cyan-700 dark:text-cyan-300">
+              <p className="text-2xl font-extrabold tabular-nums text-amber-700 dark:text-amber-300">
                 {formatHours(library?.totalPlaytimeMin ?? 0)}
               </p>
               <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">total playtime</p>
@@ -189,7 +189,7 @@ export default function PremiumFeatureCards() {
           <ul className="mt-2 space-y-1.5">
             {["Weekly Picks", "Deals For You", "Monthly Recap"].map((f) => (
               <li key={f} className="flex items-center gap-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
-                <span aria-hidden className="text-cyan-600 dark:text-cyan-400">
+                <span aria-hidden className="text-amber-600 dark:text-amber-400">
                   ✓
                 </span>
                 {f}
@@ -201,7 +201,7 @@ export default function PremiumFeatureCards() {
         <div className="mt-auto pt-6">
           <Link
             href="/settings/account#steam-library-import"
-            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-amber-400 to-amber-600 px-6 py-3 text-sm font-semibold text-[#3a2c08] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
           >
             {connected ? "Manage Steam sync" : "Connect your Steam library"}
           </Link>
@@ -210,7 +210,7 @@ export default function PremiumFeatureCards() {
 
       {/* Card 2 — GamePing DNA */}
       <article className={PREMIUM_CARD}>
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-violet-600 dark:text-violet-300">
+        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#8a6a14] dark:text-amber-300">
           Your gaming identity
         </p>
         <h3 className="mt-3 text-2xl font-extrabold text-slate-900 dark:text-white">GamePing DNA</h3>
@@ -219,8 +219,8 @@ export default function PremiumFeatureCards() {
         </p>
 
         {dna?.playerArchetype ? (
-          <div className="mt-5 rounded-2xl border border-violet-400/30 bg-violet-500/10 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-violet-600 dark:text-violet-300">
+          <div className="mt-5 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8a6a14] dark:text-amber-300">
               You are
             </p>
             <p className="mt-1 text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white">

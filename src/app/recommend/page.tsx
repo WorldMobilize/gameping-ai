@@ -14,7 +14,9 @@ import {
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
 import {
+  RECOMMEND_FILTER_BUDGET_INPUT,
   RECOMMEND_FILTER_BUDGET_PANEL,
+  RECOMMEND_FILTER_BUDGET_RANGE,
   RECOMMEND_FILTER_OPTION_BASE,
   RECOMMEND_FILTER_PLATFORM_SELECTED,
   RECOMMEND_FILTER_PLATFORM_UNSELECTED,
@@ -1252,7 +1254,13 @@ export default function RecommendPage() {
                     <button
                       key={platform.name}
                       type="button"
-                      onClick={() => updateField("platform", platform.name)}
+                      aria-pressed={form.platform === platform.name}
+                      onClick={() =>
+                        updateField(
+                          "platform",
+                          form.platform === platform.name ? "" : platform.name
+                        )
+                      }
                       className={`${RECOMMEND_FILTER_OPTION_BASE} ${
                         form.platform === platform.name
                           ? RECOMMEND_FILTER_PLATFORM_SELECTED
@@ -1297,14 +1305,14 @@ export default function RecommendPage() {
                     aria-label="Maximum budget in dollars (slider)"
                     value={form.budget}
                     onChange={(e) => updateField("budget", e.target.value)}
-                    className="mt-6 w-full accent-green-600"
+                    className={RECOMMEND_FILTER_BUDGET_RANGE}
                   />
 
                   <input
                     type="number"
                     placeholder="e.g. 20"
                     aria-label="Maximum budget in dollars"
-                    className={`${APP_INPUT} mt-5`}
+                    className={RECOMMEND_FILTER_BUDGET_INPUT}
                     value={form.budget}
                     onChange={(e) => updateField("budget", e.target.value)}
                   />

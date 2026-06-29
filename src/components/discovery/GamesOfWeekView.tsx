@@ -270,17 +270,17 @@ export default function GamesOfWeekView({
         )}
       </section>
 
-      {/* 5 — Always-fresh note */}
-      <section className={`mt-12 ${APP_CARD_LG}`} aria-labelledby="gotw-future">
+      {/* 5 — Updated-weekly note */}
+      <section className={`mt-12 ${APP_CARD_LG}`} aria-labelledby="gotw-fresh">
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
-          Always fresh
+          Updated weekly
         </p>
-        <h2 id="gotw-future" className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
-          A rotating set of weekly picks
+        <h2 id="gotw-fresh" className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
+          A rotating set of picks
         </h2>
         <p className={`mt-3 max-w-2xl ${APP_MUTED}`}>
-          This page highlights a rotating set of weekly picks from GamePing, curated from deal
-          data and discovery signals. Check back for new games.
+          GamePing refreshes this page every week with new discovery signals, pulling standout
+          deals and overlooked games worth your attention right now.
         </p>
       </section>
     </AppSection>

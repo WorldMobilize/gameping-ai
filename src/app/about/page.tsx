@@ -50,7 +50,7 @@ export default function AboutPage() {
           </div>
 
           <div className={APP_CARD_LG}>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">
+            <p className={`text-xs font-semibold uppercase tracking-[0.35em] ${APP_ACCENT}`}>
               Track
             </p>
             <h2 className={`mt-3 ${APP_PROSE_HEADING}`}>Save searches for later</h2>
@@ -60,7 +60,7 @@ export default function AboutPage() {
           </div>
 
           <div className={APP_CARD_LG}>
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">
+            <p className={`text-xs font-semibold uppercase tracking-[0.35em] ${APP_ACCENT}`}>
               Alerts
             </p>
             <h2 className={`mt-3 ${APP_PROSE_HEADING}`}>Future deal alerts</h2>
