@@ -36,7 +36,7 @@ export default function FloatingFeedbackButton() {
         "bg-[#0a0b14]/90 text-sm font-bold text-white/80 shadow-[0_4px_24px_rgba(0,0,0,0.45)]",
         "backdrop-blur-md transition hover:border-cyan-400/35 hover:text-cyan-200",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60",
-        "bottom-5 left-4 h-10 w-10 sm:left-auto sm:right-6 sm:h-auto sm:w-auto sm:px-4 sm:py-2.5",
+        "bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-4 h-10 w-10 sm:left-auto sm:right-6 sm:h-auto sm:w-auto sm:px-4 sm:py-2.5",
         cookieBannerVisible ? "sm:bottom-32" : "sm:bottom-6",
       ].join(" ")}
     >

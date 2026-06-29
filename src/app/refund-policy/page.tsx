@@ -22,7 +22,7 @@ export default function RefundPolicyPage() {
   return (
     <AppPageShell>
       <AppSection maxWidth="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">Legal</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700 dark:text-violet-300">Legal</p>
         <h1 className={APP_PAGE_TITLE}>Refund Policy</h1>
 
         <p className={`mt-4 ${APP_MUTED}`}>Last updated: {LEGAL_LAST_UPDATED}</p>
@@ -65,7 +65,7 @@ export default function RefundPolicyPage() {
             <h2 className={APP_PROSE_HEADING}>Contact</h2>
             <p className="mt-3">
               Email{" "}
-              <span className="font-bold text-slate-900">support@gamepingai.com</span> for billing or
+              <span className="font-bold text-slate-900 dark:text-white">support@gamepingai.com</span> for billing or
               refund questions.
             </p>
           </div>

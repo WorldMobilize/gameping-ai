@@ -193,16 +193,24 @@ export default function CheckEmailPage() {
               Check your email
             </h1>
 
-            <p className="mx-auto mt-4 max-w-[20rem] text-pretty text-sm leading-6 text-slate-700 dark:text-slate-300">
-              We sent a verification link to{" "}
-              {email ? (
-                <span className="font-semibold text-slate-900 dark:text-white">
+            <p className="mx-auto mt-3 max-w-[20rem] text-pretty text-sm leading-6 text-slate-600 dark:text-slate-400">
+              We sent a verification link to
+            </p>
+
+            {email ? (
+              <div className="mx-auto mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-1.5">
+                <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
                   {email}
                 </span>
-              ) : (
-                "your email"
-              )}
-              . Click it to activate your GamePing account.
+              </div>
+            ) : (
+              <p className="mx-auto mt-3 text-sm font-semibold text-slate-900 dark:text-white">
+                your email address
+              </p>
+            )}
+
+            <p className="mx-auto mt-4 max-w-[20rem] text-pretty text-sm leading-6 text-slate-700 dark:text-slate-300">
+              Open the link to activate your GamePing account.
             </p>
 
             <div className="mt-7 flex flex-col items-center gap-3">
@@ -226,13 +234,15 @@ export default function CheckEmailPage() {
               </Link>
             </div>
 
-            <p className="mt-6 text-xs leading-5 text-slate-500 dark:text-slate-400">
-              Check Spam or Promotions if you don&apos;t see it. Still nothing?{" "}
-              <Link href="/contact" className={APP_INLINE_LINK_ACCENT}>
-                Contact support
-              </Link>
-              .
-            </p>
+            <div className="mt-7 border-t border-slate-200/70 pt-5 dark:border-white/10">
+              <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                Check Spam or Promotions if you don&apos;t see it. Still nothing?{" "}
+                <Link href="/contact" className={APP_INLINE_LINK_ACCENT}>
+                  Contact support
+                </Link>
+                .
+              </p>
+            </div>
           </div>
         </AppSection>
       </div>

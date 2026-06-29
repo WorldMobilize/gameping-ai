@@ -27,11 +27,11 @@ import {
 } from "@/lib/discovery/curated-picks";
 
 const ACCENT_BADGE =
-  "inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]";
+  "inline-flex items-center whitespace-nowrap rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]";
 
 // Borderless tag pill — frosted fill only, no outline.
 const VIBE_TAG =
-  "inline-flex items-center rounded-full bg-slate-100/80 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-white/[0.06] dark:text-slate-300";
+  "inline-flex items-center whitespace-nowrap rounded-full bg-slate-100/80 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-white/[0.06] dark:text-slate-300";
 
 const DETAILS_LINK =
   "mt-4 inline-flex w-fit items-center gap-1 text-sm font-bold uppercase tracking-wider text-[color:var(--page-accent-text)] transition-all hover:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] rounded-md";
@@ -77,10 +77,10 @@ function GemCard({ pick }: { pick: HiddenGemPick }) {
         />
       </Link>
       <div className="flex flex-1 flex-col p-5">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
           <span className={ACCENT_BADGE}>{pick.discoveryCategory}</span>
           {pick.priceLabel ? (
-            <span className="text-xs font-bold tabular-nums text-[color:var(--page-accent-text)]">
+            <span className="whitespace-nowrap text-xs font-bold tabular-nums text-[color:var(--page-accent-text)]">
               {pick.priceLabel}
             </span>
           ) : null}
@@ -91,7 +91,7 @@ function GemCard({ pick }: { pick: HiddenGemPick }) {
           </Link>
         </h3>
         <p className={`mt-2 flex-1 text-sm leading-6 ${APP_MUTED}`}>{pick.reason}</p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-3 flex flex-wrap gap-x-1.5 gap-y-1.5">
           {pick.tags.map((tag) => (
             <span key={tag} className={VIBE_TAG}>
               {tag}
@@ -201,10 +201,10 @@ export default function HiddenGemsView({
             />
           </Link>
           <div className="flex flex-col p-6 sm:p-8">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
               <span className={ACCENT_BADGE}>{featured.discoveryCategory}</span>
               {featured.priceLabel ? (
-                <span className="text-sm font-bold tabular-nums text-[color:var(--page-accent-text)]">
+                <span className="whitespace-nowrap text-sm font-bold tabular-nums text-[color:var(--page-accent-text)]">
                   {featured.priceLabel}
                 </span>
               ) : null}

@@ -22,7 +22,7 @@ export default function PrivacyPage() {
   return (
     <AppPageShell>
       <AppSection maxWidth="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">Legal</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700 dark:text-violet-300">Legal</p>
         <h1 className={APP_PAGE_TITLE}>Privacy Policy</h1>
 
         <p className={`mt-4 ${APP_MUTED}`}>Last updated: {LEGAL_LAST_UPDATED}</p>
@@ -39,9 +39,9 @@ export default function PrivacyPage() {
             <h2 className={APP_PROSE_HEADING}>Who we are</h2>
             <p className="mt-3">
               The service is operated as GamePing AI. For privacy requests, contact{" "}
-              <span className="font-bold text-slate-900">privacy@gamepingai.com</span> (preferred for
+              <span className="font-bold text-slate-900 dark:text-white">privacy@gamepingai.com</span> (preferred for
               privacy-specific requests) or{" "}
-              <span className="font-bold text-slate-900">support@gamepingai.com</span> for general
+              <span className="font-bold text-slate-900 dark:text-white">support@gamepingai.com</span> for general
               support.
             </p>
           </div>
@@ -50,27 +50,27 @@ export default function PrivacyPage() {
             <h2 className={APP_PROSE_HEADING}>Data we process</h2>
             <ul className="mt-3 list-disc space-y-2 pl-6">
               <li>
-                <span className="font-bold text-slate-900">Account &amp; authentication</span>: email
+                <span className="font-bold text-slate-900 dark:text-white">Account &amp; authentication</span>: email
                 address, session tokens/cookies via Supabase Auth, and basic profile fields stored
                 in our database (for example plan tier and account email on your profile row).
               </li>
               <li>
-                <span className="font-bold text-slate-900">Saved recommendation runs</span>: the
+                <span className="font-bold text-slate-900 dark:text-white">Saved recommendation runs</span>: the
                 preferences, budgets, tags, and generated results you choose to save to your
                 dashboard.
               </li>
               <li>
-                <span className="font-bold text-slate-900">Recommendation inputs</span>: free-text
+                <span className="font-bold text-slate-900 dark:text-white">Recommendation inputs</span>: free-text
                 prompts and structured filters you submit to generate recommendations.
               </li>
               <li>
-                <span className="font-bold text-slate-900">Tracked games &amp; alerts</span>: titles
+                <span className="font-bold text-slate-900 dark:text-white">Tracked games &amp; alerts</span>: titles
                 (and optional identifiers such as RAWG IDs) you ask us to watch for price-related
                 notifications, plus operational fields used to run checks and avoid duplicate
                 emails.
               </li>
               <li>
-                <span className="font-bold text-slate-900">Outbound clicks</span>: when you use our
+                <span className="font-bold text-slate-900 dark:text-white">Outbound clicks</span>: when you use our
                 outbound redirect to a store, we may log minimal metadata (for example store,
                 game title, and destination) including whether you were signed in—see our{" "}
                 <Link href="/affiliate-disclosure" className={APP_INLINE_LINK}>
@@ -79,17 +79,17 @@ export default function PrivacyPage() {
                 .
               </li>
               <li>
-                <span className="font-bold text-slate-900">Optional marketing / waitlist email</span>:
+                <span className="font-bold text-slate-900 dark:text-white">Optional marketing / waitlist email</span>:
                 if you submit an email through optional flows, we store what you submit for that
                 purpose.
               </li>
               <li>
-                <span className="font-bold text-slate-900">Technical &amp; security logs</span>:
+                <span className="font-bold text-slate-900 dark:text-white">Technical &amp; security logs</span>:
                 limited operational logs (for example errors and abuse-prevention signals) as
                 needed to run the service. We do not sell your personal information.
               </li>
               <li>
-                <span className="font-bold text-slate-900">Payments</span>: if you subscribe to
+                <span className="font-bold text-slate-900 dark:text-white">Payments</span>: if you subscribe to
                 Premium, Stripe processes payment data. We do not store your full card number on
                 GamePing servers.
               </li>
@@ -100,15 +100,15 @@ export default function PrivacyPage() {
             <h2 className={APP_PROSE_HEADING}>Lawful bases (UK/EEA-style framing)</h2>
             <p className="mt-3">
               Where GDPR/UK GDPR applies, we rely on appropriate lawful bases, commonly including:{" "}
-              <span className="font-bold text-slate-900">contract</span> (providing the service you
+              <span className="font-bold text-slate-900 dark:text-white">contract</span> (providing the service you
               request, including accounts, saved searches, and recommendations),{" "}
-              <span className="font-bold text-slate-900">legitimate interests</span> (securing the
+              <span className="font-bold text-slate-900 dark:text-white">legitimate interests</span> (securing the
               product, debugging, understanding aggregated usage, preventing abuse, and
               improving reliability—balanced against your rights), and{" "}
-              <span className="font-bold text-slate-900">consent</span> where we ask for it (for
+              <span className="font-bold text-slate-900 dark:text-white">consent</span> where we ask for it (for
               example non-essential cookies or optional communications when consent is the
               appropriate basis). We may also process certain data where required to comply with{" "}
-              <span className="font-bold text-slate-900">legal obligations</span>.
+              <span className="font-bold text-slate-900 dark:text-white">legal obligations</span>.
             </p>
           </div>
 
@@ -179,7 +179,7 @@ export default function PrivacyPage() {
               Depending on your location, you may have rights to access, rectify, erase, restrict
               processing, object, or port data, and to lodge a complaint with a supervisory
               authority. To exercise rights or ask questions, email{" "}
-              <span className="font-bold text-slate-900">privacy@gamepingai.com</span>. We may need to
+              <span className="font-bold text-slate-900 dark:text-white">privacy@gamepingai.com</span>. We may need to
               verify your request to protect your account.
             </p>
           </div>

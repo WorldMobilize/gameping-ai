@@ -138,7 +138,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
 
       {open ? (
         <div
-          className="fixed inset-0 z-[100] flex items-end justify-center p-4 sm:items-center"
+          className="fixed inset-0 z-[100] flex items-end justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:p-4"
           role="presentation"
         >
           <button
@@ -153,9 +153,9 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             aria-modal="true"
             aria-labelledby={titleId}
             aria-describedby={descId}
-            className="relative z-[101] w-full max-w-lg overflow-hidden rounded-[1.5rem] border border-white/12 bg-[#0a0b14] shadow-[0_0_60px_rgba(34,211,238,0.12)]"
+            className="relative z-[101] flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-[1.5rem] border border-white/12 bg-[#0a0b14] shadow-[0_0_60px_rgba(34,211,238,0.12)]"
           >
-            <div className="border-b border-white/10 px-6 py-5">
+            <div className="shrink-0 border-b border-white/10 px-6 py-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-300/90">
@@ -184,7 +184,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             </div>
 
             {status === "success" ? (
-              <div className="space-y-5 px-6 py-8">
+              <div className="overflow-y-auto px-6 py-8 space-y-5">
                 <p
                   className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold leading-relaxed text-cyan-100"
                   role="status"
@@ -202,7 +202,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4 px-6 py-5">
+              <form onSubmit={handleSubmit} className="overflow-y-auto px-6 py-5 space-y-4">
                 {status === "error" && statusMessage ? (
                   <p
                     className="rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm leading-relaxed text-red-100"

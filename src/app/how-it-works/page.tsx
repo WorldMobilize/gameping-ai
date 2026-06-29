@@ -3,7 +3,9 @@ import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import PageBreadcrumbs from "@/components/PageBreadcrumbs";
 import {
   APP_CARD_INTERACTIVE_LG,
+  APP_CARD_LG,
   APP_PRIMARY_CTA_ACCENT_SM,
+  APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
 import { HOW_IT_WORKS_PAGES } from "@/lib/how-it-works/pages";
 import { buildPublicPageMetadata } from "@/lib/seo/site";
@@ -26,7 +28,7 @@ export default function HowItWorksIndexPage() {
   return (
     <AppPageShell hideAmbient>
       <div className="gp-accent-page relative isolate min-h-0 flex-1 overflow-hidden">
-        <div aria-hidden className="gp-curated-bg" />
+        <div aria-hidden className="gp-landing-bg" />
         <AppSection>
           <PageBreadcrumbs items={BREADCRUMBS} theme="dark" className="mb-6 flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-white/65" />
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
@@ -77,7 +79,7 @@ export default function HowItWorksIndexPage() {
             ))}
           </ul>
 
-          <div className="mt-12 rounded-3xl border border-[color:var(--page-accent-border)] bg-white p-6 dark:bg-slate-900/70">
+          <div className={`mt-12 ${APP_CARD_LG}`}>
             <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
               Ready to find your next game?
             </p>
@@ -88,10 +90,7 @@ export default function HowItWorksIndexPage() {
               <Link href="/recommend" className={APP_PRIMARY_CTA_ACCENT_SM}>
                 Try GamePing
               </Link>
-              <Link
-                href="/upgrade"
-                className="inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] px-5 py-2.5 text-sm font-semibold text-[color:var(--page-accent-text)] transition hover:bg-[var(--page-accent-soft)]"
-              >
+              <Link href="/upgrade" className={APP_SECONDARY_CTA}>
                 See Premium
               </Link>
             </div>

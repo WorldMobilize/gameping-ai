@@ -22,7 +22,7 @@ export default function TermsPage() {
   return (
     <AppPageShell>
       <AppSection maxWidth="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">Legal</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700 dark:text-violet-300">Legal</p>
         <h1 className={APP_PAGE_TITLE}>Terms of Service</h1>
 
         <p className={`mt-4 ${APP_MUTED}`}>Last updated: {LEGAL_LAST_UPDATED}</p>
@@ -58,7 +58,7 @@ export default function TermsPage() {
             <p className="mt-3">
               Recommendations are generated using probabilistic models and third-party data. Outputs
               may be wrong, incomplete, outdated, biased, or not suitable for you.{" "}
-              <span className="font-bold text-slate-900">
+              <span className="font-bold text-slate-900 dark:text-white">
                 Use recommendations at your own discretion
               </span>
               . You are solely responsible for what you play, install, or purchase.
@@ -72,7 +72,7 @@ export default function TermsPage() {
               Retailers control checkout, taxes, regional restrictions, refunds, and fulfillment.
               GamePing does not guarantee any price, discount, stock status, or that a link will
               always resolve to a valid offer.{" "}
-              <span className="font-bold text-slate-900">
+              <span className="font-bold text-slate-900 dark:text-white">
                 Always verify final price and purchase terms on the store before buying.
               </span>
             </p>
@@ -83,7 +83,7 @@ export default function TermsPage() {
             <p className="mt-3">
               You are responsible for safeguarding your credentials and for activity under your
               account. Notify us promptly at{" "}
-              <span className="font-bold text-slate-900">support@gamepingai.com</span> if you suspect
+              <span className="font-bold text-slate-900 dark:text-white">support@gamepingai.com</span> if you suspect
               unauthorized access.
             </p>
           </div>
@@ -109,7 +109,7 @@ export default function TermsPage() {
             <p className="mt-3">
               Premium features may be offered as a recurring subscription where available. Payments
               are processed by Stripe.{" "}
-              <span className="font-bold text-slate-900">
+              <span className="font-bold text-slate-900 dark:text-white">
                 Premium features, limits, and pricing may change over time
               </span>
               ; we will aim to communicate material changes in a reasonable manner, but continued
@@ -144,7 +144,7 @@ export default function TermsPage() {
             <p className="mt-3">
               The Service may be modified, suspended, or discontinued at any time. Third-party APIs
               and infrastructure may experience outages.{" "}
-              <span className="font-bold text-slate-900">
+              <span className="font-bold text-slate-900 dark:text-white">
                 We do not guarantee uptime, error-free operation, or uninterrupted access.
               </span>
             </p>
@@ -211,7 +211,7 @@ export default function TermsPage() {
             <p className="mt-3">
               These Terms are governed by the laws of the jurisdiction stated in your commercial
               agreement with GamePing, or otherwise by the laws applicable to the operating entity,
-              <span className="font-bold text-slate-900"> excluding conflict-of-law rules</span>. You
+              <span className="font-bold text-slate-900 dark:text-white"> excluding conflict-of-law rules</span>. You
               agree to the exclusive jurisdiction and venue of the courts in that jurisdiction for
               disputes—unless mandatory consumer protections in your country require otherwise.
               If you are a consumer, nothing in this section limits rights you cannot waive by
@@ -233,8 +233,8 @@ export default function TermsPage() {
             <h2 className={APP_PROSE_HEADING}>17. Contact</h2>
             <p className="mt-3">
               Questions about these Terms? Email{" "}
-              <span className="font-bold text-slate-900">support@gamepingai.com</span> or{" "}
-              <span className="font-bold text-slate-900">legal@gamepingai.com</span>.
+              <span className="font-bold text-slate-900 dark:text-white">support@gamepingai.com</span> or{" "}
+              <span className="font-bold text-slate-900 dark:text-white">legal@gamepingai.com</span>.
             </p>
           </div>
 

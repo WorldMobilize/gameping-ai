@@ -92,8 +92,8 @@ export default function VerifySuccessPage() {
 
             <p className="mx-auto mt-4 max-w-[20rem] text-pretty text-sm leading-6 text-slate-700 dark:text-slate-300">
               {signedIn === false
-                ? "Your email is verified. Return to GamePing and log in to continue."
-                : "You’re signed in on GamePing. You can safely close this tab."}
+                ? "Your email is verified. Log in to continue."
+                : "Your GamePing account is ready. You can safely close this tab and return to GamePing."}
             </p>
 
             <div className="mt-7 flex flex-col items-center gap-3">

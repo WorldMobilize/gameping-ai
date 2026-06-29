@@ -26,11 +26,11 @@ import {
 } from "@/lib/discovery/curated-picks";
 
 const ACCENT_BADGE =
-  "inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]";
+  "inline-flex items-center whitespace-nowrap rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]";
 
 // Savings/deal note — green carries the "you save" meaning regardless of page accent.
 const DEAL_NOTE =
-  "inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-bold text-green-800 ring-1 ring-green-200/80 dark:bg-green-500/15 dark:text-green-200 dark:ring-green-500/25";
+  "inline-flex items-center whitespace-nowrap rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-bold text-green-800 ring-1 ring-green-200/80 dark:bg-green-500/15 dark:text-green-200 dark:ring-green-500/25";
 
 const DETAILS_LINK =
   "mt-4 inline-flex w-fit items-center gap-1 text-sm font-bold uppercase tracking-wider text-[color:var(--page-accent-text)] transition-all hover:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] rounded-md";
@@ -76,10 +76,10 @@ function WeeklyCard({ pick }: { pick: WeeklyGamePick }) {
         />
       </Link>
       <div className="flex flex-1 flex-col p-5">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
           <span className={ACCENT_BADGE}>{pick.category}</span>
           {pick.priceLabel ? (
-            <span className="text-xs font-bold tabular-nums text-[color:var(--page-accent-text)]">
+            <span className="whitespace-nowrap text-xs font-bold tabular-nums text-[color:var(--page-accent-text)]">
               {pick.priceLabel}
             </span>
           ) : null}
@@ -205,10 +205,10 @@ export default function GamesOfWeekView({
             />
           </Link>
           <div className="flex flex-col p-6 sm:p-8">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
               <span className={ACCENT_BADGE}>{featured.category}</span>
               {featured.priceLabel ? (
-                <span className="text-sm font-bold tabular-nums text-[color:var(--page-accent-text)]">
+                <span className="whitespace-nowrap text-sm font-bold tabular-nums text-[color:var(--page-accent-text)]">
                   {featured.priceLabel}
                 </span>
               ) : null}

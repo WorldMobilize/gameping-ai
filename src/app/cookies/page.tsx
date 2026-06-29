@@ -22,7 +22,7 @@ export default function CookiesPage() {
   return (
     <AppPageShell>
       <AppSection maxWidth="max-w-3xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700">Legal</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-700 dark:text-violet-300">Legal</p>
         <h1 className={APP_PAGE_TITLE}>Cookie Policy</h1>
 
         <p className={`mt-4 ${APP_MUTED}`}>Last updated: {LEGAL_LAST_UPDATED}</p>

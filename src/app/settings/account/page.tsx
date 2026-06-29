@@ -32,11 +32,12 @@ function planLabel(plan: PlanKey): string {
 const DANGER_DELETE_BTN =
   "inline-flex items-center justify-center rounded-full border px-5 py-2.5 text-sm font-semibold shadow-sm backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 border-rose-200 bg-white/80 text-rose-700 hover:border-rose-300 hover:bg-white dark:border-rose-500/30 dark:bg-slate-900/70 dark:text-rose-300 dark:hover:border-rose-500/50 dark:hover:bg-slate-900";
 
-// Final confirmation — the real destructive action, so a stronger solid red.
-// Kept in the GamePing pill system (same rounded shape as every other CTA); the
-// red is muted slightly in dark mode so it reads as dangerous, not neon.
+// Final confirmation — the real destructive action. Kept fully inside the
+// GamePing pill system (same rounded shape, shadow + lift as every other CTA);
+// danger reads through a restrained dark-red fill, a rose border, rose-tinted
+// text and a soft rose glow rather than a bright neon block.
 const DANGER_CONFIRM_BTN =
-  "inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/50 bg-rose-600 hover:bg-rose-500 dark:bg-rose-600/90 dark:hover:bg-rose-500/90 disabled:opacity-50 disabled:hover:translate-y-0";
+  "inline-flex items-center justify-center rounded-full border px-5 py-2.5 text-sm font-semibold shadow-sm backdrop-blur-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 border-rose-300 bg-rose-700/90 text-rose-50 hover:border-rose-400 hover:bg-rose-700 dark:border-rose-500/40 dark:bg-rose-950/70 dark:text-rose-200 dark:shadow-[0_0_0_1px_rgba(244,63,94,0.12)] dark:hover:border-rose-500/60 dark:hover:bg-rose-900/70 disabled:opacity-50 disabled:hover:translate-y-0";
 
 export default function AccountSettingsPage() {
   const router = useRouter();
