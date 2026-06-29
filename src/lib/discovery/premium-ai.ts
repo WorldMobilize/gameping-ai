@@ -106,8 +106,26 @@ export type AiWeeklyResult = {
 /** Per-candidate anchor hint: the user's own game whose gameplay most resembles
  *  this candidate, precomputed from taste clusters. The model should prefer this
  *  anchor (or another clearly better-matching played game) and VARY it across the
- *  list instead of citing one game for everything. */
-export type AiAnchorHint = { title: string; hours: number; facets: string[] };
+ *  list instead of citing one game for everything. `facets` are the ONLY shared
+ *  gameplay aspects that are true; `weak` flags a lighter/adjacent match. */
+export type AiAnchorHint = {
+  title: string;
+  hours: number;
+  facets: string[];
+  anchorNoun?: string;
+  weak?: boolean;
+};
+
+// Truthfulness rules shared by both explainers. The app pre-computes, for each
+// candidate, the STRICT set of gameplay features it actually has
+// ('supportedFeatures') and whether the anchor match is weak ('weakMatch').
+const TRUTHFULNESS_RULES =
+  "TRUTHFULNESS (hard rules): " +
+  "Each candidate lists 'supportedFeatures' — the ONLY gameplay features you may attribute to it. " +
+  "NEVER claim co-op/multiplayer, open world, build freedom/agency, sandbox/emergent play, horror/tension, or simulation/management unless that feature is in supportedFeatures. " +
+  "NEVER describe a linear or single-player game as offering freedom, agency, or co-op. Never invent a similarity to make a fit sound stronger. " +
+  "If 'weakMatch' is true (or there is no anchorHint), this is a LIGHTER / ADJACENT recommendation: say so honestly (e.g. 'a lighter, adjacent pick'), prefer an honest tradeoff over a fake fit, and keep matchScore modest (below 80). " +
+  "matchScore must reflect REAL gameplay overlap, not how good the game is — a great game with weak overlap is still a weak fit; reserve 90+ for strong, genuinely shared gameplay. ";
 
 export async function explainWeeklyPicksWithAi(params: {
   profile: UserTasteProfile;
@@ -117,6 +135,8 @@ export async function explainWeeklyPicksWithAi(params: {
     genres: string[];
     tags: string[];
     anchorHint?: AiAnchorHint;
+    supportedFeatures: string[];
+    weakMatch: boolean;
   }[];
 }): Promise<AiWeeklyResult | null> {
   const system =
@@ -124,11 +144,12 @@ export async function explainWeeklyPicksWithAi(params: {
     "The user's library spans SEVERAL distinct taste clusters (e.g. survival, RPG, simulation, horror, shooter). For EACH candidate, FIRST decide which of the user's own games is the closest match by GAMEPLAY — mechanics, progression style, player agency, pacing, long-term goals, exploration, emergent gameplay, survival systems, or simulation depth — NOT by shared marketing tags or popularity. " +
     "Each candidate may include an 'anchorHint' (the precomputed best-matching played game and the gameplay facets they share). Prefer it, unless another played game is clearly a better gameplay match. " +
     "CRITICAL: do NOT anchor most picks to the same game. A soulslike must not be justified by a survival sandbox; a horror game should reference their horror games; an RPG should reference their RPGs. If a candidate matches NONE of their games well, ground the reason in a preferred genre/mechanic instead — never force an unrelated game. " +
+    TRUTHFULNESS_RULES +
     "Then write 2-3 reasons it fits THIS user, each naming the concrete signal (the matched played game + the shared gameplay emphasis, or a preferred genre/mechanic) and what specifically carries over. " +
     `BAN generic, reputation-based phrases that say nothing about this user, e.g. ${BANNED_REASON_PHRASES}. ` +
     "Never claim the user owns/played a game that isn't in the provided signals. Keep each reason one short sentence, and make every pick's reasons feel individually written. " +
     'Respond as JSON: {"headline": string (<=8 words), "summary": string (<=240 chars, why these picks for this user this week), ' +
-    '"picks": [{"id": string, "matchScore": number 60-97, "category": string (<=3 words), "whyPicked": string[] (2-3 personalized reasons), "possibleConcerns": string[] (0-2 short caveats)}]}.';
+    '"picks": [{"id": string, "matchScore": number 55-97, "category": string (<=3 words), "whyPicked": string[] (2-3 personalized reasons), "possibleConcerns": string[] (0-2 short caveats)}]}.';
   const user = JSON.stringify({
     taste: tasteContext(params.profile),
     candidates: params.candidates.slice(0, 10),
@@ -161,16 +182,20 @@ export async function rankDealsWithAi(params: {
     genres: string[];
     anchorHint?: AiAnchorHint;
     hasRealDeal?: boolean;
+    supportedFeatures: string[];
+    weakMatch: boolean;
   }[];
 }): Promise<AiDealRanking | null> {
   const system =
     "You are GamePing's premium deal curator. You are given a user's taste profile (played-with-hours, tracked, saved, preferred genres/mechanics) and games with their best current price (some are genuinely discounted; some are merely priced). " +
     "Write copy ONLY — the final ordering is decided by the app from taste fit + real-deal quality, so you do not need to reorder, but you must keep reasons honest about whether a real discount exists ('hasRealDeal'). " +
+    "Separate the TWO questions clearly: 'whyDealFits' = why it fits the user's TASTE; 'whyNow' = the PRICE/timing reason. Do not conflate them. " +
     "For 'whyDealFits' (2-3 reasons): match each game to the user's CLOSEST game by GAMEPLAY — mechanics, progression, player agency, pacing, survival/simulation depth — not by tags or popularity; prefer the provided 'anchorHint', and VARY the anchor across deals (don't cite one game for everything). If nothing matches well, ground it in a preferred genre/mechanic. " +
+    TRUTHFULNESS_RULES +
     "'whyNow' = one short sentence: if hasRealDeal, name the discount/why it's worth acting on; if not, be honest (e.g. 'priced low' or 'track it for the next drop') — never imply a sale that isn't there. 'confidence' = how sure the taste fit is. " +
     `Do not invent prices. BAN generic phrases like ${BANNED_REASON_PHRASES}. ` +
     'Respond as JSON: {"headline": string (<=8 words), "summary": string (<=240 chars), ' +
-    '"deals": [{"id": string, "matchScore": number 60-97, "whyDealFits": string[] (2-3 personalized reasons), "whyNow": string (<=90 chars), "confidence": "high"|"medium"|"low"}]}.';
+    '"deals": [{"id": string, "matchScore": number 55-97, "whyDealFits": string[] (2-3 personalized reasons), "whyNow": string (<=90 chars), "confidence": "high"|"medium"|"low"}]}.';
   const user = JSON.stringify({
     taste: tasteContext(params.profile),
     deals: params.deals.slice(0, 12),

@@ -18,11 +18,14 @@ import {
   type UserTasteProfile,
 } from "@/lib/discovery/user-taste-profile";
 import {
+  assertableFeatures,
   buildTasteClusters,
   candidateDimensions,
   chooseAnchor,
   contextualReasons,
   describeMatch,
+  featureLabels,
+  matchScoreCeiling,
   tasteFitScore,
   type TasteClusters,
 } from "@/lib/discovery/taste-clusters";
@@ -206,19 +209,31 @@ function genericTasteReason(profile: UserTasteProfile, c: RawgCandidate, seed: n
 
 /**
  * Per-candidate taste enrichment shared by Weekly Picks and Deals For You:
- * classify the candidate's gameplay dimensions, pick its MOST RELEVANT anchor
- * (with anti-repeat variety via `usage`), and compute a real taste-fit score.
+ * classify the candidate's gameplay dimensions, compute the STRICT assertable
+ * feature set (what a reason may truthfully claim), pick its most relevant anchor
+ * by real dominant overlap (anti-repeat variety via `usage`), and compute a real
+ * taste-fit score plus an honest match-score ceiling.
  */
 function enrichCandidate(
   clusters: TasteClusters,
   c: RawgCandidate,
   usage: Map<string, number>
 ) {
-  const candDims = candidateDimensions(candidateGenres(c), candidateTags(c));
-  const match = chooseAnchor(clusters, candDims, usage);
+  const genres = candidateGenres(c);
+  const tags = candidateTags(c);
+  const candDims = candidateDimensions(genres, tags);
+  const candAssertable = assertableFeatures(genres, tags);
+  const match = chooseAnchor(clusters, candDims, candAssertable, usage);
   if (match) usage.set(match.anchor.title, (usage.get(match.anchor.title) ?? 0) + 1);
   const fit = tasteFitScore(clusters, candDims, match);
-  return { match, fit };
+  const ceiling = matchScoreCeiling(match);
+  return { match, fit, candAssertable, ceiling };
+}
+
+/** Clamp a (possibly AI-provided) score to the honest ceiling for this overlap. */
+function honestScore(rawScore: number, ceiling: number, clustersAvailable: boolean): number {
+  if (!clustersAvailable) return rawScore;
+  return Math.min(rawScore, ceiling);
 }
 
 // ===========================================================================
@@ -256,32 +271,36 @@ export async function generateWeeklyPicks(userId: string): Promise<GeneratePremi
     const usage = new Map<string, number>();
     const enriched = chosen.map((c) => ({ c, ...enrichCandidate(clusters, c, usage) }));
 
-    // AI explanations (best-effort) — fed the precomputed anchor hint per pick.
+    // AI explanations (best-effort) — fed the precomputed anchor hint, the STRICT
+    // set of features it may claim, and whether the match is weak/adjacent.
     const ai = await explainWeeklyPicksWithAi({
       profile,
-      candidates: enriched.map(({ c, match }) => ({
+      candidates: enriched.map(({ c, match, candAssertable }) => ({
         id: String(c.id),
         title: c.name,
         genres: candidateGenres(c),
         tags: candidateTags(c),
         anchorHint: match ? describeMatch(match) : undefined,
+        supportedFeatures: featureLabels(candAssertable),
+        weakMatch: !match || match.weak,
       })),
     });
     const aiById = new Map((ai?.picks ?? []).map((p) => [p.id, p]));
 
-    const picks: WeeklyPickCardData[] = enriched.map(({ c, match, fit }) => {
+    const picks: WeeklyPickCardData[] = enriched.map(({ c, match, fit, ceiling }) => {
       const aiPick = aiById.get(String(c.id));
       const deterministicReasons = match
         ? contextualReasons(match, c.id)
         : clusters.available
           ? genericTasteReason(profile, c, c.id)
           : deterministicWhyPicked(profile, c);
+      const rawScore = aiPick?.matchScore ?? (clusters.available ? matchScoreFromFit(fit) : baseMatchScore(c));
       return {
         id: `rawg-${c.id}`,
         title: c.name,
         image: candidateImage(c)!,
-        matchScore:
-          aiPick?.matchScore ?? (clusters.available ? matchScoreFromFit(fit) : baseMatchScore(c)),
+        // Honest score: a great game with weak overlap can't show 90%+.
+        matchScore: honestScore(rawScore, ceiling, clusters.available),
         category: aiPick?.category || primaryGenre(c),
         whyPicked: aiPick?.whyPicked?.length ? aiPick.whyPicked.slice(0, 3) : deterministicReasons,
         possibleConcerns: aiPick?.possibleConcerns?.slice(0, 2) ?? [],
@@ -490,17 +509,21 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
         const label = dealLabelFor(discountPercent, hasPrice);
 
         // Real taste fit from gameplay clusters; tracked/saved (intent) is an
-        // explicit fit signal, so it gets a strong floor.
-        const candDims = candidateDimensions(
-          rawg ? candidateGenres(rawg) : [],
-          rawg ? candidateTags(rawg) : []
-        );
-        const rawFit = tasteFitScore(clusters, candDims);
+        // explicit fit signal, so it gets a strong floor. The ranking match is
+        // computed without anti-repeat usage (variety is applied later, in
+        // display order); the strict assertable set gates truthful reasons.
+        const genres = rawg ? candidateGenres(rawg) : [];
+        const tags = rawg ? candidateTags(rawg) : [];
+        const candDims = candidateDimensions(genres, tags);
+        const candAssertable = assertableFeatures(genres, tags);
+        const rankMatch = chooseAnchor(clusters, candDims, candAssertable);
+        const rawFit = tasteFitScore(clusters, candDims, rankMatch);
         const fit = cand.intent ? Math.max(0.78, rawFit) : rawFit;
 
         return {
           rawg,
           candDims,
+          candAssertable,
           image,
           title: cand.title,
           intent: cand.intent,
@@ -539,8 +562,9 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
     // variety), then build the final cards.
     const dealUsage = new Map<string, number>();
     const cards = top.map((v) => {
-      const match = chooseAnchor(clusters, v.candDims, dealUsage);
+      const match = chooseAnchor(clusters, v.candDims, v.candAssertable, dealUsage);
       if (match) dealUsage.set(match.anchor.title, (dealUsage.get(match.anchor.title) ?? 0) + 1);
+      const displayFit = clusters.available ? tasteFitScore(clusters, v.candDims, match) : v.fit;
       const whyDealFits = match
         ? contextualReasons(match, v.rawg?.id ?? hashSeed(v.title))
         : v.rawg
@@ -548,12 +572,17 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
             ? genericTasteReason(profile, v.rawg, v.rawg.id)
             : deterministicWhyPicked(profile, v.rawg)
           : ["On your tracked or saved list, matched to your taste."];
-      const matchScore =
+      const rawScore =
         clusters.available || v.intent
-          ? matchScoreFromFit(v.fit)
+          ? matchScoreFromFit(v.intent ? v.fit : displayFit)
           : v.rawg
             ? baseMatchScore(v.rawg)
             : 72;
+      // Intent (tracked/saved) is an explicit pick, so it keeps a high cap; a
+      // discovery candidate's score is held to the honest overlap ceiling.
+      const matchScore = v.intent
+        ? Math.min(rawScore, 95)
+        : honestScore(rawScore, matchScoreCeiling(match), clusters.available);
       const card: DealCardData = {
         id: `deal-${v.rawg?.id ?? norm(v.title).replace(/\s+/g, "-")}`,
         title: v.title,
@@ -579,11 +608,17 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
         genres: v.rawg ? candidateGenres(v.rawg) : [],
         discountPercent: v.discountPercent,
         label: v.label,
+        intent: v.intent,
+        weak: !match || match.weak,
+        supportedFeatures: featureLabels(v.candAssertable),
+        ceiling: matchScoreCeiling(match),
       };
     });
 
     // AI personalizes COPY only — the app keeps the deterministic priority order
-    // above so a no-deal game can never be promoted over real discounts.
+    // above so a no-deal game can never be promoted over real discounts. The AI
+    // gets the strict claimable-feature set + weak-match flag so it can't invent
+    // similarities, and any score it returns is re-clamped to the honest ceiling.
     const ai = await rankDealsWithAi({
       profile,
       deals: cards.map((v) => ({
@@ -593,6 +628,8 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
         genres: v.genres,
         anchorHint: v.match ? describeMatch(v.match) : undefined,
         hasRealDeal: v.label === "Great deal" || v.label === "Good price",
+        supportedFeatures: v.supportedFeatures,
+        weakMatch: v.weak,
       })),
     });
 
@@ -601,12 +638,14 @@ export async function generateDealsForYou(userId: string): Promise<GeneratePremi
       const aiById = new Map(ai.deals.map((d) => [d.id, d]));
       deals = cards.map((v) => {
         const e = aiById.get(v.card.id);
+        const aiScore = e?.matchScore ?? v.card.matchScore;
+        const matchScore = v.intent ? Math.min(aiScore, 95) : honestScore(aiScore, v.ceiling, true);
         return {
           ...v.card,
-          matchScore: e?.matchScore ?? v.card.matchScore,
+          matchScore,
           whyDealFits: e?.whyDealFits?.slice(0, 3) ?? v.card.whyDealFits,
           whyNow: e?.whyNow || v.card.whyNow,
-          confidence: e?.confidence ?? v.card.confidence,
+          confidence: dealConfidence(matchScore),
         };
       });
     } else {
