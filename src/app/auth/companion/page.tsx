@@ -91,11 +91,14 @@ export default function CompanionAuthPage() {
     return `${APP_PROTOCOL_CALLBACK}#${fragment}`;
   }, [session]);
 
-  const connect = useCallback(() => {
-    if (!deepLink) return;
+  // The primary/fallback controls are real <a href={deepLink}> anchors — a
+  // native click reliably launches the custom protocol (the same mechanism as
+  // the copied/manual link that works). This handler must NOT preventDefault:
+  // it only logs the exact URL and advances the UI while the browser performs
+  // the anchor's default navigation to the app.
+  const handleOpen = useCallback(() => {
     // TEMPORARY DEBUG — log the exact deep link we hand to the desktop app.
     console.log("[companion] Generated deep link:", deepLink);
-    window.location.href = deepLink;
     setStatus("connected");
   }, [deepLink]);
 
@@ -153,13 +156,13 @@ export default function CompanionAuthPage() {
                   This links the desktop Companion app to your GamePing account.
                   Companion asks will be connected to your plan.
                 </p>
-                <button
-                  type="button"
-                  onClick={connect}
+                <a
+                  href={deepLink}
+                  onClick={handleOpen}
                   className={APP_PRIMARY_CTA_ACCENT_SM}
                 >
                   Connect Companion
-                </button>
+                </a>
                 <p className={APP_MUTED}>
                   Your browser may ask for permission to open GamePing Companion.
                 </p>
@@ -173,13 +176,13 @@ export default function CompanionAuthPage() {
                 </p>
                 <p className={APP_MUTED}>
                   Nothing happened?{" "}
-                  <button
-                    type="button"
-                    onClick={connect}
+                  <a
+                    href={deepLink}
+                    onClick={handleOpen}
                     className={APP_INLINE_LINK_ACCENT}
                   >
                     Try connecting again
-                  </button>
+                  </a>
                   .
                 </p>
               </div>
