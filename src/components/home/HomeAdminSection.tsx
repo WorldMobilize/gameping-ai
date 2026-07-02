@@ -81,6 +81,16 @@ export default function HomeAdminSection() {
               Open PING mode
             </Link>
             <Link
+              href="/companion"
+              className={`inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${
+                isDark
+                  ? "bg-amber-500/20 text-amber-200 hover:bg-amber-500/30"
+                  : "bg-amber-200/80 text-amber-900 hover:bg-amber-200"
+              }`}
+            >
+              GamePing Companion
+            </Link>
+            <Link
               href="/dashboard"
               className={`inline-flex items-center justify-center rounded-full border px-5 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${
                 isDark

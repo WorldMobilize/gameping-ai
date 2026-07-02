@@ -3,17 +3,24 @@
  *
  *   GET  /api/admin/companion?q=<title>   → RAWG title search (game picker)
  *   POST /api/admin/companion             → AI companion answer
- *     { "gameTitle": string, "question": string, "mode": "hint" | "guide" | "full" }
+ *     Web UI shape:
+ *       { "gameTitle": string, "question": string, "mode": "hint" | "guide" | "full" }
+ *       → { ok, mode, gameTitle, answer: CompanionAnswer }
+ *     Desktop Companion MVP shape (context.source === "desktop_companion"):
+ *       { "question": string, "context": { "source": "desktop_companion" } }
+ *       → { ok: true, answer: string }
  *
  * An AI companion that helps while you play a game. Stateless — no DB writes, no
  * billing, no premium. Admin session only (profiles.plan = 'admin'); there is no
- * anonymous/public path. Mirrors the existing admin route + OpenAI + RAWG
- * patterns. Does NOT touch /api/recommend, Stripe, premium, or discovery.
+ * anonymous/public path. The OpenAI key stays server-side. Mirrors the existing
+ * admin route + OpenAI + RAWG patterns. Does NOT touch /api/recommend, Stripe,
+ * premium, discovery, or any user quota.
  */
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
 import { searchRawgByTitle } from "@/lib/rawg-discovery";
+import { askCompanion } from "@/lib/companion/ask";
 import type { CompanionAnswer, CompanionMode } from "@/lib/companion/types";
 
 export const dynamic = "force-dynamic";
@@ -94,6 +101,26 @@ function asStringArray(value: unknown): string[] {
     .slice(0, 8);
 }
 
+/**
+ * Desktop Companion branch (legacy path — kept working for parity).
+ *
+ * Simple free-text Q&A: takes a question, returns a plain-text answer string
+ * with proper HTTP status codes (400 / 500). Shares the OpenAI logic with the
+ * real `POST /api/companion/ask` endpoint. Admin auth is verified by the caller.
+ */
+async function handleDesktopCompanion(
+  record: Record<string, unknown>
+): Promise<NextResponse> {
+  const result = await askCompanion(record.question);
+  if (!result.ok) {
+    return NextResponse.json(
+      { ok: false, error: result.error },
+      { status: result.status }
+    );
+  }
+  return NextResponse.json({ ok: true, answer: result.answer });
+}
+
 export async function GET(req: Request) {
   if (!(await hasAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -142,6 +169,15 @@ export async function POST(req: Request) {
     string,
     unknown
   >;
+
+  // Desktop Companion MVP: simple { question } → { ok, answer: string }.
+  const context =
+    record.context && typeof record.context === "object"
+      ? (record.context as Record<string, unknown>)
+      : {};
+  if (context.source === "desktop_companion") {
+    return handleDesktopCompanion(record);
+  }
 
   const gameTitle =
     typeof record.gameTitle === "string" ? record.gameTitle.trim() : "";
