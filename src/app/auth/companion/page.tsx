@@ -161,10 +161,11 @@ export default function CompanionAuthPage() {
                   onClick={handleOpen}
                   className={APP_PRIMARY_CTA_ACCENT_SM}
                 >
-                  Connect Companion
+                  Open GamePing Companion
                 </a>
                 <p className={APP_MUTED}>
-                  Your browser may ask for permission to open GamePing Companion.
+                  Chrome will ask for permission to open GamePing Companion —
+                  choose Open to continue.
                 </p>
               </div>
             )}
