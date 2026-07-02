@@ -91,20 +91,40 @@ export default function CompanionAuthPage() {
     return `${APP_PROTOCOL_CALLBACK}#${fragment}`;
   }, [session]);
 
+  // TEMPORARY DEBUG — prove the exact deep link and its fragment at the moment a
+  // control is used. Every path (primary button, fallback, copy) logs the SAME
+  // `deepLink` string, so these lines confirm byte-for-byte identity and that
+  // the full `#access_token=…&refresh_token=…&token_type=…&expires_at=…` fragment
+  // is present at click time. Remove once the browser→desktop handoff is verified.
+  const logDeepLink = useCallback(
+    (source: "open" | "copy") => {
+      console.log(`[companion] deepLink via ${source}`, {
+        length: deepLink.length,
+        hashIndex: deepLink.indexOf("#"),
+        hasAccessToken: deepLink.includes("access_token="),
+        hasRefreshToken: deepLink.includes("refresh_token="),
+        hasTokenType: deepLink.includes("token_type="),
+        hasExpiresAt: deepLink.includes("expires_at="),
+        deepLink,
+      });
+    },
+    [deepLink]
+  );
+
   // The primary/fallback controls are real <a href={deepLink}> anchors — a
   // native click reliably launches the custom protocol (the same mechanism as
   // the copied/manual link that works). This handler must NOT preventDefault:
   // it only logs the exact URL and advances the UI while the browser performs
   // the anchor's default navigation to the app.
   const handleOpen = useCallback(() => {
-    // TEMPORARY DEBUG — log the exact deep link we hand to the desktop app.
-    console.log("[companion] Generated deep link:", deepLink);
+    logDeepLink("open");
     setStatus("connected");
-  }, [deepLink]);
+  }, [logDeepLink]);
 
   const [copied, setCopied] = useState(false);
   const copyDeepLink = useCallback(async () => {
     if (!deepLink) return;
+    logDeepLink("copy");
     try {
       await navigator.clipboard.writeText(deepLink);
       setCopied(true);
@@ -112,7 +132,7 @@ export default function CompanionAuthPage() {
     } catch {
       // Clipboard blocked — the URL is still visible below to copy manually.
     }
-  }, [deepLink]);
+  }, [deepLink, logDeepLink]);
 
   return (
     <AppPageShell hideAmbient>
