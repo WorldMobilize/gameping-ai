@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { AppSection } from "@/components/app/AppPageShell";
 import {
   APP_CALLOUT,
@@ -8,7 +7,6 @@ import {
   APP_CARD_LG,
   APP_MUTED,
   APP_PRIMARY_CTA_ACCENT_SM,
-  APP_INLINE_LINK_ACCENT,
 } from "@/components/app/app-styles";
 
 /**
@@ -108,7 +106,7 @@ export default function CompanionDownloadView() {
         Ask for help without leaving your game.
       </p>
       <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-700 dark:text-slate-300">
-        A desktop overlay for your games. Press{" "}
+        GamePing Companion is a desktop app for Windows. Press{" "}
         <kbd className="rounded-md border border-slate-300 bg-slate-100 px-1.5 py-0.5 text-sm font-semibold text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
           Alt+G
         </kbd>{" "}
@@ -200,14 +198,6 @@ export default function CompanionDownloadView() {
           ))}
         </ul>
       </div>
-
-      {/* Admin utility — browser tester */}
-      <p className={`mt-8 ${APP_MUTED}`}>
-        <Link href="/companion/web" className={APP_INLINE_LINK_ACCENT}>
-          Try web companion test
-        </Link>{" "}
-        — a browser-only tester for admins.
-      </p>
     </AppSection>
   );
 }
