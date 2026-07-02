@@ -266,6 +266,19 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
                     ))}
                   </div>
                 ) : null}
+                <Link
+                  href="/companion"
+                  onClick={onClose}
+                  className={`mt-1 rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
+                    isSiteNavItemActive(pathname, { label: "Companion", href: "/companion" })
+                      ? "border-cyan-400/50 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200"
+                      : isLight
+                        ? "border-transparent text-slate-700 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-700"
+                        : "border-transparent text-white/80 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-200"
+                  }`}
+                >
+                  Companion
+                </Link>
               </div>
             </>
           ) : null}
