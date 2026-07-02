@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -72,18 +72,44 @@ export default function CompanionAuthPage() {
     };
   }, []);
 
-  const connect = useCallback(() => {
-    if (!session) return;
-    const params = new URLSearchParams({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
-      token_type: "bearer",
-      expires_at: session.expires_at ? String(session.expires_at) : "",
-    });
-    // Fragment, not query string — keeps tokens out of server logs / Referer.
-    window.location.href = `${APP_PROTOCOL_CALLBACK}#${params.toString()}`;
-    setStatus("connected");
+  // The exact deep link we open. Built from the live Supabase session; empty
+  // until an admin session has loaded. Tokens live in the hash fragment (after
+  // `#`), never the query string, so they stay out of server logs / Referer.
+  //
+  // Supabase tokens are URL-safe (JWT = base64url; refresh token = alphanumeric),
+  // so we join the fragment with raw values to match the manual test format
+  // exactly — no percent-encoding, no `+`-for-space surprises from
+  // URLSearchParams. `#` is a literal separator (never encoded as %23).
+  const deepLink = useMemo(() => {
+    if (!session) return "";
+    const fragment = [
+      `access_token=${session.access_token}`,
+      `refresh_token=${session.refresh_token}`,
+      `token_type=bearer`,
+      `expires_at=${session.expires_at ?? ""}`,
+    ].join("&");
+    return `${APP_PROTOCOL_CALLBACK}#${fragment}`;
   }, [session]);
+
+  const connect = useCallback(() => {
+    if (!deepLink) return;
+    // TEMPORARY DEBUG — log the exact deep link we hand to the desktop app.
+    console.log("[companion] Generated deep link:", deepLink);
+    window.location.href = deepLink;
+    setStatus("connected");
+  }, [deepLink]);
+
+  const [copied, setCopied] = useState(false);
+  const copyDeepLink = useCallback(async () => {
+    if (!deepLink) return;
+    try {
+      await navigator.clipboard.writeText(deepLink);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard blocked — the URL is still visible below to copy manually.
+    }
+  }, [deepLink]);
 
   return (
     <AppPageShell hideAmbient>
@@ -156,6 +182,27 @@ export default function CompanionAuthPage() {
                   </button>
                   .
                 </p>
+              </div>
+            )}
+
+            {/* TEMPORARY DEBUG (admin-only) — remove once the handoff is verified.
+             * Only renders when an admin session has produced a deep link. */}
+            {deepLink && (
+              <div className="mt-6 border-t border-dashed border-slate-300/70 pt-4 dark:border-slate-700/70">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[color:var(--page-accent-strong)]">
+                  Debug · admin only
+                </p>
+                <p className={`mt-2 ${APP_MUTED}`}>Generated deep link:</p>
+                <code className="mt-1 block max-h-40 overflow-auto break-all rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
+                  {deepLink}
+                </code>
+                <button
+                  type="button"
+                  onClick={copyDeepLink}
+                  className={`mt-3 ${APP_PRIMARY_CTA_ACCENT_SM}`}
+                >
+                  {copied ? "Copied ✓" : "Copy deep link"}
+                </button>
               </div>
             )}
           </div>
