@@ -4,8 +4,12 @@
  *   OPTIONS /api/companion/ask   → CORS preflight (204)
  *   POST    /api/companion/ask
  *     Auth:    Authorization: Bearer <supabase_access_token>  (NO cookies)
- *     Body:    { "message": string, "source"?: "desktop_companion" }
- *     Success: { "answer": string }
+ *     Body:    { "message": string, "source"?: "desktop_companion",
+ *                "responseMode"?: "text" | "video" | "image" }   (default "text")
+ *     Success: { "answer": string, "media"?: { type, title?, url,
+ *                thumbnailUrl?, embedUrl?, caption? } }
+ *              `media` only appears in video/image mode AND when a lookup
+ *              succeeded — media failures degrade to answer-only, never 5xx.
  *     Errors:  { "error": string }  (400 / 401 / 403 / 500)
  *
  * Token-based auth (validated with Supabase auth.getUser(token)) so non-browser
@@ -18,7 +22,11 @@
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { askCompanion } from "@/lib/companion/ask";
+import { askCompanion, askCompanionForMedia } from "@/lib/companion/ask";
+import {
+  findCompanionImage,
+  findCompanionVideo,
+} from "@/lib/companion/media-search";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -150,10 +158,36 @@ export async function POST(req: Request) {
     return corsJson(origin, { error: "Invalid message" }, 400);
   }
 
-  const result = await askCompanion(message);
+  // Optional media mode from the desktop overlay. Unknown/missing values fall
+  // back to "text" so older clients keep working unchanged.
+  const responseMode =
+    record.responseMode === "video" || record.responseMode === "image"
+      ? record.responseMode
+      : "text";
+
+  if (responseMode === "text") {
+    const result = await askCompanion(message);
+    if (!result.ok) {
+      return corsJson(origin, { error: result.error }, result.status);
+    }
+    return corsJson(origin, { answer: result.answer }, 200);
+  }
+
+  const result = await askCompanionForMedia(message, responseMode);
   if (!result.ok) {
     return corsJson(origin, { error: result.error }, result.status);
   }
 
-  return corsJson(origin, { answer: result.answer }, 200);
+  // Best-effort media lookup: null (no result / upstream failure) degrades to
+  // an answer-only response with the same 200 shape.
+  const media =
+    responseMode === "video"
+      ? await findCompanionVideo(result.searchQuery)
+      : await findCompanionImage(result.searchQuery, result.wikiHost);
+
+  return corsJson(
+    origin,
+    media ? { answer: result.answer, media } : { answer: result.answer },
+    200
+  );
 }
