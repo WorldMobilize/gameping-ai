@@ -7,49 +7,83 @@ export type SiteNavItem = {
   matchPrefix?: string;
 };
 
-export const SITE_NAV_ITEMS: SiteNavItem[] = [
-  { label: "Home", href: "/" },
+export const HOME_NAV_ITEM: SiteNavItem = { label: "Home", href: "/" };
+
+/**
+ * Ecosystem pillars. The hamburger drawer is the full navigation source of
+ * truth; the desktop navbar shows one link per pillar. All routes below exist
+ * today — nothing here points at unbuilt pages.
+ */
+
+/** Discover — public discovery surfaces (all live). */
+export const DISCOVER_NAV_ITEMS: SiteNavItem[] = [
   { label: "AI Recommendations", href: "/recommend", matchPrefix: "/recommend" },
   {
     label: "Curated Collections",
     href: "/curated",
     matchPrefix: "/curated",
   },
-  { label: "A–Z Games Directory", href: "/games", matchPrefix: "/games" },
-  { label: "Features", href: "/how-it-works", matchPrefix: "/how-it-works" },
-];
-
-/**
- * Discovery feature pages — now PUBLIC (cached, cron-published rotations). Shown
- * to everyone in the drawer and, space permitting, in the desktop nav.
- */
-export const DISCOVERY_NAV_ITEMS: SiteNavItem[] = [
   { label: "Hidden Gems", href: "/hidden-gems", matchPrefix: "/hidden-gems" },
   {
     label: "Games of the Week",
     href: "/games-of-the-week",
     matchPrefix: "/games-of-the-week",
   },
+  { label: "A–Z Games Directory", href: "/games", matchPrefix: "/games" },
+  { label: "Features", href: "/how-it-works", matchPrefix: "/how-it-works" },
 ];
 
 /**
- * Premium personal discovery — LIVE pages. Premium/admin see real personalized
- * content; free/anon get a locked preview (shown with a lock in nav). Always
- * listed in the drawer's Premium section; shown on desktop at 2xl, space
- * permitting.
+ * Discover — personalized picks. Premium/admin see live personal content;
+ * free/anon get the same links with a lock (the page shows a locked preview).
  */
-export const PREMIUM_DISCOVERY_NAV_ITEMS: SiteNavItem[] = [
+export const DISCOVER_PERSONAL_NAV_ITEMS: SiteNavItem[] = [
   {
     label: "Weekly Picks",
     href: "/weekly-picks",
     matchPrefix: "/weekly-picks",
   },
-  { label: "Deals For You", href: "/deals-for-you", matchPrefix: "/deals-for-you" },
   {
     label: "Monthly Recap",
     href: "/monthly-recap",
     matchPrefix: "/monthly-recap",
   },
+];
+
+/** Deals — price tracking lives on the dashboard; Deals For You is premium. */
+export const DEALS_NAV_ITEMS: SiteNavItem[] = [
+  { label: "Track Prices", href: "/dashboard", matchPrefix: "/dashboard" },
+];
+
+/** Deals — premium/locked-preview entries (same lock rule as Discover picks). */
+export const DEALS_PERSONAL_NAV_ITEMS: SiteNavItem[] = [
+  { label: "Deals For You", href: "/deals-for-you", matchPrefix: "/deals-for-you" },
+];
+
+export const PREMIUM_NAV_ITEM: SiteNavItem = {
+  label: "Go Premium",
+  href: "/upgrade",
+  matchPrefix: "/upgrade",
+};
+
+/** Community — admin-only concept demo (noindexed, gated to plan === "admin"). */
+export const COMMUNITY_WARS_NAV_ITEM: SiteNavItem = {
+  label: "Community Wars",
+  href: "/community-wars",
+  matchPrefix: "/community-wars",
+};
+
+/** Companion — admin-only alpha. */
+export const COMPANION_NAV_ITEM: SiteNavItem = {
+  label: "Desktop Companion",
+  href: "/companion",
+  matchPrefix: "/companion",
+};
+
+/** Account section (login/logout is rendered from auth state, not listed here). */
+export const ACCOUNT_NAV_ITEMS: SiteNavItem[] = [
+  { label: "Dashboard", href: "/dashboard", matchPrefix: "/dashboard" },
+  { label: "Account Settings", href: "/settings/account", matchPrefix: "/settings" },
 ];
 
 /** GamePing Parties — admin-only, future feature. Not in public nav. */

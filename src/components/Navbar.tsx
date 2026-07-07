@@ -76,29 +76,26 @@ function NavGroupSeparator({ isLight }: { isLight: boolean }) {
 
 type MenuCoords = { top: number; right: number };
 
-/** Core links shown inline from xl (container handles the breakpoint). */
-const HOME_NAV_CORE_LINKS = [
+/**
+ * Ecosystem pillar links (uncluttered by design — the hamburger drawer is the
+ * full navigation source of truth). "Premium" stays as the right-side CTA pill.
+ */
+const HOME_NAV_PILLAR_LINKS = [
   { label: "Home", href: "/" },
-  { label: "Recommend", href: "/recommend" },
+  { label: "Discover", href: "/recommend" },
   { label: "Curated", href: "/curated" },
-  { label: "Games", href: "/games" },
-] as const;
-
-/** Discovery links (public). Shown inline only at 2xl, space permitting. */
-const HOME_NAV_DISCOVERY_LINKS = [
-  { label: "Hidden gems", href: "/hidden-gems" },
-  { label: "Games of the week", href: "/games-of-the-week" },
 ] as const;
 
 /**
- * Personal premium discovery links. Shown on desktop at 2xl (space permitting)
- * under a "Premium" group: premium/admin get plain links, free/anon get the same
- * links with a lock icon (they land on the page's locked preview).
+ * Deals pillar — live page; premium/admin get the personal feed, free/anon land
+ * on the same page's locked preview (shown with a lock icon).
  */
-const HOME_NAV_PREMIUM_LINKS = [
-  { label: "Weekly Picks", href: "/weekly-picks" },
-  { label: "Deals For You", href: "/deals-for-you" },
-  { label: "Monthly Recap", href: "/monthly-recap" },
+const HOME_NAV_DEALS_LINK = { label: "Deals", href: "/deals-for-you" } as const;
+
+/** Admin-only pillars: concept demo + alpha. Hidden for everyone else. */
+const HOME_NAV_ADMIN_PILLAR_LINKS = [
+  { label: "Community", href: "/community-wars" },
+  { label: "Companion", href: "/companion" },
 ] as const;
 
 export default function Navbar({
@@ -474,36 +471,17 @@ export default function Navbar({
         </div>
 
         <nav className="gp-nav-home-links" aria-label="Primary navigation">
-          {HOME_NAV_CORE_LINKS.map((item) => renderHomeNavLink(item))}
+          {HOME_NAV_PILLAR_LINKS.map((item) => renderHomeNavLink(item))}
+          {renderHomeNavLink(HOME_NAV_DEALS_LINK, { locked: !canViewPremium })}
 
-          {/* Discovery — global PUBLIC pages (Hidden Gems / Games of the Week).
-           * Shown inline at 2xl, space permitting; always available in the drawer. */}
-          <span className="hidden items-center gap-7 2xl:flex">
-            <NavGroupSeparator isLight={isLight} />
-            {HOME_NAV_DISCOVERY_LINKS.map((item) => renderHomeNavLink(item))}
-          </span>
-
-          {/* Premium group — shown to EVERYONE at 2xl (space permitting). Premium/
-           * admin get real links; free/anon get the same links with a lock icon
-           * (they land on the page's locked preview). Parties stays admin-only. */}
-          <span className="hidden items-center gap-7 2xl:flex">
-            <NavGroupSeparator isLight={isLight} />
-            <span className="shrink-0 text-[10px] font-black uppercase tracking-[0.22em] text-[color:var(--page-accent-text)]">
-              Premium
+          {/* Admin-only pillars — Community (concept demo) + Companion (alpha).
+           * Everything else lives in the drawer, which is the full nav. */}
+          {isAdmin ? (
+            <span className="hidden items-center gap-7 xl:flex">
+              <NavGroupSeparator isLight={isLight} />
+              {HOME_NAV_ADMIN_PILLAR_LINKS.map((item) => renderHomeNavLink(item))}
             </span>
-            {HOME_NAV_PREMIUM_LINKS.map((item) =>
-              renderHomeNavLink(item, { locked: !canViewPremium })
-            )}
-
-            {/* Future / community — admin-only. */}
-            {isAdmin ? (
-              <>
-                <NavGroupSeparator isLight={isLight} />
-                {renderHomeNavLink({ label: "Parties", href: "/parties" })}
-                {renderHomeNavLink({ label: "Companion", href: "/companion" })}
-              </>
-            ) : null}
-          </span>
+          ) : null}
         </nav>
 
         <div className="gp-nav-actions relative z-0 ml-auto flex shrink-0 items-center gap-2 sm:gap-3">

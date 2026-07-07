@@ -33,24 +33,24 @@ export default function HomeHero() {
                 : "border-cyan-200/80 bg-cyan-50/80 text-cyan-700"
             }`}
           >
-            Your AI gaming companion
+            Discover · Deals · Your taste
           </p>
 
           <h1
             className={`${HOME_HERO_DISPLAY_FONT} mt-6 text-balance text-[2rem] leading-[1.08] tracking-tight text-slate-50 sm:text-5xl lg:text-[3.25rem]`}
           >
-            {/* Line 1 stays intact ("The AI companion") so it never breaks
-             * mid-phrase; line 2 may wrap cleanly on the smallest screens. */}
+            {/* Line 1 stays intact ("The home") so it never breaks mid-phrase;
+             * line 2 may wrap cleanly on the smallest screens. */}
             <span className="block whitespace-nowrap">
-              The AI <span className={accent}>companion</span>
+              The <span className={accent}>home</span>
             </span>
-            <span className="block">for your gaming life</span>
+            <span className="block">for gamers</span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-300 sm:mt-6 sm:text-xl">
-            GamePing learns your taste, recommends games you&apos;ll actually love, and explains
-            why each one fits. Track your library, follow the best deals, and always know what to
-            play next.
+            Discover what to play with AI that learns your taste, track the deals that matter,
+            and always know what&apos;s next. GamePing is growing into one place for your whole
+            gaming life.
           </p>
 
           <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap lg:justify-start">

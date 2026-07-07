@@ -57,9 +57,9 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
                 isLight ? "text-slate-600" : "text-slate-400"
               }`}
             >
-              Your AI companion for gaming—personal recommendations, library tracking, and
-              deal-aware price lookups. Prices and availability may change—always confirm on the
-              store before purchasing.
+              The home for gamers—AI discovery that learns your taste, curated picks, and
+              deal-aware price tracking in one place. Prices and availability may change—always
+              confirm on the store before purchasing.
             </p>
             <div className="mt-5">
               <p

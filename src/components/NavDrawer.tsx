@@ -5,16 +5,23 @@ import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import {
-  DISCOVERY_NAV_ITEMS,
+  ACCOUNT_NAV_ITEMS,
+  COMMUNITY_WARS_NAV_ITEM,
+  COMPANION_NAV_ITEM,
+  DEALS_NAV_ITEMS,
+  DEALS_PERSONAL_NAV_ITEMS,
+  DISCOVER_NAV_ITEMS,
+  DISCOVER_PERSONAL_NAV_ITEMS,
+  HOME_NAV_ITEM,
   isSiteNavItemActive,
   PARTIES_NAV_ITEM,
   PARTIES_SUBNAV_ITEMS,
-  PREMIUM_DISCOVERY_NAV_ITEMS,
-  SITE_NAV_ITEMS,
+  PREMIUM_NAV_ITEM,
   type SiteNavItem,
 } from "@/lib/site-nav";
 import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "@/components/ToastProvider";
 
 /** Small padlock — marks Premium links as locked for free/anon users. */
 function LockIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
@@ -32,28 +39,35 @@ type Props = {
   theme?: "dark" | "light";
 };
 
+/**
+ * Full ecosystem navigation (the drawer is the navigation source of truth):
+ * Discover / Deals / Community / Companion / Account pillars. Community and
+ * Companion are admin-only concept/alpha areas and stay hidden for everyone
+ * else. Same profiles.plan read used elsewhere — no new auth.
+ */
 export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
   const isLight = theme === "light";
   const pathname = usePathname();
-  // Parties stays admin-only; the Premium discovery section is always shown
-  // (premium/admin → real links, free/anon → locked previews). Same profiles.plan
-  // read used elsewhere — no new auth.
+  const { showToast } = useToast();
   const [isAdmin, setIsAdmin] = useState(false);
   const [canViewPremium, setCanViewPremium] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
   const [partiesOpen, setPartiesOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadAdmin() {
+    async function loadAccess() {
       const { data } = await supabase.auth.getUser();
       if (cancelled) return;
 
       if (!data.user) {
         setIsAdmin(false);
         setCanViewPremium(false);
+        setLoggedIn(false);
         return;
       }
+      setLoggedIn(true);
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -67,10 +81,10 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
       }
     }
 
-    void loadAdmin();
+    void loadAccess();
 
     const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      void loadAdmin();
+      void loadAccess();
     });
 
     return () => {
@@ -99,6 +113,26 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
 
   if (!open || typeof document === "undefined") return null;
 
+  const handleLogout = async () => {
+    onClose();
+    await supabase.auth.signOut();
+    showToast({ variant: "success", message: "You’re logged out." });
+    setTimeout(() => {
+      window.location.href = "/";
+    }, 500);
+  };
+
+  const itemClass = (active: boolean) =>
+    `flex items-center justify-between gap-2 rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] ${
+      active
+        ? isLight
+          ? "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)] shadow-sm"
+          : "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)] shadow-[0_0_20px_var(--page-accent-glow)]"
+        : isLight
+          ? "border-transparent text-slate-700 hover:border-[color:var(--page-accent-border)] hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)]"
+          : "border-transparent text-white/80 hover:border-[color:var(--page-accent-border)] hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)]"
+    }`;
+
   const renderNavItem = (item: SiteNavItem, locked = false) => {
     const active = isSiteNavItemActive(pathname, item);
     return (
@@ -107,21 +141,31 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
         href={item.href}
         onClick={onClose}
         title={locked ? "Premium feature — preview available" : undefined}
-        className={`flex items-center justify-between gap-2 rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] ${
-          active
-            ? isLight
-              ? "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)] shadow-sm"
-              : "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)] shadow-[0_0_20px_var(--page-accent-glow)]"
-            : isLight
-              ? "border-transparent text-slate-700 hover:border-[color:var(--page-accent-border)] hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)]"
-              : "border-transparent text-white/80 hover:border-[color:var(--page-accent-border)] hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)]"
-        }`}
+        className={itemClass(active)}
       >
         <span>{item.label}</span>
         {locked ? <LockIcon className="h-3.5 w-3.5 shrink-0 opacity-70" /> : null}
       </Link>
     );
   };
+
+  const sectionHeading = (label: string, badge?: string) => (
+    <p className="flex items-center gap-2 px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
+      <span>{label}</span>
+      {badge ? (
+        <span
+          className={`rounded-full border border-dashed px-2 py-0.5 text-[9px] font-bold normal-case tracking-[0.08em] ${
+            isLight ? "border-slate-300 text-slate-500" : "border-white/25 text-white/60"
+          }`}
+        >
+          {badge}
+        </span>
+      ) : null}
+    </p>
+  );
+
+  const sectionClass =
+    "mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4";
 
   return createPortal(
     <div className="fixed inset-0 z-[60]">
@@ -174,77 +218,77 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
         </div>
 
         <nav className="relative flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
-          {SITE_NAV_ITEMS.map((item) => renderNavItem(item))}
+          {renderNavItem(HOME_NAV_ITEM)}
 
-          {/* Discovery — global public pages (visible to everyone). */}
-          <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
-            <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
-              Discovery
-            </p>
-            {DISCOVERY_NAV_ITEMS.map((item) => renderNavItem(item))}
+          {/* Discover — the core pillar: every public discovery surface. */}
+          <div className={sectionClass}>
+            {sectionHeading("Discover")}
+            {DISCOVER_NAV_ITEMS.map((item) => renderNavItem(item))}
+            {DISCOVER_PERSONAL_NAV_ITEMS.map((item) =>
+              renderNavItem(item, !canViewPremium)
+            )}
           </div>
 
-          {/* Premium — per-user personalized features. ALWAYS shown: premium/admin
-           * get real links; free/anon get the same links with a lock (locked
-           * preview on the page). */}
-          <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
-            <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
-              Premium
-            </p>
-            {PREMIUM_DISCOVERY_NAV_ITEMS.map((item) => renderNavItem(item, !canViewPremium))}
+          {/* Deals — price tracking + personalized deals + Premium. */}
+          <div className={sectionClass}>
+            {sectionHeading("Deals")}
+            {DEALS_NAV_ITEMS.map((item) => renderNavItem(item))}
+            {DEALS_PERSONAL_NAV_ITEMS.map((item) =>
+              renderNavItem(item, !canViewPremium)
+            )}
+            {renderNavItem(PREMIUM_NAV_ITEM)}
           </div>
 
           {isAdmin ? (
             <>
-              {/* Community / future — admin-only. */}
-              <div className="mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4">
-                <p className="px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
-                  Community
-                </p>
+              {/* Community — admin-only concept area (Community Wars + Parties). */}
+              <div className={sectionClass}>
+                {sectionHeading("Community", "Admin concept")}
+                {renderNavItem(COMMUNITY_WARS_NAV_ITEM)}
                 <div className="mt-1 flex items-stretch gap-1">
-                <Link
-                  href={PARTIES_NAV_ITEM.href}
-                  onClick={onClose}
-                  className={`flex-1 rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
-                    isSiteNavItemActive(pathname, PARTIES_NAV_ITEM)
-                      ? "border-cyan-400/50 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200"
-                      : isLight
-                        ? "border-transparent text-slate-700 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-700"
-                        : "border-transparent text-white/80 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-200"
-                  }`}
-                >
-                  {PARTIES_NAV_ITEM.label}
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setPartiesOpen((v) => !v)}
-                  aria-expanded={partiesOpen}
-                  aria-controls="parties-submenu"
-                  aria-label={
-                    partiesOpen
-                      ? "Collapse GamePing Parties categories"
-                      : "Expand GamePing Parties categories"
-                  }
-                  className={`flex w-11 shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
-                    isLight
-                      ? "border-slate-200 bg-slate-50 text-slate-600 hover:border-cyan-400/40 hover:text-cyan-700"
-                      : "border-white/15 bg-white/[0.06] text-white/70 hover:border-cyan-400/40 hover:text-cyan-200"
-                  }`}
-                >
-                  <svg
-                    className={`h-4 w-4 transition-transform ${partiesOpen ? "rotate-180" : ""}`}
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
+                  <Link
+                    href={PARTIES_NAV_ITEM.href}
+                    onClick={onClose}
+                    className={`flex-1 rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
+                      isSiteNavItemActive(pathname, PARTIES_NAV_ITEM)
+                        ? "border-cyan-400/50 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200"
+                        : isLight
+                          ? "border-transparent text-slate-700 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-700"
+                          : "border-transparent text-white/80 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-200"
+                    }`}
                   >
-                    <path d="M4 6l4 4 4-4" />
-                  </svg>
-                </button>
-              </div>
+                    {PARTIES_NAV_ITEM.label}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setPartiesOpen((v) => !v)}
+                    aria-expanded={partiesOpen}
+                    aria-controls="parties-submenu"
+                    aria-label={
+                      partiesOpen
+                        ? "Collapse GamePing Parties categories"
+                        : "Expand GamePing Parties categories"
+                    }
+                    className={`flex w-11 shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
+                      isLight
+                        ? "border-slate-200 bg-slate-50 text-slate-600 hover:border-cyan-400/40 hover:text-cyan-700"
+                        : "border-white/15 bg-white/[0.06] text-white/70 hover:border-cyan-400/40 hover:text-cyan-200"
+                    }`}
+                  >
+                    <svg
+                      className={`h-4 w-4 transition-transform ${partiesOpen ? "rotate-180" : ""}`}
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M4 6l4 4 4-4" />
+                    </svg>
+                  </button>
+                </div>
                 {partiesOpen ? (
                   <div
                     id="parties-submenu"
@@ -266,22 +310,34 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
                     ))}
                   </div>
                 ) : null}
-                <Link
-                  href="/companion"
-                  onClick={onClose}
-                  className={`mt-1 rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
-                    isSiteNavItemActive(pathname, { label: "Companion", href: "/companion" })
-                      ? "border-cyan-400/50 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200"
-                      : isLight
-                        ? "border-transparent text-slate-700 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-700"
-                        : "border-transparent text-white/80 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-200"
-                  }`}
-                >
-                  Companion
-                </Link>
+              </div>
+
+              {/* Companion — admin-only alpha. */}
+              <div className={sectionClass}>
+                {sectionHeading("Companion", "Alpha")}
+                {renderNavItem(COMPANION_NAV_ITEM)}
               </div>
             </>
           ) : null}
+
+          {/* Account — dashboard/settings for members, login for everyone else. */}
+          <div className={sectionClass}>
+            {sectionHeading("Account")}
+            {loggedIn ? (
+              <>
+                {ACCOUNT_NAV_ITEMS.map((item) => renderNavItem(item))}
+                <button
+                  type="button"
+                  onClick={() => void handleLogout()}
+                  className={`${itemClass(false)} w-full text-left`}
+                >
+                  <span>Logout</span>
+                </button>
+              </>
+            ) : (
+              renderNavItem({ label: "Login / Sign up", href: "/login" })
+            )}
+          </div>
         </nav>
 
         <p
@@ -291,7 +347,7 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
               : "border-white/10 text-white/70"
           }`}
         >
-          Discovery that learns your taste over time.
+          The home for gamers — discovery, deals, and your taste in one place.
         </p>
       </aside>
     </div>,

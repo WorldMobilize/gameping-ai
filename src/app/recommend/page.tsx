@@ -1665,13 +1665,18 @@ export default function RecommendPage() {
                       </div>
 
                       <div className="mt-auto border-t border-slate-200 pt-5 dark:border-white/10">
-                        <a
+                        {/* Next Link (client-side navigation) keeps the recommend →
+                         * game → Back flow inside the App Router SPA. A plain <a>
+                         * forced a full document navigation, and mobile browser Back
+                         * could then restore a stale cached /recommend document with
+                         * an old JS bundle (old drawer/UI) instead of this page. */}
+                        <Link
                           href={gameDetailHrefFromRecommend(game)}
                           onClick={() => persistRecommendSession()}
                           className={APP_PRIMARY_CTA_ACCENT_SM}
                         >
                           View details
-                        </a>
+                        </Link>
                       </div>
                     </div>
                   </div>
