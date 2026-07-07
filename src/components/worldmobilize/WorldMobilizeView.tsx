@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MapToolbar from "@/components/worldmobilize/MapToolbar";
 import MapViewport, { type MapCameraHandle } from "@/components/worldmobilize/MapViewport";
@@ -42,6 +43,16 @@ export default function WorldMobilizeView() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  /* Returning from a city (…?region=glowharbor): reopen that region's panel
+   * and ease the camera to it. Runs once on mount, after the viewport's
+   * layout-effect measurement, so flyTo has real container dimensions. */
+  useEffect(() => {
+    const regionId = new URLSearchParams(window.location.search).get("region");
+    if (!regionId || !REGIONS_BY_ID[regionId]) return;
+    queueMicrotask(() => handleSelect(regionId));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot deep-link restore
   }, []);
 
   return (
@@ -106,6 +117,31 @@ export default function WorldMobilizeView() {
             </span>
           ))}
         </div>
+
+        {/* Subpage — Community Wars, the live creator layer. */}
+        <Link
+          href="/community-wars"
+          className="group mt-10 flex flex-col gap-4 rounded-3xl border border-white/10 bg-[#080b1a]/80 p-6 no-underline ring-1 ring-white/5 backdrop-blur-md transition hover:border-violet-400/40 hover:ring-violet-400/20 sm:flex-row sm:items-center sm:justify-between md:p-7"
+        >
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-300">
+              World Mobilize · Live layer
+            </p>
+            <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-white gp-home-display">
+              Community Wars
+            </h2>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">
+              Creator-led battles: Twitch communities become factions, rally live, and push
+              territory momentum on this map. Concept demo.
+            </p>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-2 rounded-full border border-violet-400/45 bg-violet-500/10 px-4 py-2 text-sm font-black text-violet-200 transition group-hover:border-violet-300 group-hover:bg-violet-500/20">
+            Open Community Wars
+            <svg className="h-4 w-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </span>
+        </Link>
 
         <p className="mt-8 max-w-2xl text-sm leading-6 text-slate-400">
           Every region is fictional and original — invented names, invented coastlines. Static

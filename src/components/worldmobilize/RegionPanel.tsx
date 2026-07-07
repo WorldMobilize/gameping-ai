@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import ClaimRegionButton from "@/components/worldmobilize/ClaimRegionButton";
+import { CITY_BY_REGION } from "@/lib/worldmobilize/cities";
 import { MACRO_AREAS } from "@/lib/worldmobilize/regions";
 import { REGION_STATUS_META } from "@/lib/worldmobilize/statuses";
 import type { WorldRegion } from "@/lib/worldmobilize/types";
@@ -20,6 +22,7 @@ export default function RegionPanel({
 }) {
   const macro = MACRO_AREAS[region.macroArea];
   const statusMeta = REGION_STATUS_META[region.status];
+  const city = CITY_BY_REGION[region.id] ?? null;
 
   return (
     <aside
@@ -83,6 +86,20 @@ export default function RegionPanel({
       <div className="mt-5">
         <ClaimRegionButton region={region} />
       </div>
+
+      {/* Regions with an explorable settlement expose the city prototype. */}
+      {city ? (
+        <Link
+          href={`/worldmobilize/city/${city.slug}`}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/45 bg-cyan-500/10 px-4 py-3 text-sm font-black tracking-tight text-cyan-200 no-underline transition hover:border-cyan-300 hover:bg-cyan-500/20 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M3 21h18M5 21V8l4-3v16M13 21V10l6 3v8" />
+            <path d="M7 11h.01M7 14h.01M7 17h.01" />
+          </svg>
+          Explore {city.name}
+        </Link>
+      ) : null}
 
       {/* Future season hook — becomes live season/war info in later phases. */}
       <div className="mt-5 rounded-xl border border-dashed border-white/15 bg-white/[0.03] p-3.5">

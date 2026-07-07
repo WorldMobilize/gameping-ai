@@ -133,25 +133,31 @@
   display: flex;
   align-items: center;
   width: 100%;
+  /* Anchor for the absolutely-centered pillar links. */
+  position: relative;
 }
 
 .gp-nav-home-layout .gp-nav-brand {
   flex: 0 0 auto;
 }
 
+/* The three ecosystem pillars are TRULY centered in the bar (not just placed
+ * after the logo): absolutely positioned at 50% of the nav row and vertically
+ * centered, out of the flex flow so they never change the navbar height. */
 .gp-nav-home-links {
   display: none;
-  flex: 0 1 auto;
   align-items: center;
   gap: 1.75rem;
-  margin-left: 2rem;
-  min-width: 0;
-  overflow: hidden;
+  white-space: nowrap;
 }
 
 @media (min-width: 1280px) {
   .gp-nav-home-links {
     display: flex;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
   }
 }
 

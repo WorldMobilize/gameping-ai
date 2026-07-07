@@ -49,12 +49,17 @@ const EASE = "transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1)";
 type Props = {
   children: ReactNode;
   className?: string;
+  /** Content size in px — defaults to the world map; the city scene passes its own. */
+  contentWidth?: number;
+  contentHeight?: number;
 };
 
 const MapViewport = forwardRef<MapCameraHandle, Props>(function MapViewport(
-  { children, className = "" },
+  { children, className = "", contentWidth = WORLD_WIDTH, contentHeight = WORLD_HEIGHT },
   ref
 ) {
+  // Content dims are fixed for the lifetime of a mount (world map or one city).
+  const dims = useRef({ w: contentWidth, h: contentHeight });
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [cam, setCam] = useState<Camera>({ x: 0, y: 0, k: 1 });
@@ -74,15 +79,17 @@ const MapViewport = forwardRef<MapCameraHandle, Props>(function MapViewport(
   const dragDist = useRef(0);
   const swallowClick = useRef(false);
 
-  const fitK = size ? Math.min(size.w / WORLD_WIDTH, size.h / WORLD_HEIGHT) * 0.94 : 1;
+  // Render-time fit uses the props directly (stable per mount); callbacks use
+  // the dims ref so they never close over stale values.
+  const fitK = size ? Math.min(size.w / contentWidth, size.h / contentHeight) * 0.94 : 1;
 
   const clampCam = useCallback((next: Camera): Camera => {
     const s = sizeRef.current;
     if (!s) return next;
     const fit = fitKRef.current;
     const k = Math.min(Math.max(next.k, fit * 0.7), fit * 10);
-    const w = WORLD_WIDTH * k;
-    const h = WORLD_HEIGHT * k;
+    const w = dims.current.w * k;
+    const h = dims.current.h * k;
     // Let the map edges reach the viewport center, or stay centered when small.
     const xMin = Math.min(s.w / 2 - w, (s.w - w) / 2);
     const xMax = Math.max(s.w / 2, (s.w - w) / 2);
@@ -112,8 +119,8 @@ const MapViewport = forwardRef<MapCameraHandle, Props>(function MapViewport(
   );
 
   const fitCam = useCallback((s: { w: number; h: number }): Camera => {
-    const k = Math.min(s.w / WORLD_WIDTH, s.h / WORLD_HEIGHT) * 0.94;
-    return { k, x: (s.w - WORLD_WIDTH * k) / 2, y: (s.h - WORLD_HEIGHT * k) / 2 };
+    const k = Math.min(s.w / dims.current.w, s.h / dims.current.h) * 0.94;
+    return { k, x: (s.w - dims.current.w * k) / 2, y: (s.h - dims.current.h * k) / 2 };
   }, []);
 
   // Measure the container; keep the map fitted until the user interacts.
@@ -124,7 +131,7 @@ const MapViewport = forwardRef<MapCameraHandle, Props>(function MapViewport(
       const rect = el.getBoundingClientRect();
       const s = { w: rect.width, h: rect.height };
       sizeRef.current = s;
-      fitKRef.current = Math.min(s.w / WORLD_WIDTH, s.h / WORLD_HEIGHT) * 0.94;
+      fitKRef.current = Math.min(s.w / dims.current.w, s.h / dims.current.h) * 0.94;
       setSize(s);
       if (!interactedRef.current) {
         const fitted = fitCam(s);
@@ -274,8 +281,8 @@ const MapViewport = forwardRef<MapCameraHandle, Props>(function MapViewport(
       <div
         className="absolute left-0 top-0 will-change-transform"
         style={{
-          width: WORLD_WIDTH,
-          height: WORLD_HEIGHT,
+          width: contentWidth,
+          height: contentHeight,
           transformOrigin: "0 0",
           transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.k})`,
           transition: animated ? EASE : "none",

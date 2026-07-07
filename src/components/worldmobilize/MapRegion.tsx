@@ -6,10 +6,11 @@ import type { WorldRegion } from "@/lib/worldmobilize/types";
 import type { RegionGeometry } from "@/lib/worldmobilize/world-geometry";
 
 /**
- * One selectable region polygon. Base fill opacity comes from the region's
- * STATUS (future-proofed for owned/contested/…); hover and selection are pure
- * UI states layered on top. Borders use non-scaling strokes so they stay
- * hairline-thin at any zoom.
+ * Interaction/hitbox layer for one region. The terrain art lives in the
+ * layers below — this path is invisible until hovered/selected, then adds
+ * the accent tint, emphasis stroke, and glow. When another region is
+ * selected, this one darkens slightly so the selection pops.
+ * Future statuses (owned/contested/…) can tint here via REGION_STATUS_META.
  */
 
 type Props = {
@@ -26,14 +27,8 @@ type Props = {
 function MapRegionInner({ region, geometry, hex, selected, dimmed, showLabel, onSelect }: Props) {
   const [hovered, setHovered] = useState(false);
 
-  const base = REGION_STATUS_META[region.status].fillOpacity;
-  const fillOpacity = selected
-    ? Math.min(base + 0.42, 0.85)
-    : hovered
-      ? Math.min(base + 0.24, 0.7)
-      : dimmed
-        ? base * 0.55
-        : base;
+  const fill = selected || hovered ? hex : "#04060f";
+  const fillOpacity = selected ? 0.2 : hovered ? 0.14 : dimmed ? 0.32 : 0;
 
   const glow =
     selected
@@ -46,11 +41,11 @@ function MapRegionInner({ region, geometry, hex, selected, dimmed, showLabel, on
     <g>
       <path
         d={geometry.path}
-        fill={hex}
+        fill={fill}
         fillOpacity={fillOpacity}
-        stroke={selected ? "#f8fafc" : hex}
-        strokeOpacity={selected ? 0.9 : 0.55}
-        strokeWidth={selected ? 1.8 : 1}
+        stroke={selected ? "#f8fafc" : hovered ? hex : "transparent"}
+        strokeOpacity={selected ? 0.95 : 0.8}
+        strokeWidth={selected ? 2 : 1.4}
         vectorEffect="non-scaling-stroke"
         strokeLinejoin="round"
         role="button"
@@ -76,13 +71,13 @@ function MapRegionInner({ region, geometry, hex, selected, dimmed, showLabel, on
       {showLabel ? (
         <text
           x={geometry.cx}
-          y={geometry.cy}
+          y={geometry.cy - 4}
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize={9}
           fill="#f1f5f9"
-          fillOpacity={selected || hovered ? 0.95 : 0.72}
-          className="pointer-events-none font-semibold"
+          fillOpacity={selected || hovered ? 0.95 : 0.75}
+          className="pointer-events-none font-bold"
           style={{ textShadow: "0 1px 4px rgba(0,0,0,0.9)" }}
         >
           {region.name}

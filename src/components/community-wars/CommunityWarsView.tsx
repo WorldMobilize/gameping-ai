@@ -12,70 +12,65 @@ import {
 /**
  * Community Wars — ADMIN-ONLY CONCEPT DEMO (static, visual only).
  *
- * Gaming-themed take on the WorldMobilize idea: communities compete for
- * territory, momentum, and bragging rights. Everything on this page is
- * hard-coded demo data — no database tables, no voting logic, no payments,
- * no live systems. The page is admin-gated and noindexed.
+ * The live creator layer of World Mobilize: Twitch streamers rally their
+ * audiences into factions that push territory momentum during live campaigns.
+ * Everything here is hard-coded demo data — NO Twitch integration, NO real
+ * voting, NO payments, NO database. The page is admin-gated and noindexed.
  */
-
-const ACCENT_BADGE =
-  "inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]";
 
 const DEMO_PILL =
   "inline-flex items-center rounded-full border border-dashed border-amber-400/60 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-300";
 
-/** Demo factions with fixed colors used across map, wars, and momentum cards. */
-const FACTIONS = [
-  { key: "wasteland", name: "Wasteland (Fallout)", tile: "bg-cyan-500/70", text: "text-cyan-300" },
-  { key: "tamriel", name: "Tamriel (Elder Scrolls)", tile: "bg-violet-500/70", text: "text-violet-300" },
-  { key: "indie", name: "Indie Alliance", tile: "bg-emerald-500/70", text: "text-emerald-300" },
-  { key: "aaa", name: "AAA Coalition", tile: "bg-amber-500/70", text: "text-amber-300" },
-] as const;
+const ACCENT_BADGE =
+  "inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]";
 
-/**
- * Static territory layout (8×5). Values index into FACTIONS; -1 = contested
- * (neutral). Purely visual — a placeholder for a future real map.
- */
-const TERRITORY_ROWS: number[][] = [
-  [0, 0, 0, 1, 1, 1, 3, 3],
-  [0, 0, -1, 1, 1, 3, 3, 3],
-  [0, 2, 2, -1, 1, 1, 3, 3],
-  [2, 2, 2, 2, -1, 1, 1, 3],
-  [2, 2, 2, 0, 0, -1, 1, 1],
-];
-
-const ACTIVE_WARS = [
-  { a: "Fallout", b: "Elder Scrolls", aPct: 54, theater: "Open-world RPG heartlands" },
-  { a: "Soulslike", b: "Roguelike", aPct: 47, theater: "Difficulty frontier" },
-  { a: "PC", b: "Console", aPct: 61, theater: "Platform ridge" },
-  { a: "Indie", b: "AAA", aPct: 58, theater: "Budget canyon" },
-  { a: "League", b: "Dota", aPct: 50, theater: "MOBA lowlands" },
-  { a: "Minecraft", b: "Terraria", aPct: 52, theater: "Sandbox plains" },
-] as const;
-
-const MOMENTUM_CARDS = [
+/** Demo creator factions — fictional streamers, fictional factions. */
+const CREATOR_FACTIONS = [
   {
-    faction: FACTIONS[2],
-    stat: "+18%",
-    line: "Indie Alliance surging after a weekend rally.",
+    creator: "NovaRex",
+    faction: "Lumen Vanguard",
+    hex: "#22d3ee",
+    momentum: 57,
+    campaign: "Battle for Craterline",
   },
   {
-    faction: FACTIONS[0],
-    stat: "+11%",
-    line: "Wasteland holding the northern territories for 6 days.",
+    creator: "GrimmVolt",
+    faction: "Storm Pact",
+    hex: "#8b5cf6",
+    momentum: 43,
+    campaign: "Battle for Craterline",
   },
   {
-    faction: FACTIONS[1],
-    stat: "+7%",
-    line: "Tamriel counter-push building on the eastern front.",
+    creator: "MossQueen",
+    faction: "Verdant Order",
+    hex: "#34d399",
+    momentum: 61,
+    campaign: "Scouting Vinegate",
   },
 ] as const;
 
-const DAILY_ACTIONS = [
-  { label: "Check in", detail: "Daily presence keeps your faction's momentum alive." },
-  { label: "Rally", detail: "Boost one active war for your side today." },
-  { label: "Claim territory", detail: "Convert momentum into map control." },
+const CHAT_FEED = [
+  { text: "NovaRex community check-in", delta: "+120 rally points", hex: "#22d3ee" },
+  { text: "Craterline is now contested", delta: "Region contested", hex: "#f59e0b" },
+  { text: "GrimmVolt raid landed", delta: "Creator raid boosted faction +300", hex: "#8b5cf6" },
+  { text: "Hype train ×3 on Lumen Vanguard", delta: "Momentum surge", hex: "#22d3ee" },
+  { text: "MossQueen squad scouts the south", delta: "Vinegate scouted", hex: "#34d399" },
 ] as const;
+
+const VIEWER_ACTIONS = [
+  { label: "Daily rally", detail: "Check in once a day to feed your faction's momentum." },
+  { label: "Scout region", detail: "Reveal how contested a neighboring region really is." },
+  { label: "Defend city", detail: "Hold the line when your capital comes under attack." },
+  { label: "Boost creator faction", detail: "Throw extra weight behind your creator's push." },
+] as const;
+
+const BATTLE = {
+  region: "Craterline",
+  macro: "Hollowmark",
+  a: CREATOR_FACTIONS[0],
+  b: CREATOR_FACTIONS[1],
+  aPct: 57,
+} as const;
 
 export default function CommunityWarsView() {
   return (
@@ -83,22 +78,23 @@ export default function CommunityWarsView() {
       {/* Hero */}
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
-          Community
+          World Mobilize · Live layer
         </p>
         <span className={DEMO_PILL}>Admin-only concept demo</span>
-        <span className={ACCENT_BADGE}>Alpha</span>
+        <span className={ACCENT_BADGE}>Static prototype</span>
       </div>
       <h1 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">
         Community <span className="text-[color:var(--page-accent-strong)]">Wars</span>
       </h1>
-      <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200">
-        Communities compete for territory, momentum, and bragging rights. Rally your side,
-        hold the map, and settle the classic rivalries — Fallout vs Elder Scrolls, PC vs
-        Console, Indie vs AAA.
+      <p className="mt-4 text-lg font-bold text-white/90">
+        Twitch communities become factions.
+      </p>
+      <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-200">
+        Creator-led battles where Twitch communities rally, push momentum, and fight for
+        territory inside World Mobilize.
       </p>
       <p className={`mt-3 ${APP_MUTED}`}>
-        Static concept data — no real votes, no live systems. GamePing is growing into a
-        community layer; this is the first visual of it.
+        Static prototype — no live Twitch integration yet, no real voting, no payments.
       </p>
       <div className="mt-8">
         <Link href="/worldmobilize" className={APP_PRIMARY_CTA_ACCENT_SM}>
@@ -106,118 +102,148 @@ export default function CommunityWarsView() {
         </Link>
       </div>
 
-      {/* Territory map placeholder */}
-      <section className="mt-16" aria-labelledby="cw-map-heading">
-        <h2 id="cw-map-heading" className="text-2xl font-extrabold text-white">
-          Faction map
+      {/* Live campaign mock */}
+      <section className="mt-16" aria-labelledby="cw-live-heading">
+        <h2 id="cw-live-heading" className="text-2xl font-extrabold text-white">
+          Live campaign
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-300">
-          Territory placeholder — each tile is a region held by a faction. Contested tiles
-          pulse until one side claims them.
+          How a creator campaign will look while it&apos;s happening. Mock data — the embed is a
+          placeholder, not a real stream.
+        </p>
+        <div className={`${APP_CARD_LG} mt-6 overflow-hidden p-0`}>
+          <div className="grid lg:grid-cols-[1.4fr_1fr]">
+            {/* Fake embed */}
+            <div className="relative flex min-h-[240px] items-center justify-center bg-[#0a0d1e]">
+              <div aria-hidden className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.18),transparent_65%)]" />
+              <div className="relative flex flex-col items-center gap-3 p-8 text-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-white/[0.06]">
+                  <svg className="h-6 w-6 translate-x-0.5 text-white/80" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+                <p className="text-sm font-bold text-white/85">Live embed placeholder</p>
+                <p className="text-xs text-slate-400">No Twitch integration yet — concept only.</p>
+              </div>
+              <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-rose-600/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                <span className="h-1.5 w-1.5 rounded-full bg-white" aria-hidden />
+                Live · Demo
+              </span>
+              <span className="absolute right-4 top-4 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold tabular-nums text-white/85">
+                12.4k watching
+              </span>
+            </div>
+            {/* Campaign facts */}
+            <div className="border-t border-white/10 p-6 lg:border-l lg:border-t-0">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                Streamer
+              </p>
+              <p className="mt-1 text-xl font-extrabold text-white">NovaRex</p>
+              <dl className="mt-5 space-y-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-slate-400">Faction</dt>
+                  <dd className="inline-flex items-center gap-2 font-bold text-cyan-300">
+                    <span className="h-2 w-2 rounded-full bg-cyan-400" aria-hidden />
+                    Lumen Vanguard
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-slate-400">Current battle</dt>
+                  <dd className="font-bold text-white">{BATTLE.region}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-slate-400">Territory push</dt>
+                  <dd className="font-bold text-white">
+                    {BATTLE.region} · {BATTLE.macro}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-slate-400">Momentum</dt>
+                  <dd className="font-black tabular-nums text-cyan-300">{BATTLE.aPct}%</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Creator factions */}
+      <section className="mt-16" aria-labelledby="cw-factions-heading">
+        <h2 id="cw-factions-heading" className="text-2xl font-extrabold text-white">
+          Creator factions
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-slate-300">
+          Creators rally their audience into a faction; the community&apos;s activity becomes
+          its strength. Demo creators — all fictional.
+        </p>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          {CREATOR_FACTIONS.map((f) => (
+            <div key={f.creator} className={`${APP_CARD} p-5`}>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-base font-extrabold text-white">{f.creator}</p>
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em]"
+                  style={{ borderColor: `${f.hex}55`, color: f.hex, backgroundColor: `${f.hex}14` }}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: f.hex }} aria-hidden />
+                  {f.faction}
+                </span>
+              </div>
+              <p className="mt-4 text-3xl font-black tabular-nums text-white">
+                {f.momentum}%
+                <span className="ml-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+                  momentum
+                </span>
+              </p>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10" aria-hidden>
+                <div className="h-full rounded-full" style={{ width: `${f.momentum}%`, backgroundColor: f.hex }} />
+              </div>
+              <p className="mt-4 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                Active campaign
+              </p>
+              <p className="mt-1 text-sm font-semibold text-slate-200">{f.campaign}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Chat momentum */}
+      <section className="mt-16" aria-labelledby="cw-chat-heading">
+        <h2 id="cw-chat-heading" className="text-2xl font-extrabold text-white">
+          Chat becomes momentum
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-slate-300">
+          The idea: future Twitch chat activity — check-ins, raids, hype trains — could convert
+          into faction momentum during live campaigns. Below is a mock feed of what that could
+          look like. Nothing here is connected to Twitch.
         </p>
         <div className={`${APP_CARD_LG} mt-6 p-5 md:p-6`}>
-          <div className="grid grid-cols-8 gap-1.5">
-            {TERRITORY_ROWS.flatMap((row, rowIdx) =>
-              row.map((cell, colIdx) => (
-                <div
-                  key={`${rowIdx}-${colIdx}`}
-                  title={cell === -1 ? "Contested" : FACTIONS[cell].name}
-                  className={`aspect-square rounded-md ${
-                    cell === -1
-                      ? "animate-pulse border border-dashed border-white/40 bg-white/10 motion-reduce:animate-none"
-                      : FACTIONS[cell].tile
-                  }`}
-                />
-              ))
-            )}
-          </div>
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
-            {FACTIONS.map((f) => (
-              <span key={f.key} className="inline-flex items-center gap-2 text-xs text-slate-300">
-                <span className={`h-2.5 w-2.5 rounded-sm ${f.tile}`} aria-hidden />
-                {f.name}
-              </span>
-            ))}
-            <span className="inline-flex items-center gap-2 text-xs text-slate-300">
-              <span
-                className="h-2.5 w-2.5 rounded-sm border border-dashed border-white/40 bg-white/10"
-                aria-hidden
-              />
-              Contested
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* Active wars */}
-      <section className="mt-16" aria-labelledby="cw-wars-heading">
-        <h2 id="cw-wars-heading" className="text-2xl font-extrabold text-white">
-          Active wars
-        </h2>
-        <p className="mt-2 max-w-2xl text-sm text-slate-300">
-          Head-to-head rivalries. The bar shows current momentum between the two sides.
-        </p>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {ACTIVE_WARS.map((war) => (
-            <div key={`${war.a}-${war.b}`} className={`${APP_CARD} p-5`}>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
-                {war.theater}
-              </p>
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-base font-extrabold text-white">{war.a}</p>
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                  vs
-                </span>
-                <p className="text-base font-extrabold text-white">{war.b}</p>
-              </div>
-              <div
-                className="mt-4 flex h-2 overflow-hidden rounded-full bg-white/10"
-                role="img"
-                aria-label={`${war.a} ${war.aPct}% momentum vs ${war.b} ${100 - war.aPct}%`}
+          <ul className="space-y-2.5">
+            {CHAT_FEED.map((entry, i) => (
+              <li
+                key={i}
+                className="flex flex-col gap-1 rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div
-                  className="h-full rounded-l-full bg-[var(--page-accent-strong)]"
-                  style={{ width: `${war.aPct}%` }}
-                />
-                <div className="h-full flex-1 bg-violet-500/70" />
-              </div>
-              <div className="mt-2 flex justify-between text-xs tabular-nums text-slate-300">
-                <span>{war.aPct}%</span>
-                <span>{100 - war.aPct}%</span>
-              </div>
-            </div>
-          ))}
+                <span className="text-sm text-slate-300">{entry.text}</span>
+                <span className="text-sm font-black tabular-nums" style={{ color: entry.hex }}>
+                  {entry.delta}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
-      {/* Community momentum */}
-      <section className="mt-16" aria-labelledby="cw-momentum-heading">
-        <h2 id="cw-momentum-heading" className="text-2xl font-extrabold text-white">
-          Community momentum
-        </h2>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {MOMENTUM_CARDS.map((card) => (
-            <div key={card.faction.key} className={`${APP_CARD} p-5`}>
-              <p className={`text-sm font-extrabold ${card.faction.text}`}>
-                {card.faction.name}
-              </p>
-              <p className="mt-3 text-3xl font-black tabular-nums text-white">{card.stat}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">{card.line}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Daily actions placeholder */}
+      {/* Viewer actions */}
       <section className="mt-16" aria-labelledby="cw-actions-heading">
         <h2 id="cw-actions-heading" className="text-2xl font-extrabold text-white">
-          Daily actions
+          Viewer actions
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-300">
-          How members will push their faction forward, one day at a time.
+          Daily moves every viewer will get during a campaign. Demo only — buttons do nothing yet.
         </p>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {DAILY_ACTIONS.map((action) => (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {VIEWER_ACTIONS.map((action) => (
             <div key={action.label} className={`${APP_CARD} p-5`}>
               <p className="text-base font-extrabold text-white">{action.label}</p>
               <p className="mt-2 text-sm leading-6 text-slate-300">{action.detail}</p>
@@ -234,9 +260,54 @@ export default function CommunityWarsView() {
         </div>
       </section>
 
+      {/* Territory impact */}
+      <section className="mt-16" aria-labelledby="cw-territory-heading">
+        <h2 id="cw-territory-heading" className="text-2xl font-extrabold text-white">
+          Territory impact
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-slate-300">
+          Campaign momentum lands on the World Mobilize map: two communities pushing one region.
+        </p>
+        <div className={`${APP_CARD_LG} mt-6 p-6 md:p-7`}>
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">
+            {BATTLE.macro} · contested region
+          </p>
+          <p className="mt-2 text-2xl font-extrabold tracking-tight text-white gp-home-display">
+            {BATTLE.region}
+          </p>
+          <div className="mt-5 flex items-center justify-between gap-3 text-sm font-bold">
+            <span className="inline-flex items-center gap-2" style={{ color: BATTLE.a.hex }}>
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: BATTLE.a.hex }} aria-hidden />
+              {BATTLE.a.faction}
+            </span>
+            <span className="inline-flex items-center gap-2" style={{ color: BATTLE.b.hex }}>
+              {BATTLE.b.faction}
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: BATTLE.b.hex }} aria-hidden />
+            </span>
+          </div>
+          <div
+            className="mt-3 flex h-3 overflow-hidden rounded-full bg-white/10"
+            role="img"
+            aria-label={`${BATTLE.a.faction} ${BATTLE.aPct}% vs ${BATTLE.b.faction} ${100 - BATTLE.aPct}%`}
+          >
+            <div className="h-full rounded-l-full" style={{ width: `${BATTLE.aPct}%`, backgroundColor: BATTLE.a.hex }} />
+            <div className="h-full flex-1" style={{ backgroundColor: BATTLE.b.hex }} />
+          </div>
+          <div className="mt-2 flex justify-between text-xs tabular-nums text-slate-300">
+            <span>{BATTLE.aPct}%</span>
+            <span>{100 - BATTLE.aPct}%</span>
+          </div>
+          <div className="mt-6">
+            <Link href="/worldmobilize?region=craterline" className={APP_PRIMARY_CTA_ACCENT_SM}>
+              See {BATTLE.region} on the map
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <p className={`mt-14 ${APP_MUTED}`}>
-        Admin-only concept demo — static data throughout. No voting, no payments, no public
-        access.
+        Admin-only concept demo — static data throughout. No Twitch integration, no real voting,
+        no payments, no public access.
       </p>
     </AppSection>
   );

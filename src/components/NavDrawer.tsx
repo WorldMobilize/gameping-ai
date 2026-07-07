@@ -239,7 +239,7 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
               {/* Pillar 2 — World Mobilize: the community-game layer (alpha). */}
               <div className={sectionClass}>
                 {sectionHeading("World Mobilize", "Admin alpha")}
-                {renderNavItem(WORLDMOBILIZE_NAV_ITEM)}
+                {renderNavItem({ ...WORLDMOBILIZE_NAV_ITEM, label: "World Mobilize Map" })}
                 {renderNavItem(COMMUNITY_WARS_NAV_ITEM)}
                 <div className="mt-1 flex items-stretch gap-1">
                   <Link

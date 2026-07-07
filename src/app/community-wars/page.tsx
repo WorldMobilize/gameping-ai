@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   ...buildPublicPageMetadata({
     title: "Community Wars | GamePing AI",
     description:
-      "Communities compete for territory, momentum, and bragging rights. An admin-only GamePing concept demo.",
+      "Creator-led battles where Twitch communities rally, push momentum, and fight for territory inside World Mobilize. Admin-only concept demo.",
     path: "/community-wars",
   }),
   robots: { index: false, follow: false },
