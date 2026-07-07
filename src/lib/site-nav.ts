@@ -66,7 +66,26 @@ export const PREMIUM_NAV_ITEM: SiteNavItem = {
   matchPrefix: "/upgrade",
 };
 
-/** Community — admin-only concept demo (noindexed, gated to plan === "admin"). */
+/**
+ * Navbar "Discovery" dropdown — the live product surfaces a visitor should
+ * reach in one click from anywhere. Deals For You uses the premium lock rule.
+ */
+export const NAVBAR_DISCOVERY_MENU_ITEMS: SiteNavItem[] = [
+  ...DISCOVER_NAV_ITEMS.filter((item) => item.href !== "/how-it-works"),
+  ...DEALS_PERSONAL_NAV_ITEMS,
+];
+
+/**
+ * World Mobilize — the community-game pillar (admin-only alpha for now).
+ * The interactive world map is the pillar's front door; the Community Wars
+ * concept demo lives alongside it.
+ */
+export const WORLDMOBILIZE_NAV_ITEM: SiteNavItem = {
+  label: "World Mobilize",
+  href: "/worldmobilize",
+  matchPrefix: "/worldmobilize",
+};
+
 export const COMMUNITY_WARS_NAV_ITEM: SiteNavItem = {
   label: "Community Wars",
   href: "/community-wars",

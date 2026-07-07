@@ -8,6 +8,12 @@ import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import { isEmailVerified } from "@/lib/auth-email-verification";
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import NavDrawer from "@/components/NavDrawer";
+import {
+  COMPANION_NAV_ITEM,
+  isSiteNavItemActive,
+  NAVBAR_DISCOVERY_MENU_ITEMS,
+  WORLDMOBILIZE_NAV_ITEM,
+} from "@/lib/site-nav";
 import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
@@ -64,39 +70,14 @@ function LockIcon({ className = "h-3 w-3" }: { className?: string }) {
   );
 }
 
-/** Thin vertical divider between desktop nav groups. */
-function NavGroupSeparator({ isLight }: { isLight: boolean }) {
-  return (
-    <span
-      className={`h-5 w-px shrink-0 ${isLight ? "bg-slate-200" : "bg-white/15"}`}
-      aria-hidden
-    />
-  );
-}
-
 type MenuCoords = { top: number; right: number };
 
 /**
- * Ecosystem pillar links (uncluttered by design — the hamburger drawer is the
- * full navigation source of truth). "Premium" stays as the right-side CTA pill.
+ * Three ecosystem pillars in the navbar center: Discovery (dropdown over the
+ * live product surfaces), World Mobilize (admin-only alpha), Companion
+ * (admin-only alpha). Premium stays as the right-side CTA pill; the hamburger
+ * drawer remains the complete navigation.
  */
-const HOME_NAV_PILLAR_LINKS = [
-  { label: "Home", href: "/" },
-  { label: "Discover", href: "/recommend" },
-  { label: "Curated", href: "/curated" },
-] as const;
-
-/**
- * Deals pillar — live page; premium/admin get the personal feed, free/anon land
- * on the same page's locked preview (shown with a lock icon).
- */
-const HOME_NAV_DEALS_LINK = { label: "Deals", href: "/deals-for-you" } as const;
-
-/** Admin-only pillars: concept demo + alpha. Hidden for everyone else. */
-const HOME_NAV_ADMIN_PILLAR_LINKS = [
-  { label: "Community", href: "/community-wars" },
-  { label: "Companion", href: "/companion" },
-] as const;
 
 export default function Navbar({
   ctaLabel = "Try GamePing",
@@ -169,10 +150,36 @@ export default function Navbar({
   const [canViewPremium, setCanViewPremium] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
 
   const accountMenuButtonRef = useRef<HTMLButtonElement>(null);
   const accountMenuPanelRef = useRef<HTMLDivElement>(null);
+  const discoveryWrapRef = useRef<HTMLSpanElement>(null);
+
+  // Close the Discovery dropdown on outside click / Escape / route change.
+  useEffect(() => {
+    if (!discoveryOpen) return;
+    const onPointerDown = (e: MouseEvent | PointerEvent) => {
+      if (discoveryWrapRef.current?.contains(e.target as Node)) return;
+      setDiscoveryOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDiscoveryOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [discoveryOpen]);
+
+  useEffect(() => {
+    // Safety net for history navigation while the menu is open (normal clicks
+    // already close it). Deferred so the effect doesn't set state synchronously.
+    queueMicrotask(() => setDiscoveryOpen(false));
+  }, [pathname]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -471,16 +478,83 @@ export default function Navbar({
         </div>
 
         <nav className="gp-nav-home-links" aria-label="Primary navigation">
-          {HOME_NAV_PILLAR_LINKS.map((item) => renderHomeNavLink(item))}
-          {renderHomeNavLink(HOME_NAV_DEALS_LINK, { locked: !canViewPremium })}
+          {/* Pillar 1 — Discovery: dropdown over the live product surfaces. */}
+          <span className="relative inline-flex shrink-0" ref={discoveryWrapRef}>
+            <button
+              type="button"
+              onClick={() => setDiscoveryOpen((o) => !o)}
+              aria-expanded={discoveryOpen}
+              aria-haspopup="menu"
+              className={`group relative inline-flex gap-1.5 ${navLinkLayout} ${
+                discoveryOpen ||
+                NAVBAR_DISCOVERY_MENU_ITEMS.some((item) => isSiteNavItemActive(pathname, item))
+                  ? "text-[color:var(--page-accent-text)]"
+                  : `${isLight ? "text-slate-700" : "text-slate-300"} hover:text-[color:var(--page-accent-text)]`
+              }`}
+            >
+              Discovery
+              <svg
+                className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
+                  discoveryOpen ? "rotate-180" : ""
+                }`}
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span
+                aria-hidden
+                className={`pointer-events-none absolute -bottom-2 left-0 h-[2px] w-full origin-center rounded-full bg-[var(--page-accent-strong)] shadow-[0_0_8px_var(--page-accent-glow)] transition-transform duration-300 ease-out ${
+                  discoveryOpen ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                }`}
+              />
+            </button>
 
-          {/* Admin-only pillars — Community (concept demo) + Companion (alpha).
-           * Everything else lives in the drawer, which is the full nav. */}
+            {discoveryOpen ? (
+              <div
+                role="menu"
+                aria-label="Discovery"
+                className={`absolute left-1/2 top-[calc(100%+14px)] z-50 w-60 -translate-x-1/2 rounded-2xl border py-2 shadow-lg backdrop-blur-xl ${
+                  isLight
+                    ? "border-slate-200/90 bg-white/98 shadow-slate-200/60 ring-1 ring-slate-200/80"
+                    : "border-white/10 bg-[#0b0c18]/98 shadow-[0_16px_48px_rgba(0,0,0,0.55)] ring-1 ring-[color:var(--page-accent-soft)]"
+                }`}
+              >
+                {NAVBAR_DISCOVERY_MENU_ITEMS.map((item) => {
+                  const locked = item.href === "/deals-for-you" && !canViewPremium;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      role="menuitem"
+                      onClick={() => setDiscoveryOpen(false)}
+                      title={locked ? "Premium feature — preview available" : undefined}
+                      className={`flex w-full items-center justify-between gap-2 px-4 py-2.5 text-sm font-bold no-underline transition focus-visible:outline-none ${
+                        isLight
+                          ? "text-slate-800 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
+                          : "text-white/90 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      {locked ? <LockIcon className="h-3 w-3 shrink-0 opacity-70" /> : null}
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
+          </span>
+
+          {/* Pillars 2 + 3 — World Mobilize + Companion (admin-only alphas). */}
           {isAdmin ? (
-            <span className="hidden items-center gap-7 xl:flex">
-              <NavGroupSeparator isLight={isLight} />
-              {HOME_NAV_ADMIN_PILLAR_LINKS.map((item) => renderHomeNavLink(item))}
-            </span>
+            <>
+              {renderHomeNavLink(WORLDMOBILIZE_NAV_ITEM)}
+              {renderHomeNavLink(COMPANION_NAV_ITEM)}
+            </>
           ) : null}
         </nav>
 

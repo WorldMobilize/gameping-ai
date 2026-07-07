@@ -1,7 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { AppSection } from "@/components/app/AppPageShell";
-import { APP_CARD, APP_CARD_LG, APP_MUTED } from "@/components/app/app-styles";
+import {
+  APP_CARD,
+  APP_CARD_LG,
+  APP_MUTED,
+  APP_PRIMARY_CTA_ACCENT_SM,
+} from "@/components/app/app-styles";
 
 /**
  * Community Wars — ADMIN-ONLY CONCEPT DEMO (static, visual only).
@@ -94,6 +100,11 @@ export default function CommunityWarsView() {
         Static concept data — no real votes, no live systems. GamePing is growing into a
         community layer; this is the first visual of it.
       </p>
+      <div className="mt-8">
+        <Link href="/worldmobilize" className={APP_PRIMARY_CTA_ACCENT_SM}>
+          Open the World Mobilize map
+        </Link>
+      </div>
 
       {/* Territory map placeholder */}
       <section className="mt-16" aria-labelledby="cw-map-heading">

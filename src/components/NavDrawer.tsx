@@ -17,6 +17,7 @@ import {
   PARTIES_NAV_ITEM,
   PARTIES_SUBNAV_ITEMS,
   PREMIUM_NAV_ITEM,
+  WORLDMOBILIZE_NAV_ITEM,
   type SiteNavItem,
 } from "@/lib/site-nav";
 import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
@@ -220,30 +221,25 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
         <nav className="relative flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
           {renderNavItem(HOME_NAV_ITEM)}
 
-          {/* Discover — the core pillar: every public discovery surface. */}
+          {/* Pillar 1 — Discovery: every live product surface, deals included. */}
           <div className={sectionClass}>
-            {sectionHeading("Discover")}
+            {sectionHeading("Discovery")}
             {DISCOVER_NAV_ITEMS.map((item) => renderNavItem(item))}
             {DISCOVER_PERSONAL_NAV_ITEMS.map((item) =>
               renderNavItem(item, !canViewPremium)
             )}
-          </div>
-
-          {/* Deals — price tracking + personalized deals + Premium. */}
-          <div className={sectionClass}>
-            {sectionHeading("Deals")}
             {DEALS_NAV_ITEMS.map((item) => renderNavItem(item))}
             {DEALS_PERSONAL_NAV_ITEMS.map((item) =>
               renderNavItem(item, !canViewPremium)
             )}
-            {renderNavItem(PREMIUM_NAV_ITEM)}
           </div>
 
           {isAdmin ? (
             <>
-              {/* Community — admin-only concept area (Community Wars + Parties). */}
+              {/* Pillar 2 — World Mobilize: the community-game layer (alpha). */}
               <div className={sectionClass}>
-                {sectionHeading("Community", "Admin concept")}
+                {sectionHeading("World Mobilize", "Admin alpha")}
+                {renderNavItem(WORLDMOBILIZE_NAV_ITEM)}
                 {renderNavItem(COMMUNITY_WARS_NAV_ITEM)}
                 <div className="mt-1 flex items-stretch gap-1">
                   <Link
@@ -312,20 +308,21 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
                 ) : null}
               </div>
 
-              {/* Companion — admin-only alpha. */}
+              {/* Pillar 3 — Companion: desktop alpha. */}
               <div className={sectionClass}>
-                {sectionHeading("Companion", "Alpha")}
+                {sectionHeading("Companion", "Admin alpha")}
                 {renderNavItem(COMPANION_NAV_ITEM)}
               </div>
             </>
           ) : null}
 
-          {/* Account — dashboard/settings for members, login for everyone else. */}
+          {/* Account — dashboard/settings/premium, login/logout by auth state. */}
           <div className={sectionClass}>
             {sectionHeading("Account")}
             {loggedIn ? (
               <>
                 {ACCOUNT_NAV_ITEMS.map((item) => renderNavItem(item))}
+                {renderNavItem(PREMIUM_NAV_ITEM)}
                 <button
                   type="button"
                   onClick={() => void handleLogout()}
@@ -335,7 +332,10 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
                 </button>
               </>
             ) : (
-              renderNavItem({ label: "Login / Sign up", href: "/login" })
+              <>
+                {renderNavItem(PREMIUM_NAV_ITEM)}
+                {renderNavItem({ label: "Login / Sign up", href: "/login" })}
+              </>
             )}
           </div>
         </nav>
