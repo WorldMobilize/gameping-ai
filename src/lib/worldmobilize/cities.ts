@@ -3,8 +3,8 @@ import type { MacroAreaId } from "./types";
 /**
  * WorldMobilize city prototypes — data layer (no JSX, no gameplay).
  *
- * Phase: ONE explorable settlement, Beacon Quay, capital of Glowharbor on the
- * Lumen Coast — a neon harbor city rendered as a pseudo-isometric SVG scene.
+ * Phase: ONE explorable settlement, Beacon Quay, principal harbor of the
+ * Tarn Span region (Vantor Reach) — a neon city as a pseudo-isometric scene.
  * The whole layout (tiles, buildings, lights, POIs) is deterministic data
  * built here at module load, so the scene component just draws what it gets.
  * Adding a second city later = one more entry in CITIES.
@@ -200,12 +200,12 @@ function buildBeaconQuay(): CityPrototype {
     id: "beacon-quay",
     slug: "beacon-quay",
     name: "Beacon Quay",
-    regionId: "glowharbor",
-    regionName: "Glowharbor",
-    macroArea: "lumen-coast",
-    tagline: "Harbor capital of Glowharbor — the city that never powers down.",
+    regionId: "tarn-span",
+    regionName: "Tarn Span",
+    macroArea: "vantor-reach",
+    tagline: "Harbor capital of Tarn Span — the city that never powers down.",
     intro:
-      "Neon piers, signal towers, and a lighthouse older than the maps. Beacon Quay is the Lumen Coast's front door — and the first settlement communities will be able to claim.",
+      "Neon piers, signal towers, and a lighthouse older than the maps. Beacon Quay is Vantor Reach's front door — and the first settlement communities will be able to claim.",
     cols,
     rows,
     tiles,

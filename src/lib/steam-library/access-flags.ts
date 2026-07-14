@@ -13,5 +13,5 @@ export function isSteamImportAdminOnly(): boolean {
 export function canUseSteamImport(plan: string | null | undefined): boolean {
   if (!isSteamImportEnabled()) return false;
   if (isSteamImportAdminOnly()) return plan === "admin";
-  return true;
+  return plan === "premium" || plan === "admin";
 }

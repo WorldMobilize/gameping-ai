@@ -53,8 +53,8 @@ export default function RecommendRefinePanel({
   const counter = isLight ? "text-xs tabular-nums text-slate-600" : "text-xs tabular-nums text-white/70";
 
   const button = isLight
-    ? "rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-6 py-3 text-sm font-bold text-white shadow-sm shadow-cyan-600/20 transition disabled:opacity-50"
-    : "rounded-full bg-cyan-400 px-6 py-3 text-sm font-bold text-black transition disabled:cursor-not-allowed disabled:opacity-50";
+    ? "gp-home-cta rounded-full px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
+    : "gp-home-cta rounded-full px-6 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50";
 
   if (refineUsed) {
     return (

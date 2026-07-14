@@ -10,8 +10,9 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   ...buildPublicPageMetadata({
     title: "Community Wars | GamePing AI",
-    description:
-      "Creator-led battles where Twitch communities rally, push momentum, and fight for territory inside World Mobilize. Admin-only concept demo.",
+    // Deliberately says nothing: the metadata is server-rendered before the
+    // admin gate runs, so anyone requesting this URL would read it.
+    description: "Admin-only concept demo.",
     path: "/community-wars",
   }),
   robots: { index: false, follow: false },

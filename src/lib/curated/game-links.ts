@@ -11,3 +11,8 @@ export function steamHeaderImage(steamAppId: number): string {
 export function steamPortraitImage(steamAppId: number): string {
   return `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppId}/library_600x900.jpg`;
 }
+
+/** Wide cinematic library hero (~1920×620) — reads as in-game art. Same Steam CDN host. */
+export function steamLibraryHero(steamAppId: number): string {
+  return `https://cdn.akamai.steamstatic.com/steam/apps/${steamAppId}/library_hero.jpg`;
+}

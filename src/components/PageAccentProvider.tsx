@@ -11,7 +11,8 @@ import { useEffect, useLayoutEffect } from "react";
 function accentForPath(pathname: string): string {
   if (pathname === "/upgrade") return "premium";
   if (pathname === "/recommend") return "recommend";
-  if (pathname === "/curated" || pathname.startsWith("/curated/")) return "curated";
+  if (pathname === "/games-like" || pathname.startsWith("/games-like/")) return "curated";
+  if (pathname === "/collections" || pathname.startsWith("/collections/")) return "curated";
   if (pathname === "/hidden-gems") return "hidden-gems";
   if (pathname === "/games-of-the-week") return "gotw";
   if (pathname === "/weekly-picks") return "weekly";

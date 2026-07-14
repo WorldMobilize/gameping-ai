@@ -85,7 +85,7 @@ function DemoGameCard({
         visible ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-3"
       } ${
         expanded
-          ? "border-cyan-400/25 bg-white/[0.04] shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
+          ? "border-blue-400/25 bg-white/[0.04] shadow-[0_8px_32px_rgba(0,0,0,0.35)]"
           : "border-white/[0.07] bg-white/[0.025]"
       }`}
       style={{ transitionDelay: visible ? `${index * 100}ms` : "0ms" }}

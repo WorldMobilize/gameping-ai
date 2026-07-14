@@ -9,18 +9,10 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-color: #070b14;
+  background-color: var(--gp-bg-base);
   background-image:
-    linear-gradient(
-      to bottom,
-      rgba(7, 11, 20, 0.5) 0%,
-      rgba(7, 11, 20, 0.68) 52%,
-      rgba(7, 11, 20, 0.9) 100%
-    ),
-    url("/images/backgrounds/gameping-premium-bg-dark.png");
-  background-repeat: no-repeat, no-repeat;
-  background-position: center top, center top;
-  background-size: cover, cover;
+    radial-gradient(1200px 760px at 12% -12%, var(--page-accent-soft), transparent 58%),
+    radial-gradient(1000px 680px at 110% 112%, var(--page-accent-soft), transparent 60%);
 }
 
 /*
@@ -38,43 +30,19 @@ html[data-home-theme="light"] .gp-premium .bg-slate-50\/60,
 html[data-home-theme="light"] .gp-premium .bg-slate-50\/70,
 html[data-home-theme="light"] .gp-premium .bg-slate-50\/80,
 html[data-home-theme="light"] .gp-premium .bg-slate-50\/90 {
-  background-color: rgba(255, 250, 235, 0.78);
+  background-color: rgba(239, 246, 255, 0.85);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
 
-/* Unify card/panel borders to the same warm gold hairline in light mode. */
+/* Unify card/panel borders to the same blue hairline in light mode. */
 html[data-home-theme="light"] .gp-premium .border-slate-200,
 html[data-home-theme="light"] .gp-premium .border-slate-200\/90 {
-  border-color: rgba(214, 168, 79, 0.45);
+  border-color: rgba(37, 99, 235, 0.35);
 }
 
 /*
- * Premium gold CTA — scoped to the /upgrade page (.gp-premium) only, so the
- * shared cyan `.gp-home-cta` primary button stays cyan everywhere else. The
- * "upgrade" tier reads as warm gold/champagne with a deep espresso label for a
- * luxe (non-neon, non-casino) feel. Overrides the cyan gradient + glow only.
+ * Primary CTA uses the shared flat blue standard (.gp-home-cta) — no page-scoped
+ * override, so every button matches the landing exactly.
  */
-.gp-premium .gp-home-cta {
-  color: #3a2c08;
-  background-image: linear-gradient(to bottom, #ecc873, #b9871f);
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.35) inset,
-    0 8px 22px -8px rgba(176, 132, 30, 0.55),
-    0 2px 6px -2px rgba(176, 132, 30, 0.4);
-}
-
-.gp-premium .gp-home-cta:hover {
-  background-image: linear-gradient(to bottom, #f3d589, #c8961f);
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 0.45) inset,
-    0 14px 30px -10px rgba(212, 165, 50, 0.5),
-    0 3px 10px -2px rgba(212, 165, 50, 0.42);
-}
-
-.gp-premium .gp-home-cta:active {
-  box-shadow:
-    0 1px 2px rgba(176, 132, 30, 0.5) inset,
-    0 4px 12px -4px rgba(176, 132, 30, 0.45);
-}
 

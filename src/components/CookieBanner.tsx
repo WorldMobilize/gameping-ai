@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function CookieBanner() {
-  const [visible, setVisible] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const consent = window.localStorage.getItem("cookie_consent");
-    return !consent;
-  });
+  // Server and first client render must agree (both render nothing): reading
+  // localStorage during the initial render would make the banner appear only on
+  // the client and fail hydration. Reveal it after mount instead.
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    setVisible(!window.localStorage.getItem("cookie_consent"));
+  }, []);
 
   function acceptCookies() {
     localStorage.setItem("cookie_consent", "accepted");
@@ -34,7 +37,7 @@ export default function CookieBanner() {
 
           <a
             href="/cookies"
-            className="mt-2 inline-block rounded text-sm font-bold text-cyan-300 transition hover:text-cyan-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/60"
+            className="mt-2 inline-block rounded text-sm font-bold text-blue-300 transition hover:text-blue-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300/60"
           >
             Read Cookie Policy
           </a>
@@ -52,7 +55,7 @@ export default function CookieBanner() {
           <button
             type="button"
             onClick={acceptCookies}
-            className="flex-1 rounded-full bg-cyan-400 px-4 py-3 text-sm font-black text-black transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0c18]"
+            className="flex-1 rounded-full bg-blue-800 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0c18]"
           >
             Accept
           </button>

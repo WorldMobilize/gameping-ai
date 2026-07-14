@@ -11,7 +11,8 @@ const FOOTERLESS_PATHS = new Set(["/", "/verify-success"]);
 const CINEMATIC_FOOTER_PATHS = new Set([
   "/upgrade",
   "/recommend",
-  "/curated",
+  "/games-like",
+  "/collections",
   "/games",
   "/hidden-gems",
   "/games-of-the-week",
@@ -36,7 +37,7 @@ export default function ConditionalFooter() {
   const p = pathname ?? "";
   const isCinematic =
     CINEMATIC_FOOTER_PATHS.has(p) ||
-    p.startsWith("/curated/") ||
+    p.startsWith("/games-like/") || p.startsWith("/collections/") ||
     p.startsWith("/games/") ||
     p.startsWith("/game/");
 

@@ -14,15 +14,30 @@
  * no keys or upstream URLs are ever sent to the desktop client.
  */
 
-export type CompanionMediaType = "video" | "image";
+export type CompanionMediaType = "video" | "image" | "music";
+
+/**
+ * Optional highlight marker for map results. Coordinates are normalized (0..1)
+ * relative to the displayed image. Only emitted when they can be determined
+ * confidently — we never invent coordinates (a wrong marker is worse than none).
+ */
+export type CompanionMediaMarker = {
+  x: number;
+  y: number;
+  label: string;
+};
 
 export type CompanionMediaResult = {
   type: CompanionMediaType;
+  /** "map" for map/location results; omitted for generic images/videos. */
+  variant?: "map";
   title?: string;
   url: string;
   thumbnailUrl?: string;
   embedUrl?: string;
   caption?: string;
+  /** Optional, map-only. Omitted unless coordinates are confidently known. */
+  marker?: CompanionMediaMarker;
 };
 
 const FETCH_TIMEOUT_MS = 8_000;
@@ -119,6 +134,17 @@ export async function findCompanionVideo(query: string): Promise<CompanionMediaR
   return youTubeScrapeSearch(trimmed);
 }
 
+/**
+ * One game-music result for the query, or null. Music lives on YouTube (tracks,
+ * OST uploads), so this reuses the video lookup and re-tags the result as
+ * `type: "music"` — the desktop renders it as an audio/track card. Never throws.
+ */
+export async function findCompanionMusic(query: string): Promise<CompanionMediaResult | null> {
+  const base = await findCompanionVideo(query);
+  if (!base) return null;
+  return { ...base, type: "music" };
+}
+
 type MediaWikiImagePage = {
   index?: number;
   title?: string;
@@ -176,46 +202,187 @@ function contentTokens(text: string): string[] {
     .filter((t) => t.length >= 3);
 }
 
-/**
- * Loose query↔title overlap (prefix-tolerant, so "map" matches "Maps"). Guards
- * the general-encyclopedia fallback against confidently irrelevant results.
- */
-function titleMatchesQuery(title: string, query: string): boolean {
-  const titleTokens = contentTokens(title);
-  return contentTokens(query).some((q) =>
-    titleTokens.some((t) => t.startsWith(q) || q.startsWith(t))
-  );
-}
-
 /** Model-suggested wiki hosts are fetched ONLY when they are a Fandom wiki. */
 const FANDOM_HOST_RE = /^[a-z0-9-]+(\.[a-z0-9-]+)?\.fandom\.com$/;
 
 /**
- * One relevant image, or null. Tries the game's Fandom wiki first (best source
- * for locations/items/maps), then Wikipedia — where a relevance guard drops
- * results whose title shares nothing with the query. Never throws.
+ * Minimum share of the SPECIFIC relevance terms that must appear in a candidate
+ * page (title/description/filename) before we attach its image. For a two-word
+ * subject like "stone axe" this requires BOTH words — so a generic page (the
+ * Minecraft main page, a "Pyramid", a "Stone" block) is rejected and the ask
+ * degrades to answer-only rather than showing a random image.
+ */
+const IMAGE_RELEVANCE_THRESHOLD = 0.6;
+
+/**
+ * The specific things the user asked about, MINUS the (too-generic) game name.
+ * Scoring on "stone axe" — not "minecraft" — is what stops the search matching
+ * an unrelated page just because it mentions the game.
+ */
+export function imageRelevanceTerms(
+  subject?: string,
+  searchQuery?: string,
+  game?: string
+): string[] {
+  const gameTokens = new Set(contentTokens(game ?? ""));
+  const raw = [...contentTokens(subject ?? ""), ...contentTokens(searchQuery ?? "")];
+  const specific = raw.filter((t) => !gameTokens.has(t));
+  return Array.from(new Set(specific.length ? specific : raw));
+}
+
+/** Share (0..1) of `terms` found in a page's title/description/image filename. */
+function scoreImagePage(page: MediaWikiImagePage, terms: string[]): number {
+  if (!terms.length) return 0;
+  const haystack = contentTokens(
+    `${page.title ?? ""} ${page.description ?? ""} ${page.original?.source ?? ""} ${page.thumbnail?.source ?? ""}`
+  );
+  let matched = 0;
+  for (const term of terms) {
+    if (haystack.some((t) => t.startsWith(term) || term.startsWith(t))) matched += 1;
+  }
+  return matched / terms.length;
+}
+
+/** Highest-scoring page above the relevance threshold, or null. */
+function bestScoredImage(
+  pages: MediaWikiImagePage[],
+  terms: string[]
+): { result: CompanionMediaResult; score: number; title?: string } | null {
+  let best: { result: CompanionMediaResult; score: number; title?: string } | null = null;
+  for (const page of pages) {
+    const result = imageResultFromPage(page);
+    if (!result) continue;
+    const score = scoreImagePage(page, terms);
+    if (score >= IMAGE_RELEVANCE_THRESHOLD && (!best || score > best.score)) {
+      best = { result, score, title: page.title };
+    }
+  }
+  return best;
+}
+
+/** Server-side debug line so we can iterate on relevance from the logs. */
+function logImageChoice(
+  query: string,
+  terms: string[],
+  host: string,
+  chosen: { title?: string; url: string; score: number } | null
+) {
+  console.log(
+    "[companion:image]",
+    JSON.stringify({
+      query,
+      terms,
+      host,
+      result: chosen ? "image" : "text-only",
+      chosen: chosen
+        ? { title: chosen.title, url: chosen.url, score: Number(chosen.score.toFixed(2)) }
+        : null,
+    })
+  );
+}
+
+/**
+ * One RELEVANT image, or null. Scores each candidate page against the specific
+ * relevance `terms` (item/location the user asked about) and only returns one
+ * that clears IMAGE_RELEVANCE_THRESHOLD — picking the best score, not just the
+ * first search hit. Tries the game's Fandom wiki first (best source for
+ * items/recipes/locations), then Wikipedia. Never throws; returns null so the
+ * caller degrades to answer-only rather than showing an unrelated image.
  */
 export async function findCompanionImage(
   query: string,
-  wikiHost?: string
+  wikiHost?: string,
+  terms?: string[]
 ): Promise<CompanionMediaResult | null> {
   const trimmed = query.trim();
   if (!trimmed) return null;
+  const scoreTerms = terms && terms.length ? terms : contentTokens(trimmed);
 
   const fandomHost = wikiHost?.trim().toLowerCase();
   if (fandomHost && FANDOM_HOST_RE.test(fandomHost)) {
     const pages = await mediaWikiImagePages(fandomHost, "/api.php", trimmed);
-    for (const page of pages) {
-      const result = imageResultFromPage(page);
-      if (result) return result;
+    const best = bestScoredImage(pages, scoreTerms);
+    if (best) {
+      logImageChoice(trimmed, scoreTerms, fandomHost, {
+        title: best.title,
+        url: best.result.url,
+        score: best.score,
+      });
+      return best.result;
     }
   }
 
-  const pages = await mediaWikiImagePages("en.wikipedia.org", "/w/api.php", trimmed);
-  for (const page of pages) {
-    if (!page.title || !titleMatchesQuery(page.title, trimmed)) continue;
-    const result = imageResultFromPage(page);
-    if (result) return result;
+  const wikiPages = await mediaWikiImagePages("en.wikipedia.org", "/w/api.php", trimmed);
+  const best = bestScoredImage(wikiPages, scoreTerms);
+  if (best) {
+    logImageChoice(trimmed, scoreTerms, "en.wikipedia.org", {
+      title: best.title,
+      url: best.result.url,
+      score: best.score,
+    });
+    return best.result;
   }
+
+  // Nothing relevant → answer-only (never a random image).
+  logImageChoice(trimmed, scoreTerms, fandomHost || "wikipedia", null);
   return null;
+}
+
+/** True when a wiki page/image is actually a map (title or image filename). */
+function looksLikeMap(page: MediaWikiImagePage): boolean {
+  const haystack = `${page.title ?? ""} ${page.original?.source ?? ""} ${page.thumbnail?.source ?? ""}`.toLowerCase();
+  return /\bmap\b|\bmaps\b|world[_\s-]?map|region[_\s-]?map|\bmappa\b|\bmapa\b/.test(haystack);
+}
+
+/**
+ * A MAP image for a location/"where is" question. Prefers the game's Fandom
+ * wiki (the reliable source for game maps) and only returns a result that is
+ * genuinely a map — otherwise null, so the caller can fall back to answer-only
+ * rather than showing a generic place photo for a location question.
+ *
+ * Result carries `variant: "map"`. A `marker` is intentionally NOT attached:
+ * we have no reliable per-image coordinates and never invent them (a wrong
+ * marker is worse than none). The shape supports one for future sources.
+ */
+export async function findCompanionMapImage(opts: {
+  query: string;
+  wikiHost?: string;
+  mapLabel?: string;
+  game?: string;
+}): Promise<CompanionMediaResult | null> {
+  const trimmed = opts.query.trim();
+  if (!trimmed) return null;
+
+  const fandomHost = opts.wikiHost?.trim().toLowerCase();
+  // Without a known game wiki we cannot reliably find a *game* map. Prefer
+  // answer-only over a misleading generic image for a location question.
+  if (!fandomHost || !FANDOM_HOST_RE.test(fandomHost)) return null;
+
+  const mapQuery = /\bmap\b/i.test(trimmed) ? trimmed : `${trimmed} map`;
+  const pages = await mediaWikiImagePages(fandomHost, "/api.php", mapQuery);
+
+  const mapPage = pages.find(
+    (p) => looksLikeMap(p) && (p.original?.source ?? p.thumbnail?.source)
+  );
+  if (!mapPage) return null;
+
+  const base = imageResultFromPage(mapPage);
+  if (!base) return null;
+
+  const label = opts.mapLabel?.trim();
+  const game = opts.game?.trim();
+  const caption =
+    label && game
+      ? `${label} on the ${game} map`
+      : label
+        ? `${label} — map`
+        : base.caption;
+
+  return {
+    ...base,
+    variant: "map",
+    title: label ? `${label} location` : base.title,
+    caption,
+    // marker omitted by design — see the doc comment above.
+  };
 }

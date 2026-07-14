@@ -1,138 +1,65 @@
 /**
- * GamePing Companion — real endpoint (Alpha, admin-gated).
+ * GamePing Companion — desktop ask endpoint (public beta).
  *
  *   OPTIONS /api/companion/ask   → CORS preflight (204)
  *   POST    /api/companion/ask
  *     Auth:    Authorization: Bearer <supabase_access_token>  (NO cookies)
  *     Body:    { "message": string, "source"?: "desktop_companion",
- *                "responseMode"?: "text" | "video" | "image" }   (default "text")
- *     Success: { "answer": string, "media"?: { type, title?, url,
- *                thumbnailUrl?, embedUrl?, caption? } }
- *              `media` only appears in video/image mode AND when a lookup
+ *                "responseMode"?: "text" | "video" | "image" | "music" }  (default "text")
+ *     Success: { "answer": string, "media"?: { type, variant?, title?, url,
+ *                thumbnailUrl?, embedUrl?, caption?, marker? } }
+ *              `media` only appears in video/image/music mode AND when a lookup
  *              succeeded — media failures degrade to answer-only, never 5xx.
- *     Errors:  { "error": string }  (400 / 401 / 403 / 500)
+ *              Music reuses the YouTube lookup and returns `media.type: "music"`.
+ *              For location/"where is" questions in image mode, media prefers a
+ *              real game map (`variant: "map"`); `variant`/`marker` are optional.
+ *     Errors:  { "error": string }  (400 / 401 / 500)
  *
- * Token-based auth (validated with Supabase auth.getUser(token)) so non-browser
- * clients — the desktop Companion — can call it without a cookie session. For
- * now only profiles.plan === "admin" is allowed; other authenticated users get
- * 403. Stateless: no DB writes, no quotas, no billing. The OpenAI key stays
- * server-side. CORS is limited to a small allowlist (Tauri dev/prod + the site);
- * we reflect only known origins so combining it with Authorization stays safe.
- * Does NOT touch /auth/companion, the deep-link flow, Stripe, premium, etc.
+ * Any authenticated GamePing user (free + premium) may call it — the Bearer
+ * token is validated with Supabase `auth.getUser(token)` so non-browser clients
+ * (the desktop Companion / its Rust proxy) work without a cookie session.
+ * Stateless: no DB writes. The OpenAI key stays server-side. Does NOT touch
+ * /auth/companion, the deep-link flow, Stripe, or premium gating.
  */
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { askCompanion, askCompanionForMedia } from "@/lib/companion/ask";
+import {
+  askCompanion,
+  askCompanionForMedia,
+  detectLocationIntent,
+} from "@/lib/companion/ask";
+import {
+  authenticateCompanion,
+  companionCorsHeaders,
+  companionCorsJson,
+} from "@/lib/companion/http";
 import {
   findCompanionImage,
+  findCompanionMapImage,
+  findCompanionMusic,
   findCompanionVideo,
+  imageRelevanceTerms,
 } from "@/lib/companion/media-search";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const MAX_MESSAGE_LEN = 2000;
 
-/**
- * Small CORS allowlist. We reflect only these exact origins into
- * Access-Control-Allow-Origin (never `*`), which is what makes it safe to also
- * allow the Authorization header.
- */
-const ALLOWED_ORIGINS = new Set([
-  "http://localhost:1420", // Tauri dev server
-  "http://tauri.localhost", // Tauri prod webview (Windows / Linux)
-  "tauri://localhost", // Tauri prod webview (macOS)
-  "https://gamepingai.com", // the website itself
-]);
-
-function corsHeaders(origin: string | null): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    Vary: "Origin",
-  };
-  // Only echo an allowed origin. Unknown origins get no ACAO header → the
-  // browser blocks them, while non-browser callers (no Origin) are unaffected.
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
-    headers["Access-Control-Allow-Origin"] = origin;
-  }
-  return headers;
-}
-
-/** JSON response with CORS headers attached (used for success AND every error). */
-function corsJson(origin: string | null, body: unknown, status: number) {
-  return NextResponse.json(body, { status, headers: corsHeaders(origin) });
-}
-
-/** Extract a Bearer token from the Authorization header, or null. */
-function getBearerToken(req: Request): string | null {
-  const header = req.headers.get("authorization") ?? "";
-  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
-  const token = match?.[1]?.trim();
-  return token ? token : null;
-}
-
-/**
- * Anon-key client scoped to the caller's token. `auth.getUser(token)` validates
- * the JWT server-side, and the forwarded Authorization header means the profiles
- * read runs under the user's own RLS context.
- */
-function getScopedClient(token: string) {
-  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return null;
-  return createClient(url, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  });
-}
-
 /** CORS preflight. */
 export async function OPTIONS(req: Request) {
   return new NextResponse(null, {
     status: 204,
-    headers: corsHeaders(req.headers.get("origin")),
+    headers: companionCorsHeaders(req.headers.get("origin")),
   });
 }
 
 export async function POST(req: Request) {
   const origin = req.headers.get("origin");
 
-  const token = getBearerToken(req);
-  if (!token) {
-    return corsJson(origin, { error: "Unauthorized" }, 401);
-  }
-
-  const supabase = getScopedClient(token);
-  if (!supabase) {
-    return corsJson(origin, { error: "Auth is not configured." }, 500);
-  }
-
-  // Validate the token server-side.
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser(token);
-  if (authError || !user?.id) {
-    return corsJson(origin, { error: "Unauthorized" }, 401);
-  }
-
-  // Admin-only for now (project convention for the Companion alpha).
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (profile?.plan !== "admin") {
-    return corsJson(
-      origin,
-      { error: "Companion access is not enabled for this account" },
-      403
-    );
+  // Authenticate any GamePing user (free or premium) via Bearer token.
+  const auth = await authenticateCompanion(req);
+  if (!auth.ok) {
+    return companionCorsJson(origin, { error: auth.error }, auth.status);
   }
 
   let body: unknown = {};
@@ -155,37 +82,60 @@ export async function POST(req: Request) {
         : "";
   const message = raw.trim();
   if (!message || message.length > MAX_MESSAGE_LEN) {
-    return corsJson(origin, { error: "Invalid message" }, 400);
+    return companionCorsJson(origin, { error: "Invalid message" }, 400);
   }
 
   // Optional media mode from the desktop overlay. Unknown/missing values fall
   // back to "text" so older clients keep working unchanged.
   const responseMode =
-    record.responseMode === "video" || record.responseMode === "image"
+    record.responseMode === "video" ||
+    record.responseMode === "image" ||
+    record.responseMode === "music"
       ? record.responseMode
       : "text";
 
   if (responseMode === "text") {
     const result = await askCompanion(message);
     if (!result.ok) {
-      return corsJson(origin, { error: result.error }, result.status);
+      return companionCorsJson(origin, { error: result.error }, result.status);
     }
-    return corsJson(origin, { answer: result.answer }, 200);
+    return companionCorsJson(origin, { answer: result.answer }, 200);
   }
 
   const result = await askCompanionForMedia(message, responseMode);
   if (!result.ok) {
-    return corsJson(origin, { error: result.error }, result.status);
+    return companionCorsJson(origin, { error: result.error }, result.status);
   }
 
   // Best-effort media lookup: null (no result / upstream failure) degrades to
   // an answer-only response with the same 200 shape.
-  const media =
-    responseMode === "video"
-      ? await findCompanionVideo(result.searchQuery)
-      : await findCompanionImage(result.searchQuery, result.wikiHost);
+  let media;
+  if (responseMode === "music") {
+    media = await findCompanionMusic(result.searchQuery);
+  } else if (responseMode === "video") {
+    media = await findCompanionVideo(result.searchQuery);
+  } else if (
+    // Location intent (either the regex heuristic or the model's own
+    // classification) → prefer a real game MAP over a generic place image.
+    detectLocationIntent(message) ||
+    result.mediaIntent === "map_location"
+  ) {
+    media = await findCompanionMapImage({
+      query: result.searchQuery,
+      wikiHost: result.wikiHost,
+      mapLabel: result.mapLabel ?? result.subject,
+      game: result.game,
+    });
+  } else {
+    // Search by the specific subject (e.g. "stone axe"), and score candidate
+    // images against the specific terms only (game name stripped) so a generic
+    // page is rejected → answer-only rather than a random image.
+    const imageQuery = result.subject?.trim() || result.searchQuery;
+    const terms = imageRelevanceTerms(result.subject, result.searchQuery, result.game);
+    media = await findCompanionImage(imageQuery, result.wikiHost, terms);
+  }
 
-  return corsJson(
+  return companionCorsJson(
     origin,
     media ? { answer: result.answer, media } : { answer: result.answer },
     200

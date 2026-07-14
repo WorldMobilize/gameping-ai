@@ -34,10 +34,18 @@ describe("steam import feature flags", () => {
     assert.equal(canUseSteamImport("free"), false);
   });
 
-  it("allows all plans when admin-only is false", () => {
+  it("allows premium and admin when admin-only is false", () => {
     process.env.STEAM_IMPORT_ENABLED = "1";
     process.env.STEAM_IMPORT_ADMIN_ONLY = "false";
-    assert.equal(canUseSteamImport("free"), true);
     assert.equal(canUseSteamImport("premium"), true);
+    assert.equal(canUseSteamImport("admin"), true);
+  });
+
+  it("never allows free plans, even when admin-only is false", () => {
+    process.env.STEAM_IMPORT_ENABLED = "1";
+    process.env.STEAM_IMPORT_ADMIN_ONLY = "false";
+    assert.equal(canUseSteamImport("free"), false);
+    assert.equal(canUseSteamImport(null), false);
+    assert.equal(canUseSteamImport(undefined), false);
   });
 });

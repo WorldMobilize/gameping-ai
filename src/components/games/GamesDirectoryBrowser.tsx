@@ -5,6 +5,20 @@ import { useId, useMemo, useState } from "react";
 import { gameDetailPath } from "@/lib/curated/game-links";
 
 const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+// "#" leads the nav and collects titles that start with a digit or symbol
+// (e.g. "7 Days to Die"), so numeric titles still appear in the A–Z view.
+const GROUPS = ["#", ...LETTERS];
+
+/** Grouping key for a title: its uppercased first letter, or "#" if non-alpha. */
+function groupKey(title: string): string {
+  const c = title.charAt(0).toUpperCase();
+  return c >= "A" && c <= "Z" ? c : "#";
+}
+
+/** Fragment-safe anchor id for a group ("#" → "num"). */
+function anchorId(group: string): string {
+  return `letter-${group === "#" ? "num" : group}`;
+}
 
 /** A–Z jump pill — glass + games accent, with a hover lift + accent glow. */
 const GAMES_LETTER_PILL =
@@ -69,9 +83,9 @@ export default function GamesDirectoryBrowser({ titles }: { titles: string[] }) 
 
   const byLetter = useMemo(
     () =>
-      LETTERS.map((letter) => ({
+      GROUPS.map((letter) => ({
         letter,
-        games: titles.filter((t) => t.charAt(0).toUpperCase() === letter),
+        games: titles.filter((t) => groupKey(t) === letter),
       })).filter((g) => g.games.length > 0),
     [titles]
   );
@@ -144,10 +158,10 @@ export default function GamesDirectoryBrowser({ titles }: { titles: string[] }) 
             className="mt-6 flex flex-wrap gap-2 border-b border-[color:var(--page-accent-border)] pb-8"
             aria-label="Jump to letter"
           >
-            {LETTERS.map((L) => (
+            {GROUPS.map((L) => (
               <span key={L}>
                 {letterSet.has(L) ? (
-                  <a href={`#letter-${L}`} className={GAMES_LETTER_PILL}>
+                  <a href={`#${anchorId(L)}`} className={GAMES_LETTER_PILL}>
                     {L}
                   </a>
                 ) : (
@@ -161,7 +175,7 @@ export default function GamesDirectoryBrowser({ titles }: { titles: string[] }) 
 
           <div className="mt-10 space-y-14">
             {byLetter.map(({ letter, games }) => (
-              <section key={letter} id={`letter-${letter}`} className="scroll-mt-28">
+              <section key={letter} id={anchorId(letter)} className="scroll-mt-28">
                 <div className="flex items-center gap-4">
                   <h2 className="text-2xl font-bold text-[color:var(--page-accent-strong)]">
                     {letter}

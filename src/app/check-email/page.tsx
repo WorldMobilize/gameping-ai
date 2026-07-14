@@ -10,9 +10,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import { AuthShell } from "@/components/auth/auth-ui";
 import {
-  APP_AUTH_CARD,
   APP_INLINE_LINK_ACCENT,
   APP_PRIMARY_CTA_ACCENT_SM,
   APP_SECONDARY_CTA,
@@ -169,83 +168,70 @@ export default function CheckEmailPage() {
       : "Resend verification email";
 
   return (
-    <AppPageShell bare hideAmbient>
-      {/* Same cinematic background + account (silver) accent as /login and /verify-success. */}
-      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div aria-hidden className="gp-account-bg" />
-        <AppSection
-          maxWidth="max-w-md"
-          className="flex min-h-screen items-center justify-center py-12"
+    <AuthShell showBack={false}>
+      <div className="text-center" role="status">
+        <div
+          className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] shadow-sm"
+          aria-hidden
         >
-          <div className={`w-full text-center ${APP_AUTH_CARD}`} role="status">
-            <div
-              className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] shadow-sm"
-              aria-hidden
-            >
-              <EnvelopeIcon />
-            </div>
+          <EnvelopeIcon />
+        </div>
 
-            <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.32em] text-[color:var(--page-accent-text)]">
-              GamePing AI
-            </p>
+        <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.32em] text-[color:var(--page-accent-text)]">
+          GamePing AI
+        </p>
 
-            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white gp-home-display md:text-[1.65rem]">
-              Check your email
-            </h1>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 dark:text-white gp-home-display">
+          Check your email
+        </h1>
 
-            <p className="mx-auto mt-3 max-w-[20rem] text-pretty text-sm leading-6 text-slate-600 dark:text-slate-400">
-              We sent a verification link to
-            </p>
+        <p className="mx-auto mt-3 max-w-[20rem] text-pretty text-sm leading-6 text-slate-600 dark:text-slate-400">
+          We sent a verification link to
+        </p>
 
-            {email ? (
-              <div className="mx-auto mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-1.5">
-                <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
-                  {email}
-                </span>
-              </div>
-            ) : (
-              <p className="mx-auto mt-3 text-sm font-semibold text-slate-900 dark:text-white">
-                your email address
-              </p>
-            )}
-
-            <p className="mx-auto mt-4 max-w-[20rem] text-pretty text-sm leading-6 text-slate-700 dark:text-slate-300">
-              Open the link to activate your GamePing account.
-            </p>
-
-            <div className="mt-7 flex flex-col items-center gap-3">
-              {email ? (
-                <button
-                  type="button"
-                  onClick={resend}
-                  disabled={sending || cooldown > 0}
-                  className={`${APP_PRIMARY_CTA_ACCENT_SM} disabled:cursor-not-allowed disabled:opacity-60`}
-                >
-                  {resendLabel}
-                </button>
-              ) : null}
-
-              <Link
-                href="/signup"
-                onClick={clearPendingEmail}
-                className={APP_SECONDARY_CTA}
-              >
-                {email ? "Use another email" : "Back to signup"}
-              </Link>
-            </div>
-
-            <div className="mt-7 border-t border-slate-200/70 pt-5 dark:border-white/10">
-              <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-                Check Spam or Promotions if you don&apos;t see it. Still nothing?{" "}
-                <Link href="/contact" className={APP_INLINE_LINK_ACCENT}>
-                  Contact support
-                </Link>
-                .
-              </p>
-            </div>
+        {email ? (
+          <div className="mx-auto mt-3 inline-flex max-w-full items-center gap-2 rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-4 py-1.5">
+            <span className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+              {email}
+            </span>
           </div>
-        </AppSection>
+        ) : (
+          <p className="mx-auto mt-3 text-sm font-semibold text-slate-900 dark:text-white">
+            your email address
+          </p>
+        )}
+
+        <p className="mx-auto mt-4 max-w-[20rem] text-pretty text-sm leading-6 text-slate-600 dark:text-slate-300">
+          Open the link to activate your GamePing account.
+        </p>
+
+        <div className="mt-7 flex flex-col items-center gap-3">
+          {email ? (
+            <button
+              type="button"
+              onClick={resend}
+              disabled={sending || cooldown > 0}
+              className={`w-full ${APP_PRIMARY_CTA_ACCENT_SM} disabled:cursor-not-allowed disabled:opacity-60`}
+            >
+              {resendLabel}
+            </button>
+          ) : null}
+
+          <Link href="/signup" onClick={clearPendingEmail} className={`w-full ${APP_SECONDARY_CTA}`}>
+            {email ? "Use another email" : "Back to signup"}
+          </Link>
+        </div>
+
+        <div className="mt-7 border-t border-slate-200/70 pt-5 dark:border-white/10">
+          <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+            Check Spam or Promotions if you don&apos;t see it. Still nothing?{" "}
+            <Link href="/contact" className={APP_INLINE_LINK_ACCENT}>
+              Contact support
+            </Link>
+            .
+          </p>
+        </div>
       </div>
-    </AppPageShell>
+    </AuthShell>
   );
 }

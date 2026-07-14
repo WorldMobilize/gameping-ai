@@ -1,46 +1,39 @@
 /**
- * WorldMobilize map generator — emits:
- *   src/lib/worldmobilize/world-geometry.ts  (region polygons + label anchors)
- *   src/lib/worldmobilize/world-features.ts  (terrain: mountains, forests,
- *     dunes, rivers, lakes, roads, settlements)
+ * WorldMobilize holographic map generator — emits:
+ *   src/lib/worldmobilize/world-geometry.ts  (region polygons, labels, defs)
+ *   src/lib/worldmobilize/world-features.ts  (holo terrain cues: ridges, channels)
  *
  *   node scripts/generate-worldmobilize-map.mjs
  *
- * Builds a fully ORIGINAL fictional world (no real-world geography, no game
- * IP): macro-areas are hand-placed clusters of lattice cells, and every cell
- * becomes one claimable region. Cell corners are deterministically jittered
- * and every shared edge gets deterministic midpoint displacement, so adjacent
- * regions share IDENTICAL border points — organic shapes with zero seams.
- * Coastal edges get more subpoints and stronger displacement than interior
- * borders so coastlines read as coastlines.
+ * ALTERNATE WORLD, not Earth: the continent layout is only loosely inspired
+ * by large-landmass logic (a north-west continent, a split supercontinent
+ * with an inland sea, a southern continent, an artificial island arc, a far
+ * south landmass). Coastlines are procedurally jittered lattice cells — no
+ * real country shapes, no political borders, no real-world names.
  *
- * Terrain features are scattered deterministically per macro-area profile
- * (mountain ranges in the north, dunes in the glass desert, forests in the
- * green south, a crater ring in the dead zone…). Rivers/roads/lakes are
- * authored as cell-coordinate control points and rendered as smooth
- * Catmull-Rom curves with seeded jitter.
+ * One lattice cell = one claimable region, so ALL regions are approximately
+ * the same size by construction (no "big country" advantage). Region names
+ * are procedurally combined from abstract tactical name pools.
  *
- * Deterministic by seed: re-running produces the same world. Bump SEED to
- * reroll the whole planet.
+ * Deterministic by seed — re-running reproduces the same world.
  */
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const SEED = "worldmobilize-v1";
-const CELL = 82;
-const OX = 46;
+const SEED = "worldmobilize-holo-v1";
+const CELL = 50;
+const OX = 44;
 const OY = 40;
-const COLS = 14;
-const ROWS = 8;
-const WIDTH = OX * 2 + COLS * CELL; // 1240
-const HEIGHT = OY * 2 + ROWS * CELL; // 736
+const COLS = 30;
+const ROWS = 16;
+const WIDTH = OX * 2 + COLS * CELL; // 1588
+const HEIGHT = OY * 2 + ROWS * CELL; // 880
 
-const CORNER_JITTER = CELL * 0.24;
-const COAST_WAVE = CELL * 0.18;
-const BORDER_WAVE = CELL * 0.07;
+const CORNER_JITTER = CELL * 0.22;
+const COAST_WAVE = CELL * 0.15;
+const BORDER_WAVE = CELL * 0.06;
 
-/** Deterministic [0,1) from a string key (seeded). */
 function rand(key) {
   const s = `${SEED}|${key}`;
   let h = 1779033703 ^ s.length;
@@ -53,44 +46,117 @@ function rand(key) {
   return ((h ^= h >>> 16) >>> 0) / 4294967296;
 }
 
-/** Cell-coordinate → world px. */
 const px = (c) => OX + c * CELL;
 const py = (r) => OY + r * CELL;
 
+/* ------------------------------------------------------------------ */
+/* World layout — ASCII grid, one char per cell                        */
+/* ------------------------------------------------------------------ */
+
+const SECTOR_BY_CHAR = {
+  b: "boreal-crown",
+  v: "vantor-reach",
+  a: "austral-spur",
+  m: "meridian-fold",
+  g: "greyline-basin",
+  e: "ember-steppe",
+  h: "hollow-delta",
+  c: "cinder-vale",
+  p: "pelagia-arc",
+  i: "ironwake",
+};
+
 /**
- * Macro-area cell clusters (col,row). Regions are 1:1 with cells; the order
- * here pairs with REGION_IDS below.
+ * 30×16 cells. '.' = ocean. The '.' holes inside the supercontinent form an
+ * inland sea. Pelagia is a deliberately artificial-looking island arc.
  */
-const MACRO_CELLS = {
-  "palegrave": [[2, 0], [3, 0], [4, 0], [2, 1], [3, 1]],
-  "thunder-steppe": [[8, 0], [9, 0], [8, 1], [9, 1], [10, 1], [9, 2]],
-  "lumen-coast": [[0, 2], [1, 2], [0, 3], [1, 3], [0, 4]],
-  "hollowmark": [[4, 2], [4, 3], [5, 3], [4, 4], [5, 4]],
-  "vitrine-expanse": [[10, 2], [11, 2], [10, 3], [11, 3], [12, 3], [11, 4]],
-  "cinderveil": [[6, 5], [7, 5], [6, 6], [7, 6]],
-  "verdant-hollow": [[1, 5], [2, 5], [1, 6], [2, 6]],
-  "shardpelago": [[10, 6], [12, 5], [11, 7], [13, 6]],
+const GRID = [
+  "..............................",
+  "..bbb........mmmee.ee.........",
+  ".bbbbb......mmmmeeeee.........",
+  ".bbbbb......mmmggeeee..p......",
+  "..bvvv......mmg.ggee....p.....",
+  "..vvvv.......mg.gge...p.......",
+  "...vvv.......mggg......p......",
+  "....vv........gg.....p........",
+  "..............................",
+  ".....aa......hhh....p.........",
+  "....aaa.....hhhhh.............",
+  "....aaa.....hhcch.............",
+  ".....aa......cccc...iii.......",
+  ".....a.......ccc...iiiii......",
+  "....................iii.......",
+  "..............................",
+];
+
+if (GRID.length !== ROWS) throw new Error(`GRID must have ${ROWS} rows`);
+GRID.forEach((row, i) => {
+  if (row.length !== COLS) throw new Error(`GRID row ${i} must be ${COLS} chars (got ${row.length})`);
+});
+
+const SECTORS = {
+  "boreal-crown": { name: "Boreal Crown", hex: "#7dd3fc" },
+  "vantor-reach": { name: "Vantor Reach", hex: "#38bdf8" },
+  "austral-spur": { name: "Austral Spur", hex: "#2dd4bf" },
+  "meridian-fold": { name: "Meridian Fold", hex: "#22d3ee" },
+  "greyline-basin": { name: "Greyline Basin", hex: "#94a3b8" },
+  "ember-steppe": { name: "Ember Steppe", hex: "#fbbf24" },
+  "hollow-delta": { name: "Hollow Delta", hex: "#60a5fa" },
+  "cinder-vale": { name: "Cinder Vale", hex: "#fb7185" },
+  "pelagia-arc": { name: "Pelagia Arc", hex: "#67e8f9" },
+  "ironwake": { name: "Ironwake", hex: "#a78bfa" },
 };
 
-/** Region ids per macro area — 1:1 with MACRO_CELLS order. */
-const REGION_IDS = {
-  "palegrave": ["rimehold", "aurora-shelf", "whiteout-pass", "glacier-maw", "snowline"],
-  "thunder-steppe": ["galehowl", "static-flats", "thunderfall", "ion-prairie", "cloudsplit", "roaring-verge"],
-  "lumen-coast": ["glowharbor", "signal-bluffs", "chromatide", "neonfen", "cablereach"],
-  "hollowmark": ["nullfield", "ashen-grid", "the-silence", "craterline", "ghoststead"],
-  "vitrine-expanse": ["shimmerdune", "fusewind", "glasswake", "sunscar", "duskpane", "silica-reach"],
-  "cinderveil": ["soot-hollow", "pyre-steps", "emberline", "charwood"],
-  "verdant-hollow": ["mossreach", "canopy-deep", "vinegate", "bloomfen"],
-  "shardpelago": ["brineshard", "coral-break", "mistling-isle", "tidevault"],
-};
-
+/* cells per sector, in reading order */
+const cellsBySector = Object.fromEntries(Object.keys(SECTORS).map((k) => [k, []]));
 const land = new Set();
-for (const cells of Object.values(MACRO_CELLS)) {
-  for (const [c, r] of cells) land.add(`${c},${r}`);
+for (let r = 0; r < ROWS; r++) {
+  for (let c = 0; c < COLS; c++) {
+    const ch = GRID[r][c];
+    if (ch === ".") continue;
+    const sector = SECTOR_BY_CHAR[ch];
+    if (!sector) throw new Error(`Unknown grid char "${ch}" at ${c},${r}`);
+    cellsBySector[sector].push([c, r]);
+    land.add(`${c},${r}`);
+  }
 }
 
 /* ------------------------------------------------------------------ */
-/* Region polygons                                                     */
+/* Region names — abstract tactical pools, no country-like names       */
+/* ------------------------------------------------------------------ */
+
+const NAME_A = [
+  "Aurel", "Vantor", "Meridian", "Greyline", "Ember", "Hollow", "Iron",
+  "Cinder", "Vale", "Kestrel", "Noct", "Argent", "Umbra", "Zenith",
+  "Corvus", "Halcyon", "Bastion", "Cobalt", "Sable", "Aster", "Drift",
+  "Aether", "Onyx", "Pale", "Thorn", "Ashen", "Crown", "Frost", "Gale",
+  "Rime", "Slate", "Quill", "Solent", "Marrow", "Tarn", "Ferro", "Lumen",
+  "Cael", "Orin", "Vesper", "Skarn", "Tessel", "Arc", "Nadir", "Cipher",
+];
+const NAME_B = [
+  "Reach", "Basin", "Fold", "Gate", "Coast", "Delta", "Wake", "Verge",
+  "Span", "Hollow", "Line", "Rise", "Shelf", "Cradle", "Field", "Mark",
+  "Watch", "Point", "Crest", "Run", "Chain", "Belt", "Pass", "Steppe",
+  "Flats", "Bank", "Court", "Spire", "Locks", "Bight",
+];
+const DIRS = ["North", "East", "South", "West", "Upper", "Lower"];
+
+function regionName(key) {
+  const r = rand(`name:${key}`);
+  const a = NAME_A[Math.floor(rand(`name:a:${key}`) * NAME_A.length)];
+  if (r < 0.1) return `Sector ${a}`;
+  if (r < 0.22) {
+    const d = DIRS[Math.floor(rand(`name:d:${key}`) * DIRS.length)];
+    return `${d} ${a}`;
+  }
+  let b = NAME_B[Math.floor(rand(`name:b:${key}`) * NAME_B.length)];
+  if (a === b) b = "Reach";
+  return `${a} ${b}`;
+}
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+/* ------------------------------------------------------------------ */
+/* Geometry — jittered lattice, shared borders                         */
 /* ------------------------------------------------------------------ */
 
 const vertexCache = new Map();
@@ -107,11 +173,6 @@ function vertex(c, r) {
   return v;
 }
 
-/**
- * Displaced midpoints for the edge between lattice vertices kA and kB,
- * cached in canonical direction so both adjacent cells reuse the exact same
- * points. Coast edges get 5 subpoints and a stronger wave; interior edges 3.
- */
 const edgeCache = new Map();
 function edgePoints(kA, kB, isCoast) {
   const [k1, k2] = kA < kB ? [kA, kB] : [kB, kA];
@@ -122,16 +183,14 @@ function edgePoints(kA, kB, isCoast) {
     const [c2, r2] = k2.split(",").map(Number);
     const a = vertex(c1, r1);
     const b = vertex(c2, r2);
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
+    const dx = b.x - a.x, dy = b.y - a.y;
     const len = Math.hypot(dx, dy) || 1;
-    const nx = -dy / len;
-    const ny = dx / len;
+    const nx = -dy / len, ny = dx / len;
     const amp = isCoast ? COAST_WAVE : BORDER_WAVE;
-    const n = isCoast ? 5 : 3;
-    pts = Array.from({ length: n }, (_, idx) => {
-      const t = (idx + 1) / (n + 1);
-      const off = (rand(`edge:${cacheKey}:${idx}`) - 0.5) * 2 * amp;
+    const n = isCoast ? 4 : 2;
+    pts = Array.from({ length: n }, (_, i) => {
+      const t = (i + 1) / (n + 1);
+      const off = (rand(`edge:${cacheKey}:${i}`) - 0.5) * 2 * amp;
       return { x: a.x + dx * t + nx * off, y: a.y + dy * t + ny * off };
     });
     edgeCache.set(cacheKey, pts);
@@ -139,61 +198,54 @@ function edgePoints(kA, kB, isCoast) {
   return kA < kB ? pts : [...pts].reverse();
 }
 
-function isWater(c, r) {
-  return !land.has(`${c},${r}`);
-}
+const isWater = (c, r) => !land.has(`${c},${r}`);
 
 function cellPolygon(c, r) {
-  const kTL = `${c},${r}`;
-  const kTR = `${c + 1},${r}`;
-  const kBR = `${c + 1},${r + 1}`;
-  const kBL = `${c},${r + 1}`;
+  const kTL = `${c},${r}`, kTR = `${c + 1},${r}`, kBR = `${c + 1},${r + 1}`, kBL = `${c},${r + 1}`;
   const pts = [];
-  const push = (p) => pts.push(p);
-
-  push(vertex(c, r));
-  edgePoints(kTL, kTR, isWater(c, r - 1)).forEach(push);
-  push(vertex(c + 1, r));
-  edgePoints(kTR, kBR, isWater(c + 1, r)).forEach(push);
-  push(vertex(c + 1, r + 1));
-  edgePoints(kBR, kBL, isWater(c, r + 1)).forEach(push);
-  push(vertex(c, r + 1));
-  edgePoints(kBL, kTL, isWater(c - 1, r)).forEach(push);
+  pts.push(vertex(c, r));
+  edgePoints(kTL, kTR, isWater(c, r - 1)).forEach((p) => pts.push(p));
+  pts.push(vertex(c + 1, r));
+  edgePoints(kTR, kBR, isWater(c + 1, r)).forEach((p) => pts.push(p));
+  pts.push(vertex(c + 1, r + 1));
+  edgePoints(kBR, kBL, isWater(c, r + 1)).forEach((p) => pts.push(p));
+  pts.push(vertex(c, r + 1));
+  edgePoints(kBL, kTL, isWater(c - 1, r)).forEach((p) => pts.push(p));
   return pts;
 }
 
 const f = (n) => Math.round(n * 10) / 10;
 
 const regionGeometry = {};
-const macroLabels = {};
-const regionCellById = {};
+const regionDefs = [];
+const sectorLabels = {};
+const usedNames = new Set();
 
-for (const [macro, cells] of Object.entries(MACRO_CELLS)) {
-  const ids = REGION_IDS[macro];
-  if (ids.length !== cells.length) {
-    throw new Error(`Region/cell count mismatch for ${macro}`);
-  }
+for (const [sector, cells] of Object.entries(cellsBySector)) {
   const centroids = [];
   cells.forEach(([c, r], i) => {
+    let name = regionName(`${sector}:${i}`);
+    let bump = 0;
+    while (usedNames.has(name)) name = regionName(`${sector}:${i}:${++bump}`);
+    usedNames.add(name);
+    const id = slug(name);
+
     const pts = cellPolygon(c, r);
     const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
     const cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
     centroids.push({ x: cx, y: cy });
-    const d =
-      `M${f(pts[0].x)} ${f(pts[0].y)}` +
-      pts.slice(1).map((p) => `L${f(p.x)} ${f(p.y)}`).join("") +
-      "Z";
-    regionGeometry[ids[i]] = { path: d, cx: f(cx), cy: f(cy) };
-    regionCellById[ids[i]] = { c, r, macro };
+    const d = `M${f(pts[0].x)} ${f(pts[0].y)}` + pts.slice(1).map((p) => `L${f(p.x)} ${f(p.y)}`).join("") + "Z";
+    regionGeometry[id] = { path: d, cx: f(cx), cy: f(cy) };
+    regionDefs.push({ id, name, sector });
   });
-  macroLabels[macro] = {
+  sectorLabels[sector] = {
     x: f(centroids.reduce((s, p) => s + p.x, 0) / centroids.length),
     y: f(centroids.reduce((s, p) => s + p.y, 0) / centroids.length),
   };
 }
 
 /* ------------------------------------------------------------------ */
-/* Smooth curve helper (Catmull-Rom → cubic Bézier)                    */
+/* Holographic terrain cues                                            */
 /* ------------------------------------------------------------------ */
 
 function catmullRomPath(points, closed = false) {
@@ -203,177 +255,61 @@ function catmullRomPath(points, closed = false) {
     : [points[0], ...points, points[points.length - 1]];
   let d = `M${f(pts[1].x)} ${f(pts[1].y)}`;
   for (let i = 1; i < pts.length - 2; i++) {
-    const p0 = pts[i - 1];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[i + 2];
+    const p0 = pts[i - 1], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2];
     const c1 = { x: p1.x + (p2.x - p0.x) / 6, y: p1.y + (p2.y - p0.y) / 6 };
     const c2 = { x: p2.x - (p3.x - p1.x) / 6, y: p2.y - (p3.y - p1.y) / 6 };
     d += `C${f(c1.x)} ${f(c1.y)} ${f(c2.x)} ${f(c2.y)} ${f(p2.x)} ${f(p2.y)}`;
   }
   return closed ? `${d}Z` : d;
 }
-
-/** Cell-coordinate control points → jittered smooth world-space path. */
-function flowPath(key, cellPts, jitter = 8, closed = false) {
-  const pts = cellPts.map(([c, r], i) => ({
-    x: px(c) + (rand(`${key}:jx:${i}`) - 0.5) * 2 * jitter,
-    y: py(r) + (rand(`${key}:jy:${i}`) - 0.5) * 2 * jitter,
-  }));
-  return catmullRomPath(pts, closed);
+function flow(key, cellPts, jitter = 6) {
+  return catmullRomPath(
+    cellPts.map(([c, r], i) => ({
+      x: px(c) + (rand(`${key}:jx:${i}`) - 0.5) * 2 * jitter,
+      y: py(r) + (rand(`${key}:jy:${i}`) - 0.5) * 2 * jitter,
+    }))
+  );
 }
 
-/* ------------------------------------------------------------------ */
-/* Settlements — one per region, biased off-centroid                   */
-/* ------------------------------------------------------------------ */
-
-const settlements = {};
-for (const [macro, cells] of Object.entries(MACRO_CELLS)) {
-  const ids = REGION_IDS[macro];
-  cells.forEach((_, i) => {
-    const id = ids[i];
-    const g = regionGeometry[id];
-    settlements[id] = {
-      x: f(g.cx + (rand(`stl:x:${id}`) - 0.5) * CELL * 0.34),
-      y: f(g.cy + (rand(`stl:y:${id}`) - 0.5) * CELL * 0.34 + 8),
-      major: i === 0, // first region of each macro hosts its major settlement
-    };
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/* Scatter features per macro-area terrain profile                     */
-/* ------------------------------------------------------------------ */
-
-/** Per-macro scatter profiles: how many of each glyph per cell + size range. */
-const TERRAIN_PROFILES = {
-  "palegrave": { mountains: [3, 11, 17], forests: [2, 5, 7] },
-  "thunder-steppe": { mountains: [1, 7, 11], forests: [1, 4, 6] },
-  "lumen-coast": { mountains: [1, 6, 9], forests: [1, 5, 7] },
-  "hollowmark": { mountains: [1, 6, 10], forests: [0, 0, 0] },
-  "vitrine-expanse": { mountains: [0, 0, 0], forests: [0, 0, 0], dunes: [2, 8, 13] },
-  "cinderveil": { mountains: [2, 12, 19], forests: [1, 4, 6] },
-  "verdant-hollow": { mountains: [0, 0, 0], forests: [4, 5, 9] },
-  "shardpelago": { mountains: [1, 5, 8], forests: [1, 4, 6] },
-};
-
-const mountains = [];
-const forests = [];
-const dunes = [];
-
-function scatterInCell(kind, target, macro, c, r, count, sMin, sMax) {
-  for (let i = 0; i < count; i++) {
-    const key = `${kind}:${c},${r}:${i}`;
-    target.push({
-      x: f(px(c) + CELL * (0.2 + rand(`${key}:x`) * 0.6)),
-      y: f(py(r) + CELL * (0.2 + rand(`${key}:y`) * 0.6)),
-      s: f(sMin + rand(`${key}:s`) * (sMax - sMin)),
-      macro,
-    });
-  }
-}
-
-for (const [macro, cells] of Object.entries(MACRO_CELLS)) {
-  const profile = TERRAIN_PROFILES[macro];
-  for (const [c, r] of cells) {
-    if (profile.mountains?.[0]) {
-      scatterInCell("mtn", mountains, macro, c, r, profile.mountains[0], profile.mountains[1], profile.mountains[2]);
-    }
-    if (profile.forests?.[0]) {
-      scatterInCell("for", forests, macro, c, r, profile.forests[0], profile.forests[1], profile.forests[2]);
-    }
-    if (profile.dunes?.[0]) {
-      scatterInCell("dun", dunes, macro, c, r, profile.dunes[0], profile.dunes[1], profile.dunes[2]);
+/** Mountain ridge lines → chevron marks (position + tangent angle). */
+const RIDGE_LINES = [
+  { key: "boreal", pts: [[2.2, 2.2], [3.6, 1.9], [5.0, 2.3], [5.9, 2.9]] },
+  { key: "divide", pts: [[14.1, 3.1], [14.7, 4.4], [14.5, 5.6], [14.1, 6.4]] },
+  { key: "ember", pts: [[16.8, 1.6], [18.2, 2.0], [19.4, 2.6]] },
+  { key: "hollow", pts: [[13.2, 10.1], [14.6, 10.3], [15.8, 10.6]] },
+  { key: "ironwake", pts: [[20.4, 13.0], [21.8, 12.8], [23.2, 13.1]] },
+  { key: "austral", pts: [[4.5, 9.6], [4.9, 10.7], [4.7, 11.8]] },
+];
+const ridges = [];
+for (const line of RIDGE_LINES) {
+  const world = line.pts.map(([c, r]) => ({ x: px(c), y: py(r) }));
+  // sample along segments
+  for (let i = 0; i < world.length - 1; i++) {
+    const a = world[i], b = world[i + 1];
+    const L = Math.hypot(b.x - a.x, b.y - a.y);
+    const steps = Math.max(2, Math.round(L / 26));
+    for (let s = 0; s < steps; s++) {
+      const t = (s + 0.5) / steps;
+      const jx = (rand(`${line.key}:x:${i}:${s}`) - 0.5) * 14;
+      const jy = (rand(`${line.key}:y:${i}:${s}`) - 0.5) * 14;
+      ridges.push({
+        x: f(a.x + (b.x - a.x) * t + jx),
+        y: f(a.y + (b.y - a.y) * t + jy),
+        s: f(4.5 + rand(`${line.key}:s:${i}:${s}`) * 4),
+        angle: f((Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI),
+      });
     }
   }
 }
 
-// Hollowmark crater — a ring of peaks around the impact site (craterline).
-const crater = { x: px(4.95), y: py(3.55) };
-for (let i = 0; i < 9; i++) {
-  const ang = (i / 9) * Math.PI * 2 + rand(`crater:a:${i}`) * 0.4;
-  const rad = 30 + rand(`crater:r:${i}`) * 10;
-  mountains.push({
-    x: f(crater.x + Math.cos(ang) * rad * 1.25),
-    y: f(crater.y + Math.sin(ang) * rad * 0.8),
-    s: f(8 + rand(`crater:s:${i}`) * 5),
-    macro: "hollowmark",
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/* Rivers, lakes, roads                                                */
-/* ------------------------------------------------------------------ */
-
-const rivers = [
-  // Palegrave meltwater running south-west into the strait
-  flowPath("river:aur", [[3.5, 0.4], [3.05, 1.05], [2.62, 1.85], [2.15, 2.65]]),
-  // Thunder Steppe storm-runoff draining to the north-east sea
-  flowPath("river:ion", [[8.45, 0.6], [9.05, 1.2], [9.7, 1.65], [10.6, 1.35], [11.3, 0.85]]),
-  // Verdant Hollow river to the south sea
-  flowPath("river:vin", [[1.65, 5.25], [2.1, 5.9], [2.5, 6.5], [2.9, 7.35]]),
-  // Hollowmark crater outflow through Cinderveil
-  flowPath("river:cin", [[5.35, 4.6], [5.9, 5.3], [6.4, 6.1], [6.8, 7.25]]),
+/** Glowing water channels (clipped to land at render time). */
+const channels = [
+  flow("ch:west", [[3.4, 2.4], [4.1, 3.6], [3.7, 4.9], [4.4, 6.3]]),
+  flow("ch:inland", [[14.4, 2.2], [15.1, 3.1], [15.4, 4.2]]),
+  flow("ch:grey", [[17.4, 2.8], [18.2, 4.1], [19.1, 5.3]]),
+  flow("ch:south", [[13.8, 9.4], [14.7, 10.6], [14.2, 11.9]]),
+  flow("ch:iron", [[21.3, 12.5], [22.3, 13.3]]),
 ];
-
-const lakes = [
-  // Crater lake at the heart of Hollowmark
-  flowPath(
-    "lake:crater",
-    Array.from({ length: 8 }, (_, i) => {
-      const ang = (i / 8) * Math.PI * 2;
-      const rad = 0.16 + rand(`lake:crater:${i}`) * 0.07;
-      return [4.95 + Math.cos(ang) * rad * 1.3, 3.55 + Math.sin(ang) * rad];
-    }),
-    3,
-    true
-  ),
-  // Verdant lowland lake
-  flowPath(
-    "lake:fen",
-    Array.from({ length: 7 }, (_, i) => {
-      const ang = (i / 7) * Math.PI * 2;
-      const rad = 0.12 + rand(`lake:fen:${i}`) * 0.06;
-      return [1.95 + Math.cos(ang) * rad * 1.4, 5.85 + Math.sin(ang) * rad];
-    }),
-    3,
-    true
-  ),
-  // Thunder Steppe storm basin
-  flowPath(
-    "lake:basin",
-    Array.from({ length: 7 }, (_, i) => {
-      const ang = (i / 7) * Math.PI * 2;
-      const rad = 0.1 + rand(`lake:basin:${i}`) * 0.05;
-      return [9.2 + Math.cos(ang) * rad * 1.4, 1.55 + Math.sin(ang) * rad];
-    }),
-    3,
-    true
-  ),
-];
-
-/** Roads follow settlement chains (per-continent; no roads over open sea). */
-const ROAD_CHAINS = [
-  ["glowharbor", "signal-bluffs", "chromatide", "neonfen", "cablereach"],
-  ["rimehold", "aurora-shelf", "whiteout-pass", "glacier-maw", "snowline"],
-  ["galehowl", "static-flats", "thunderfall", "ion-prairie", "roaring-verge"],
-  ["ion-prairie", "cloudsplit", "shimmerdune"], // Thunder→Vitrine land connector
-  ["shimmerdune", "fusewind", "glasswake", "sunscar", "silica-reach"],
-  ["nullfield", "ashen-grid", "the-silence", "ghoststead"],
-  ["soot-hollow", "pyre-steps", "emberline", "charwood"],
-  ["mossreach", "canopy-deep", "vinegate", "bloomfen"],
-];
-
-const roads = ROAD_CHAINS.map((chain, ci) => {
-  const pts = chain.map((id, i) => {
-    const s = settlements[id];
-    return {
-      x: s.x + (rand(`road:${ci}:${i}:x`) - 0.5) * 10,
-      y: s.y + (rand(`road:${ci}:${i}:y`) - 0.5) * 10,
-    };
-  });
-  return catmullRomPath(pts);
-});
 
 /* ------------------------------------------------------------------ */
 /* Emit                                                                */
@@ -386,9 +322,11 @@ const geometryOut = `/**
  * GENERATED FILE — do not edit by hand.
  * Regenerate with: node scripts/generate-worldmobilize-map.mjs
  *
- * Original fictional world geometry for WorldMobilize (seed "${SEED}").
- * No real-world geography and no existing game IP — every shape comes from a
- * seeded jittered lattice; adjacent regions share exact border points.
+ * WorldMobilize holographic command map (seed "${SEED}").
+ * ALTERNATE WORLD: continents are procedural lattice shapes only loosely
+ * inspired by large-landmass logic — no real countries, no political
+ * borders, no real-world names. One cell = one region, so every region is
+ * approximately the same size by construction.
  */
 
 export type RegionGeometry = {
@@ -397,6 +335,12 @@ export type RegionGeometry = {
   /** Label anchor (polygon centroid). */
   cx: number;
   cy: number;
+};
+
+export type RegionDef = {
+  id: string;
+  name: string;
+  sector: string;
 };
 
 export const WORLD_WIDTH = ${WIDTH};
@@ -409,81 +353,54 @@ ${Object.entries(regionGeometry)
   .join("\n")}
 };
 
-export const MACRO_AREA_LABELS: Record<string, { x: number; y: number }> = {
-${Object.entries(macroLabels)
+export const REGION_DEFS: RegionDef[] = [
+${regionDefs.map((d) => `  { id: "${d.id}", name: "${d.name}", sector: "${d.sector}" },`).join("\n")}
+];
+
+export const SECTOR_LABELS: Record<string, { x: number; y: number }> = {
+${Object.entries(sectorLabels)
   .map(([id, p]) => `  "${id}": { x: ${p.x}, y: ${p.y} },`)
   .join("\n")}
 };
 `;
 
-const featurePoint = (p) => `  { x: ${p.x}, y: ${p.y}, s: ${p.s}, macro: "${p.macro}" },`;
-
 const featuresOut = `/**
  * GENERATED FILE — do not edit by hand.
  * Regenerate with: node scripts/generate-worldmobilize-map.mjs
  *
- * Terrain feature layer data for the WorldMobilize map (seed "${SEED}"):
- * scattered glyph positions (mountains/forests/dunes), smooth flow paths
- * (rivers/lakes/roads), and one settlement anchor per region. Decorative
- * only — the interactive layer stays the region polygons.
+ * Holographic terrain cues for the WorldMobilize command map: mountain
+ * ridge chevrons and glowing water channels. Decorative only — interaction
+ * stays on the region hitbox layer.
  */
 
-export type MapFeaturePoint = {
+export type RidgeMark = {
   x: number;
   y: number;
-  /** Glyph size in world units. */
+  /** Chevron size in world units. */
   s: number;
-  /** Owning macro-area id (for per-biome tinting). */
-  macro: string;
+  /** Ridge tangent angle in degrees. */
+  angle: number;
 };
 
-export type MapSettlement = {
-  x: number;
-  y: number;
-  /** True for the macro-area's principal settlement (bigger glyph). */
-  major: boolean;
-};
-
-export const MOUNTAINS: MapFeaturePoint[] = [
-${mountains.map(featurePoint).join("\n")}
+export const RIDGES: RidgeMark[] = [
+${ridges.map((r) => `  { x: ${r.x}, y: ${r.y}, s: ${r.s}, angle: ${r.angle} },`).join("\n")}
 ];
 
-export const FORESTS: MapFeaturePoint[] = [
-${forests.map(featurePoint).join("\n")}
+/** Smooth open paths (SVG d) in world coordinates — glowing channels. */
+export const CHANNELS: string[] = [
+${channels.map((d) => `  "${d}",`).join("\n")}
 ];
-
-export const DUNES: MapFeaturePoint[] = [
-${dunes.map(featurePoint).join("\n")}
-];
-
-/** Smooth open paths (SVG d) in world coordinates. */
-export const RIVERS: string[] = [
-${rivers.map((d) => `  "${d}",`).join("\n")}
-];
-
-/** Smooth closed paths (SVG d) in world coordinates. */
-export const LAKES: string[] = [
-${lakes.map((d) => `  "${d}",`).join("\n")}
-];
-
-/** Dashed trade-road paths along settlement chains. */
-export const ROADS: string[] = [
-${roads.map((d) => `  "${d}",`).join("\n")}
-];
-
-/** One settlement per region id. */
-export const SETTLEMENTS: Record<string, MapSettlement> = {
-${Object.entries(settlements)
-  .map(([id, s]) => `  "${id}": { x: ${s.x}, y: ${s.y}, major: ${s.major} },`)
-  .join("\n")}
-};
 `;
 
 writeFileSync(join(libDir, "world-geometry.ts"), geometryOut);
 writeFileSync(join(libDir, "world-features.ts"), featuresOut);
-console.log(
-  `Wrote world-geometry.ts (${Object.keys(regionGeometry).length} regions) and ` +
-    `world-features.ts (${mountains.length} peaks, ${forests.length} forests, ` +
-    `${dunes.length} dunes, ${rivers.length} rivers, ${lakes.length} lakes, ` +
-    `${roads.length} roads, ${Object.keys(settlements).length} settlements)`
+
+const counts = Object.fromEntries(
+  Object.entries(cellsBySector).map(([k, v]) => [k, v.length])
 );
+console.log(`Regions: ${regionDefs.length}`, counts);
+console.log("Sample regions per sector:");
+for (const sector of Object.keys(SECTORS)) {
+  const first = regionDefs.filter((d) => d.sector === sector).slice(0, 2);
+  console.log(` ${sector}: ${first.map((d) => `${d.name} (${d.id})`).join(" · ")}`);
+}

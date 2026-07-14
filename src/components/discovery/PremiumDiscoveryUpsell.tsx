@@ -17,16 +17,17 @@ export default function PremiumDiscoveryUpsell({
 } = {}) {
   return (
     <div className={`${ACCENT_PANEL} mt-10 p-8 sm:p-10`}>
-      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
-        Premium discovery
-      </p>
+      <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em] text-[color:var(--page-accent-text)]">
+        <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--page-accent-strong)]" aria-hidden />
+        Demo
+      </span>
       <h1 className={`${APP_PAGE_TITLE} mt-4 text-3xl sm:text-4xl`}>
-        Premium <span className="text-[color:var(--page-accent-text)]">discovery</span>
+        You&apos;re viewing a <span className="text-[color:var(--page-accent-text)]">demo</span>
       </h1>
       <p className={`${APP_PAGE_LEAD} max-w-2xl`}>
-        Weekly Picks, Deals For You, and Monthly Recap are Premium discovery areas. Upgrade to
-        unlock personalized game picks, deal-focused recommendations, and your monthly gaming recap —
-        built from your Steam library, saved searches, and tracked games.
+        Everything on this page is example data — a preview of how it works, not your library.
+        With Premium, Weekly Picks, Deals For You, and Monthly Recap are built from your real
+        taste: your Steam library, saved searches, and tracked games.
       </p>
       <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
         <Link href="/upgrade" className={ACCENT_PRIMARY_CTA}>

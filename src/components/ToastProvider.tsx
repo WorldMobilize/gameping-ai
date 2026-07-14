@@ -36,7 +36,7 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 function variantStyles(variant: ToastVariant) {
   switch (variant) {
     case "success":
-      return "border-cyan-400/40 bg-[#0b0c18]/95 text-white shadow-[0_0_24px_rgba(34,211,238,0.15)]";
+      return "border-blue-400/40 bg-[#0b0c18]/95 text-white shadow-[0_0_24px_rgba(37,99,235,0.15)]";
     case "error":
       return "border-red-400/35 bg-[#0b0c18]/95 text-white shadow-[0_0_24px_rgba(248,113,113,0.12)]";
     default:

@@ -24,7 +24,7 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
   const focusRing = "focus-visible:ring-[color:var(--page-accent-border)]";
   const baseTextColor = isLight ? "text-slate-600" : "text-slate-400";
 
-  const socialLinkClass = `inline-flex items-center justify-center rounded-lg p-1.5 ${baseTextColor} transition-colors duration-200 ${hoverText} focus-visible:outline-none focus-visible:ring-2 ${focusRing}`;
+  const socialLinkClass = `inline-flex items-center justify-center rounded-lg p-1.5 ${baseTextColor} transition duration-200 hover:-translate-y-0.5 ${hoverText} focus-visible:outline-none focus-visible:ring-2 ${focusRing}`;
   const linkClass = `transition ${hoverText} focus-visible:outline-none focus-visible:ring-2 ${focusRing}`;
   const headingColor = "text-[color:var(--page-accent-text)]";
   const aiAccent = "text-[color:var(--page-accent-text)]";
@@ -57,15 +57,15 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
                 isLight ? "text-slate-600" : "text-slate-400"
               }`}
             >
-              The home for gamers—AI discovery that learns your taste, curated picks, and
-              deal-aware price tracking in one place. Prices and availability may change—always
+              The home for gamers—Discovery that learns your taste, a desktop Companion for while
+              you play, and WorldMobilize on the way. Prices and availability may change—always
               confirm on the store before purchasing.
             </p>
             <div className="mt-5">
               <p
                 className={`text-xs font-black uppercase tracking-[0.35em] ${headingColor}`}
               >
-                Follow us
+                Connect
               </p>
               <ul className="mt-3 flex max-w-md flex-wrap items-center gap-6">
                 {SITE_SOCIAL_LINKS.map((item) => (
@@ -85,12 +85,41 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:gap-10">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-2 md:gap-10 lg:grid-cols-4">
+            {/* The three products, named as such. WorldMobilize is listed but not
+                explained — pre-launch, it gets a name and a lock, nothing else. */}
             <div className="space-y-3">
               <p
                 className={`text-xs font-black uppercase tracking-[0.35em] ${headingColor}`}
               >
-                Product
+                Ecosystem
+              </p>
+              <div
+                className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}
+              >
+                <Link href="/discover" className={linkClass}>
+                  Discovery
+                </Link>
+                <Link href="/companion/about" className={linkClass}>
+                  Desktop Companion
+                </Link>
+                <Link href="/worldmobilize" className={linkClass}>
+                  WorldMobilize
+                </Link>
+                <Link href="/upgrade" className={linkClass}>
+                  Premium
+                </Link>
+                <Link href="/how-it-works" className={linkClass}>
+                  Features
+                </Link>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p
+                className={`text-xs font-black uppercase tracking-[0.35em] ${headingColor}`}
+              >
+                Discovery
               </p>
               <div
                 className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}
@@ -98,26 +127,29 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
                 <Link href="/recommend" className={linkClass}>
                   Recommend
                 </Link>
-                <Link href="/how-it-works" className={linkClass}>
-                  Features
-                </Link>
-                <Link href="/curated" className={linkClass}>
-                  Curated lists
-                </Link>
-                <Link href="/games" className={linkClass}>
-                  Games A–Z
-                </Link>
                 <Link href="/hidden-gems" className={linkClass}>
                   Hidden gems
                 </Link>
                 <Link href="/games-of-the-week" className={linkClass}>
                   Games of the week
                 </Link>
-                <Link href="/upgrade" className={linkClass}>
-                  Premium
+                <Link href="/games-like" className={linkClass}>
+                  Games Like…
                 </Link>
-                <Link href="/dashboard" className={linkClass}>
-                  Dashboard
+                <Link href="/collections" className={linkClass}>
+                  Curated Collections
+                </Link>
+                <Link href="/games" className={linkClass}>
+                  A–Z Games Directory
+                </Link>
+                <Link href="/weekly-picks" className={linkClass}>
+                  Weekly picks
+                </Link>
+                <Link href="/deals-for-you" className={linkClass}>
+                  Deals for you
+                </Link>
+                <Link href="/monthly-recap" className={linkClass}>
+                  Monthly recap
                 </Link>
               </div>
             </div>
@@ -133,6 +165,9 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
               >
                 <Link href="/about" className={linkClass}>
                   About
+                </Link>
+                <Link href="/creators" className={linkClass}>
+                  Creator program
                 </Link>
                 <Link href="/contact" className={linkClass}>
                   Contact

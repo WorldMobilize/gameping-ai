@@ -20,6 +20,7 @@ import { gameDetailPath } from "@/lib/curated/game-links";
 import { formatDisplayDate } from "@/lib/format-display-date";
 import { EMAIL_NOT_VERIFIED_MESSAGE } from "@/lib/auth-email-verification";
 import { PLAN_QUOTAS } from "@/lib/plan-quotas";
+import { isPremiumOrAdminPlan } from "@/lib/product-copy";
 import { supabase } from "@/lib/supabase";
 
 type Game = {
@@ -364,6 +365,8 @@ export default function Dashboard() {
     }
   }
 
+  const isPremiumPlan = isPremiumOrAdminPlan(userPlan);
+
   const showLegacyPlanNotice =
     userPlan === "free" &&
     (searches.length > PLAN_QUOTAS.freeSavedSearches ||
@@ -395,12 +398,25 @@ export default function Dashboard() {
             </p>
 
             <p className="mt-4 text-sm text-slate-300">
-              Free: 10 recommendations/day, 3 saved runs, 5 tracked games. Premium: 50/day, 25 saved
-              runs, 50 tracked games.{" "}
-              <Link href="/upgrade" className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-2 hover:underline">
-                Upgrade
-              </Link>
-              {" · "}
+              {isPremiumPlan ? (
+                <>
+                  Premium: {PLAN_QUOTAS.premiumRecommendDaily} recommendations/day,{" "}
+                  {PLAN_QUOTAS.premiumSavedSearches} saved runs,{" "}
+                  {PLAN_QUOTAS.premiumTrackedGames} tracked games.{" "}
+                </>
+              ) : (
+                <>
+                  Free: {PLAN_QUOTAS.freeRecommendDaily} recommendations/day,{" "}
+                  {PLAN_QUOTAS.freeSavedSearches} saved runs, {PLAN_QUOTAS.freeTrackedGames} tracked
+                  games. Premium: {PLAN_QUOTAS.premiumRecommendDaily}/day,{" "}
+                  {PLAN_QUOTAS.premiumSavedSearches} saved runs,{" "}
+                  {PLAN_QUOTAS.premiumTrackedGames} tracked games.{" "}
+                  <Link href="/upgrade" className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-2 hover:underline">
+                    Upgrade
+                  </Link>
+                  {" · "}
+                </>
+              )}
               <Link href="/settings/account" className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-2 hover:underline">
                 Account &amp; deletion
               </Link>
@@ -512,8 +528,8 @@ export default function Dashboard() {
                   key={search.id}
                   className={`rounded-3xl border p-6 transition ${
                     runActive
-                      ? "border-slate-200/90 bg-white shadow-sm"
-                      : "border-slate-200/60 bg-slate-50/80 opacity-70 saturate-[0.85]"
+                      ? "border-slate-200/90 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/70"
+                      : "border-slate-200/60 bg-slate-50/80 opacity-70 saturate-[0.85] dark:border-slate-800/60 dark:bg-slate-900/40"
                   }`}
                 >
                   <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
@@ -731,8 +747,8 @@ export default function Dashboard() {
                       key={row.id}
                       className={`flex flex-col gap-4 rounded-2xl border p-5 transition md:flex-row md:items-center md:justify-between ${
                       row.is_active
-                        ? "border-slate-200/90 bg-white shadow-sm"
-                        : "border-slate-200/60 bg-slate-50/80 opacity-70 saturate-[0.85]"
+                        ? "border-slate-200/90 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-900/70"
+                        : "border-slate-200/60 bg-slate-50/80 opacity-70 saturate-[0.85] dark:border-slate-800/60 dark:bg-slate-900/40"
                     }`}
                     >
                       <div>

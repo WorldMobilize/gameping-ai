@@ -10,15 +10,18 @@ import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import NavDrawer from "@/components/NavDrawer";
 import {
   COMPANION_NAV_ITEM,
-  isSiteNavItemActive,
-  NAVBAR_DISCOVERY_MENU_ITEMS,
+  DISCOVER_HUB_NAV_ITEM,
   WORLDMOBILIZE_NAV_ITEM,
 } from "@/lib/site-nav";
-import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
 type NavbarProps = {
+  /**
+   * Optional right-side action for signed-out visitors (e.g. "Home" on
+   * /recommend). Off by default: the navbar sells the ecosystem, so it no longer
+   * funnels every page into a single product. Both must be set to render it.
+   */
   ctaLabel?: string;
   ctaHref?: string;
 };
@@ -73,19 +76,15 @@ function LockIcon({ className = "h-3 w-3" }: { className?: string }) {
 type MenuCoords = { top: number; right: number };
 
 /**
- * Three ecosystem pillars in the navbar center: Discovery (dropdown over the
- * live product surfaces), World Mobilize (admin-only alpha), Companion
- * (admin-only alpha). Premium stays as the right-side CTA pill; the hamburger
- * drawer remains the complete navigation.
+ * Three product pillars in the navbar center — each a plain top-level link to
+ * its own product hub/landing: Discovery (/discover, public), World Mobilize
+ * and Companion (admin-only alphas). No dropdowns; the nav communicates
+ * products, not individual features. Premium stays as the right-side CTA.
  */
 
-export default function Navbar({
-  ctaLabel = "Try GamePing",
-  ctaHref = "/recommend",
-}: NavbarProps) {
+export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
   const pathname = usePathname();
-  const isHomePage = pathname === "/";
-  const { theme, toggleTheme } = useHomeTheme();
+  const { theme, toggleTheme, canToggleTheme } = useHomeTheme();
   const isLight = theme === "light";
   // Header accents follow the CURRENT PAGE accent via the --page-accent-* CSS
   // variables (set per route in PageAccentProvider): cyan landing, gold premium,
@@ -104,13 +103,13 @@ export default function Navbar({
     const active = isNavLinkActive(item.href, pathname);
     const baseText = isLight ? "text-slate-700" : "text-slate-300";
     const colorClass = active
-      ? "text-[color:var(--page-accent-text)]"
-      : `${baseText} hover:text-[color:var(--page-accent-text)]`;
+      ? "text-slate-900 dark:text-white"
+      : `${baseText} hover:text-slate-900 dark:hover:text-white`;
     const className = `group relative inline-flex ${navLinkLayout} ${colorClass}`;
     const underline = (
       <span
         aria-hidden
-        className={`pointer-events-none absolute -bottom-2 left-0 h-[2px] w-full origin-center rounded-full bg-[var(--page-accent-strong)] shadow-[0_0_8px_var(--page-accent-glow)] transition-transform duration-300 ease-out ${
+        className={`pointer-events-none absolute -bottom-2 left-0 h-[2px] w-full origin-center rounded-full bg-slate-900 dark:bg-white transition-transform duration-300 ease-out ${
           active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
         }`}
       />
@@ -133,7 +132,7 @@ export default function Navbar({
         href={item.href}
         className={className}
         aria-current={active ? "page" : undefined}
-        title={opts?.locked ? "Premium feature — preview available" : undefined}
+        title={opts?.locked ? "Coming soon" : undefined}
       >
         {labelContent}
         {underline}
@@ -143,43 +142,12 @@ export default function Navbar({
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [emailUnverified, setEmailUnverified] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
-  // Parties + light toggle stay admin-only; the Premium discovery links are
-  // shown to premium/admin as real links and to free/anon as locked previews.
-  // Same profiles.plan read used elsewhere — no new auth.
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [canViewPremium, setCanViewPremium] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
 
   const accountMenuButtonRef = useRef<HTMLButtonElement>(null);
   const accountMenuPanelRef = useRef<HTMLDivElement>(null);
-  const discoveryWrapRef = useRef<HTMLSpanElement>(null);
-
-  // Close the Discovery dropdown on outside click / Escape / route change.
-  useEffect(() => {
-    if (!discoveryOpen) return;
-    const onPointerDown = (e: MouseEvent | PointerEvent) => {
-      if (discoveryWrapRef.current?.contains(e.target as Node)) return;
-      setDiscoveryOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDiscoveryOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [discoveryOpen]);
-
-  useEffect(() => {
-    // Safety net for history navigation while the menu is open (normal clicks
-    // already close it). Deferred so the effect doesn't set state synchronously.
-    queueMicrotask(() => setDiscoveryOpen(false));
-  }, [pathname]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -204,42 +172,6 @@ export default function Navbar({
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadAdmin() {
-      const { data } = await supabase.auth.getUser();
-      if (cancelled) return;
-
-      if (!data.user) {
-        setIsAdmin(false);
-        setCanViewPremium(false);
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("plan")
-        .eq("user_id", data.user.id)
-        .maybeSingle();
-
-      if (!cancelled) {
-        setIsAdmin(profile?.plan === "admin");
-        setCanViewPremium(hasPremiumDiscoveryAccess(profile?.plan));
-      }
-    }
-
-    void loadAdmin();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      void loadAdmin();
-    });
-
-    return () => {
-      cancelled = true;
-      listener.subscription.unsubscribe();
-    };
-  }, []);
 
   const closeAccountMenu = useCallback(() => setAccountMenuOpen(false), []);
   const closeNav = useCallback(() => setNavOpen(false), []);
@@ -327,7 +259,7 @@ export default function Navbar({
         className={`w-[min(calc(100vw-1rem),17.5rem)] rounded-2xl border py-2 shadow-lg backdrop-blur-xl pointer-events-auto ${
           isLight
             ? "border-slate-200/90 bg-white/98 shadow-slate-200/60 ring-1 ring-slate-200/80"
-            : "border-white/10 bg-[#0b0c18]/98 shadow-[0_16px_48px_rgba(0,0,0,0.55)] ring-1 ring-[color:var(--page-accent-soft)]"
+            : "border-white/10 bg-[#0b0c18]/98 shadow-[0_16px_48px_rgba(0,0,0,0.55)] ring-1 ring-white/10"
         }`}
       >
         <div
@@ -350,8 +282,8 @@ export default function Navbar({
             role="menuitem"
             className={`flex w-full items-center px-4 py-3 text-sm font-bold no-underline transition focus-visible:outline-none ${
               isLight
-                ? "text-slate-800 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
-                : "text-white/90 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
+                ? "text-slate-800 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white focus-visible:bg-slate-100 dark:focus-visible:bg-white/[0.06]"
+                : "text-white/90 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white focus-visible:bg-slate-100 dark:focus-visible:bg-white/[0.06]"
             }`}
             onClick={closeAccountMenu}
           >
@@ -363,8 +295,8 @@ export default function Navbar({
             role="menuitem"
             className={`flex w-full flex-col items-stretch px-4 py-3 text-left text-sm font-bold no-underline transition focus-visible:outline-none ${
               isLight
-                ? "text-slate-800 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
-                : "text-white/90 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
+                ? "text-slate-800 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white focus-visible:bg-slate-100 dark:focus-visible:bg-white/[0.06]"
+                : "text-white/90 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white focus-visible:bg-slate-100 dark:focus-visible:bg-white/[0.06]"
             }`}
             onClick={closeAccountMenu}
           >
@@ -383,8 +315,8 @@ export default function Navbar({
             role="menuitem"
             className={`flex w-full items-center px-4 py-3 text-sm font-bold no-underline transition focus-visible:outline-none ${
               isLight
-                ? "text-slate-800 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
-                : "text-white/90 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
+                ? "text-slate-800 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white focus-visible:bg-slate-100 dark:focus-visible:bg-white/[0.06]"
+                : "text-white/90 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white focus-visible:bg-slate-100 dark:focus-visible:bg-white/[0.06]"
             }`}
             onClick={closeAccountMenu}
           >
@@ -417,7 +349,7 @@ export default function Navbar({
     <nav
       className={`gp-nav-bar sticky top-0 z-40 w-full border-b backdrop-blur-xl ${
         isLight
-          ? "border-[color:var(--page-accent-border)] bg-[rgba(245,247,250,0.82)] shadow-sm shadow-slate-200/40"
+          ? "border-slate-300 dark:border-white/15 bg-[rgba(245,247,250,0.82)] shadow-sm shadow-slate-200/40"
           : "border-white/[0.08] bg-gradient-to-b from-[#0b0f1a]/92 to-[#0b0f1a]/78 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_30px_-16px_rgba(0,0,0,0.8)]"
       }`}
     >
@@ -426,10 +358,10 @@ export default function Navbar({
           <button
             type="button"
             onClick={() => setNavOpen(true)}
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 ${
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
               isLight
-                ? "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100 focus-visible:ring-[color:var(--page-accent-border)]"
-                : "border-white/15 bg-white/[0.06] text-white/80 hover:border-[color:var(--page-accent-border)] hover:bg-white/10 hover:text-[color:var(--page-accent-text)] focus-visible:ring-[color:var(--page-accent-border)]"
+                ? "border-slate-200 bg-slate-50 text-slate-700 hover:border-blue-600 hover:text-blue-700"
+                : "border-white/15 bg-white/[0.06] text-white/80 hover:border-blue-400 hover:text-blue-300"
             }`}
             aria-label="Open navigation menu"
             aria-expanded={navOpen}
@@ -451,9 +383,9 @@ export default function Navbar({
             href="/"
             className="flex min-w-0 shrink flex-col gap-1 sm:flex-row sm:items-center sm:gap-2"
           >
-          <span className={`truncate text-lg font-black tracking-tight sm:text-xl ${isLight ? "text-slate-900" : ""}`}>
+          <span className={`truncate text-lg font-black tracking-tight sm:text-xl ${isLight ? "text-slate-900" : "text-white"}`}>
             GamePing{" "}
-            <span className="text-[color:var(--page-accent-text)]">AI</span>
+            <span className="text-blue-700 dark:text-blue-400">AI</span>
           </span>
           {/* Early Access badge is hidden on small phones (it caused the brand
            * to wrap/stack). It appears inline from sm upward, where there's room.
@@ -478,97 +410,24 @@ export default function Navbar({
         </div>
 
         <nav className="gp-nav-home-links" aria-label="Primary navigation">
-          {/* Pillar 1 — Discovery: dropdown over the live product surfaces. */}
-          <span className="relative inline-flex shrink-0" ref={discoveryWrapRef}>
-            <button
-              type="button"
-              onClick={() => setDiscoveryOpen((o) => !o)}
-              aria-expanded={discoveryOpen}
-              aria-haspopup="menu"
-              className={`group relative inline-flex gap-1.5 ${navLinkLayout} ${
-                discoveryOpen ||
-                NAVBAR_DISCOVERY_MENU_ITEMS.some((item) => isSiteNavItemActive(pathname, item))
-                  ? "text-[color:var(--page-accent-text)]"
-                  : `${isLight ? "text-slate-700" : "text-slate-300"} hover:text-[color:var(--page-accent-text)]`
-              }`}
-            >
-              Discovery
-              <svg
-                className={`h-3.5 w-3.5 shrink-0 transition-transform duration-200 ${
-                  discoveryOpen ? "rotate-180" : ""
-                }`}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span
-                aria-hidden
-                className={`pointer-events-none absolute -bottom-2 left-0 h-[2px] w-full origin-center rounded-full bg-[var(--page-accent-strong)] shadow-[0_0_8px_var(--page-accent-glow)] transition-transform duration-300 ease-out ${
-                  discoveryOpen ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-                }`}
-              />
-            </button>
-
-            {discoveryOpen ? (
-              <div
-                role="menu"
-                aria-label="Discovery"
-                className={`absolute left-1/2 top-[calc(100%+14px)] z-50 w-60 -translate-x-1/2 rounded-2xl border py-2 shadow-lg backdrop-blur-xl ${
-                  isLight
-                    ? "border-slate-200/90 bg-white/98 shadow-slate-200/60 ring-1 ring-slate-200/80"
-                    : "border-white/10 bg-[#0b0c18]/98 shadow-[0_16px_48px_rgba(0,0,0,0.55)] ring-1 ring-[color:var(--page-accent-soft)]"
-                }`}
-              >
-                {NAVBAR_DISCOVERY_MENU_ITEMS.map((item) => {
-                  const locked = item.href === "/deals-for-you" && !canViewPremium;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      role="menuitem"
-                      onClick={() => setDiscoveryOpen(false)}
-                      title={locked ? "Premium feature — preview available" : undefined}
-                      className={`flex w-full items-center justify-between gap-2 px-4 py-2.5 text-sm font-bold no-underline transition focus-visible:outline-none ${
-                        isLight
-                          ? "text-slate-800 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
-                          : "text-white/90 hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)] focus-visible:bg-[var(--page-accent-soft)]"
-                      }`}
-                    >
-                      <span>{item.label}</span>
-                      {locked ? <LockIcon className="h-3 w-3 shrink-0 opacity-70" /> : null}
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : null}
-          </span>
-
-          {/* Pillars 2 + 3 — World Mobilize + Companion (admin-only alphas). */}
-          {isAdmin ? (
-            <>
-              {renderHomeNavLink(WORLDMOBILIZE_NAV_ITEM)}
-              {renderHomeNavLink(COMPANION_NAV_ITEM)}
-            </>
-          ) : null}
+          {/* Products, not features — three plain top-level links. All three are
+           * publicly visible during the UI/UX review pass (previously World
+           * Mobilize + Companion were admin-only alphas). */}
+          {renderHomeNavLink(DISCOVER_HUB_NAV_ITEM)}
+          {renderHomeNavLink(COMPANION_NAV_ITEM)}
+          {renderHomeNavLink(WORLDMOBILIZE_NAV_ITEM, { locked: true })}
         </nav>
 
         <div className="gp-nav-actions relative z-0 ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
-          {/* Light mode is admin-only during live testing — the toggle is hidden
-           * for anonymous / free / premium (non-admin) users, who stay in dark. */}
-          {isAdmin ? (
+          {/* Theme toggle — admin-only; everyone else is locked to dark. */}
+          {canToggleTheme ? (
             <button
               type="button"
               onClick={toggleTheme}
-              className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border p-0 transition focus-visible:outline-none focus-visible:ring-2 ${
+              className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border p-0 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 isLight
-                  ? "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 focus-visible:ring-[color:var(--page-accent-border)]"
-                  : "border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-600 hover:bg-slate-800 focus-visible:ring-[color:var(--page-accent-border)]"
+                  ? "border-slate-200 bg-white text-slate-600 hover:border-blue-600 hover:text-blue-700"
+                  : "border-white/15 bg-white/[0.05] text-slate-300 hover:border-blue-400 hover:text-blue-300"
               }`}
               aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}
             >
@@ -594,7 +453,7 @@ export default function Navbar({
            * responsive sizing as before — only the visual language is upgraded. */}
           <Link
             href="/upgrade"
-            className="gp-page-cta group z-0 hidden shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] sm:inline-flex sm:px-4 sm:py-2"
+            className="group z-0 hidden shrink-0 items-center gap-1.5 rounded-full bg-blue-800 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:inline-flex sm:px-4 sm:py-2"
           >
             <CrownIcon className="h-3.5 w-3.5 shrink-0 transition-transform duration-300 group-hover:-translate-y-px" />
             <span>Premium</span>
@@ -602,27 +461,18 @@ export default function Navbar({
 
           {!userEmail ? (
             <>
-              <Link
-                href={ctaHref}
-                className="gp-page-cta relative z-0 shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold sm:px-5 sm:py-2 sm:text-sm"
-              >
-                {isHomePage ? (
-                  <>
-                    <span className="hidden xl:inline">{ctaLabel}</span>
-                    <span className="xl:hidden">Try GamePing</span>
-                  </>
-                ) : (
-                  ctaLabel
-                )}
-              </Link>
+              {ctaLabel && ctaHref ? (
+                <Link
+                  href={ctaHref}
+                  className="relative z-0 shrink-0 rounded-full bg-blue-800 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:px-5 sm:py-2 sm:text-sm"
+                >
+                  {ctaLabel}
+                </Link>
+              ) : null}
 
               <Link
                 href="/login"
-                className={`relative z-0 inline-flex shrink-0 items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition hover:border-[color:var(--page-accent-border)] max-[380px]:hidden sm:px-4 sm:py-2 sm:text-sm ${
-                  isLight
-                    ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                    : "border-slate-700 bg-slate-900/80 text-slate-300 hover:bg-slate-800"
-                }`}
+                className="relative z-0 inline-flex shrink-0 items-center rounded-full border border-slate-300 bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-800 transition hover:border-blue-600 hover:text-blue-700 max-[380px]:hidden dark:border-white/20 dark:text-white dark:hover:border-blue-400 dark:hover:text-blue-300 sm:px-4 sm:py-2 sm:text-sm"
               >
                 Login
               </Link>
@@ -634,7 +484,7 @@ export default function Navbar({
                   ref={accountMenuButtonRef}
                   type="button"
                   title={userDisplayName ?? userEmail}
-                  className={`group flex shrink-0 items-center gap-1 rounded-full border p-1 pr-1.5 transition hover:border-[color:var(--page-accent-border)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] ${
+                  className={`group flex shrink-0 items-center gap-1 rounded-full border p-1 pr-1.5 transition hover:border-blue-600 dark:hover:border-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     isLight
                       ? "border-slate-200 bg-white hover:bg-slate-50"
                       : "border-white/12 bg-white/[0.05] hover:bg-white/[0.09]"
@@ -647,7 +497,7 @@ export default function Navbar({
                   onClick={() => setAccountMenuOpen((o) => !o)}
                 >
                   <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)]"
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-300 dark:border-white/15 bg-slate-100 dark:bg-white/[0.06] text-slate-900 dark:text-white"
                     aria-hidden
                   >
                     <UserSilhouetteIcon className="h-[18px] w-[18px]" />
@@ -681,7 +531,7 @@ export default function Navbar({
     {userEmail && emailUnverified ? (
       <div
         className={`relative z-20 border-b ${
-          isLight ? "border-slate-200/80 bg-[var(--page-accent-soft)]" : "border-white/10 bg-[#05060f]/90"
+          isLight ? "border-slate-200/80 bg-slate-100 dark:bg-white/[0.06]" : "border-white/10 bg-[#05060f]/90"
         }`}
       >
         <div className="gp-nav-inner py-2">

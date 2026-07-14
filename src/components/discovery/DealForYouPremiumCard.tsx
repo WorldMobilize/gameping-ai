@@ -1,4 +1,4 @@
-import { APP_CARD, APP_MUTED } from "@/components/app/app-styles";
+import { APP_CARD, APP_MUTED, APP_PRIMARY_CTA_ACCENT_SM } from "@/components/app/app-styles";
 import DiscoveryCover from "@/components/discovery/DiscoveryCover";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import type { DealCardData, DealLabel } from "@/lib/discovery/premium-demo-data";
@@ -24,8 +24,7 @@ function dealLabelClass(label: DealLabel): string {
   }
 }
 
-const PRIMARY_CTA =
-  "mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-gradient-to-r from-[var(--page-accent-strong)] to-[var(--page-accent)] px-5 py-2.5 text-sm font-semibold text-[color:var(--page-accent-on)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]";
+const PRIMARY_CTA = `mt-4 w-fit ${APP_PRIMARY_CTA_ACCENT_SM}`;
 
 /** Premium taste-matched deal card (Deals For You). Presentational only. */
 export default function DealForYouPremiumCard({

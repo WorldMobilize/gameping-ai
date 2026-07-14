@@ -1,6 +1,7 @@
 import "server-only";
 
 import { generatePremiumRotation } from "@/lib/discovery/premium-generators";
+import { computeTasteSignature } from "@/lib/discovery/taste-signature";
 import {
   currentPremiumPeriodKey,
   getAnyUserRotation,
@@ -98,12 +99,15 @@ async function generateAndPublish(
   type: PremiumRotationType,
   periodKey: string
 ): Promise<GenerateOutcome> {
+  // Captured before generation: a signal that lands while we generate must leave
+  // the rotation looking out-of-date, not falsely up-to-date.
+  const signature = await computeTasteSignature(userId);
   const generated = await generatePremiumRotation(type, userId);
   if (!generated.ok) {
     await saveFailedUserRotation(userId, type, periodKey, generated.error);
     return INSUFFICIENT_DATA_ERRORS.has(generated.error) ? "insufficient_data" : "failed";
   }
-  const saved = await saveUserRotation(userId, type, periodKey, generated.data);
+  const saved = await saveUserRotation(userId, type, periodKey, generated.data, signature);
   if (!saved.ok) {
     await saveFailedUserRotation(userId, type, periodKey, saved.error ?? "save_failed");
     return "failed";
@@ -191,6 +195,7 @@ export async function refreshUserPremiumRotation(
   }
 
   // Generate into memory first — do NOT touch the cache yet.
+  const signature = await computeTasteSignature(userId);
   const generated = await generatePremiumRotation(type, userId);
   if (!generated.ok) {
     // Preserve the existing published rotation. Only record a failure when there
@@ -205,7 +210,7 @@ export async function refreshUserPremiumRotation(
   }
 
   // Success → safe to replace the cache.
-  const saved = await saveUserRotation(userId, type, periodKey, generated.data);
+  const saved = await saveUserRotation(userId, type, periodKey, generated.data, signature);
   if (!saved.ok) return { ok: false, status: "failed" };
   const published = await publishUserRotation(userId, type, periodKey);
   return { ok: published.ok, status: published.ok ? "generated" : "failed" };

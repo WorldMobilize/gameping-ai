@@ -4,9 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import { AuthShell } from "@/components/auth/auth-ui";
 import {
-  APP_AUTH_CARD,
   APP_PRIMARY_CTA_ACCENT_SM,
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
@@ -66,62 +65,48 @@ export default function VerifySuccessPage() {
   }, []);
 
   return (
-    <AppPageShell bare hideAmbient>
-      {/* Same cinematic background + account (silver) accent as /login and /check-email. */}
-      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div aria-hidden className="gp-account-bg" />
-        <AppSection
-          maxWidth="max-w-md"
-          className="flex min-h-screen items-center justify-center py-12"
+    <AuthShell showBack={false}>
+      <div className="text-center" role="status">
+        <div
+          className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] shadow-sm"
+          aria-hidden
         >
-          <div className={`w-full text-center ${APP_AUTH_CARD}`} role="status">
-            <div
-              className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] shadow-sm"
-              aria-hidden
-            >
-              <SuccessCheckIcon />
-            </div>
+          <SuccessCheckIcon />
+        </div>
 
-            <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.32em] text-[color:var(--page-accent-text)]">
-              GamePing AI
-            </p>
+        <p className="mt-6 text-[10px] font-bold uppercase tracking-[0.32em] text-[color:var(--page-accent-text)]">
+          GamePing AI
+        </p>
 
-            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white gp-home-display md:text-[1.65rem]">
-              Email verified
-            </h1>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 dark:text-white gp-home-display">
+          Email verified
+        </h1>
 
-            <p className="mx-auto mt-4 max-w-[20rem] text-pretty text-sm leading-6 text-slate-700 dark:text-slate-300">
-              {signedIn === false
-                ? "Your email is verified. Log in to continue."
-                : "Your GamePing account is ready. You can safely close this tab and return to GamePing."}
-            </p>
+        <p className="mx-auto mt-4 max-w-[20rem] text-pretty text-sm leading-6 text-slate-600 dark:text-slate-300">
+          {signedIn === false
+            ? "Your email is verified. Log in to continue."
+            : "Your GamePing account is ready. You can safely close this tab and return to GamePing."}
+        </p>
 
-            <div className="mt-7 flex flex-col items-center gap-3">
-              <Link href="/" className={APP_PRIMARY_CTA_ACCENT_SM}>
-                Go to GamePing
-              </Link>
-              <button
-                type="button"
-                onClick={handleClose}
-                className={APP_SECONDARY_CTA}
-              >
-                Close this tab
-              </button>
-            </div>
+        <div className="mt-7 flex flex-col items-center gap-3">
+          <Link href="/" className={`w-full ${APP_PRIMARY_CTA_ACCENT_SM}`}>
+            Go to GamePing
+          </Link>
+          <button type="button" onClick={handleClose} className={`w-full ${APP_SECONDARY_CTA}`}>
+            Close this tab
+          </button>
+        </div>
 
-            <p className="mt-5 text-xs leading-5 text-slate-500 dark:text-slate-400">
-              If you leave this tab open, it returns to GamePing automatically.
-            </p>
+        <p className="mt-5 text-xs leading-5 text-slate-500 dark:text-slate-400">
+          If you leave this tab open, it returns to GamePing automatically.
+        </p>
 
-            {closeBlocked ? (
-              <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                Your browser blocked automatic closing. You can safely close this
-                tab.
-              </p>
-            ) : null}
-          </div>
-        </AppSection>
+        {closeBlocked ? (
+          <p className="mt-3 text-xs leading-5 text-slate-500 dark:text-slate-400">
+            Your browser blocked automatic closing. You can safely close this tab.
+          </p>
+        ) : null}
       </div>
-    </AppPageShell>
+    </AuthShell>
   );
 }

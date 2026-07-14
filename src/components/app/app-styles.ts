@@ -40,15 +40,15 @@ export const APP_PRIMARY_CTA_LG = HOME_PRIMARY_CTA_LG;
  * accessible focus ring on top. No hardcoded brand colour. UI only.
  */
 export const APP_PRIMARY_CTA_ACCENT_SM =
-  "gp-page-cta inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]";
+  "inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-[0_18px_44px_-16px_rgba(15,23,42,0.55)] transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:bg-white dark:text-slate-900 dark:shadow-[0_18px_44px_-16px_rgba(0,0,0,0.6)] dark:hover:bg-slate-100 dark:focus-visible:ring-white/40";
 
 export const APP_SHELL =
   "relative flex min-h-screen flex-col bg-white text-slate-900 dark:bg-[#0b0f1a] dark:text-slate-100";
 
 export const APP_SECTION = "relative overflow-hidden px-6 py-16 md:py-20";
 
-/** Cyan accent labels — theme-aware without a hook */
-export const APP_ACCENT = "text-cyan-700 dark:text-cyan-400";
+/** Accent labels — follow the current page accent (blue by default) */
+export const APP_ACCENT = "text-[color:var(--page-accent-text)]";
 
 /** Theme-aware inline SVG / icon color (uses currentColor) */
 export const APP_ICON = "text-slate-900 dark:text-slate-100";
@@ -60,7 +60,7 @@ export const APP_BRAND_ICON_IMG =
   "h-full w-full object-contain opacity-90 brightness-0 dark:brightness-100";
 
 export const APP_KICKER =
-  "text-xs font-semibold uppercase tracking-[0.35em] text-cyan-700 dark:text-cyan-400";
+  "text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]";
 
 export const APP_PAGE_TITLE =
   "mt-4 text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl gp-home-display";
@@ -108,13 +108,13 @@ export const APP_CARD_INTERACTIVE_LG =
   "rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[color:var(--page-accent-border)] hover:shadow-[0_14px_36px_-16px_var(--page-accent-glow)] dark:border-slate-800/80 dark:bg-slate-900/70 dark:hover:border-[color:var(--page-accent-border)]";
 
 export const APP_CTA_PANEL =
-  "rounded-3xl border border-cyan-200/80 bg-gradient-to-br from-cyan-50/80 via-white to-violet-50/50 p-6 shadow-sm dark:border-cyan-900/50 dark:from-cyan-950/40 dark:via-slate-900/80 dark:to-violet-950/30";
+  "rounded-3xl border border-blue-200/80 bg-gradient-to-br from-blue-50/80 via-white to-violet-50/50 p-6 shadow-sm dark:border-blue-900/50 dark:from-blue-950/40 dark:via-slate-900/80 dark:to-violet-950/30";
 
 export const APP_CALLOUT =
   "rounded-2xl border border-slate-200/80 bg-slate-50/80 p-5 text-sm text-slate-700 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-300";
 
 export const APP_INLINE_LINK =
-  "font-semibold text-cyan-700 underline-offset-4 transition hover:text-cyan-800 hover:underline dark:text-cyan-400 dark:hover:text-cyan-300";
+  "font-semibold text-[color:var(--page-accent-text)] underline-offset-4 transition hover:underline";
 
 /**
  * Inline link that follows the current page accent (silver on /login, /signup,
@@ -126,8 +126,25 @@ export const APP_INLINE_LINK_ACCENT =
 
 export const APP_SECONDARY_CTA = `${HOME_SECONDARY_CTA_BASE} px-5 py-2.5 text-sm border-slate-200 bg-white/80 text-slate-700 hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-900`;
 
+/**
+ * Primary button system — GamePing dark blue / navy. One consistent token for
+ * every primary CTA (navbar + landing). Dark blue background, white text,
+ * slightly lighter blue on hover. No black, no cyan. Secondary = neutral border
+ * that turns blue on hover. No arrows.
+ */
+export const NAVY_CTA =
+  "inline-flex items-center justify-center rounded-2xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-[0_18px_44px_-16px_rgba(15,23,42,0.55)] transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:bg-white dark:text-slate-900 dark:shadow-[0_18px_44px_-16px_rgba(0,0,0,0.6)] dark:hover:bg-slate-100 dark:focus-visible:ring-white/40";
+/* Primary/secondary CTAs — the hero "Start your journey" language: a soft
+ * rounded rectangle, monochrome (dark-in-light / white-in-dark), a gentle lift
+ * and drop-shadow on hover. Shared across the landing and product pages so every
+ * call-to-action reads the same. */
+export const NAVY_CTA_LG =
+  "inline-flex items-center justify-center rounded-2xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-[0_18px_44px_-16px_rgba(15,23,42,0.55)] transition duration-200 hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:bg-white dark:text-slate-900 dark:shadow-[0_18px_44px_-16px_rgba(0,0,0,0.6)] dark:hover:bg-slate-100 dark:focus-visible:ring-white/40";
+export const NAVY_OUTLINE =
+  "inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-transparent px-7 py-3.5 text-sm font-semibold text-slate-900 transition duration-200 hover:-translate-y-0.5 hover:border-slate-400 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent dark:border-white/20 dark:text-white dark:hover:border-white/35 dark:hover:bg-white/[0.04] dark:focus-visible:ring-white/40";
+
 export const APP_INPUT =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-cyan-500 dark:focus:ring-cyan-500/30";
+  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[color:var(--page-accent-strong)] focus:ring-2 focus:ring-[color:var(--page-accent-soft)] dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-[color:var(--page-accent-strong)] dark:focus:ring-[color:var(--page-accent-soft)]";
 
 export const APP_AUTH_CARD =
   "w-full max-w-md rounded-3xl border border-slate-200/90 bg-white p-8 shadow-lg shadow-slate-200/50 dark:border-slate-800/80 dark:bg-slate-900/80 dark:shadow-slate-950/50";
@@ -135,4 +152,4 @@ export const APP_AUTH_CARD =
 export const APP_PROSE_HEADING = "text-xl font-bold text-slate-900 dark:text-white";
 
 export const APP_LIST_ROW =
-  "group flex items-center justify-between rounded-2xl border border-slate-200/90 bg-white px-5 py-4 shadow-sm transition hover:border-cyan-300/70 hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/70 dark:hover:border-cyan-700/50";
+  "group flex items-center justify-between rounded-2xl border border-slate-200/90 bg-white px-5 py-4 shadow-sm transition hover:border-[color:var(--page-accent-border)] hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/70 dark:hover:border-[color:var(--page-accent-border)]";

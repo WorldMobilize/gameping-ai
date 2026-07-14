@@ -5,22 +5,20 @@ import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import {
-  ACCOUNT_NAV_ITEMS,
-  COMMUNITY_WARS_NAV_ITEM,
+  COMPANION_CHILD_ITEMS,
   COMPANION_NAV_ITEM,
-  DEALS_NAV_ITEMS,
-  DEALS_PERSONAL_NAV_ITEMS,
-  DISCOVER_NAV_ITEMS,
-  DISCOVER_PERSONAL_NAV_ITEMS,
+  DISCOVER_HUB_NAV_ITEM,
+  DISCOVERY_CHILD_ITEMS,
+  DRAWER_ACCOUNT_ITEMS,
+  DRAWER_MORE_ITEMS,
   HOME_NAV_ITEM,
   isSiteNavItemActive,
-  PARTIES_NAV_ITEM,
-  PARTIES_SUBNAV_ITEMS,
-  PREMIUM_NAV_ITEM,
+  WORLDMOBILIZE_CHILD_ITEMS,
   WORLDMOBILIZE_NAV_ITEM,
   type SiteNavItem,
 } from "@/lib/site-nav";
-import { hasPremiumDiscoveryAccess } from "@/lib/discovery/premium-access";
+import { useHomeTheme } from "@/components/home/HomeThemeProvider";
+import { isPremiumOrAdminPlan } from "@/lib/product-copy";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -50,10 +48,10 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
   const isLight = theme === "light";
   const pathname = usePathname();
   const { showToast } = useToast();
+  const { toggleTheme } = useHomeTheme();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [canViewPremium, setCanViewPremium] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [partiesOpen, setPartiesOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +62,7 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
 
       if (!data.user) {
         setIsAdmin(false);
-        setCanViewPremium(false);
+        setIsPremium(false);
         setLoggedIn(false);
         return;
       }
@@ -78,7 +76,7 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
 
       if (!cancelled) {
         setIsAdmin(profile?.plan === "admin");
-        setCanViewPremium(hasPremiumDiscoveryAccess(profile?.plan));
+        setIsPremium(isPremiumOrAdminPlan(profile?.plan));
       }
     }
 
@@ -124,14 +122,14 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
   };
 
   const itemClass = (active: boolean) =>
-    `flex items-center justify-between gap-2 rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] ${
+    `flex items-center justify-between gap-2 rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
       active
         ? isLight
-          ? "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)] shadow-sm"
-          : "border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] text-[color:var(--page-accent-text)] shadow-[0_0_20px_var(--page-accent-glow)]"
+          ? "border-blue-200 bg-blue-50 text-blue-800 shadow-sm"
+          : "border-blue-400/30 bg-blue-500/10 text-blue-200"
         : isLight
-          ? "border-transparent text-slate-700 hover:border-[color:var(--page-accent-border)] hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)]"
-          : "border-transparent text-white/80 hover:border-[color:var(--page-accent-border)] hover:bg-[var(--page-accent-soft)] hover:text-[color:var(--page-accent-text)]"
+          ? "border-transparent text-slate-800 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+          : "border-transparent text-slate-200 hover:border-blue-400/30 hover:bg-blue-500/10 hover:text-blue-200"
     }`;
 
   const renderNavItem = (item: SiteNavItem, locked = false) => {
@@ -141,7 +139,7 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
         key={item.href}
         href={item.href}
         onClick={onClose}
-        title={locked ? "Premium feature — preview available" : undefined}
+        title={locked ? "Coming soon" : undefined}
         className={itemClass(active)}
       >
         <span>{item.label}</span>
@@ -150,8 +148,46 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
     );
   };
 
+  // Secondary child link under a pillar: smaller, muted, bulleted, slides right
+  // slightly on hover. Navigates straight to the tool/module.
+  const childClass = (active: boolean) =>
+    `flex items-center gap-2 rounded-lg py-1.5 pl-3 pr-2 text-[13px] no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+      active
+        ? "font-semibold text-blue-700 dark:text-blue-300"
+        : isLight
+          ? "font-medium text-slate-500 hover:translate-x-0.5 hover:text-blue-700"
+          : "font-medium text-slate-400 hover:translate-x-0.5 hover:text-blue-300"
+    }`;
+
+  const childGroup = (items: SiteNavItem[]) => (
+    <div className="mt-1 ml-3 flex flex-col gap-0.5 border-l border-slate-200/80 pl-2.5 dark:border-white/10">
+      {items.map((child) => {
+        // Padlock only — the link still works. Premium pages show their own
+        // locked preview; the icon just sets the expectation beforehand.
+        const locked = child.premium === true && !isPremium;
+        // Subscribers go to the tool; everyone else to the page that explains it.
+        const href = isPremium && child.premiumHref ? child.premiumHref : child.href;
+        return (
+          <Link
+            key={child.label}
+            href={href}
+            onClick={onClose}
+            title={locked ? "Premium" : undefined}
+            className={childClass(isSiteNavItemActive(pathname, child))}
+          >
+            <span aria-hidden className="text-[13px] leading-none text-blue-500/50">
+              •
+            </span>
+            <span>{child.label}</span>
+            {locked ? <LockIcon className="h-3 w-3 shrink-0 opacity-70" /> : null}
+          </Link>
+        );
+      })}
+    </div>
+  );
+
   const sectionHeading = (label: string, badge?: string) => (
-    <p className="flex items-center gap-2 px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">
+    <p className="flex items-center gap-2 px-4 pb-1 text-[10px] font-black uppercase tracking-[0.28em] text-blue-900 dark:text-blue-300">
       <span>{label}</span>
       {badge ? (
         <span
@@ -166,7 +202,16 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
   );
 
   const sectionClass =
-    "mt-4 flex flex-col gap-1 border-t border-dashed border-cyan-400/30 pt-4";
+    "mt-4 flex flex-col gap-1 border-t border-slate-200 pt-4 dark:border-white/10";
+
+  const accountRow = (active: boolean) =>
+    `flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+      active
+        ? "text-blue-800 dark:text-blue-200"
+        : isLight
+          ? "text-slate-700 hover:bg-blue-50 hover:text-blue-800"
+          : "text-slate-300 hover:bg-blue-500/10 hover:text-blue-200"
+    }`;
 
   return createPortal(
     <div className="fixed inset-0 z-[60]">
@@ -181,37 +226,28 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
       <aside
         className={`absolute left-0 top-0 flex h-full w-[min(100vw-3rem,18.5rem)] flex-col border-r backdrop-blur-xl ${
           isLight
-            ? "border-[color:var(--page-accent-border)] bg-white/98 shadow-[8px_0_32px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/80"
-            : "border-[color:var(--page-accent-border)] bg-[#070818]/98 shadow-[8px_0_48px_rgba(0,0,0,0.55)] ring-1 ring-[color:var(--page-accent-border)]"
+            ? "border-slate-200/80 bg-white/98 shadow-[8px_0_32px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/80"
+            : "border-white/10 bg-[#070818]/98 shadow-[8px_0_48px_rgba(0,0,0,0.55)] ring-1 ring-white/10"
         }`}
         role="dialog"
         aria-modal="true"
         aria-label="Site navigation"
       >
-        {isLight ? (
-          <div className="pointer-events-none absolute -right-8 top-0 h-40 w-40 rounded-full bg-[var(--page-accent-soft)] blur-3xl" />
-        ) : (
-          <>
-            <div className="pointer-events-none absolute -right-8 top-0 h-40 w-40 rounded-full bg-[var(--page-accent-soft)] blur-3xl" />
-            <div className="pointer-events-none absolute bottom-16 left-0 h-32 w-32 rounded-full bg-[var(--page-accent-soft)] blur-3xl" />
-          </>
-        )}
-
         <div
           className={`relative flex items-center justify-between border-b px-5 py-4 ${
             isLight ? "border-slate-200/80" : "border-white/10"
           }`}
         >
-          <p className="text-[10px] font-black uppercase tracking-[0.32em] text-[color:var(--page-accent-text)]">
+          <p className="text-[10px] font-black uppercase tracking-[0.32em] text-blue-900 dark:text-blue-300">
             Menu
           </p>
           <button
             type="button"
             onClick={onClose}
-            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition hover:border-[color:var(--page-accent-border)] hover:text-[color:var(--page-accent-text)] ${
+            className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
               isLight
-                ? "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
-                : "border-white/15 bg-white/[0.06] text-white/70"
+                ? "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                : "border-white/15 bg-white/[0.06] text-white/70 hover:bg-white/10 hover:text-white"
             }`}
           >
             Close
@@ -221,134 +257,68 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
         <nav className="relative flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-4">
           {renderNavItem(HOME_NAV_ITEM)}
 
-          {/* Pillar 1 — Discovery: every live product surface, deals included. */}
+          {/* Product pillars — each parent link opens the overview; the indented
+           * children below jump straight to a specific tool or module. */}
           <div className={sectionClass}>
-            {sectionHeading("Discovery")}
-            {DISCOVER_NAV_ITEMS.map((item) => renderNavItem(item))}
-            {DISCOVER_PERSONAL_NAV_ITEMS.map((item) =>
-              renderNavItem(item, !canViewPremium)
-            )}
-            {DEALS_NAV_ITEMS.map((item) => renderNavItem(item))}
-            {DEALS_PERSONAL_NAV_ITEMS.map((item) =>
-              renderNavItem(item, !canViewPremium)
-            )}
+            {sectionHeading("Products")}
+            {renderNavItem(DISCOVER_HUB_NAV_ITEM)}
+            {childGroup(DISCOVERY_CHILD_ITEMS)}
           </div>
 
-          {isAdmin ? (
-            <>
-              {/* Pillar 2 — World Mobilize: the community-game layer (alpha). */}
-              <div className={sectionClass}>
-                {sectionHeading("World Mobilize", "Admin alpha")}
-                {renderNavItem({ ...WORLDMOBILIZE_NAV_ITEM, label: "World Mobilize Map" })}
-                {renderNavItem(COMMUNITY_WARS_NAV_ITEM)}
-                <div className="mt-1 flex items-stretch gap-1">
-                  <Link
-                    href={PARTIES_NAV_ITEM.href}
-                    onClick={onClose}
-                    className={`flex-1 rounded-xl border px-4 py-3.5 text-sm font-bold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
-                      isSiteNavItemActive(pathname, PARTIES_NAV_ITEM)
-                        ? "border-cyan-400/50 bg-cyan-500/10 text-cyan-700 dark:text-cyan-200"
-                        : isLight
-                          ? "border-transparent text-slate-700 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-700"
-                          : "border-transparent text-white/80 hover:border-cyan-400/40 hover:bg-cyan-500/10 hover:text-cyan-200"
-                    }`}
-                  >
-                    {PARTIES_NAV_ITEM.label}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => setPartiesOpen((v) => !v)}
-                    aria-expanded={partiesOpen}
-                    aria-controls="parties-submenu"
-                    aria-label={
-                      partiesOpen
-                        ? "Collapse GamePing Parties categories"
-                        : "Expand GamePing Parties categories"
-                    }
-                    className={`flex w-11 shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
-                      isLight
-                        ? "border-slate-200 bg-slate-50 text-slate-600 hover:border-cyan-400/40 hover:text-cyan-700"
-                        : "border-white/15 bg-white/[0.06] text-white/70 hover:border-cyan-400/40 hover:text-cyan-200"
-                    }`}
-                  >
-                    <svg
-                      className={`h-4 w-4 transition-transform ${partiesOpen ? "rotate-180" : ""}`}
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden
-                    >
-                      <path d="M4 6l4 4 4-4" />
-                    </svg>
-                  </button>
-                </div>
-                {partiesOpen ? (
-                  <div
-                    id="parties-submenu"
-                    className="mt-1 flex max-h-48 flex-col gap-1 overflow-y-auto pl-3"
-                  >
-                    {PARTIES_SUBNAV_ITEMS.map((sub) => (
-                      <Link
-                        key={sub.href}
-                        href={sub.href}
-                        onClick={onClose}
-                        className={`rounded-lg px-4 py-2.5 text-sm font-semibold no-underline transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 ${
-                          isLight
-                            ? "text-slate-600 hover:bg-cyan-500/10 hover:text-cyan-700"
-                            : "text-white/75 hover:bg-cyan-500/10 hover:text-cyan-200"
-                        }`}
-                      >
-                        {sub.label}
-                      </Link>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Pillar 3 — Companion: desktop alpha. */}
-              <div className={sectionClass}>
-                {sectionHeading("Companion", "Admin alpha")}
-                {renderNavItem(COMPANION_NAV_ITEM)}
-              </div>
-            </>
-          ) : null}
-
-          {/* Account — dashboard/settings/premium, login/logout by auth state. */}
           <div className={sectionClass}>
-            {sectionHeading("Account")}
-            {loggedIn ? (
-              <>
-                {ACCOUNT_NAV_ITEMS.map((item) => renderNavItem(item))}
-                {renderNavItem(PREMIUM_NAV_ITEM)}
-                <button
-                  type="button"
-                  onClick={() => void handleLogout()}
-                  className={`${itemClass(false)} w-full text-left`}
-                >
-                  <span>Logout</span>
-                </button>
-              </>
-            ) : (
-              <>
-                {renderNavItem(PREMIUM_NAV_ITEM)}
-                {renderNavItem({ label: "Login / Sign up", href: "/login" })}
-              </>
-            )}
+            {renderNavItem({ ...COMPANION_NAV_ITEM, label: "Companion" })}
+            {childGroup(COMPANION_CHILD_ITEMS)}
+          </div>
+
+          <div className={sectionClass}>
+            {renderNavItem({ ...WORLDMOBILIZE_NAV_ITEM, label: "WorldMobilize" }, true)}
+            {/* Sub-items reveal what WorldMobilize is — admin-only until launch (no spoilers). */}
+            {isAdmin ? childGroup(WORLDMOBILIZE_CHILD_ITEMS) : null}
+          </div>
+
+          {/* More — site links (stay in the main nav flow). */}
+          <div className={sectionClass}>
+            {sectionHeading("More")}
+            {DRAWER_MORE_ITEMS.map((item) => renderNavItem(item))}
           </div>
         </nav>
 
-        <p
-          className={`relative border-t px-5 py-4 text-[11px] leading-relaxed ${
-            isLight
-              ? "border-slate-200/80 text-slate-600"
-              : "border-white/10 text-white/70"
-          }`}
-        >
-          The home for gamers — discovery, deals, and your taste in one place.
-        </p>
+        {/* Account & settings — separated bottom area (border + background). */}
+        <div className={`relative border-t px-3 pb-3 pt-3 ${isLight ? "border-slate-200 bg-slate-50/80" : "border-white/10 bg-white/[0.02]"}`}>
+          <p className="px-3 pb-1 pt-1 text-[10px] font-black uppercase tracking-[0.28em] text-blue-900 dark:text-blue-300">
+            Account
+          </p>
+          {loggedIn
+            ? DRAWER_ACCOUNT_ITEMS.map((item) => (
+                <Link key={item.href} href={item.href} onClick={onClose} className={accountRow(isSiteNavItemActive(pathname, item))}>
+                  {item.label}
+                </Link>
+              ))
+            : null}
+
+          {/* Theme toggle — admin-only; everyone else is locked to dark. */}
+          {isAdmin ? (
+            <button type="button" onClick={toggleTheme} className={accountRow(false)} aria-label={isLight ? "Switch to dark mode" : "Switch to light mode"}>
+              <span className="flex flex-1 items-center gap-3">
+                {isLight ? (
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                ) : (
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" strokeLinecap="round" /></svg>
+                )}
+                Theme
+              </span>
+              <span className="text-xs font-medium opacity-70">{isLight ? "Light" : "Dark"}</span>
+            </button>
+          ) : null}
+
+          {loggedIn ? (
+            <button type="button" onClick={() => void handleLogout()} className={accountRow(false)}>Log out</button>
+          ) : (
+            <Link href="/login" onClick={onClose} className="mt-2 flex items-center justify-center rounded-xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white no-underline transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+              Log in / Sign up
+            </Link>
+          )}
+        </div>
       </aside>
     </div>,
     document.body

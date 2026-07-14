@@ -93,3 +93,34 @@ export async function tryConsumeRecommendDailySlot(params: {
 
   return { allowed, used, limit };
 }
+
+/**
+ * Read-only: how many recommend requests this user has spent today (UTC), or
+ * null if the counter is unreadable (missing service creds / query error). Does
+ * NOT consume a slot — surfaced by /api/companion/me so the desktop can show
+ * remaining quota. `recommend_daily_usage` is service-role only (RLS-hardened),
+ * so this must use the service client, never the caller's token-scoped one.
+ */
+export async function getRecommendDailyUsed(
+  userId: string
+): Promise<number | null> {
+  const supabase = getServiceClient();
+  if (!supabase) return null;
+
+  const today = new Date().toISOString().slice(0, 10); // UTC YYYY-MM-DD
+  const { data, error } = await supabase
+    .from("recommend_daily_usage")
+    .select("hit_count")
+    .eq("identity_key", `user:${userId}`)
+    .eq("route", "recommend")
+    .eq("count_date", today)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[recommend] getRecommendDailyUsed failed", error);
+    return null;
+  }
+
+  const hit = (data as { hit_count?: number } | null)?.hit_count;
+  return typeof hit === "number" ? hit : 0;
+}

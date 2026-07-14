@@ -1,4 +1,10 @@
 import {
+  COLLECTIONS_INDEX,
+  GAMES_LIKE_INDEX,
+  collectionPath,
+  isGamesLikeSlug,
+} from "@/lib/curated/collection-kinds";
+import {
   CURATED_COLLECTIONS,
   type CuratedCollection,
 } from "@/lib/curated/collections";
@@ -10,6 +16,13 @@ export type GameBreadcrumbItem = {
   label: string;
   href?: string;
 };
+
+/** Crumb pointing at the index that actually lists this collection. */
+function collectionCrumb(collection: CuratedCollection): GameBreadcrumbItem {
+  return isGamesLikeSlug(collection.slug)
+    ? { label: "Games like…", href: GAMES_LIKE_INDEX }
+    : { label: "Curated Collections", href: COLLECTIONS_INDEX };
+}
 
 export function titleCaseFromSlug(slug: string): string {
   return slug
@@ -73,11 +86,14 @@ export function buildGameBreadcrumbs(
   const containing = collections ?? findCuratedCollectionsForGame(name);
   const primary = containing[0];
 
+  // The two collection families are listed on different indexes — point the
+  // crumb at the one this collection actually appears on.
+
   if (primary) {
     return [
       { label: "Home", href: "/" },
-      { label: "Curated", href: "/curated" },
-      { label: primary.h1, href: `/curated/${primary.slug}` },
+      collectionCrumb(primary),
+      { label: primary.h1, href: collectionPath(primary.slug) },
       { label: name },
     ];
   }
@@ -123,14 +139,14 @@ export function buildGameDisplayBreadcrumbs(
     if (primary) {
       return [
         { label: "Home", href: "/" },
-        { label: "Curated", href: "/curated" },
-        { label: primary.h1, href: `/curated/${primary.slug}` },
+        collectionCrumb(primary),
+        { label: primary.h1, href: collectionPath(primary.slug) },
         { label: name },
       ];
     }
     return [
       { label: "Home", href: "/" },
-      { label: "Curated", href: "/curated" },
+      { label: "Curated Collections", href: COLLECTIONS_INDEX },
       { label: name },
     ];
   }

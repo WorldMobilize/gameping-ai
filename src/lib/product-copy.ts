@@ -3,19 +3,13 @@ import { PLAN_QUOTAS } from "@/lib/plan-quotas";
 /** Client-safe product/marketing copy (not server-only). */
 
 export const EARLY_ACCESS_NOTICE =
-  "GamePing AI is currently in early access. Recommendations and pricing coverage will improve over time.";
+  "GamePing AI is currently in early access. Discovery, deal coverage, and the Companion will keep improving over time.";
 
 export const PREMIUM_UNLOCK_LINE =
   "Premium unlocks saved runs, tracked games, Steam Library Sync, and your GamePing DNA—personalized Weekly Picks, Deals For You, and Monthly Recap.";
 
-/** Premium subscription marketing (EUR, matches Stripe). */
-export const PREMIUM_EARLY_ACCESS_PRICE_MONTHLY = "€2.99";
-export const PREMIUM_EARLY_ACCESS_PRICE_ANNUAL = "€19.99";
-export const PREMIUM_STANDARD_PRICE_MONTHLY_STRIKETHROUGH = "€4.99";
-export const PREMIUM_STANDARD_PRICE_ANNUAL_STRIKETHROUGH = "€34.99";
-
-/** Approximate annual savings vs monthly early-access price (for display only). */
-export const PREMIUM_ANNUAL_SAVE_LABEL = "Save vs monthly";
+/** Premium subscription prices now live in the shared source of truth:
+ *  see `@/lib/pricing` (PREMIUM_MONTHLY_PRICE / PREMIUM_YEARLY_PRICE). */
 
 export const SIGNUP_REDIRECT_RECOMMEND = "/login?redirect=%2Frecommend";
 

@@ -1,3 +1,4 @@
+import { GAMES_LIKE_COLLECTIONS } from "@/lib/curated/collections-games-like";
 import { steamHeaderImage } from "@/lib/curated/game-links";
 
 export type CuratedCollectionGame = {
@@ -12,10 +13,25 @@ export type CuratedCollection = {
   metaDescription: string;
   h1: string;
   intro: string;
+  /**
+   * The subject's name as RAWG knows it, for the rare "games like X" whose h1 uses
+   * the name people actually search for. The h1 keeps the keyword ("GTA V"); RAWG
+   * gets the name that resolves ("Grand Theft Auto V"). Only set this when the h1
+   * alone resolves to nothing or to the wrong entry — see `subjectTitleOf`.
+   */
+  subjectTitle?: string;
+  /**
+   * The day this list was published, as YYYY-MM-DD. Optional, and only ever set by
+   * hand when a list is actually added — /games-like builds its "Recently added"
+   * row from it, so a made-up date here would be a made-up claim on the page. The
+   * 17 lists we launched with carry no date, and the row simply stays empty until
+   * a dated list exists.
+   */
+  addedAt?: string;
   games: CuratedCollectionGame[];
 };
 
-export const CURATED_COLLECTIONS: CuratedCollection[] = [
+const BASE_COLLECTIONS: CuratedCollection[] = [
   {
     slug: "games-like-hades",
     seoTitle: "Games like Hades | Fast roguelike picks | GamePing AI",
@@ -45,7 +61,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
       },
       {
         title: "Cult of the Lamb",
-        image: steamHeaderImage(1354830),
+        image: steamHeaderImage(1313140),
         whyItFits:
           "Action runs paired with light management—another stylish take on repeat visits and growth.",
       },
@@ -115,7 +131,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
       },
       {
         title: "Coffee Talk",
-        image: steamHeaderImage(1398590),
+        image: steamHeaderImage(914800),
         whyItFits:
           "Late-night conversations and warm drinks—a literal cozy atmosphere.",
       },
@@ -516,7 +532,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
       },
       {
         title: "Shapez 2",
-        image: steamHeaderImage(2183900),
+        image: steamHeaderImage(2162800),
         whyItFits: "Pure shape pipelines—minimalist zen when you want puzzles without combat.",
       },
       {
@@ -583,7 +599,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
       },
       {
         title: "Vault of the Void",
-        image: steamHeaderImage(1144810),
+        image: steamHeaderImage(1135810),
         whyItFits: "Tactical grid positioning—deeper combat when you want more board geometry.",
       },
       {
@@ -609,7 +625,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     games: [
       {
         title: "Return of the Obra Dinn",
-        image: steamHeaderImage(504750),
+        image: steamHeaderImage(653530),
         whyItFits: "Deduction aboard a ghost ship—one memorable investigation with a distinct visual hook.",
       },
       {
@@ -629,7 +645,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
       },
       {
         title: "Stanley Parable: Ultra Deluxe",
-        image: steamHeaderImage(221830),
+        image: steamHeaderImage(1703340),
         whyItFits: "Meta narrative corridors—choices that comment on choice itself.",
       },
     ],
@@ -861,7 +877,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     games: [
       {
         title: "Coffee Talk",
-        image: steamHeaderImage(1398590),
+        image: steamHeaderImage(914800),
         whyItFits: "Late-night chats and warm drinks—literal rainy ambience.",
       },
       {
@@ -1248,6 +1264,15 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
   },
 ];
 
+/**
+ * The "games like X" collections live in their own file — that is the list that
+ * keeps growing, and this one is long enough already.
+ */
+export const CURATED_COLLECTIONS: CuratedCollection[] = [
+  ...BASE_COLLECTIONS,
+  ...GAMES_LIKE_COLLECTIONS,
+];
+
 export function getCollectionBySlug(slug: string): CuratedCollection | undefined {
   return CURATED_COLLECTIONS.find((c) => c.slug === slug);
 }
@@ -1313,4 +1338,26 @@ export function getRelatedCollections(slug: string, limit = 4): CuratedCollectio
   if (manual.length > 0) return manual;
 
   return CURATED_COLLECTIONS.filter((c) => c.slug !== slug).slice(0, limit);
+}
+
+/**
+ * Other "games like X" lists only — never the themed collections (cozy, best-of,
+ * by mood…). A visitor on /games-like/hades wants another game to branch from,
+ * not a mood playlist; the themed lists get their own surface on /collections.
+ *
+ * Manual relations come first when they are themselves "games like" lists, so an
+ * editorial pick still wins over catalog order.
+ */
+export function getRelatedGamesLike(slug: string, limit = 12): CuratedCollection[] {
+  const isGamesLike = (c: CuratedCollection) =>
+    c.slug.startsWith("games-like-") && c.slug !== slug;
+
+  const manual = (RELATED_COLLECTION_SLUGS[slug] ?? [])
+    .map((s) => getCollectionBySlug(s))
+    .filter((c): c is CuratedCollection => c !== undefined && isGamesLike(c));
+
+  const seen = new Set(manual.map((c) => c.slug));
+  const rest = CURATED_COLLECTIONS.filter((c) => isGamesLike(c) && !seen.has(c.slug));
+
+  return [...manual, ...rest].slice(0, limit);
 }

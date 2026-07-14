@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import GameBreadcrumbs from "@/components/GameBreadcrumbs";
 import GameScreenshotLightbox from "@/components/GameScreenshotLightbox";
 import RecommendContextFitCardView from "@/components/recommend/RecommendContextFitCardView";
+import { collectionPath } from "@/lib/curated/collection-kinds";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import type { GameDetailViewData } from "@/components/game/game-detail-view-types";
 
@@ -743,8 +744,8 @@ export default function GameDetailView({
                         <p
                           className={
                             isDarkPage
-                              ? "text-lg font-black leading-none text-yellow-300 sm:text-xl"
-                              : "text-sm font-black text-amber-600"
+                              ? "text-lg font-black leading-none text-white sm:text-xl"
+                              : "text-sm font-black text-slate-900"
                           }
                         >
                           {data.ratingDisplay}
@@ -815,7 +816,7 @@ export default function GameDetailView({
           <div className="grid gap-5 md:grid-cols-4">
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
               <p className="text-xs uppercase tracking-[0.3em] text-white/70">Rating</p>
-              <p className="mt-3 text-3xl font-black text-yellow-300">{data.ratingDisplay}</p>
+              <p className="mt-3 text-3xl font-black text-white">{data.ratingDisplay}</p>
             </div>
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
               <p className="text-xs uppercase tracking-[0.3em] text-white/70">Release</p>
@@ -833,7 +834,7 @@ export default function GameDetailView({
         ) : isLightPage ? (
           <div className="grid gap-5 md:grid-cols-4">
             {[
-              { label: "Rating", value: data.ratingDisplay, className: "text-amber-600" },
+              { label: "Rating", value: data.ratingDisplay, className: "text-slate-900" },
               { label: "Release", value: data.releaseDateDisplay, className: "text-slate-900" },
               { label: "Genres", value: data.genresLine, className: "text-[color:var(--page-accent-text)]" },
               {
@@ -861,7 +862,7 @@ export default function GameDetailView({
         ) : (
           <>
             {[
-              { label: "Rating", value: data.ratingDisplay, className: "text-amber-600" },
+              { label: "Rating", value: data.ratingDisplay, className: "text-slate-900" },
               { label: "Release", value: data.releaseDateDisplay, className: "text-slate-900" },
               { label: "Genres", value: data.genresLine, className: "text-[color:var(--page-accent-text)]" },
               {
@@ -1506,7 +1507,7 @@ export default function GameDetailView({
               <p className={isDarkPage ? "mt-5 text-sm text-white/70" : "mt-5 text-sm text-slate-600"}>
                 Featured in{" "}
                 <Link
-                  href={`/curated/${data.curatedCollection.slug}`}
+                  href={collectionPath(data.curatedCollection.slug)}
                   className={
                     isDarkPage
                       ? "font-bold text-[color:var(--page-accent-strong)] underline-offset-4 hover:underline"
@@ -1562,14 +1563,14 @@ export default function GameDetailView({
               </li>
               <li>
                 <Link
-                  href="/curated"
+                  href="/collections"
                   className={
                     isDarkPage
                       ? "text-[color:var(--page-accent-strong)] underline-offset-4 transition hover:text-[color:var(--page-accent-strong)] hover:underline"
                       : "font-semibold text-[color:var(--page-accent-text)] underline-offset-4 transition hover:text-[color:var(--page-accent-text)] hover:underline"
                   }
                 >
-                  Explore curated lists
+                  Explore curated collections
                 </Link>
               </li>
               <li>

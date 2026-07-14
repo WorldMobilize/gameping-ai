@@ -29,32 +29,32 @@ const CREATOR_FACTIONS = [
   {
     creator: "NovaRex",
     faction: "Lumen Vanguard",
-    hex: "#22d3ee",
+    hex: "#3b82f6",
     momentum: 57,
-    campaign: "Battle for Craterline",
+    campaign: "Battle for Bastion Point",
   },
   {
     creator: "GrimmVolt",
     faction: "Storm Pact",
     hex: "#8b5cf6",
     momentum: 43,
-    campaign: "Battle for Craterline",
+    campaign: "Battle for Bastion Point",
   },
   {
     creator: "MossQueen",
     faction: "Verdant Order",
     hex: "#34d399",
     momentum: 61,
-    campaign: "Scouting Vinegate",
+    campaign: "Scouting Corvus Pass",
   },
 ] as const;
 
 const CHAT_FEED = [
-  { text: "NovaRex community check-in", delta: "+120 rally points", hex: "#22d3ee" },
-  { text: "Craterline is now contested", delta: "Region contested", hex: "#f59e0b" },
+  { text: "NovaRex community check-in", delta: "+120 rally points", hex: "#3b82f6" },
+  { text: "Bastion Point is now contested", delta: "Region contested", hex: "#f59e0b" },
   { text: "GrimmVolt raid landed", delta: "Creator raid boosted faction +300", hex: "#8b5cf6" },
-  { text: "Hype train ×3 on Lumen Vanguard", delta: "Momentum surge", hex: "#22d3ee" },
-  { text: "MossQueen squad scouts the south", delta: "Vinegate scouted", hex: "#34d399" },
+  { text: "Hype train ×3 on Lumen Vanguard", delta: "Momentum surge", hex: "#3b82f6" },
+  { text: "MossQueen squad scouts the south", delta: "Corvus Pass scouted", hex: "#34d399" },
 ] as const;
 
 const VIEWER_ACTIONS = [
@@ -65,8 +65,8 @@ const VIEWER_ACTIONS = [
 ] as const;
 
 const BATTLE = {
-  region: "Craterline",
-  macro: "Hollowmark",
+  region: "Bastion Point",
+  macro: "Greyline Basin",
   a: CREATOR_FACTIONS[0],
   b: CREATOR_FACTIONS[1],
   aPct: 57,
@@ -142,8 +142,8 @@ export default function CommunityWarsView() {
               <dl className="mt-5 space-y-3 text-sm">
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-slate-400">Faction</dt>
-                  <dd className="inline-flex items-center gap-2 font-bold text-cyan-300">
-                    <span className="h-2 w-2 rounded-full bg-cyan-400" aria-hidden />
+                  <dd className="inline-flex items-center gap-2 font-bold text-blue-300">
+                    <span className="h-2 w-2 rounded-full bg-blue-400" aria-hidden />
                     Lumen Vanguard
                   </dd>
                 </div>
@@ -159,7 +159,7 @@ export default function CommunityWarsView() {
                 </div>
                 <div className="flex items-center justify-between gap-3">
                   <dt className="text-slate-400">Momentum</dt>
-                  <dd className="font-black tabular-nums text-cyan-300">{BATTLE.aPct}%</dd>
+                  <dd className="font-black tabular-nums text-blue-300">{BATTLE.aPct}%</dd>
                 </div>
               </dl>
             </div>
@@ -298,7 +298,7 @@ export default function CommunityWarsView() {
             <span>{100 - BATTLE.aPct}%</span>
           </div>
           <div className="mt-6">
-            <Link href="/worldmobilize?region=craterline" className={APP_PRIMARY_CTA_ACCENT_SM}>
+            <Link href="/worldmobilize?region=bastion-point" className={APP_PRIMARY_CTA_ACCENT_SM}>
               See {BATTLE.region} on the map
             </Link>
           </div>

@@ -8,6 +8,7 @@ import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsel
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
 import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
 import PremiumRotationAdminLine from "@/components/discovery/PremiumRotationAdminLine";
+import PremiumSignalRefresh from "@/components/discovery/PremiumSignalRefresh";
 import PremiumUpdateStatus from "@/components/discovery/PremiumUpdateStatus";
 import {
   DEALS_FOR_YOU_DEMO_DATA,
@@ -98,7 +99,7 @@ export default async function DealsForYouPage({
             </p>
             {state === "locked" ? (
               <span className="inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--page-accent-strong)]">
-                Premium
+                Demo
               </span>
             ) : null}
           </div>
@@ -119,6 +120,10 @@ export default async function DealsForYouPage({
           ) : null}
           {isGenerated && access.viewer === "premium" ? (
             <PremiumUpdateStatus type="deals_for_you" />
+          ) : null}
+          {/* Signals moved since these deals were built → regenerate in background. */}
+          {isGenerated && meta?.signalsChanged ? (
+            <PremiumSignalRefresh type="deals_for_you" noun="deals" />
           ) : null}
 
           {state === "locked" ? (

@@ -42,7 +42,7 @@ export default function LegalHubPage() {
         <div className="mt-12 grid gap-5 sm:grid-cols-2">
           {LINKS.map((item) => (
             <Link key={item.href} href={item.href} className={`group block ${APP_CARD_INTERACTIVE_LG}`}>
-              <p className={`text-sm font-bold transition group-hover:text-cyan-800 dark:group-hover:text-cyan-400 ${APP_ACCENT}`}>
+              <p className={`text-sm font-bold transition group-hover:text-blue-800 dark:group-hover:text-blue-400 ${APP_ACCENT}`}>
                 {item.title}
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-700 dark:text-slate-300">{item.desc}</p>

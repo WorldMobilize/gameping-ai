@@ -41,7 +41,7 @@ export default function HowItWorksDetailView({
 
   // Floating "HUD" text over the fixed dark cinematic room stays light in BOTH
   // themes (the room never brightens); only the glass cards adapt to theme.
-  const eyebrow = "text-xs font-semibold uppercase tracking-[0.35em] text-cyan-400";
+  const eyebrow = "text-xs font-semibold uppercase tracking-[0.35em] text-blue-400";
   const onBgTitle = `${HOME_SECTION_TITLE} text-slate-50`;
   const onBgLead = "mt-5 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl";
   const sectionTitle = `${HOME_DISPLAY_FONT} text-2xl font-extrabold text-slate-50 sm:text-[1.75rem]`;
@@ -52,7 +52,7 @@ export default function HowItWorksDetailView({
     isDark ? "gp-home-card-dark" : "gp-home-card-light"
   }`;
   const cardEyebrow = `text-xs font-semibold uppercase tracking-[0.3em] ${
-    isDark ? "text-cyan-300" : "text-cyan-700"
+    isDark ? "text-blue-300" : "text-blue-700"
   }`;
   const cardTitle = `${HOME_DISPLAY_FONT} text-lg font-bold ${
     isDark ? "text-slate-50" : "text-slate-900"
@@ -67,7 +67,7 @@ export default function HowItWorksDetailView({
   // Premium bullet: a short cyan accent dash, not an icon/circle.
   const Bullet = ({ children }: { children: React.ReactNode }) => (
     <li className="flex gap-3">
-      <span aria-hidden className="mt-[0.7em] h-px w-3.5 shrink-0 bg-cyan-400/70" />
+      <span aria-hidden className="mt-[0.7em] h-px w-3.5 shrink-0 bg-blue-400/70" />
       <span className={cardBody}>{children}</span>
     </li>
   );
@@ -77,7 +77,7 @@ export default function HowItWorksDetailView({
       <div aria-hidden className="gp-landing-bg" />
 
       <div className="relative z-10 flex min-h-screen flex-col">
-        <Navbar ctaLabel="Try GamePing" />
+        <Navbar />
 
         <main className="flex-1">
           <section className="relative z-10 px-6 pt-16 pb-10 md:pt-20">
@@ -86,7 +86,7 @@ export default function HowItWorksDetailView({
                 <PageBreadcrumbs items={breadcrumbs} theme="dark" className="mb-6 flex max-w-3xl flex-wrap items-center gap-x-2 gap-y-2 text-sm font-semibold text-white/65" />
               ) : null}
               {page.kicker ? (
-                <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
+                <span className="inline-flex rounded-full border border-blue-400/30 bg-blue-950/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-300">
                   {page.kicker}
                 </span>
               ) : (
@@ -178,8 +178,8 @@ export default function HowItWorksDetailView({
                 key={ex}
                 className={`rounded-2xl border px-4 py-3 ${
                   isDark
-                    ? "border-cyan-400/20 bg-cyan-950/20"
-                    : "border-cyan-300/40 bg-cyan-50/60"
+                    ? "border-blue-400/20 bg-blue-950/20"
+                    : "border-blue-300/40 bg-blue-50/60"
                 }`}
               >
                 <span className={quote}>“{ex}”</span>
@@ -217,7 +217,7 @@ export default function HowItWorksDetailView({
 
           <article
             className={`${card} ${
-              isDark ? "!border-cyan-400/40" : "!border-cyan-400/50"
+              isDark ? "!border-blue-400/40" : "!border-blue-400/50"
             }`}
           >
             <p className={cardEyebrow}>GamePing</p>
@@ -338,7 +338,7 @@ export default function HowItWorksDetailView({
           </article>
 
           <article className={card}>
-            <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-cyan-300">
+            <span className="inline-flex rounded-full border border-blue-400/30 bg-blue-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-blue-300">
               Powered by your taste
             </span>
             <h2 className={`mt-3 ${cardTitle}`}>Built around you</h2>
@@ -437,9 +437,9 @@ export default function HowItWorksDetailView({
         </article>
 
         <article
-          className={`${card} ${isDark ? "!border-cyan-400/40" : "!border-cyan-400/50"}`}
+          className={`${card} ${isDark ? "!border-blue-400/40" : "!border-blue-400/50"}`}
         >
-          <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-cyan-300">
+          <span className="inline-flex rounded-full border border-blue-400/30 bg-blue-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-blue-300">
             Powered by your taste
           </span>
           <h2 className={`mt-3 ${cardTitle}`}>What it powers today</h2>
@@ -521,9 +521,9 @@ export default function HowItWorksDetailView({
           </article>
 
           <article
-            className={`${card} ${isDark ? "!border-cyan-400/40" : "!border-cyan-400/50"}`}
+            className={`${card} ${isDark ? "!border-blue-400/40" : "!border-blue-400/50"}`}
           >
-            <span className="inline-flex rounded-full border border-cyan-400/30 bg-cyan-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-cyan-300">
+            <span className="inline-flex rounded-full border border-blue-400/30 bg-blue-950/40 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-blue-300">
               Powered by your taste
             </span>
             <h2 className={`mt-3 ${cardTitle}`}>What it sharpens</h2>

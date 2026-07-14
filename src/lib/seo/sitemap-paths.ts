@@ -1,16 +1,22 @@
+import { collectionPath } from "@/lib/curated/collection-kinds";
 import { CURATED_COLLECTIONS } from "@/lib/curated/collections";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import { DIRECTORY_GAMES } from "@/lib/curated/home-picks";
 import { getHowItWorksSlugs } from "@/lib/how-it-works/pages";
+import { getDiscoveryHubPaths } from "@/lib/seo/discovery-hubs";
 
 /** Static public routes (no query strings). */
 export const STATIC_PUBLIC_PATHS = [
   "/",
+  "/discover",
+  "/collections",
+  "/worldmobilize/about",
+  "/companion/about",
   "/recommend",
   "/games",
   "/hidden-gems",
   "/games-of-the-week",
-  "/curated",
+  "/games-like",
   "/how-it-works",
   "/upgrade",
   "/about",
@@ -25,7 +31,7 @@ export const STATIC_PUBLIC_PATHS = [
 ] as const;
 
 export function getCuratedCollectionPaths(): string[] {
-  return CURATED_COLLECTIONS.map((c) => `/curated/${c.slug}`);
+  return CURATED_COLLECTIONS.map((c) => collectionPath(c.slug));
 }
 
 /** Public feature explanation pages under /how-it-works. */
@@ -59,6 +65,7 @@ export function getAllSitemapPaths(): string[] {
       ...STATIC_PUBLIC_PATHS,
       ...getHowItWorksPaths(),
       ...getCuratedCollectionPaths(),
+      ...getDiscoveryHubPaths(),
       ...getIndexableGamePaths(),
     ]),
   ];

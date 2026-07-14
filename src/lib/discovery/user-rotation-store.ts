@@ -5,6 +5,7 @@ import {
   isoWeekPeriodKey,
   monthlyPeriodKey,
 } from "@/lib/discovery/rotation-store";
+import { computeTasteSignature } from "@/lib/discovery/taste-signature";
 import type {
   DealCardData,
   WeeklyPickCardData,
@@ -50,6 +51,13 @@ export type PremiumSourceSummary = {
   itemCount: number;
   aiUsed: boolean;
   note?: string;
+  /**
+   * Fingerprint of the taste signals this rotation was generated from (Steam
+   * import + saved searches + tracked games). Absent on rows written before
+   * signatures existed. Lives in the existing source_summary jsonb, so no schema
+   * change is needed.
+   */
+  tasteSignature?: string | null;
 };
 
 /** Monthly-recap "core" payload stored in featured_item. */
@@ -99,6 +107,12 @@ export type PremiumRotationMeta = {
   sourceSummary: PremiumSourceSummary | null;
   /** True when the published rotation isn't for the current period (fallback). */
   stale: boolean;
+  /**
+   * True when the user's taste signals changed after this rotation was built
+   * (e.g. they imported Steam). The content is still shown — it is real, just
+   * built from an older profile — while a background refresh regenerates it.
+   */
+  signalsChanged: boolean;
 };
 
 type Row = {
@@ -243,7 +257,13 @@ export async function saveUserRotation(
   userId: string,
   type: PremiumRotationType,
   periodKey: string,
-  data: PremiumRotationData
+  data: PremiumRotationData,
+  /**
+   * Fingerprint of the taste signals this rotation was built from. Pass the one
+   * captured BEFORE generation, so a signal that lands mid-generation is not
+   * mistakenly recorded as already included.
+   */
+  tasteSignature?: string | null
 ): Promise<{ ok: boolean; error?: string }> {
   const supabase = getServiceSupabase();
   if (!supabase) return { ok: false, error: "supabase_unconfigured" };
@@ -256,7 +276,10 @@ export async function saveUserRotation(
       items: data.items,
       featured_item: data.featuredItem,
       ai_summary: data.aiSummary,
-      source_summary: data.sourceSummary,
+      source_summary: {
+        ...data.sourceSummary,
+        tasteSignature: tasteSignature ?? null,
+      },
       error: null,
       generated_at: new Date().toISOString(),
       published_at: null,
@@ -320,7 +343,11 @@ function hasContent(r: UserPremiumRotation | null): r is UserPremiumRotation {
   return r.items.length > 0 || Boolean(r.featuredItem);
 }
 
-function toMeta(r: UserPremiumRotation, stale: boolean): PremiumRotationMeta {
+function toMeta(
+  r: UserPremiumRotation,
+  stale: boolean,
+  signalsChanged: boolean
+): PremiumRotationMeta {
   return {
     periodKey: r.periodKey,
     status: r.status,
@@ -328,7 +355,29 @@ function toMeta(r: UserPremiumRotation, stale: boolean): PremiumRotationMeta {
     publishedAt: r.publishedAt,
     sourceSummary: r.sourceSummary,
     stale,
+    signalsChanged,
   };
+}
+
+/**
+ * Did the user's taste signals move since this rotation was generated?
+ *
+ * `currentSignature === null` means we could not read the signals at all. Return
+ * false: an unverifiable signature must never trigger a regeneration, or a
+ * flaky read would bill an OpenAI call on every page view.
+ *
+ * A rotation with no stored signature predates this mechanism. We treat it as
+ * changed so it is rebuilt once against the real profile — after which it
+ * carries a signature and settles.
+ */
+function signalsChangedSince(
+  r: UserPremiumRotation,
+  currentSignature: string | null
+): boolean {
+  if (currentSignature === null) return false;
+  const stored = r.sourceSummary?.tasteSignature;
+  if (!stored) return true;
+  return stored !== currentSignature;
 }
 
 export async function resolveUserRotation(
@@ -337,14 +386,28 @@ export async function resolveUserRotation(
 ): Promise<{ rotation: UserPremiumRotation | null; meta: PremiumRotationMeta | null }> {
   const period = currentPremiumPeriodKey(type);
 
-  const current = await getPublishedUserRotation(userId, type, period);
+  const [current, signature] = await Promise.all([
+    getPublishedUserRotation(userId, type, period),
+    computeTasteSignature(userId),
+  ]);
+
   if (hasContent(current)) {
-    return { rotation: current, meta: toMeta(current, false) };
+    return {
+      rotation: current,
+      meta: toMeta(current, false, signalsChangedSince(current, signature)),
+    };
   }
 
   const latest = await getLatestUserRotation(userId, type);
   if (hasContent(latest)) {
-    return { rotation: latest, meta: toMeta(latest, latest.periodKey !== period) };
+    return {
+      rotation: latest,
+      meta: toMeta(
+        latest,
+        latest.periodKey !== period,
+        signalsChangedSince(latest, signature)
+      ),
+    };
   }
 
   return { rotation: null, meta: null };

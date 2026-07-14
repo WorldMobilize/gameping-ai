@@ -9,11 +9,9 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import { AuthShell, AUTH_INPUT, AUTH_LABEL } from "@/components/auth/auth-ui";
 import {
-  APP_AUTH_CARD,
   APP_INLINE_LINK_ACCENT,
-  APP_INPUT,
   APP_PRIMARY_CTA_ACCENT_SM,
 } from "@/components/app/app-styles";
 import { useToast } from "@/components/ToastProvider";
@@ -112,114 +110,93 @@ function LoginForm() {
   };
 
   return (
-    <AppPageShell hideAmbient>
-      {/* Same cinematic background + account (silver) accent as /dashboard and /settings/account. */}
-      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div aria-hidden className="gp-account-bg" />
-        <AppSection
-          maxWidth="max-w-md"
-          className="flex flex-1 items-center justify-center py-12"
+    <AuthShell
+      title="Welcome back"
+      subtitle="Log in to your recommendations, saved searches, and deal alerts."
+      footer={
+        <>
+          New to GamePing?{" "}
+          <Link href="/signup" className={APP_INLINE_LINK_ACCENT}>
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      {emailVerified ? (
+        <p
+          className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+          role="status"
         >
-          <div className={APP_AUTH_CARD}>
-            <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
-              Welcome back to{" "}
-              <span className="text-[color:var(--page-accent-text)]">
-                GamePing AI
-              </span>
-            </h1>
+          Email verified. You can now log in.
+        </p>
+      ) : null}
 
-            <p className="mt-3 text-center text-sm text-slate-600 dark:text-slate-300">
-              Log in to your game preferences and alerts.
-            </p>
+      <div className="flex flex-col gap-4">
+        <div>
+          <label htmlFor="login-email" className={AUTH_LABEL}>
+            Email
+          </label>
+          <input
+            id="login-email"
+            className={AUTH_INPUT}
+            placeholder="you@example.com"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
 
-            {emailVerified ? (
-              <p
-                className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800"
-                role="status"
-              >
-                Email verified. You can now log in.
-              </p>
-            ) : null}
-
-            <input
-              className={`mt-8 ${APP_INPUT}`}
-              placeholder="Email"
-              aria-label="Email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            <input
-              type="password"
-              autoComplete="current-password"
-              className={`mt-4 ${APP_INPUT}`}
-              placeholder="Password"
-              aria-label="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-
-            <p className="mt-2 text-right">
-              <Link
-                href="/reset-password"
-                className={`text-xs ${APP_INLINE_LINK_ACCENT}`}
-              >
-                Forgot password?
-              </Link>
-            </p>
-
-            <button
-              type="button"
-              onClick={signIn}
-              disabled={submitting}
-              className={`mt-6 w-full ${APP_PRIMARY_CTA_ACCENT_SM} disabled:cursor-not-allowed disabled:opacity-60`}
-            >
-              {submitting ? "Signing in…" : "Log in"}
-            </button>
-
-            <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
-              New to GamePing?{" "}
-              <Link href="/signup" className={APP_INLINE_LINK_ACCENT}>
-                Create an account
-              </Link>
-            </p>
-
-            <p className="mt-6 text-center text-xs text-slate-600 dark:text-slate-400">
-              By continuing you agree to our{" "}
-              <Link href="/terms" className={APP_INLINE_LINK_ACCENT}>
-                Terms
-              </Link>
-              ,{" "}
-              <Link href="/privacy" className={APP_INLINE_LINK_ACCENT}>
-                Privacy Policy
-              </Link>
-              ,{" "}
-              <Link href="/cookies" className={APP_INLINE_LINK_ACCENT}>
-                Cookie Policy
-              </Link>
-              , and{" "}
-              <Link href="/disclaimer" className={APP_INLINE_LINK_ACCENT}>
-                Disclaimer
-              </Link>
-              .
-            </p>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <label htmlFor="login-password" className={`${AUTH_LABEL} mb-0`}>
+              Password
+            </label>
+            <Link href="/reset-password" className={`text-xs ${APP_INLINE_LINK_ACCENT}`}>
+              Forgot?
+            </Link>
           </div>
-        </AppSection>
+          <input
+            id="login-password"
+            type="password"
+            autoComplete="current-password"
+            className={AUTH_INPUT}
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
       </div>
-    </AppPageShell>
+
+      <button
+        type="button"
+        onClick={signIn}
+        disabled={submitting}
+        className={`mt-6 w-full ${APP_PRIMARY_CTA_ACCENT_SM} disabled:cursor-not-allowed disabled:opacity-60`}
+      >
+        {submitting ? "Signing in…" : "Log in"}
+      </button>
+
+      <p className="mt-6 text-center text-xs leading-5 text-slate-500 dark:text-slate-400">
+        By continuing you agree to our{" "}
+        <Link href="/terms" className={APP_INLINE_LINK_ACCENT}>Terms</Link>,{" "}
+        <Link href="/privacy" className={APP_INLINE_LINK_ACCENT}>Privacy Policy</Link>,{" "}
+        <Link href="/cookies" className={APP_INLINE_LINK_ACCENT}>Cookie Policy</Link>, and{" "}
+        <Link href="/disclaimer" className={APP_INLINE_LINK_ACCENT}>Disclaimer</Link>.
+      </p>
+    </AuthShell>
   );
 }
 
 function LoginFallback() {
-  // Navbar + account background only — no loading card/text flash.
   return (
-    <AppPageShell hideAmbient>
-      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div aria-hidden className="gp-account-bg" />
+    <AuthShell title="Welcome back" subtitle="Log in to your GamePing account.">
+      <div className="flex flex-col gap-4">
+        <div className="h-[70px] rounded-xl bg-slate-100 dark:bg-white/[0.04]" />
+        <div className="h-[70px] rounded-xl bg-slate-100 dark:bg-white/[0.04]" />
+        <div className="mt-2 h-[46px] rounded-xl bg-slate-100 dark:bg-white/[0.04]" />
       </div>
-    </AppPageShell>
+    </AuthShell>
   );
 }
 

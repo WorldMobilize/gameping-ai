@@ -45,7 +45,7 @@ export default function RecommendContextFitCardView({
   const tierLabel = recommendMatchTierLabel(context.matchTier);
 
   const badgeTier = isDemo ? "rounded-full px-2.5 py-0.5 text-xs font-semibold" : "rounded-full px-3 py-1 text-xs font-semibold";
-  const tierBest = isLight ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80" : "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/25";
+  const tierBest = isLight ? "bg-blue-50 text-blue-800 ring-1 ring-blue-200/80" : "bg-blue-500/15 text-blue-200 ring-1 ring-blue-500/25";
   const tierAlt = isLight ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200/80" : "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/25";
   const tierPartial = isLight ? "bg-orange-50 text-orange-800 ring-1 ring-orange-200/80" : "bg-orange-500/15 text-orange-200 ring-1 ring-orange-500/25";
   const badgeMatch = isLight

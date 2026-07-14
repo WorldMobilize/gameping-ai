@@ -65,9 +65,9 @@ export default function AboutPage() {
             <p className={`text-xs font-semibold uppercase tracking-[0.35em] ${APP_ACCENT}`}>
               Alerts
             </p>
-            <h2 className={`mt-3 ${APP_PROSE_HEADING}`}>Future deal alerts</h2>
+            <h2 className={`mt-3 ${APP_PROSE_HEADING}`}>Deal alerts</h2>
             <p className={`mt-3 ${APP_BODY_SM}`}>
-              The roadmap includes periodic price checks and notifications when tracked games hit
+              GamePing checks prices periodically and notifies you when a tracked game hits
               your budget.
             </p>
           </div>

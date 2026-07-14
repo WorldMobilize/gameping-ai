@@ -27,9 +27,8 @@ export default function RecommendSearchCta({
 
   const body = isLight ? "mt-1 text-sm text-slate-600" : "mt-1 text-sm text-white/70";
 
-  const button = isLight
-    ? "shrink-0 rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-10 py-4 text-sm font-bold text-white shadow-sm shadow-cyan-600/20 transition disabled:opacity-60"
-    : "shrink-0 rounded-full bg-cyan-400 px-10 py-4 text-sm font-bold text-black transition disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60";
+  const button =
+    "gp-home-cta shrink-0 rounded-full px-10 py-4 text-sm font-bold text-white disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
     <div className={shell}>

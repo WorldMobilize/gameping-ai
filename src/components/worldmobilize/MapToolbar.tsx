@@ -11,7 +11,7 @@ export default function MapToolbar({
   onReset: () => void;
 }) {
   const btn =
-    "flex h-10 w-10 items-center justify-center rounded-xl border border-white/12 bg-[#0a0d1e]/85 text-white/80 backdrop-blur-md transition hover:border-cyan-400/50 hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60";
+    "flex h-10 w-10 items-center justify-center rounded-xl border border-white/12 bg-[#0a0d1e]/85 text-white/80 backdrop-blur-md transition hover:border-blue-400/50 hover:text-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60";
 
   return (
     <div className="absolute right-3 top-3 z-20 flex flex-col gap-1.5">

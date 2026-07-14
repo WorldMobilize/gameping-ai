@@ -42,8 +42,8 @@ export function resolveFeedbackContextArea(pageUrl: string | null | undefined): 
   if (path.startsWith("/game/")) return "game_page";
   if (path === "/dashboard") return "dashboard";
   if (path === "/games") return "games_directory";
-  if (path === "/curated") return "curated";
-  if (path.startsWith("/curated/")) return "curated";
+  if (path === "/games-like" || path === "/collections") return "curated";
+  if (path.startsWith("/games-like/") || path.startsWith("/collections/")) return "curated";
   if (path === "/upgrade") return "upgrade";
   if (path === "/login") return "login";
   if (path === "/settings" || path.startsWith("/settings/")) return "settings";

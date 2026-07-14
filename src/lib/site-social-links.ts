@@ -4,8 +4,13 @@ export type SiteSocialLink = {
   ariaLabel: string;
 };
 
-/** Official GamePing AI social profiles. Add Discord here + SocialPlatformIcon when live. */
+/** Official GamePing AI social + community profiles. */
 export const SITE_SOCIAL_LINKS: SiteSocialLink[] = [
+  {
+    label: "Discord",
+    href: "https://discord.gg/C4vqm9ARQY",
+    ariaLabel: "Join the GamePing AI community on Discord",
+  },
   {
     label: "Instagram",
     href: "https://www.instagram.com/gamepingai",

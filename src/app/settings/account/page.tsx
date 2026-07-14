@@ -52,6 +52,11 @@ export default function AccountSettingsPage() {
   const [password, setPassword] = useState("");
   const [confirmEmail, setConfirmEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
   const deleteTriggerRef = useRef<HTMLButtonElement>(null);
 
   // Return focus to the trigger button when the delete-account modal closes (a11y).
@@ -74,6 +79,8 @@ export default function AccountSettingsPage() {
       }
       if (cancelled) return;
       setUserEmail(user.email ?? null);
+      const meta = user.user_metadata as Record<string, unknown> | undefined;
+      setDisplayName((meta?.display_name ?? meta?.full_name ?? meta?.name ?? "") as string);
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -114,6 +121,46 @@ export default function AccountSettingsPage() {
       cancelled = true;
     };
   }, [router]);
+
+  async function handleSaveName() {
+    setSavingName(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { display_name: displayName.trim() },
+      });
+      if (error) {
+        showToast({ variant: "error", message: error.message || "Could not update name." });
+        return;
+      }
+      showToast({ variant: "success", message: "Display name updated." });
+    } finally {
+      setSavingName(false);
+    }
+  }
+
+  async function handleChangePassword() {
+    if (newPassword.length < 8) {
+      showToast({ variant: "error", message: "Password must be at least 8 characters." });
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      showToast({ variant: "error", message: "Passwords do not match." });
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        showToast({ variant: "error", message: error.message || "Could not update password." });
+        return;
+      }
+      setNewPassword("");
+      setConfirmNewPassword("");
+      showToast({ variant: "success", message: "Password updated." });
+    } finally {
+      setSavingPassword(false);
+    }
+  }
 
   async function handleDeleteAccount() {
     setSubmitting(true);
@@ -212,6 +259,79 @@ export default function AccountSettingsPage() {
             </dl>
           </section>
 
+          <section className={`${APP_CARD} p-8`}>
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
+              Profile
+            </p>
+            <label htmlFor="display-name" className="mt-5 block text-sm text-slate-600 dark:text-slate-300">
+              Display name
+            </label>
+            <input
+              id="display-name"
+              className={`${APP_INPUT} mt-2`}
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="How you appear on GamePing"
+              autoComplete="name"
+              maxLength={60}
+            />
+            <div className="mt-4">
+              <button
+                type="button"
+                disabled={savingName}
+                onClick={() => void handleSaveName()}
+                className={APP_PRIMARY_CTA_SM}
+              >
+                {savingName ? "Saving…" : "Save name"}
+              </button>
+            </div>
+          </section>
+
+          {hasEmailPassword ? (
+            <section className={`${APP_CARD} p-8`}>
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
+                Password
+              </p>
+              <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                Set a new password for your account.
+              </p>
+              <label htmlFor="new-password" className="mt-5 block text-sm text-slate-600 dark:text-slate-300">
+                New password
+              </label>
+              <input
+                id="new-password"
+                type="password"
+                className={`${APP_INPUT} mt-2`}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+              />
+              <label htmlFor="confirm-new-password" className="mt-4 block text-sm text-slate-600 dark:text-slate-300">
+                Confirm new password
+              </label>
+              <input
+                id="confirm-new-password"
+                type="password"
+                className={`${APP_INPUT} mt-2`}
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                autoComplete="new-password"
+                placeholder="Re-enter new password"
+              />
+              <div className="mt-4">
+                <button
+                  type="button"
+                  disabled={savingPassword}
+                  onClick={() => void handleChangePassword()}
+                  className={APP_PRIMARY_CTA_SM}
+                >
+                  {savingPassword ? "Saving…" : "Update password"}
+                </button>
+              </div>
+            </section>
+          ) : null}
+
           <section className="rounded-3xl border border-[color:var(--page-accent-border)] bg-white p-8 shadow-sm dark:bg-slate-900/70">
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
               Plan
@@ -257,9 +377,6 @@ export default function AccountSettingsPage() {
                 dashboard
               </Link>
               .
-            </p>
-            <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">
-              Global notification settings (email frequency, digest mode) are coming soon.
             </p>
           </section>
 

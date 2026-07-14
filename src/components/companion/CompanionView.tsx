@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AppSection } from "@/components/app/AppPageShell";
 import {
-  APP_CARD,
   APP_CARD_LG,
   APP_INPUT,
   APP_MUTED,
@@ -29,25 +28,6 @@ const EXAMPLE_QUESTIONS = [
   "Where do I find this weapon?",
   "Best beginner build?",
   "What secrets did I miss here?",
-];
-
-const FUTURE_CARDS = [
-  {
-    title: "Screenshot understanding",
-    blurb: "Drop in a screenshot and the companion reads your screen to answer in context.",
-    icon: "🖼️",
-  },
-  {
-    title: "Overlay mode",
-    blurb: "Summon the companion over your game with a hotkey — no alt-tabbing.",
-    icon: "⌨️",
-    badge: "ALT+G",
-  },
-  {
-    title: "Video clip analysis",
-    blurb: "Share a short clip and get help based on exactly what happened.",
-    icon: "🎬",
-  },
 ];
 
 export default function CompanionView() {
@@ -151,14 +131,9 @@ export default function CompanionView() {
   return (
     <AppSection maxWidth="max-w-3xl">
       {/* Hero */}
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
-          Experimental · Admin only
-        </p>
-        <span className="inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]">
-          Alpha
-        </span>
-      </div>
+      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
+        In-browser tester
+      </p>
       <h1 className="mt-4 max-w-2xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">
         GamePing <span className="text-[color:var(--page-accent-strong)]">Companion</span>
       </h1>
@@ -292,36 +267,6 @@ export default function CompanionView() {
       {/* Answer */}
       {answer ? <AnswerCard answer={answer} /> : null}
 
-      {/* Future placeholders */}
-      <div className="mt-12">
-        <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-300">
-          Coming later
-        </h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          {FUTURE_CARDS.map((c) => (
-            <div
-              key={c.title}
-              aria-disabled="true"
-              className={`${APP_CARD} pointer-events-none select-none opacity-60`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-2xl" aria-hidden>
-                  {c.icon}
-                </span>
-                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                  {c.badge ?? "Soon"}
-                </span>
-              </div>
-              <h3 className="mt-3 text-base font-bold text-slate-900 dark:text-white">
-                {c.title}
-              </h3>
-              <p className="mt-1.5 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                {c.blurb}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
     </AppSection>
   );
 }

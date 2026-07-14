@@ -1,10 +1,9 @@
-/** WorldMobilize — shared types (Phase 1: map foundation, no game logic). */
+/** WorldMobilize — shared types (holographic command map phase). */
 
 /**
- * Region lifecycle. Phase 1 only ever uses "available" — the rest are
- * declared now so data, panel UI, and map styling have stable hooks when
- * wars/ownership arrive. "Selected" is deliberately NOT a status: selection
- * is UI state, not world state.
+ * Region lifecycle. Only "available" is used today — the rest are declared
+ * so data, panel UI, and map styling have stable hooks when wars/ownership
+ * arrive. "Selected" is deliberately NOT a status: selection is UI state.
  */
 export type RegionStatus =
   | "available"
@@ -15,31 +14,31 @@ export type RegionStatus =
   | "locked"
   | "conquered";
 
+/** Macro-zones of the alternate world ("sectors" in the command-map UI). */
 export type MacroAreaId =
-  | "palegrave"
-  | "thunder-steppe"
-  | "lumen-coast"
-  | "hollowmark"
-  | "vitrine-expanse"
-  | "cinderveil"
-  | "verdant-hollow"
-  | "shardpelago";
+  | "boreal-crown"
+  | "vantor-reach"
+  | "austral-spur"
+  | "meridian-fold"
+  | "greyline-basin"
+  | "ember-steppe"
+  | "hollow-delta"
+  | "cinder-vale"
+  | "pelagia-arc"
+  | "ironwake";
 
 export type MacroArea = {
   id: MacroAreaId;
   name: string;
-  /** One-line identity used in the panel & legend. */
-  tagline: string;
-  /** Base color for fills/glows/labels (hex). */
+  /** Holographic accent for fills/glows/labels (hex). */
   hex: string;
 };
 
 export type WorldRegion = {
   id: string;
   name: string;
+  /** Owning sector / macro-zone. */
   macroArea: MacroAreaId;
-  capitalName: string;
-  flavorText: string;
   status: RegionStatus;
   /** Display name of the owning community — null = unclaimed. */
   owner: string | null;

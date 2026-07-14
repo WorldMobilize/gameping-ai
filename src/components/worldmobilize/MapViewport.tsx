@@ -33,8 +33,12 @@ export type MapCameraHandle = {
   zoomIn: () => void;
   zoomOut: () => void;
   reset: () => void;
-  /** Ease the camera so world point (cx,cy) sits at anchorXRatio of the viewport width. */
-  flyTo: (cx: number, cy: number, opts?: { anchorXRatio?: number }) => void;
+  /**
+   * Ease the camera so world point (cx,cy) sits at anchorXRatio of the
+   * viewport width. zoomFactor is relative to the fitted view (default 1.8
+   * for region focus; use lower values for sector overviews).
+   */
+  flyTo: (cx: number, cy: number, opts?: { anchorXRatio?: number; zoomFactor?: number }) => void;
 };
 
 /** Zoom relative to the fitted view (1 = fully zoomed out). For label fades. */
@@ -259,7 +263,9 @@ const MapViewport = forwardRef<MapCameraHandle, Props>(function MapViewport(
         interactedRef.current = true;
         const c = camRef.current;
         const fit = fitKRef.current;
-        const k = Math.max(c.k, fit * 1.8);
+        const k = opts?.zoomFactor !== undefined
+          ? fit * opts.zoomFactor
+          : Math.max(c.k, fit * 1.8);
         const anchorX = s.w * (opts?.anchorXRatio ?? 0.5);
         applyCam({ k, x: anchorX - cx * k, y: s.h / 2 - cy * k }, true);
       },

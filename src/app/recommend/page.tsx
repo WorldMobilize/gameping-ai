@@ -1090,7 +1090,7 @@ export default function RecommendPage() {
           {!pingModeActive && (
           <div className="grid gap-10 lg:grid-cols-[1fr_360px] lg:items-start">
             <div>
-              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-green-400">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
                 Recommendations
               </p>
 
@@ -1216,7 +1216,7 @@ export default function RecommendPage() {
               aria-hidden={!filtersEnabled}
             >
             <section className={`${APP_CARD_LG} p-6 md:p-8`}>
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-green-700 dark:text-green-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
                 Quick presets
               </p>
 
@@ -1243,7 +1243,7 @@ export default function RecommendPage() {
 
             <section className="grid gap-6 lg:grid-cols-2">
               <div className={`${APP_CARD_LG} p-6 md:p-8`}>
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-green-700 dark:text-green-400">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
                   Platform
                 </p>
 
@@ -1280,7 +1280,7 @@ export default function RecommendPage() {
               </div>
 
               <div className={`${APP_CARD_LG} p-6 md:p-8`}>
-                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-green-700 dark:text-green-400">
+                <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
                   Budget
                 </p>
 
@@ -1291,7 +1291,7 @@ export default function RecommendPage() {
                 <div className={`mt-8 ${RECOMMEND_FILTER_BUDGET_PANEL}`}>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-slate-600 dark:text-slate-300">$0</span>
-                    <span className="rounded-full bg-green-50/80 px-5 py-2 text-lg font-extrabold text-green-700 ring-1 ring-green-200/80 backdrop-blur-sm dark:bg-green-950/40 dark:text-green-300 dark:ring-green-500/30">
+                    <span className="rounded-full bg-blue-50/80 px-5 py-2 text-lg font-extrabold text-blue-700 ring-1 ring-blue-200/80 backdrop-blur-sm dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-500/30">
                       ${form.budget || "0"}
                     </span>
                     <span className="text-sm text-slate-600 dark:text-slate-300">$80</span>
@@ -1322,7 +1322,7 @@ export default function RecommendPage() {
 
             <section className={`${APP_CARD_LG} p-6 md:p-8`}>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-green-700 dark:text-green-400">
+                  <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
                     Taste builder
                   </p>
 
@@ -1427,7 +1427,7 @@ export default function RecommendPage() {
 
                 <p
                   key={loadingStepIndex}
-                  className="gp-recommend-step-animate mb-3 text-center text-[15px] font-bold leading-snug tracking-tight text-green-300 md:text-lg md:leading-snug"
+                  className="gp-recommend-step-animate mb-3 text-center text-[15px] font-bold leading-snug tracking-tight text-blue-300 md:text-lg md:leading-snug"
                 >
                   {RECOMMEND_LOADING_STEPS[loadingStepIndex]}
                 </p>
@@ -1436,7 +1436,7 @@ export default function RecommendPage() {
                   className="mx-auto mb-6 h-1 max-w-[220px] overflow-hidden rounded-full bg-white/15"
                   aria-hidden="true"
                 >
-                  <div className="h-full w-full animate-pulse rounded-full bg-green-400/70 motion-reduce:animate-none" />
+                  <div className="h-full w-full animate-pulse rounded-full bg-blue-400/70 motion-reduce:animate-none" />
                 </div>
 
                 <ul className="mb-8 space-y-2.5 text-center text-[13px] leading-relaxed text-slate-300 md:text-sm md:leading-relaxed">
@@ -1464,7 +1464,7 @@ export default function RecommendPage() {
               role="status"
               aria-live="polite"
             >
-              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-green-700 dark:text-green-400">
+              <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
                 No picks this round
               </p>
               <h2 className="mt-4 text-2xl font-extrabold text-slate-900 dark:text-white md:text-3xl">
@@ -1480,8 +1480,8 @@ export default function RecommendPage() {
                 <a href="#recommend-prompt" className={APP_PRIMARY_CTA_SM}>
                   Try another vibe
                 </a>
-                <Link href="/curated" className={APP_SECONDARY_CTA}>
-                  Browse curated lists
+                <Link href="/collections" className={APP_SECONDARY_CTA}>
+                  Browse curated collections
                 </Link>
                 <Link href="/games" className={APP_SECONDARY_CTA}>
                   Explore games A–Z
@@ -1504,7 +1504,7 @@ export default function RecommendPage() {
             >
               <div className="mt-14 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-green-400">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--page-accent-text)]">
                     Your picks
                   </p>
                   <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-white gp-home-display">
@@ -1514,11 +1514,11 @@ export default function RecommendPage() {
                     <p
                       role="status"
                       aria-live="polite"
-                      className="mt-3 inline-flex items-center gap-2 rounded-full border border-green-400/30 bg-green-500/10 px-3 py-1 text-xs font-semibold text-green-200"
+                      className="mt-3 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-200"
                     >
                       <span
                         aria-hidden
-                        className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400 motion-reduce:animate-none"
+                        className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400 motion-reduce:animate-none"
                       />
                       Updating your picks…
                     </p>
@@ -1577,7 +1577,7 @@ export default function RecommendPage() {
                     className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition hover:shadow-md dark:bg-[#0a0b14]/60 dark:shadow-none dark:backdrop-blur-md ${
                       pingModeActive && inspectedGameIndex === index
                         ? "border-violet-400/50 ring-2 ring-violet-400/25"
-                        : "border-slate-200/90 hover:border-green-400/60 dark:border-white/10 dark:hover:border-green-500/40"
+                        : "border-slate-200/90 hover:border-blue-400/60 dark:border-white/10 dark:hover:border-blue-500/40"
                     }`}
                     {...(pingModeActive
                       ? {
@@ -1632,11 +1632,11 @@ export default function RecommendPage() {
                           </span>
                         )}
                         {game.matchTier === "best_match" && (
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/80 dark:bg-emerald-500/15 dark:text-emerald-200 dark:ring-emerald-500/25">
+                          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800 ring-1 ring-blue-200/80 dark:bg-blue-500/15 dark:text-blue-200 dark:ring-blue-500/25">
                             Best match
                           </span>
                         )}
-                        <span className="rounded-full bg-green-50 px-3 py-1 text-sm font-bold tabular-nums text-green-800 ring-1 ring-green-200/80 dark:bg-green-500/15 dark:text-green-200 dark:ring-green-500/25">
+                        <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold tabular-nums text-blue-800 ring-1 ring-blue-200/80 dark:bg-blue-500/15 dark:text-blue-200 dark:ring-blue-500/25">
                           {game.match}% match
                         </span>
                       </div>
@@ -1700,7 +1700,7 @@ export default function RecommendPage() {
                   onSubmit={handleRefineSubmit}
                   className={`mt-8 ${APP_CARD} p-5 md:p-6`}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-green-700 dark:text-green-400">
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[color:var(--page-accent-text)]">
                     Not quite right?
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
@@ -1750,7 +1750,7 @@ export default function RecommendPage() {
 
                 {loggedUserEmail && (
                   <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
-                    Saving for: <span className="font-semibold text-green-700 dark:text-green-400">{loggedUserEmail}</span>
+                    Saving for: <span className="font-semibold text-blue-700 dark:text-blue-400">{loggedUserEmail}</span>
                   </p>
                 )}
 

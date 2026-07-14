@@ -9,74 +9,56 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { supabase } from "@/lib/supabase";
 import {
   applyHomeThemeToDocument,
   readStoredHomeTheme,
   storeHomeTheme,
   type HomeTheme,
 } from "@/components/home/home-theme";
+import { supabase } from "@/lib/supabase";
 
 type HomeThemeContextValue = {
   theme: HomeTheme;
   toggleTheme: () => void;
   ready: boolean;
-  /** Light mode is admin-only (live testing) — true only for confirmed admins. */
+  /** Only admins may switch theme; everyone else is locked to dark. */
   canToggleTheme: boolean;
 };
 
 const HomeThemeContext = createContext<HomeThemeContextValue | null>(null);
 
 export function HomeThemeProvider({ children }: { children: ReactNode }) {
-  // The admin's chosen theme (persisted). Non-admins never apply this.
-  const [storedTheme, setStoredTheme] = useState<HomeTheme>("dark");
-  // null = still resolving. Light mode is gated on this being true.
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  // Dark for everyone by default (matches the pre-paint init script and SSR).
+  // Only admins may switch — non-admins stay dark regardless of any old
+  // stored preference.
+  const [theme, setTheme] = useState<HomeTheme>("dark");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [ready, setReady] = useState(false);
 
-  // Light mode is admin-only: non-admins (and the loading state) always resolve
-  // to dark, ignoring any previously saved "light" localStorage value.
-  const theme: HomeTheme = isAdmin === true ? storedTheme : "dark";
-
-  useEffect(() => {
-    // Resolve the stored theme on the client after mount. Deferred out of the
-    // effect body (rAF) so we never setState synchronously inside the effect;
-    // the initial render stays "dark" so there is no hydration mismatch.
-    const id = requestAnimationFrame(() => {
-      setStoredTheme(readStoredHomeTheme());
-      setReady(true);
-    });
-    return () => cancelAnimationFrame(id);
-  }, []);
-
-  // Same profiles.plan === "admin" check used by Navbar / AdminOnlyPageGate — no
-  // new role system, no schema change. Re-runs on auth changes (login/logout).
   useEffect(() => {
     let cancelled = false;
 
-    async function loadAdmin() {
-      try {
-        const { data } = await supabase.auth.getUser();
-        if (cancelled) return;
-        if (!data.user) {
-          setIsAdmin(false);
-          return;
-        }
+    async function resolve() {
+      const { data } = await supabase.auth.getUser();
+      let admin = false;
+      if (data.user) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("plan")
           .eq("user_id", data.user.id)
           .maybeSingle();
-        if (!cancelled) setIsAdmin(profile?.plan === "admin");
-      } catch {
-        if (!cancelled) setIsAdmin(false);
+        admin = profile?.plan === "admin";
       }
+      if (cancelled) return;
+      setIsAdmin(admin);
+      // Admins get their saved preference; everyone else is forced to dark.
+      setTheme(admin ? readStoredHomeTheme() : "dark");
+      setReady(true);
     }
 
-    void loadAdmin();
-
+    void resolve();
     const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      void loadAdmin();
+      void resolve();
     });
 
     return () => {
@@ -85,16 +67,13 @@ export function HomeThemeProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Apply the RESOLVED theme to the document whenever it changes (dark for
-  // everyone until/unless admin is confirmed, then the admin's stored theme).
   useEffect(() => {
     applyHomeThemeToDocument(theme);
   }, [theme]);
 
   const toggleTheme = useCallback(() => {
-    // No-op for non-admins; their theme stays dark and nothing is persisted.
-    if (isAdmin !== true) return;
-    setStoredTheme((current) => {
+    if (!isAdmin) return; // locked to dark for non-admins
+    setTheme((current) => {
       const next: HomeTheme = current === "light" ? "dark" : "light";
       storeHomeTheme(next);
       return next;
@@ -102,7 +81,7 @@ export function HomeThemeProvider({ children }: { children: ReactNode }) {
   }, [isAdmin]);
 
   const value = useMemo(
-    () => ({ theme, toggleTheme, ready, canToggleTheme: isAdmin === true }),
+    () => ({ theme, toggleTheme, ready, canToggleTheme: isAdmin }),
     [theme, toggleTheme, ready, isAdmin]
   );
 

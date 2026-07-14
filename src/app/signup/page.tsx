@@ -10,11 +10,9 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import { AuthShell, AUTH_INPUT, AUTH_LABEL } from "@/components/auth/auth-ui";
 import {
-  APP_AUTH_CARD,
   APP_INLINE_LINK_ACCENT,
-  APP_INPUT,
   APP_PRIMARY_CTA_ACCENT_SM,
 } from "@/components/app/app-styles";
 import { useToast } from "@/components/ToastProvider";
@@ -127,122 +125,102 @@ function SignupForm() {
   };
 
   return (
-    <AppPageShell hideAmbient>
-      {/* Same cinematic background + account (silver) accent as /login. */}
-      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div aria-hidden className="gp-account-bg" />
-        <AppSection
-          maxWidth="max-w-md"
-          className="flex flex-1 items-center justify-center py-12"
-        >
-          <div className={APP_AUTH_CARD}>
-            <h1 className="text-center text-3xl font-black text-slate-900 dark:text-white gp-home-display">
-              Create your{" "}
-              <span className="text-[color:var(--page-accent-text)]">
-                GamePing AI
-              </span>{" "}
-              account
-            </h1>
+    <AuthShell
+      title="Create your account"
+      subtitle="Save your game preferences, track prices, and get smart alerts."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link href="/login" className={APP_INLINE_LINK_ACCENT}>
+            Log in
+          </Link>
+        </>
+      }
+    >
+      <ul className="mb-6 space-y-2.5 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+        {[
+          "Save recommendation runs to your dashboard",
+          "Track games and get price alerts",
+          "Keep your game discovery organized",
+        ].map((item) => (
+          <li key={item} className="flex items-start gap-2.5">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--page-accent-text)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M5 12l5 5 9-11" />
+            </svg>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
 
-            <p className="mt-3 text-center text-sm text-slate-600 dark:text-slate-300">
-              Save your game preferences and get smart alerts.
-            </p>
-
-            <ul className="mt-6 space-y-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-              <li className="flex gap-2">
-                <span className="text-[color:var(--page-accent-text)]">✓</span>
-                <span>Save recommendation runs to your dashboard</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-[color:var(--page-accent-text)]">✓</span>
-                <span>Track games and get price alerts</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="text-[color:var(--page-accent-text)]">✓</span>
-                <span>Keep your game discovery organized</span>
-              </li>
-            </ul>
-
-            <p className="mt-5 text-center">
-              <Link href="/upgrade" className={`text-xs ${APP_INLINE_LINK_ACCENT}`}>
-                Compare Free vs Premium
-              </Link>
-            </p>
-
-            <input
-              className={`mt-8 ${APP_INPUT}`}
-              placeholder="Email"
-              aria-label="Email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-
-            <input
-              type="password"
-              autoComplete="new-password"
-              className={`mt-4 ${APP_INPUT}`}
-              placeholder="Password"
-              aria-label="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-
-            <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
-              Password: at least 8 characters with one letter and one number.
-            </p>
-
-            <button
-              type="button"
-              onClick={signUp}
-              disabled={submitting}
-              className={`mt-6 w-full ${APP_PRIMARY_CTA_ACCENT_SM} disabled:cursor-not-allowed disabled:opacity-60`}
-            >
-              {submitting ? "Creating account…" : "Create account"}
-            </button>
-
-            <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-300">
-              Already have an account?{" "}
-              <Link href="/login" className={APP_INLINE_LINK_ACCENT}>
-                Log in
-              </Link>
-            </p>
-
-            <p className="mt-6 text-center text-xs text-slate-600 dark:text-slate-400">
-              By continuing you agree to our{" "}
-              <Link href="/terms" className={APP_INLINE_LINK_ACCENT}>
-                Terms
-              </Link>
-              ,{" "}
-              <Link href="/privacy" className={APP_INLINE_LINK_ACCENT}>
-                Privacy Policy
-              </Link>
-              ,{" "}
-              <Link href="/cookies" className={APP_INLINE_LINK_ACCENT}>
-                Cookie Policy
-              </Link>
-              , and{" "}
-              <Link href="/disclaimer" className={APP_INLINE_LINK_ACCENT}>
-                Disclaimer
-              </Link>
-              .
-            </p>
-          </div>
-        </AppSection>
+      <div className="flex flex-col gap-4">
+        <div>
+          <label htmlFor="signup-email" className={AUTH_LABEL}>
+            Email
+          </label>
+          <input
+            id="signup-email"
+            className={AUTH_INPUT}
+            placeholder="you@example.com"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="signup-password" className={AUTH_LABEL}>
+            Password
+          </label>
+          <input
+            id="signup-password"
+            type="password"
+            autoComplete="new-password"
+            className={AUTH_INPUT}
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+            At least 8 characters with one letter and one number.
+          </p>
+        </div>
       </div>
-    </AppPageShell>
+
+      <button
+        type="button"
+        onClick={signUp}
+        disabled={submitting}
+        className={`mt-6 w-full ${APP_PRIMARY_CTA_ACCENT_SM} disabled:cursor-not-allowed disabled:opacity-60`}
+      >
+        {submitting ? "Creating account…" : "Create account"}
+      </button>
+
+      <p className="mt-5 text-center">
+        <Link href="/upgrade" className={`text-xs ${APP_INLINE_LINK_ACCENT}`}>
+          Compare Free vs Premium
+        </Link>
+      </p>
+
+      <p className="mt-4 text-center text-xs leading-5 text-slate-500 dark:text-slate-400">
+        By continuing you agree to our{" "}
+        <Link href="/terms" className={APP_INLINE_LINK_ACCENT}>Terms</Link>,{" "}
+        <Link href="/privacy" className={APP_INLINE_LINK_ACCENT}>Privacy Policy</Link>,{" "}
+        <Link href="/cookies" className={APP_INLINE_LINK_ACCENT}>Cookie Policy</Link>, and{" "}
+        <Link href="/disclaimer" className={APP_INLINE_LINK_ACCENT}>Disclaimer</Link>.
+      </p>
+    </AuthShell>
   );
 }
 
 function SignupFallback() {
-  // Navbar + account background only — no loading card/text flash.
   return (
-    <AppPageShell hideAmbient>
-      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 flex-col overflow-hidden">
-        <div aria-hidden className="gp-account-bg" />
+    <AuthShell title="Create your account" subtitle="Save your game preferences and get smart alerts.">
+      <div className="flex flex-col gap-4">
+        <div className="h-[70px] rounded-xl bg-slate-100 dark:bg-white/[0.04]" />
+        <div className="h-[70px] rounded-xl bg-slate-100 dark:bg-white/[0.04]" />
+        <div className="mt-2 h-[46px] rounded-xl bg-slate-100 dark:bg-white/[0.04]" />
       </div>
-    </AppPageShell>
+    </AuthShell>
   );
 }
 

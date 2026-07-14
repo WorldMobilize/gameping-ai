@@ -1,13 +1,20 @@
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&display=swap");
 @import "tailwindcss";
 
 @custom-variant dark (&:where(html[data-home-theme="dark"], html[data-home-theme="dark"] *));
+
+/* Premium type system — Inter (body/UI) via next/font. Applies everywhere
+ * `font-sans` resolves, so the whole app upgrades from the old Arial stack. */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
 
 @import "../styles/page-accent.css";
 @import "../styles/home-light.css";
 @import "../styles/upgrade-page.css";
 @import "../styles/recommend-page.css";
 @import "../styles/ping-assistant.css";
+@import "../styles/landing-motion.css";
 
 :root {
   --background: #ffffff;
@@ -27,7 +34,8 @@ html[data-home-theme="light"] {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 @keyframes slideUp {
@@ -123,7 +131,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(34, 211, 238, 0.07),
+    rgba(37, 99, 235, 0.07),
     transparent
   );
   transform: translateX(-100%);
@@ -190,7 +198,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(34, 211, 238, 0.06),
+    rgba(37, 99, 235, 0.06),
     transparent
   );
   transform: translateX(-100%);
@@ -219,6 +227,79 @@ body {
   height: 0;
 }
 
+/* Horizontal carousels — scroll freely, no scrollbar chrome across the cards */
+.gp-no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.gp-no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/*
+ * Self-scrolling rail. The track holds the cards TWICE, so translating it by
+ * exactly -50% lands on a copy that is pixel-identical to the start and the loop
+ * is seamless. Pauses on hover and on keyboard focus, so nothing slides away from
+ * under a pointer or a tabbing user. Pure CSS — no client JS, no timers.
+ */
+.gp-marquee {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 4rem,
+    #000 calc(100% - 4rem),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 4rem,
+    #000 calc(100% - 4rem),
+    transparent
+  );
+}
+
+.gp-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: gp-marquee-slide 70s linear infinite;
+}
+
+.gp-marquee:hover .gp-marquee-track,
+.gp-marquee:focus-within .gp-marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes gp-marquee-slide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* No motion: fall back to an ordinary scrollable rail, cloned half hidden. */
+@media (prefers-reduced-motion: reduce) {
+  .gp-marquee {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .gp-marquee-track {
+    animation: none;
+  }
+
+  .gp-marquee-clone {
+    display: none;
+  }
+}
+
 /* Homepage — hero enter, demo, cards (respects reduced motion) */
 @keyframes gp-home-fade-up {
   from {
@@ -230,6 +311,47 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Companion demo — the game art fades in each time the mode changes. */
+@keyframes gp-companion-art-in {
+  from {
+    opacity: 0;
+    transform: scale(1.035);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.gp-companion-art {
+  animation: gp-companion-art-in 0.7s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-companion-art {
+    animation: none;
+  }
+}
+
+/* Companion demo — how long the current mode has left before the next one. */
+@keyframes gp-companion-cycle {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.gp-companion-cycle {
+  transform-origin: left;
+  animation-name: gp-companion-cycle;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
 }
 
 @keyframes gp-home-cursor-blink {
@@ -2236,3 +2358,45 @@ html[data-home-theme="light"] .gp-tone-rose .gp-home-value-icon {
   text-align: center;
 }
 
+/* ============================================================
+ * Release Candidate — global UX polish (visual only)
+ * ============================================================ */
+
+/* Smooth in-page anchor navigation (landing "See the ecosystem", FAQ, etc.),
+ * disabled for users who prefer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Brand-aware text selection — follows the current page accent. */
+::selection {
+  background: color-mix(in srgb, var(--page-accent-strong) 26%, transparent);
+}
+
+/* Baseline keyboard-focus ring for links/buttons that don't define their own.
+ * Zero specificity (:where) so any component's intentional focus styles win —
+ * this only fills the gap for otherwise-unstyled interactive elements. */
+:where(a, button):focus-visible {
+  outline: 2px solid var(--page-accent-border);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+
+/* Hero collage — parallax marquee columns of game covers. Each column scrolls
+ * continuously; duplicating the list and translating by -50% loops seamlessly.
+ * Paused entirely under reduced-motion. Presentation only. */
+@keyframes gp-marquee-up {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(0, -50%, 0); }
+}
+@keyframes gp-marquee-down {
+  from { transform: translate3d(0, -50%, 0); }
+  to { transform: translate3d(0, 0, 0); }
+}
+.gp-marquee { will-change: transform; }
+@media (prefers-reduced-motion: reduce) {
+  .gp-marquee { animation: none !important; transform: translate3d(0, -25%, 0); }
+}

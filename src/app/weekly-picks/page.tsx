@@ -7,6 +7,7 @@ import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsel
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
 import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
 import PremiumRotationAdminLine from "@/components/discovery/PremiumRotationAdminLine";
+import PremiumSignalRefresh from "@/components/discovery/PremiumSignalRefresh";
 import PremiumUpdateStatus from "@/components/discovery/PremiumUpdateStatus";
 import WeeklyPickPremiumCard from "@/components/discovery/WeeklyPickPremiumCard";
 import {
@@ -104,7 +105,7 @@ export default async function WeeklyPicksPage({
             </p>
             {state === "locked" ? (
               <span className="inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--page-accent-strong)]">
-                Premium
+                Demo
               </span>
             ) : null}
           </div>
@@ -127,6 +128,11 @@ export default async function WeeklyPicksPage({
           ) : null}
           {isGenerated && access.viewer === "premium" ? (
             <PremiumUpdateStatus type="weekly_picks" />
+          ) : null}
+          {/* Signals moved since these picks were built (Steam import, new saved
+           * search, new tracked game) → regenerate in the background. */}
+          {isGenerated && meta?.signalsChanged ? (
+            <PremiumSignalRefresh type="weekly_picks" noun="picks" />
           ) : null}
 
           {state === "locked" ? (

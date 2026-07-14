@@ -32,9 +32,6 @@ const ACCENT_BADGE =
 const DEAL_NOTE =
   "inline-flex items-center whitespace-nowrap rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-bold text-green-800 ring-1 ring-green-200/80 dark:bg-green-500/15 dark:text-green-200 dark:ring-green-500/25";
 
-const DETAILS_LINK =
-  "mt-4 inline-flex w-fit items-center gap-1 text-sm font-bold uppercase tracking-wider text-[color:var(--page-accent-text)] transition-all hover:gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] rounded-md";
-
 // Borderless filter chips: frosted glass surface + soft shadow for depth (no
 // outline in any state). Selected = page-accent fill + accent glow + bolder text.
 // Keyboard focus ring is kept (accessibility, not a decorative border).
@@ -42,23 +39,6 @@ function chipClass(active: boolean) {
   return active
     ? "rounded-full bg-[var(--page-accent-soft)] px-4 py-2 text-sm font-bold text-[color:var(--page-accent-text)] shadow-[0_6px_18px_-6px_var(--page-accent-glow)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]"
     : "rounded-full bg-white/70 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-sm transition hover:bg-white hover:text-[color:var(--page-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.12]";
-}
-
-function DetailsArrow() {
-  return (
-    <svg
-      className="h-3.5 w-3.5"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M3 8h9M8.5 4l4 4-4 4" />
-    </svg>
-  );
 }
 
 function WeeklyCard({ pick }: { pick: WeeklyGamePick }) {
@@ -95,9 +75,8 @@ function WeeklyCard({ pick }: { pick: WeeklyGamePick }) {
           <span className="font-semibold text-slate-800 dark:text-slate-200">Best for:</span>{" "}
           {pick.bestFor}
         </p>
-        <Link href={href} className={DETAILS_LINK}>
+        <Link href={href} className={`mt-4 w-fit ${APP_PRIMARY_CTA_ACCENT_SM}`}>
           View details
-          <DetailsArrow />
         </Link>
       </div>
     </article>

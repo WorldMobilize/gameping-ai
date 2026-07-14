@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { AppSection } from "@/components/app/AppPageShell";
 import {
   APP_CALLOUT,
@@ -7,16 +9,28 @@ import {
   APP_CARD_LG,
   APP_MUTED,
   APP_PRIMARY_CTA_ACCENT_SM,
+  APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
+import { COMPANION_VERSION, COMPANION_WINDOWS_URL } from "@/lib/companion/release";
+import { supabase } from "@/lib/supabase";
 
 /**
- * Admin-only download + product page for the desktop GamePing Companion (Alpha).
- * Renders inside AdminOnlyPageGate, so it never reaches non-admins. Pure UI —
- * the Windows installer URL comes from NEXT_PUBLIC_COMPANION_WINDOWS_URL; when
- * unset the button is disabled with a "coming soon" label instead of a dead link.
+ * Download + product page for the desktop GamePing Companion. The Windows
+ * installer URL and version come from the shared release config
+ * (@/lib/companion/release); when the URL is unset the button is disabled
+ * instead of being a dead link.
+ *
+ * The installer is handed to SIGNED-IN users only (free, premium or admin alike).
+ * Not a security boundary — the release URL is public — but a UX one: Companion
+ * signs in with a GamePing account, so someone who downloads it without one hits
+ * a wall at first launch. Anonymous visitors get "create an account" instead.
+ * Read-only: it reads the current session, it never writes and never touches auth
+ * config.
  */
-const WINDOWS_DOWNLOAD_URL =
-  process.env.NEXT_PUBLIC_COMPANION_WINDOWS_URL?.trim() || "";
+const WINDOWS_DOWNLOAD_URL = COMPANION_WINDOWS_URL;
+const APP_VERSION = COMPANION_VERSION;
+
+type Viewer = "loading" | "anon" | "signed-in";
 
 const HOW_IT_WORKS: { title: string; blurb: string }[] = [
   {
@@ -65,9 +79,9 @@ const WHY_IT_MATTERS: { title: string; blurb: string }[] = [
 ];
 
 const ALPHA_NOTES = [
-  "Admin-only for now",
-  "Early test build",
-  "Windows first",
+  "Works with your GamePing account",
+  "Windows 10 & 11",
+  "Answers on top of any game",
   "Runs on the online GamePing backend",
 ];
 
@@ -86,18 +100,25 @@ function SectionHeading({ label, title }: { label: string; title: string }) {
 
 export default function CompanionDownloadView() {
   const hasDownload = WINDOWS_DOWNLOAD_URL.length > 0;
+  const [viewer, setViewer] = useState<Viewer>("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    void supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      setViewer(data.user ? "signed-in" : "anon");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <AppSection maxWidth="max-w-4xl">
       {/* 1 · Hero */}
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
-          Experimental · Admin only
-        </p>
-        <span className="inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]">
-          Alpha
-        </span>
-      </div>
+      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
+        Desktop app · Windows
+      </p>
 
       <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl gp-home-display">
         GamePing Companion
@@ -114,30 +135,50 @@ export default function CompanionDownloadView() {
         without alt-tabbing.
       </p>
 
-      <div className="mt-8 flex flex-wrap items-center gap-4">
-        {hasDownload ? (
-          <a
-            href={WINDOWS_DOWNLOAD_URL}
-            className={APP_PRIMARY_CTA_ACCENT_SM}
-            download
-          >
-            Download for Windows
-          </a>
-        ) : (
-          <span
-            aria-disabled="true"
-            className={`${APP_PRIMARY_CTA_ACCENT_SM} pointer-events-none opacity-50`}
-          >
-            Download coming soon
-          </span>
-        )}
-        <span className={APP_MUTED}>Windows 10 &amp; 11 · 64-bit</span>
-      </div>
+      {/* Anonymous visitors don't get the installer: Companion needs an account to
+          sign into, so handing them the .msi would only strand them at launch. */}
+      {viewer === "anon" ? (
+        <div className="mt-8">
+          <div className="flex flex-wrap items-center gap-4">
+            <Link href="/signup" className={APP_PRIMARY_CTA_ACCENT_SM}>
+              Create a free account
+            </Link>
+            <Link href="/login" className={APP_SECONDARY_CTA}>
+              Log in
+            </Link>
+          </div>
+          <p className={`mt-4 max-w-2xl ${APP_MUTED}`}>
+            Companion signs in with your GamePing account — create one (it&apos;s free) and the
+            download for Windows appears right here. Version {APP_VERSION} · Windows 10 &amp; 11 ·
+            64-bit.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-8 flex flex-wrap items-center gap-4">
+          {hasDownload && viewer === "signed-in" ? (
+            <a
+              href={WINDOWS_DOWNLOAD_URL}
+              className={APP_PRIMARY_CTA_ACCENT_SM}
+              download
+            >
+              Download for Windows
+            </a>
+          ) : (
+            <span
+              aria-disabled="true"
+              className={`${APP_PRIMARY_CTA_ACCENT_SM} pointer-events-none opacity-50`}
+            >
+              Download for Windows
+            </span>
+          )}
+          <span className={APP_MUTED}>Version {APP_VERSION} · Windows 10 &amp; 11 · 64-bit</span>
+        </div>
+      )}
 
       <div className={`${APP_CALLOUT} mt-6 max-w-2xl`}>
         The AI runs through the GamePing website backend — not inside the desktop
         app — so your OpenAI keys stay server-side. Companion connects to your
-        GamePing account and, for now, is admin-only.
+        GamePing account.
       </div>
 
       {/* 2 · How it works */}
@@ -174,14 +215,14 @@ export default function CompanionDownloadView() {
         ))}
       </div>
       <p className={`mt-4 max-w-2xl ${APP_MUTED}`}>
-        Today Companion answers with text. In the future it can also show videos,
-        maps, images, wiki cards, builds, and checklists.
+        Companion answers with text, and can also surface videos, maps, images,
+        wiki cards, builds, and checklists.
       </p>
 
-      {/* 4 · Alpha note */}
+      {/* 4 · Good-to-know note */}
       <div className={`${APP_CARD_LG} mt-14`}>
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
-          Alpha note
+          Good to know
         </p>
         <ul className="mt-4 grid gap-x-6 gap-y-2 sm:grid-cols-2">
           {ALPHA_NOTES.map((note) => (

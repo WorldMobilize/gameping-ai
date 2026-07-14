@@ -153,13 +153,13 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             aria-modal="true"
             aria-labelledby={titleId}
             aria-describedby={descId}
-            className="relative z-[101] flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-[1.5rem] border border-white/12 bg-[#0a0b14] shadow-[0_0_60px_rgba(34,211,238,0.12)]"
+            className="relative z-[101] flex max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-[1.5rem] border border-white/12 bg-[#0a0b14] shadow-[0_0_60px_rgba(37,99,235,0.12)]"
           >
             <div className="shrink-0 border-b border-white/10 px-6 py-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-300/90">
-                    Early access
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-blue-300/90">
+                    Feedback
                   </p>
                   <h2 id={titleId} className="mt-2 text-xl font-black text-white">
                     What could GamePing do better?
@@ -186,7 +186,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
             {status === "success" ? (
               <div className="overflow-y-auto px-6 py-8 space-y-5">
                 <p
-                  className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold leading-relaxed text-cyan-100"
+                  className="rounded-xl border border-blue-400/30 bg-blue-400/10 px-4 py-3 text-sm font-semibold leading-relaxed text-blue-100"
                   role="status"
                 >
                   {statusMessage}
@@ -195,7 +195,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                   <button
                     type="button"
                     onClick={close}
-                    className="rounded-full bg-cyan-400 px-6 py-2.5 text-sm font-black text-black transition hover:bg-cyan-300"
+                    className="rounded-full bg-blue-800 px-6 py-2.5 text-sm font-black text-white transition hover:bg-blue-700"
                   >
                     Done
                   </button>
@@ -221,7 +221,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                     value={type}
                     onChange={(e) => setType(e.target.value as FeedbackType)}
                     disabled={submitting}
-                    className="mt-2 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm font-semibold text-white focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/25"
+                    className="mt-2 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm font-semibold text-white focus:border-blue-400/50 focus:outline-none focus:ring-2 focus:ring-blue-400/25"
                   >
                     {FEEDBACK_TYPES.map((opt) => (
                       <option key={opt.value} value={opt.value} className="bg-[#0a0b14]">
@@ -244,7 +244,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                     rows={5}
                     maxLength={FEEDBACK_MESSAGE_MAX}
                     placeholder="What felt off, confusing, or worth improving?"
-                    className="mt-2 w-full resize-y rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm leading-relaxed text-white placeholder:text-white/30 focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/25"
+                    className="mt-2 w-full resize-y rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm leading-relaxed text-white placeholder:text-white/30 focus:border-blue-400/50 focus:outline-none focus:ring-2 focus:ring-blue-400/25"
                   />
                   <p className="mt-1 text-right text-[11px] text-white/65">
                     {message.length} / {FEEDBACK_MESSAGE_MAX}
@@ -263,7 +263,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                     disabled={submitting}
                     autoComplete="email"
                     placeholder="you@example.com"
-                    className="mt-2 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-cyan-400/50 focus:outline-none focus:ring-2 focus:ring-cyan-400/25"
+                    className="mt-2 w-full rounded-xl border border-white/12 bg-white/[0.04] px-3 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-blue-400/50 focus:outline-none focus:ring-2 focus:ring-blue-400/25"
                   />
                 </div>
 
@@ -279,7 +279,7 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
                   <button
                     type="submit"
                     disabled={submitting || !message.trim()}
-                    className="rounded-full bg-cyan-400 px-6 py-2.5 text-sm font-black text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-full bg-blue-800 px-6 py-2.5 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {submitting ? "Sending…" : "Help improve GamePing"}
                   </button>

@@ -31,7 +31,7 @@ export const HOME_DEMO_GAMES = {
   cyberpunk2077: {
     title: "Cyberpunk 2077",
     image: steamHeaderImage(1091500),
-    fallback: "from-yellow-500/40 via-fuchsia-600/30 to-cyan-600/35",
+    fallback: "from-yellow-500/40 via-fuchsia-600/30 to-blue-600/35",
   },
   hollowKnight: {
     title: "Hollow Knight",

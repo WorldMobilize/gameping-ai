@@ -46,7 +46,7 @@ export default function GamesDirectoryPage() {
           </Link>{" "}
           or explore{" "}
           <Link
-            href="/curated"
+            href="/collections"
             className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-4 hover:underline"
           >
             curated collections

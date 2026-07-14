@@ -49,7 +49,7 @@ export default function CityView({ city }: { city: CityPrototype }) {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href={backHref}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.05] px-3.5 py-1.5 text-xs font-bold text-white/80 no-underline transition hover:border-cyan-400/50 hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.05] px-3.5 py-1.5 text-xs font-bold text-white/80 no-underline transition hover:border-blue-400/50 hover:text-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
           >
             <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M15 18l-6-6 6-6" />
@@ -78,10 +78,10 @@ export default function CityView({ city }: { city: CityPrototype }) {
               key={poi.id}
               type="button"
               onClick={() => focusPoi(poi.id)}
-              className={`rounded-full border px-3.5 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 ${
+              className={`rounded-full border px-3.5 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 ${
                 selectedPoiId === poi.id
-                  ? "border-cyan-400/60 bg-cyan-500/15 text-cyan-200"
-                  : "border-white/15 bg-white/[0.05] text-white/75 hover:border-cyan-400/40 hover:text-cyan-300"
+                  ? "border-blue-400/60 bg-blue-500/15 text-blue-200"
+                  : "border-white/15 bg-white/[0.05] text-white/75 hover:border-blue-400/40 hover:text-blue-300"
               }`}
             >
               {poi.name}
@@ -122,14 +122,14 @@ export default function CityView({ city }: { city: CityPrototype }) {
               className="absolute inset-x-3 bottom-3 z-20 max-h-[46%] overflow-y-auto rounded-2xl border border-white/12 bg-[#080b1a]/92 p-5 shadow-[0_24px_64px_rgba(0,0,0,0.6)] ring-1 ring-white/5 backdrop-blur-xl lg:inset-x-auto lg:bottom-4 lg:right-3 lg:top-auto lg:w-[320px]"
             >
               <div className="flex items-start justify-between gap-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300/80">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-300/80">
                   Point of interest
                 </p>
                 <button
                   type="button"
                   onClick={() => setSelectedPoiId(null)}
                   aria-label="Close point of interest"
-                  className="rounded-full border border-white/15 bg-white/[0.06] p-1.5 text-white/70 transition hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+                  className="rounded-full border border-white/15 bg-white/[0.06] p-1.5 text-white/70 transition hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
                 >
                   <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
                     <path d="M6 6l12 12M18 6L6 18" />

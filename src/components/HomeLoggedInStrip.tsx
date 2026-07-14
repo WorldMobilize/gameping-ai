@@ -42,7 +42,7 @@ export default function HomeLoggedInStrip({ theme = "light" }: HomeLoggedInStrip
       className={`border-b px-6 py-3 ${
         isDark
           ? "border-slate-800/80 bg-slate-900/90"
-          : "border-cyan-100/80 bg-gradient-to-r from-cyan-50/90 via-white to-violet-50/80"
+          : "border-blue-100/80 bg-gradient-to-r from-blue-50/90 via-white to-blue-50/80"
       }`}
     >
       <div className="mx-auto flex max-w-6xl flex-col gap-2.5 text-sm sm:flex-row sm:items-center sm:justify-between">

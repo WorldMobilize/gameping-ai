@@ -4,9 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import { AuthShell } from "@/components/auth/auth-ui";
 import {
-  APP_AUTH_CARD,
   APP_INLINE_LINK_ACCENT,
   APP_MUTED,
   APP_PRIMARY_CTA_ACCENT_SM,
@@ -17,8 +16,8 @@ import {
  *
  * The website is where the user is already logged in. On confirm we hand the
  * current Supabase session to the desktop app via its custom protocol so the app
- * can call POST /api/companion/ask with a Bearer token. Admin-only for now (the
- * API enforces this too; here we gate the UI to avoid a confusing dead-end).
+ * can call POST /api/companion/ask with a Bearer token. Open to any authenticated
+ * GamePing user (free + premium), matching the ask/me endpoints.
  *
  * Handoff safety: tokens are placed in the URL *fragment* (after `#`), never the
  * query string — fragments are not sent to servers, not written to HTTP access
@@ -50,18 +49,9 @@ export default function CompanionAuthPage() {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("plan")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      if (cancelled) return;
-
-      if (profile?.plan !== "admin") {
-        setStatus("not_admin");
-        return;
-      }
-
+      // Any authenticated GamePing user can connect (public beta) — matches the
+      // /api/companion/ask and /api/companion/me endpoints, which allow free and
+      // premium alike. The deep-link fragment format is unchanged.
       setSession(session);
       setStatus("ready");
     }
@@ -91,59 +81,21 @@ export default function CompanionAuthPage() {
     return `${APP_PROTOCOL_CALLBACK}#${fragment}`;
   }, [session]);
 
-  // TEMPORARY DEBUG — prove the exact deep link and its fragment at the moment a
-  // control is used. Every path (primary button, fallback, copy) logs the SAME
-  // `deepLink` string, so these lines confirm byte-for-byte identity and that
-  // the full `#access_token=…&refresh_token=…&token_type=…&expires_at=…` fragment
-  // is present at click time. Remove once the browser→desktop handoff is verified.
-  const logDeepLink = useCallback(
-    (source: "open" | "copy") => {
-      console.log(`[companion] deepLink via ${source}`, {
-        length: deepLink.length,
-        hashIndex: deepLink.indexOf("#"),
-        hasAccessToken: deepLink.includes("access_token="),
-        hasRefreshToken: deepLink.includes("refresh_token="),
-        hasTokenType: deepLink.includes("token_type="),
-        hasExpiresAt: deepLink.includes("expires_at="),
-        deepLink,
-      });
-    },
-    [deepLink]
-  );
-
   // The primary/fallback controls are real <a href={deepLink}> anchors — a
-  // native click reliably launches the custom protocol (the same mechanism as
-  // the copied/manual link that works). This handler must NOT preventDefault:
-  // it only logs the exact URL and advances the UI while the browser performs
-  // the anchor's default navigation to the app.
+  // native click reliably launches the custom protocol. This handler must NOT
+  // preventDefault: it only advances the UI while the browser performs the
+  // anchor's default navigation to the app.
   const handleOpen = useCallback(() => {
-    logDeepLink("open");
     setStatus("connected");
-  }, [logDeepLink]);
-
-  const [copied, setCopied] = useState(false);
-  const copyDeepLink = useCallback(async () => {
-    if (!deepLink) return;
-    logDeepLink("copy");
-    try {
-      await navigator.clipboard.writeText(deepLink);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard blocked — the URL is still visible below to copy manually.
-    }
-  }, [deepLink, logDeepLink]);
+  }, []);
 
   return (
-    <AppPageShell hideAmbient>
-      <div className="gp-accent-page relative isolate flex min-h-0 flex-1 items-center justify-center overflow-hidden px-6 py-16">
-        <div aria-hidden className="gp-landing-bg" />
-        <AppSection maxWidth="max-w-md">
-          <div className={APP_AUTH_CARD}>
+    <AuthShell showBack={false}>
+      <div>
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
               GamePing Companion
             </p>
-            <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white gp-home-display">
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 dark:text-white gp-home-display">
               Connect GamePing Companion
             </h1>
 
@@ -165,8 +117,7 @@ export default function CompanionAuthPage() {
 
             {status === "not_admin" && (
               <p className="mt-4 text-slate-700 dark:text-slate-300">
-                GamePing Companion is in a limited admin-only Alpha and isn’t
-                available on your account yet.
+                GamePing Companion isn’t available on your account yet.
               </p>
             )}
 
@@ -209,29 +160,7 @@ export default function CompanionAuthPage() {
               </div>
             )}
 
-            {/* TEMPORARY DEBUG (admin-only) — remove once the handoff is verified.
-             * Only renders when an admin session has produced a deep link. */}
-            {deepLink && (
-              <div className="mt-6 border-t border-dashed border-slate-300/70 pt-4 dark:border-slate-700/70">
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[color:var(--page-accent-strong)]">
-                  Debug · admin only
-                </p>
-                <p className={`mt-2 ${APP_MUTED}`}>Generated deep link:</p>
-                <code className="mt-1 block max-h-40 overflow-auto break-all rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-200">
-                  {deepLink}
-                </code>
-                <button
-                  type="button"
-                  onClick={copyDeepLink}
-                  className={`mt-3 ${APP_PRIMARY_CTA_ACCENT_SM}`}
-                >
-                  {copied ? "Copied ✓" : "Copy deep link"}
-                </button>
-              </div>
-            )}
-          </div>
-        </AppSection>
       </div>
-    </AppPageShell>
+    </AuthShell>
   );
 }

@@ -15,7 +15,7 @@ export default function FeedbackButton({ className = "" }: FeedbackButtonProps) 
       onClick={openFeedback}
       className={
         className ||
-        "text-left text-sm text-slate-400 transition hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60"
+        "text-left text-sm text-slate-400 transition hover:text-blue-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60"
       }
     >
       Share feedback

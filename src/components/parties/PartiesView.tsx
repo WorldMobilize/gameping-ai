@@ -9,7 +9,6 @@ import {
   APP_PRIMARY_CTA_ACCENT_SM,
   APP_SECONDARY_CTA,
 } from "@/components/app/app-styles";
-import DiscoveryComingSoonBadge from "@/components/discovery/DiscoveryComingSoonBadge";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import {
   PARTY_CATEGORY_GROUPS,
@@ -18,9 +17,6 @@ import {
 
 const ACCENT_BADGE =
   "inline-flex items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]";
-
-const PLANNED_PILL =
-  "inline-flex items-center rounded-full border border-dashed border-[color:var(--page-accent-border)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]";
 
 const HOW_IT_WORKS = [
   {
@@ -36,7 +32,7 @@ const HOW_IT_WORKS = [
   {
     step: "03",
     title: "Match by vibe",
-    body: "Future matching finds players by region, language, playstyle, and availability — not just rank.",
+    body: "Matching finds players by region, language, playstyle, and availability — not just rank.",
   },
 ];
 
@@ -44,12 +40,9 @@ export default function PartiesView() {
   return (
     <AppSection maxWidth="max-w-6xl">
       {/* Hero */}
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
-          Squads &amp; co-op
-        </p>
-        <DiscoveryComingSoonBadge />
-      </div>
+      <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
+        Squads &amp; co-op
+      </p>
       <h1 className="mt-4 max-w-3xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">
         GamePing <span className="text-[color:var(--page-accent-strong)]">Parties</span>
       </h1>
@@ -69,11 +62,8 @@ export default function PartiesView() {
       {/* How it works */}
       <section id="how-it-works" className="mt-16 scroll-mt-24" aria-labelledby="parties-how-heading">
         <h2 id="parties-how-heading" className="text-2xl font-extrabold text-white">
-          How it will work
+          How it works
         </h2>
-        <p className="mt-2 max-w-2xl text-sm text-slate-300">
-          Planned for a future release — here&apos;s the idea.
-        </p>
         <ol className="mt-8 grid gap-6 md:grid-cols-3">
           {HOW_IT_WORKS.map((s) => (
             <li key={s.step} className={APP_CARD}>
@@ -93,8 +83,7 @@ export default function PartiesView() {
           Game lists
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-300">
-          Built for co-op nights, survival servers, ranked squads, and weird long sessions. Lists
-          below are planned — no live parties yet.
+          Built for co-op nights, survival servers, ranked squads, and weird long sessions.
         </p>
 
         <div className="mt-8 space-y-8">
@@ -103,14 +92,7 @@ export default function PartiesView() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={ACCENT_BADGE}>{group.category}</span>
-                  <span className={PLANNED_PILL}>Party list planned</span>
                 </div>
-                <span
-                  className="inline-flex cursor-default items-center rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-3.5 py-1.5 text-xs font-bold text-[color:var(--page-accent-text)]"
-                  aria-disabled="true"
-                >
-                  Coming soon
-                </span>
               </div>
               <p className={`mt-3 text-sm leading-6 ${APP_MUTED}`}>{group.blurb}</p>
               <ul className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -139,18 +121,14 @@ export default function PartiesView() {
       {/* Game list preview */}
       <section id="weekend-squads" className="mt-16 scroll-mt-24" aria-labelledby="parties-preview-heading">
         <h2 id="parties-preview-heading" className="text-2xl font-extrabold text-white">
-          What a party list will look like
+          A party list, at a glance
         </h2>
         <article className={`mt-5 ${APP_CARD_LG}`}>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={ACCENT_BADGE}>Preview</span>
-            <span className={PLANNED_PILL}>Mock — not live</span>
-          </div>
-          <h3 className="mt-3 text-2xl font-extrabold text-slate-900 dark:text-white">
+          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">
             {PARTY_LIST_PREVIEW.game} party list
           </h3>
           <p className={`mt-2 text-sm leading-6 ${APP_MUTED}`}>
-            Match by playstyle, not just rank. Future filters will narrow a list down to people you
+            Match by playstyle, not just rank. Filters narrow a list down to the people you
             actually want to queue with:
           </p>
           <ul className="mt-5 flex flex-wrap gap-2">
@@ -167,9 +145,9 @@ export default function PartiesView() {
             <span
               className={`${APP_PRIMARY_CTA_ACCENT_SM} cursor-default opacity-90`}
               role="note"
-              aria-label="Waitlist coming soon"
+              aria-label="Join the waitlist"
             >
-              Join waitlist · Coming soon
+              Join the waitlist
             </span>
             <Link
               href="/recommend"
@@ -181,21 +159,17 @@ export default function PartiesView() {
         </article>
       </section>
 
-      {/* Future note */}
       <section className={`mt-16 ${APP_CARD_LG}`} aria-labelledby="parties-future-heading">
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
-            What&apos;s next
-          </p>
-          <DiscoveryComingSoonBadge />
-        </div>
+        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
+          Smart matching
+        </p>
         <h2 id="parties-future-heading" className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
-          Future matching
+          Matched on how you play
         </h2>
         <p className={`mt-3 max-w-2xl ${APP_MUTED}`}>
-          GamePing Parties will use Steam import and your game signals to suggest players for
+          GamePing Parties uses Steam import and your game signals to suggest players for
           specific games — considering owned games, region, language, casual vs. competitive,
-          availability, and how you like to play. Nothing here is live yet.
+          availability, and how you like to play.
         </p>
       </section>
     </AppSection>

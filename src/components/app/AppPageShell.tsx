@@ -9,7 +9,7 @@ function AppAmbientBlobs({ isDark }: { isDark: boolean }) {
   if (isDark) {
     return (
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -left-24 top-0 h-80 w-80 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="absolute -left-24 top-0 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
         <div className="absolute -right-24 top-1/3 h-72 w-72 rounded-full bg-violet-500/8 blur-3xl" />
       </div>
     );
@@ -17,9 +17,9 @@ function AppAmbientBlobs({ isDark }: { isDark: boolean }) {
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div className="absolute -left-24 top-0 h-80 w-80 rounded-full bg-cyan-200/25 blur-3xl" />
+      <div className="absolute -left-24 top-0 h-80 w-80 rounded-full bg-blue-200/25 blur-3xl" />
       <div className="absolute -right-24 top-1/3 h-72 w-72 rounded-full bg-violet-200/20 blur-3xl" />
-      <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-cyan-100/30 blur-3xl" />
+      <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-blue-100/30 blur-3xl" />
     </div>
   );
 }

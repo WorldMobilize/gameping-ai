@@ -11,7 +11,7 @@ export function recommendResultCardStyles(
   const isLight = theme === "light";
 
   const shellDark = emphasizeCyanBorder
-    ? "relative flex w-full flex-col overflow-hidden rounded-2xl border border-cyan-400/25 bg-[#0a0b14]/50"
+    ? "relative flex w-full flex-col overflow-hidden rounded-2xl border border-blue-400/25 bg-[#0a0b14]/50"
     : "relative flex w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0b14]/50";
 
   const shellLight =
@@ -44,14 +44,14 @@ export function recommendResultCardStyles(
         ? "mt-3 text-base leading-6 text-white/70"
         : "mt-2 text-xs leading-5 text-white/70",
     badgeTier: isExport ? "rounded-full px-4 py-1.5 text-sm font-bold" : "rounded-full px-3 py-1 text-xs font-bold",
-    tierBest: isLight ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80" : "bg-emerald-500/20 text-emerald-200",
+    tierBest: isLight ? "bg-blue-50 text-blue-800 ring-1 ring-blue-200/80" : "bg-blue-500/20 text-blue-200",
     tierAlt: isLight ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200/80" : "bg-amber-500/25 text-amber-200",
     tierPartial: isLight ? "bg-orange-50 text-orange-800 ring-1 ring-orange-200/80" : "bg-orange-500/25 text-orange-200",
     badgeMatch: isLight
-      ? "rounded-full bg-cyan-50 px-3 py-1 text-sm font-bold tabular-nums text-cyan-800 ring-1 ring-cyan-200/80"
+      ? "rounded-full bg-blue-50 px-3 py-1 text-sm font-bold tabular-nums text-blue-800 ring-1 ring-blue-200/80"
       : isExport
-        ? "rounded-full bg-cyan-400/12 px-4 py-1.5 text-base font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20"
-        : "rounded-full bg-cyan-400/12 px-3 py-1 text-sm font-bold tabular-nums text-cyan-200 ring-1 ring-cyan-400/20",
+        ? "rounded-full bg-blue-400/12 px-4 py-1.5 text-base font-bold tabular-nums text-blue-200 ring-1 ring-blue-400/20"
+        : "rounded-full bg-blue-400/12 px-3 py-1 text-sm font-bold tabular-nums text-blue-200 ring-1 ring-blue-400/20",
     budget: isLight
       ? "mt-3 text-xs text-slate-600"
       : isExport
@@ -73,10 +73,10 @@ export function recommendResultCardStyles(
         ? "mt-3 text-sm text-white/65"
         : "mt-2 text-xs text-white/65",
     cta: isLight
-      ? "inline-flex rounded-full bg-gradient-to-r from-cyan-600 to-cyan-500 px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-cyan-600/20"
+      ? "gp-home-cta inline-flex rounded-full px-5 py-2.5 text-sm font-bold text-white"
       : isExport
-        ? "inline-flex rounded-full bg-cyan-400 px-6 py-3.5 text-base font-bold text-black"
-        : "inline-flex rounded-full bg-cyan-400 px-6 py-3 text-sm font-bold text-black",
+        ? "inline-flex rounded-full bg-blue-800 px-6 py-3.5 text-base font-bold text-white"
+        : "gp-home-cta inline-flex rounded-full px-6 py-3 text-sm font-bold text-white",
     ctaDivider: isLight ? `mt-auto border-t border-slate-200 ${isDemo ? "pt-3" : "pt-4"}` : "mt-auto border-t border-white/10 pt-5",
     placeholderText: isLight ? "text-slate-600" : "text-white/70",
     placeholderBg: isLight ? "bg-slate-100" : "bg-black/40",
