@@ -7,7 +7,7 @@ import { buildPublicPageMetadata } from "@/lib/seo/site";
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "GamePing Premium — pricing & plans | GamePing AI",
   description:
-    "Compare GamePing Free and Premium. Premium adds Steam library sync, your GamePing DNA taste profile, Weekly Picks, personalized Deals For You, and a Monthly Recap.",
+    "Compare GamePing Free and Premium. Premium adds Steam library sync, your Taste DNA taste profile, Weekly Picks, personalized Deals For You, and a Monthly Recap.",
   path: "/upgrade",
 });
 

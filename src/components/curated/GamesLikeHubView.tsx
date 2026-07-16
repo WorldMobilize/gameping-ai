@@ -264,7 +264,10 @@ export default function GamesLikeHubView({
     [all, trimmed]
   );
 
-  const popular = useMemo(() => all.slice(0, 6), [all]);
+  /* The chips under the search box. NOT "popular searches" — they are simply the
+     editor's picks, and we have no search or traffic data that would let us call
+     anything popular. Same rule the rows follow. */
+  const suggested = useMemo(() => heroCards.slice(0, 6), [heroCards]);
 
   /* The wall wants far more faces than the editor's picks alone can give it: the
      picks lead, then the rest of the "games like" lists, then the themed collections
@@ -344,9 +347,9 @@ export default function GamesLikeHubView({
             </form>
 
             <div className="mt-5">
-              <p className="text-xs font-semibold text-slate-400">Popular searches</p>
+              <p className="text-xs font-semibold text-slate-400">Try one of these</p>
               <ul className="mt-2.5 flex flex-wrap gap-2">
-                {popular.map((c) => (
+                {suggested.map((c) => (
                   <li key={c.slug}>
                     <button type="button" onClick={() => setQuery(c.title)} className={CHIP}>
                       {c.title}

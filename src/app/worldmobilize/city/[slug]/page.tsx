@@ -10,8 +10,8 @@ import type { Metadata } from "next";
 // exists and is re-enabled at launch.
 export const metadata: Metadata = {
   ...buildPublicPageMetadata({
-    title: "World Mobilize | GamePing AI",
-    description: "World Mobilize is coming soon to GamePing.",
+    title: "WorldMobilize | GamePing AI",
+    description: "WorldMobilize is coming soon to GamePing.",
     path: "/worldmobilize/city",
   }),
   robots: { index: false, follow: false },

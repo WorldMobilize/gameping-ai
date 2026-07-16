@@ -105,7 +105,7 @@ export default function WorldMobilizeClaimView() {
       <div className="relative mx-auto max-w-6xl">
         {/* Header */}
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-600 dark:text-violet-300">World Mobilize</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-violet-600 dark:text-violet-300">WorldMobilize</p>
           <span className={DEMO_PILL}>Demo · Early Access</span>
         </div>
         <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-5xl gp-home-display">

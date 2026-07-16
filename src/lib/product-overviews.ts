@@ -50,19 +50,23 @@ export const PRODUCT_OVERVIEWS: Record<string, ProductOverview> = {
     status: "Alpha",
     name: "Desktop Companion",
     tagline: "Your gaming assistant, right beside your game — no alt-tab required.",
+    /* Everything below describes what Companion DOES TODAY, in its alpha.
+     *
+     * "Core features" used to list Voice assistant, Maps, Walkthroughs and Build help
+     * — the same four items the roadmap on this very page marks as "Next", i.e. not
+     * built. A reader saw them presented as shipped, on a public, indexed page. They
+     * live in the roadmap now, where they were always meant to be, and the copy no
+     * longer promises voice or maps in the present tense. */
     intro:
-      "Companion is a premium desktop app that answers questions, shows maps, and helps you play — in a clean overlay on top of your game.",
-    primary: { label: "Get Companion", href: "/companion/about" },
+      "Companion is a desktop app in alpha: ask a question and get an answer in a clean overlay on top of your game, without leaving it.",
+    primary: { label: "See the roadmap", href: "#roadmap" },
     overviewTitle: "Help that comes to you, mid-game",
     overview:
-      "You shouldn't have to leave your game to look something up. Companion sits on top of it as a calm overlay: ask a question by text or voice, pull up a map, get a spoiler-light hint, or check a build — and get back to playing. It understands the game you're in, so answers are contextual instead of generic. It's the wiki, the map, and the coach, without the alt-tab.",
+      "You shouldn't have to leave your game to look something up. Companion sits on top of it as a calm overlay: type a question, get an answer tuned to the game you're actually playing, and get back to playing. It's the wiki without the alt-tab. It's early — the overlay and the assistant are what work today, and the rest is on the roadmap below.",
     features: [
       { title: "In-game overlay", desc: "A clean panel on top of your game — always a keystroke away." },
-      { title: "Voice assistant", desc: "Ask out loud, hands on the controls." },
-      { title: "Maps", desc: "Pull up interactive maps without switching windows." },
-      { title: "Walkthroughs", desc: "Spoiler-light, step-by-step help on demand." },
-      { title: "Build help", desc: "Loadouts, gear, and strategies in seconds." },
       { title: "Contextual help", desc: "Answers tuned to the exact game you're playing." },
+      { title: "Text answers", desc: "Ask in plain words; images and clips come back when they help." },
     ],
     roadmap: [
       { phase: "Now", items: ["Ask & answer (alpha)", "Contextual game help", "Overlay foundation"] },

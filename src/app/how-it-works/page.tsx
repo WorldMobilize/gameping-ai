@@ -15,7 +15,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = buildPublicPageMetadata({
   title: "How GamePing works — features & how to use it | GamePing AI",
   description:
-    "How GamePing turns plain-language taste into game recommendations: describe your taste, get explained matches, keep discovering, and sync Steam for a personal GamePing DNA.",
+    "How GamePing turns plain-language taste into game recommendations: describe your taste, get explained matches, keep discovering, and sync Steam for a personal Taste DNA.",
   path: "/how-it-works",
 });
 
@@ -78,6 +78,71 @@ export default function HowItWorksIndexPage() {
               </li>
             ))}
           </ul>
+
+          {/* The rest of the ecosystem — beyond Discovery. Companion links to its
+           * own full explainer; WorldMobilize stays a no-spoiler teaser (it's
+           * pre-launch and noindex everywhere else), so no detail page here. */}
+          <div className="mt-16">
+            <h2 className="text-2xl font-extrabold tracking-tight text-white gp-home-display">
+              More in the <span className="text-[color:var(--page-accent-strong)]">GamePing ecosystem</span>
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+              GamePing is more than discovery. Here&apos;s the rest of what you can do — and what&apos;s coming next.
+            </p>
+
+            <ul className="mt-6 space-y-4">
+              <li>
+                <Link
+                  href="/companion/about"
+                  className={`group flex flex-col md:flex-row md:items-center md:justify-between md:gap-6 ${APP_CARD_INTERACTIVE_LG}`}
+                >
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-[color:var(--page-accent-text)] dark:text-white dark:group-hover:text-[color:var(--page-accent-text)]">
+                        Desktop Companion
+                      </h3>
+                      <span className="inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]">
+                        Alpha
+                      </span>
+                    </div>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-700 dark:text-slate-300">
+                      An in-game overlay that answers your questions mid-session — builds, strategies,
+                      guides, and rich media — without alt-tabbing. Signs in with your GamePing account.
+                      Windows, in alpha.
+                    </p>
+                  </div>
+                  <span className="mt-4 shrink-0 text-sm font-bold text-[color:var(--page-accent-text)] md:mt-0">
+                    Learn more
+                  </span>
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  href="/worldmobilize"
+                  className={`group flex flex-col md:flex-row md:items-center md:justify-between md:gap-6 ${APP_CARD_INTERACTIVE_LG}`}
+                >
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-[color:var(--page-accent-text)] dark:text-white dark:group-hover:text-[color:var(--page-accent-text)]">
+                        WorldMobilize
+                      </h3>
+                      <span className="inline-flex rounded-full border border-[color:var(--page-accent-border)] bg-[var(--page-accent-soft)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--page-accent-text)]">
+                        Coming soon
+                      </span>
+                    </div>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-700 dark:text-slate-300">
+                      Something new for gamers is on the way. It isn&apos;t ready yet — we&apos;re keeping
+                      the details under wraps until launch.
+                    </p>
+                  </div>
+                  <span className="mt-4 shrink-0 text-sm font-bold text-[color:var(--page-accent-text)] md:mt-0">
+                    Preview
+                  </span>
+                </Link>
+              </li>
+            </ul>
+          </div>
 
           <div className={`mt-12 ${APP_CARD_LG}`}>
             <p className="text-sm font-bold text-slate-900 dark:text-slate-100">

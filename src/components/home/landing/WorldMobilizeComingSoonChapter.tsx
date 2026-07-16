@@ -62,7 +62,7 @@ export default function WorldMobilizeComingSoonChapter({
     <section id="worldmobilize" className={`scroll-mt-[150px] py-24 sm:py-36 ${className}`}>
       <div className="mx-auto max-w-4xl px-6 text-center">
         <p className={`flex items-center justify-center gap-3 text-[13px] font-semibold uppercase tracking-[0.2em] ${eyebrow}`}>
-          <span className="tabular-nums">03</span><span className="h-px w-8 bg-current opacity-40" aria-hidden />Community
+          <span className="tabular-nums">03</span><span className="h-px w-8 bg-current opacity-40" aria-hidden />Coming soon
         </p>
 
         <h2 className={`gp-home-display mt-5 text-[2.6rem] font-semibold uppercase leading-[0.98] sm:text-[5rem] ${heading}`}>

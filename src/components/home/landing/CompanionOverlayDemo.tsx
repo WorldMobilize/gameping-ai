@@ -390,10 +390,9 @@ export default function CompanionOverlayDemo() {
         {/* darken for overlay legibility */}
         <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/20 to-black/60" />
 
-        {/* faux game HUD corner, for context */}
-        <div aria-hidden className="absolute bottom-3 left-3 flex items-center gap-2 rounded-md bg-black/45 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/70 backdrop-blur-sm">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />In-game · {demo.game}
-        </div>
+        {/* No "In-game · <game>" HUD badge here on purpose: it implied Companion
+            auto-detects the game you're playing, which it doesn't. Removed to avoid
+            misleading the preview. */}
 
         {/* The Companion overlay, expanding when answered. */}
         <div

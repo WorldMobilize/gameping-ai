@@ -5,11 +5,11 @@ import { buildPublicPageMetadata } from "@/lib/seo/site";
 
 // Locked pre-launch: renders a Coming Soon placeholder and is kept out of search
 // indexes (was previously indexable — noindex added on purpose) so Google never
-// surfaces the World Mobilize overview before the product ships.
+// surfaces the WorldMobilize overview before the product ships.
 export const metadata: Metadata = {
   ...buildPublicPageMetadata({
-    title: "World Mobilize | GamePing AI",
-    description: "World Mobilize is coming soon to GamePing.",
+    title: "WorldMobilize | GamePing AI",
+    description: "WorldMobilize is coming soon to GamePing.",
     path: "/worldmobilize/about",
   }),
   robots: { index: false, follow: false },

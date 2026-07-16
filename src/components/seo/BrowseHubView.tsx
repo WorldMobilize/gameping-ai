@@ -132,7 +132,7 @@ export default function BrowseHubView() {
 
         <p className="mt-14">
           <Link href="/discover" className="text-sm font-semibold text-blue-700 transition hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200">
-            ← Back to Discovery
+            Back to Discovery
           </Link>
         </p>
       </div>

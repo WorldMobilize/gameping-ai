@@ -9,7 +9,7 @@ import Navbar from "@/components/Navbar";
 /**
  * Landing shell. The old fixed cinematic image is gone — the page now sits on
  * the clean holographic base (theme-aware `.gp-landing-bg`, no imagery) and the
- * body is the new ecosystem landing (Discovery / World Mobilize / Companion).
+ * body is the new ecosystem landing (Discovery / WorldMobilize / Companion).
  * The previous recommend-only sections (HomeHero/HowItWorks/FeatureCards/…)
  * stay on disk, unused, so we can iterate the demo without losing them.
  */

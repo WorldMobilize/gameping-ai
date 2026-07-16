@@ -14,7 +14,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
     a: (
       <>
         Yes — the core discovery engine and the Companion&apos;s text chat are free, no credit card.
-        Premium raises the limits and unlocks deal alerts, personalized picks, and more.{" "}
+        Premium raises the limits and adds personalized picks, taste-matched deals, and more.{" "}
         <Link href="/upgrade" className="font-semibold text-blue-700 underline-offset-4 hover:underline dark:text-blue-300">Compare the plans</Link>.
       </>
     ),

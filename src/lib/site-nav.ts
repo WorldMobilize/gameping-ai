@@ -105,12 +105,12 @@ export const DISCOVER_HUB_NAV_ITEM: SiteNavItem = {
 };
 
 /**
- * World Mobilize — the community-game pillar (admin-only alpha for now).
+ * WorldMobilize — the community-game pillar (admin-only alpha for now).
  * The interactive world map is the pillar's front door; the Community Wars
  * concept demo lives alongside it.
  */
 export const WORLDMOBILIZE_NAV_ITEM: SiteNavItem = {
-  label: "World Mobilize",
+  label: "WorldMobilize",
   href: "/worldmobilize",
   matchPrefix: "/worldmobilize",
 };
@@ -121,7 +121,7 @@ export const COMMUNITY_WARS_NAV_ITEM: SiteNavItem = {
   matchPrefix: "/community-wars",
 };
 
-/** Companion — desktop overlay app. */
+/** Companion — desktop overlay app. Ships with the site; open to everyone. */
 export const COMPANION_NAV_ITEM: SiteNavItem = {
   label: "Companion",
   href: "/companion",
@@ -131,7 +131,7 @@ export const COMPANION_NAV_ITEM: SiteNavItem = {
 /**
  * Pillar child links — shown indented under each pillar in the drawer so users
  * who know what they want can jump straight to it, while the pillar heading
- * still opens the overview. Some World Mobilize / Companion modules point at the
+ * still opens the overview. Some WorldMobilize / Companion modules point at the
  * pillar's front door as placeholders until they get dedicated pages.
  */
 export const DISCOVERY_CHILD_ITEMS: SiteNavItem[] = [
@@ -167,9 +167,13 @@ export const WORLDMOBILIZE_CHILD_ITEMS: SiteNavItem[] = [
   { label: "Leaderboards", href: "/worldmobilize" },
 ];
 
+/**
+ * "Companion" and "Overlay" both pointed at /companion — the same href twice, so the
+ * second was a no-op. The overview page gets its own entry instead.
+ */
 export const COMPANION_CHILD_ITEMS: SiteNavItem[] = [
-  { label: "Companion", href: "/companion", matchPrefix: "/companion" },
-  { label: "Overlay", href: "/companion" },
+  { label: "Download", href: "/companion", matchPrefix: "/companion" },
+  { label: "What it does", href: "/companion/about", matchPrefix: "/companion/about" },
 ];
 
 /** Account section (login/logout is rendered from auth state, not listed here). */
@@ -183,11 +187,24 @@ export const ACCOUNT_NAV_ITEMS: SiteNavItem[] = [
  * Account/settings actions live in the separated bottom section instead.
  */
 export const DRAWER_MORE_ITEMS: SiteNavItem[] = [
-  { label: "How it works", href: "/how-it-works", matchPrefix: "/how-it-works" },
-  { label: "Creator program", href: "/creators", matchPrefix: "/creators" },
+  { label: "Features", href: "/how-it-works", matchPrefix: "/how-it-works" },
+  // "Creator program" (/creators) stays out of this public list until the program
+  // can actually pay people — see CREATORS_NAV_ITEM, rendered admin-only in the drawer.
   { label: "About", href: "/about", matchPrefix: "/about" },
   { label: "Contact", href: "/contact", matchPrefix: "/contact" },
 ];
+
+/**
+ * Creator Referral Program — admin-only until it can actually pay people. Kept out
+ * of DRAWER_MORE_ITEMS (the public list) and rendered separately behind an isAdmin
+ * check in the drawer, the same way WorldMobilize's children are gated. The page
+ * itself is already admin-gated in the middleware (ADMIN_ONLY_PREFIXES).
+ */
+export const CREATORS_NAV_ITEM: SiteNavItem = {
+  label: "Creator program",
+  href: "/creators",
+  matchPrefix: "/creators",
+};
 
 /** Bottom "Account & settings" area of the drawer (member-only entries). */
 export const DRAWER_ACCOUNT_ITEMS: SiteNavItem[] = [

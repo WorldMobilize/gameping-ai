@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import {
   COMPANION_CHILD_ITEMS,
   COMPANION_NAV_ITEM,
+  CREATORS_NAV_ITEM,
   DISCOVER_HUB_NAV_ITEM,
   DISCOVERY_CHILD_ITEMS,
   DRAWER_ACCOUNT_ITEMS,
@@ -280,6 +281,8 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
           <div className={sectionClass}>
             {sectionHeading("More")}
             {DRAWER_MORE_ITEMS.map((item) => renderNavItem(item))}
+            {/* Creator program — admin-only until it can actually pay people. */}
+            {isAdmin ? renderNavItem(CREATORS_NAV_ITEM) : null}
           </div>
         </nav>
 

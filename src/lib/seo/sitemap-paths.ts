@@ -10,7 +10,9 @@ export const STATIC_PUBLIC_PATHS = [
   "/",
   "/discover",
   "/collections",
-  "/worldmobilize/about",
+  // "/worldmobilize/about" is NOT here: the route renders a Coming Soon placeholder
+  // and is noindex. Advertising a page in the sitemap while telling the crawler not
+  // to index it is a contradiction the crawler resolves against you.
   "/companion/about",
   "/recommend",
   "/games",

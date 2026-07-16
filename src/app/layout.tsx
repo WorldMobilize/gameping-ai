@@ -25,7 +25,7 @@ import ConditionalFloatingFeedback from "@/components/ConditionalFloatingFeedbac
 import ConditionalFooter from "@/components/ConditionalFooter";
 import { FeedbackProvider } from "@/components/FeedbackProvider";
 import { HOME_THEME_INIT_SCRIPT } from "@/components/home/home-theme";
-import { Analytics } from "@vercel/analytics/next";
+import ConsentedAnalytics from "@/components/ConsentedAnalytics";
 import {
   DEFAULT_SITE_DESCRIPTION,
   DEFAULT_SITE_TITLE,
@@ -86,7 +86,7 @@ export default function RootLayout({
           </AppProviders>
         </FeedbackProvider>
         <CookieBanner />
-        <Analytics />
+        <ConsentedAnalytics />
       </body>
     </html>
   );

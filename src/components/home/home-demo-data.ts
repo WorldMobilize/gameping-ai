@@ -439,7 +439,7 @@ export const HOME_HOW_CARDS = [
     id: "discovery",
     title: "Keep discovering",
     summary:
-      "Save searches, track games, and sync your Steam library so your GamePing DNA makes every result more personal.",
+      "Save searches, track games, and sync your Steam library so your Taste DNA makes every result more personal.",
     href: "/how-it-works/discovery",
   },
 ] as const;
@@ -472,7 +472,7 @@ export const HOME_JOURNEY_STEPS = [
     items: [
       { label: "Saved games", soon: false },
       { label: "Price tracking", soon: false },
-      { label: "GamePing DNA", soon: false },
+      { label: "Taste DNA", soon: false },
     ],
   },
 ] as const;
@@ -565,7 +565,7 @@ export const HOME_WHY_CAROUSEL = [
 export const HOME_FUTURE_ROADMAP = [
   {
     id: "steam-import",
-    title: "Steam Library Sync",
+    title: "Steam Import",
     detail:
       "Connect your Steam library so GamePing understands what you actually play — not just what you search.",
     chips: ["Played games", "Playtime patterns", "Owned games"] as const,
@@ -573,7 +573,7 @@ export const HOME_FUTURE_ROADMAP = [
   },
   {
     id: "taste-memory",
-    title: "GamePing DNA",
+    title: "Taste DNA",
     detail:
       "Your personal gaming profile evolves from your library, searches, and saved games.",
     chips: ["Steam library", "Searches", "Saved games"] as const,
@@ -583,7 +583,7 @@ export const HOME_FUTURE_ROADMAP = [
 
 /**
  * Personalized Early Access — live Premium discovery areas generated from your
- * GamePing DNA. Linked from the landing's Premium section.
+ * Taste DNA. Linked from the landing's Premium section.
  */
 export const HOME_PREMIUM_EARLY_ACCESS = [
   {
@@ -627,7 +627,7 @@ export const HOME_TASTE_FLOW = {
 export const HOME_GAMING_RADAR = {
   tasteSignals: ["Story rich", "Exploration", "Strategy"],
   sourcesNow: ["Searches"],
-  sourcesComingSoon: ["Saved games", "Steam library import"],
+  sourcesComingSoon: ["Saved games", "Steam Import"],
   alertsNow: ["Outer Wilds dropped to $9.99 — a game you're tracking"],
   alertsComingSoon: ["New game matching your taste discovered"],
   notifyNow: "a tracked game gets a deal",
@@ -802,14 +802,14 @@ export type HomeRoadmapItem = {
 export const HOME_ROADMAP_ITEMS: HomeRoadmapItem[] = [
   {
     id: "steam-import",
-    label: "Steam Library Sync",
+    label: "Steam Import",
     detail:
       "Connect your Steam library so GamePing understands what you actually play — reading playtime patterns and favorite genres, and skipping games you already own.",
     icon: "steam",
   },
   {
     id: "taste-memory",
-    label: "GamePing DNA",
+    label: "Taste DNA",
     detail:
       "Your personal gaming profile evolves from your library, searches, and saved games — a sharper picture of your taste the more you use GamePing.",
     icon: "memory",
@@ -830,7 +830,7 @@ export const HOME_STEAM_IMPORT_ANALYSIS = [
   "Avoid owned games",
 ] as const;
 
-/** GamePing DNA mockup copy (visual only). */
+/** Taste DNA mockup copy (visual only). */
 export const HOME_TASTE_MEMORY_SOURCES = [
   { label: "Steam library", soon: false },
   { label: "Searches you make", soon: false },

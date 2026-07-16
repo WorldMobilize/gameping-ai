@@ -42,13 +42,13 @@ export const HOW_IT_WORKS_PAGES: HowItWorksPageMeta[] = [
     title: "Keep discovering",
     navLabel: "Keep discovering",
     description:
-      "Discovery continues after one search. Save recommendation runs, track games, get price alerts, and sync your Steam library so your GamePing DNA makes results more personal.",
-    body: "Save your runs, track games for price alerts, and sync Steam so your GamePing DNA makes every result more personal. Discovery keeps going after one search.",
+      "Discovery continues after one search. Save recommendation runs, track games, get price alerts, and sync your Steam library so your Taste DNA makes results more personal.",
+    body: "Save your runs, track games for price alerts, and sync Steam so your Taste DNA makes every result more personal. Discovery keeps going after one search.",
   },
   {
     slug: "steam-import",
-    title: "Steam Library Sync",
-    navLabel: "Steam Library Sync",
+    title: "Steam Import",
+    navLabel: "Steam Import",
     kicker: "Premium",
     description:
       "Connect your Steam library so GamePing understands what you actually play — not just what you search.",
@@ -56,8 +56,8 @@ export const HOW_IT_WORKS_PAGES: HowItWorksPageMeta[] = [
   },
   {
     slug: "taste-memory",
-    title: "GamePing DNA",
-    navLabel: "GamePing DNA",
+    title: "Taste DNA",
+    navLabel: "Taste DNA",
     kicker: "Premium",
     description:
       "Your personal gaming profile evolves from your library, searches, and saved games.",

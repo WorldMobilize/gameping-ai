@@ -77,7 +77,7 @@ type MenuCoords = { top: number; right: number };
 
 /**
  * Three product pillars in the navbar center — each a plain top-level link to
- * its own product hub/landing: Discovery (/discover, public), World Mobilize
+ * its own product hub/landing: Discovery (/discover, public), WorldMobilize
  * and Companion (admin-only alphas). No dropdowns; the nav communicates
  * products, not individual features. Premium stays as the right-side CTA.
  */

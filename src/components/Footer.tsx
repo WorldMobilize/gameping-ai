@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AdminCreatorFooterLink from "@/components/AdminCreatorFooterLink";
 import FeedbackButton from "@/components/FeedbackButton";
 import SocialPlatformIcon from "@/components/SocialPlatformIcon";
 import { EARLY_ACCESS_NOTICE } from "@/lib/product-copy";
@@ -100,11 +101,12 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
                 <Link href="/discover" className={linkClass}>
                   Discovery
                 </Link>
-                <Link href="/companion/about" className={linkClass}>
+                <Link href="/companion" className={linkClass}>
                   Desktop Companion
                 </Link>
                 <Link href="/worldmobilize" className={linkClass}>
                   WorldMobilize
+                  <span className="ml-2 rounded-full bg-slate-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Soon</span>
                 </Link>
                 <Link href="/upgrade" className={linkClass}>
                   Premium
@@ -144,12 +146,15 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
                 </Link>
                 <Link href="/weekly-picks" className={linkClass}>
                   Weekly picks
+                  <span className="ml-2 rounded-full bg-slate-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Premium</span>
                 </Link>
                 <Link href="/deals-for-you" className={linkClass}>
                   Deals for you
+                  <span className="ml-2 rounded-full bg-slate-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Premium</span>
                 </Link>
                 <Link href="/monthly-recap" className={linkClass}>
                   Monthly recap
+                  <span className="ml-2 rounded-full bg-slate-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Premium</span>
                 </Link>
               </div>
             </div>
@@ -166,9 +171,10 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
                 <Link href="/about" className={linkClass}>
                   About
                 </Link>
-                <Link href="/creators" className={linkClass}>
-                  Creator program
-                </Link>
+                {/* Creator program is admin-only until it can actually pay people —
+                    see the note on /creators. Rendered only for admins (client child),
+                    hidden from the public whose link would 404. */}
+                <AdminCreatorFooterLink className={linkClass} />
                 <Link href="/contact" className={linkClass}>
                   Contact
                 </Link>

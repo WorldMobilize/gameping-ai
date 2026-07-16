@@ -87,8 +87,6 @@ export const HIDDEN_GEM_FEATURED: HiddenGemPick = {
   skipIf: "You're after fast action or systems-driven progression.",
   tags: ["Narrative", "Choices matter", "Historical", "Hand-drawn"],
   discoveryCategory: "Story-first discoveries",
-  priceLabel: "≈ $19.99",
-  sourceNote: "Price + availability will come from live store data.",
 };
 
 export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
@@ -103,7 +101,6 @@ export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
     skipIf: "You dislike inventory management or deliberate pacing.",
     tags: ["Horror", "Atmospheric", "Retro", "Puzzle"],
     discoveryCategory: "Cult favorites",
-    priceLabel: "≈ $19.99",
   },
   {
     id: "norco",
@@ -116,7 +113,6 @@ export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
     skipIf: "You want action or quick sessions.",
     tags: ["Adventure", "Story-rich", "Surreal"],
     discoveryCategory: "Weird but brilliant",
-    priceLabel: "≈ $14.99",
   },
   {
     id: "citizen-sleeper",
@@ -129,7 +125,6 @@ export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
     skipIf: "You need combat or a big open world.",
     tags: ["RPG", "Narrative", "Sci-fi"],
     discoveryCategory: "Underplayed RPGs",
-    priceLabel: "≈ $19.99",
   },
   {
     id: "paradise-killer",
@@ -142,7 +137,6 @@ export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
     skipIf: "You prefer linear, hand-held mysteries.",
     tags: ["Investigation", "Open-ended", "Stylish"],
     discoveryCategory: "Experimental mechanics",
-    priceLabel: "≈ $19.99",
   },
   {
     id: "return-of-the-obra-dinn",
@@ -155,7 +149,6 @@ export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
     skipIf: "You dislike note-taking or 1-bit visuals.",
     tags: ["Mystery", "Deduction", "Puzzle"],
     discoveryCategory: "Difficult but rewarding",
-    priceLabel: "≈ $19.99",
   },
   {
     id: "the-case-of-the-golden-idol",
@@ -168,7 +161,6 @@ export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
     skipIf: "You want story over puzzle mechanics.",
     tags: ["Detective", "Puzzle", "Short"],
     discoveryCategory: "Short unforgettable games",
-    priceLabel: "≈ $17.99",
   },
   {
     id: "slay-the-princess",
@@ -181,7 +173,6 @@ export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
     skipIf: "You want gameplay systems beyond choices.",
     tags: ["Visual novel", "Horror", "Branching"],
     discoveryCategory: "Weird but brilliant",
-    priceLabel: "≈ $14.99",
   },
   {
     id: "dredge",
@@ -194,7 +185,6 @@ export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
     skipIf: "You want pure relaxation with no tension.",
     tags: ["Adventure", "Eerie", "Exploration"],
     discoveryCategory: "Cult favorites",
-    priceLabel: "≈ $24.99",
   },
   {
     id: "outer-wilds",
@@ -207,7 +197,6 @@ export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
     skipIf: "You get frustrated without waypoints or progress bars.",
     tags: ["Exploration", "Mystery", "Space"],
     discoveryCategory: "Difficult but rewarding",
-    priceLabel: "≈ $24.99",
   },
   {
     id: "a-short-hike",
@@ -220,7 +209,6 @@ export const HIDDEN_GEM_PICKS: HiddenGemPick[] = [
     skipIf: "You want depth or a long campaign.",
     tags: ["Cozy", "Exploration", "Wholesome"],
     discoveryCategory: "Cozy hidden picks",
-    priceLabel: "≈ $7.99",
   },
 ];
 
@@ -296,9 +284,6 @@ export const WEEKLY_FEATURED: WeeklyGamePick = {
   whyThisWeek:
     "A perfect cold-evening puzzle: one sitting, one notebook, and a mystery you'll think about all week. It frequently dips in price, making now a great time to finally play it.",
   bestFor: "Deduction fans who want a complete, self-contained experience.",
-  priceLabel: "≈ $19.99",
-  dealNote: "Often discounted ~40%",
-  sourceNote: "Live deal data will replace this placeholder.",
 };
 
 export const WEEKLY_GAME_PICKS: WeeklyGamePick[] = [
@@ -311,8 +296,6 @@ export const WEEKLY_GAME_PICKS: WeeklyGamePick[] = [
     whyThisWeek:
       "One of the best-written RPGs ever made, and it regularly drops to a fraction of its price — an easy pickup right now.",
     bestFor: "Readers who want consequence over combat.",
-    priceLabel: "≈ $39.99",
-    dealNote: "Save up to 70%",
   },
   {
     id: "citizen-sleeper-weekly",
@@ -323,7 +306,6 @@ export const WEEKLY_GAME_PICKS: WeeklyGamePick[] = [
     whyThisWeek:
       "A short, humane sci-fi RPG that slipped past a lot of people — a great palate cleanser between bigger games.",
     bestFor: "Players who like tabletop-style choices.",
-    priceLabel: "≈ $19.99",
   },
   {
     id: "outer-wilds-weekly",
@@ -334,7 +316,6 @@ export const WEEKLY_GAME_PICKS: WeeklyGamePick[] = [
     whyThisWeek:
       "If you've never finished it, this is the week — and if you have, the DLC is worth a fresh loop.",
     bestFor: "Explorers chasing that one-of-a-kind payoff.",
-    priceLabel: "≈ $24.99",
   },
   {
     id: "pentiment-weekly",
@@ -345,7 +326,6 @@ export const WEEKLY_GAME_PICKS: WeeklyGamePick[] = [
     whyThisWeek:
       "A reactive historical mystery that reads like an illuminated manuscript — ideal for a slower, story-led week.",
     bestFor: "Narrative fans who want their choices to matter.",
-    priceLabel: "≈ $19.99",
   },
   {
     id: "deep-rock-galactic-weekly",
@@ -356,7 +336,6 @@ export const WEEKLY_GAME_PICKS: WeeklyGamePick[] = [
     whyThisWeek:
       "Rock-solid co-op mining with friends — endlessly repeatable and great for a weekend session. Rock and Stone.",
     bestFor: "Groups who want approachable, fun co-op.",
-    priceLabel: "≈ $29.99",
   },
   {
     id: "case-golden-idol-weekly",
@@ -367,7 +346,6 @@ export const WEEKLY_GAME_PICKS: WeeklyGamePick[] = [
     whyThisWeek:
       "A tidy run of detective puzzles you can finish over a weekend, with that 'one more case' pull.",
     bestFor: "Mystery solvers short on time.",
-    priceLabel: "≈ $17.99",
   },
   {
     id: "dredge-weekly",
@@ -378,7 +356,6 @@ export const WEEKLY_GAME_PICKS: WeeklyGamePick[] = [
     whyThisWeek:
       "A cozy-then-creepy fishing adventure that keeps finding new players — easy to recommend, hard to put down.",
     bestFor: "Anyone wanting calm with a sinister undertow.",
-    priceLabel: "≈ $24.99",
   },
   {
     id: "norco-weekly",
@@ -389,6 +366,5 @@ export const WEEKLY_GAME_PICKS: WeeklyGamePick[] = [
     whyThisWeek:
       "An award-winning Southern-gothic adventure for a week when you want atmosphere over action.",
     bestFor: "Players who read every line and love a strong sense of place.",
-    priceLabel: "≈ $14.99",
   },
 ];

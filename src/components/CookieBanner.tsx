@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { readConsent, setConsent } from "@/lib/cookie-consent";
 
 export default function CookieBanner() {
   // Server and first client render must agree (both render nothing): reading
@@ -9,16 +10,18 @@ export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    setVisible(!window.localStorage.getItem("cookie_consent"));
+    setVisible(readConsent() === null);
   }, []);
 
+  // Nothing is tracked and no id is stored until "Accept" is pressed — see
+  // lib/cookie-consent.ts. Rejecting simply records the no, so we stop asking.
   function acceptCookies() {
-    localStorage.setItem("cookie_consent", "accepted");
+    setConsent("accepted");
     setVisible(false);
   }
 
   function rejectCookies() {
-    localStorage.setItem("cookie_consent", "rejected");
+    setConsent("rejected");
     setVisible(false);
   }
 

@@ -80,20 +80,6 @@ export default function DiscoverHubView() {
             Discovery is a growing suite of AI-powered tools that help you find games in different
             ways — from a quick prompt to curated lists, hidden gems, and deals matched to your taste.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/recommend"
-              className="inline-flex items-center justify-center rounded-full bg-blue-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-            >
-              Get recommendations
-            </Link>
-            <Link
-              href="/games"
-              className="inline-flex items-center justify-center gap-2 rounded-full border px-6 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/40 border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-white dark:border-white/12 dark:text-white/85 dark:hover:border-white/25 dark:hover:bg-white/[0.04]"
-            >
-              Browse the library
-            </Link>
-          </div>
         </div>
 
         {/* Explore — public tools */}

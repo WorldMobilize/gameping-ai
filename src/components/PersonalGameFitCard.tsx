@@ -72,7 +72,7 @@ function PersonalGameFitContent({ fit }: { fit: PersonalGameFit }) {
         Is this game right for you?
       </h2>
       <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-        Based on your Gaming DNA and this game&apos;s design.
+        Based on your Taste DNA and this game&apos;s design.
       </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -91,7 +91,7 @@ function PersonalGameFitContent({ fit }: { fit: PersonalGameFit }) {
       <FitBulletList title="Potential concerns" items={fit.potentialConcerns} variant="con" />
 
       <p className="mt-8 border-t border-slate-100 pt-5 text-xs leading-relaxed text-slate-600 dark:border-white/10 dark:text-white/70">
-        From your imported Steam library. Search recommendations do not use Gaming DNA yet.
+        From your imported Steam library. Search recommendations do not use Taste DNA yet.
       </p>
     </div>
   );

@@ -59,3 +59,36 @@ export function isMaintenanceExempt(pathname: string): boolean {
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`) || pathname.startsWith(prefix)
   );
 }
+
+/**
+ * Pages that are built but NOT ready for the public: they describe features that do
+ * not exist, ship fake demo data, hand out an alpha installer, or promise money from
+ * a referral programme that cannot pay anyone. Admins only, until they are real.
+ *
+ * Enforced in the middleware, and that is not an implementation detail. The gate used
+ * to live in the page tree (`AdminOnlyPageGate`), which blocks the CONTENT but cannot
+ * fix the STATUS: by the time an async Supabase lookup deep in the tree calls
+ * notFound(), the 200 has already gone out, and the page becomes a soft-404 — a page
+ * that tells Google "here I am, all fine" while showing a not-found body. Deciding in
+ * the middleware means nothing has been sent yet, so a real 404 is still possible.
+ */
+const ADMIN_ONLY_PREFIXES = [
+  "/community-wars",
+  "/parties",
+  "/creators",
+];
+
+/**
+ * Companion is NOT here, on purpose: it ships with the site, so /companion,
+ * /companion/web and /companion/about are all public.
+ *
+ * Worth knowing anyway: gating those pages would not have protected the app. The
+ * installer is a PUBLIC object in Supabase Storage, and /api/companion/releases/latest
+ * hands its URL to anyone who asks. Hiding the page hides the button, not the file —
+ * so if Companion ever needs to be paid-only, the fix belongs in the bucket, not here.
+ */
+export function isAdminOnlyPath(pathname: string): boolean {
+  return ADMIN_ONLY_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}

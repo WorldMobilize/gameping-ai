@@ -6,7 +6,6 @@ import PremiumComingNext from "@/components/discovery/PremiumComingNext";
 import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsell";
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
 import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
-import PremiumRotationAdminLine from "@/components/discovery/PremiumRotationAdminLine";
 import PremiumSignalRefresh from "@/components/discovery/PremiumSignalRefresh";
 import PremiumUpdateStatus from "@/components/discovery/PremiumUpdateStatus";
 import WeeklyPickPremiumCard from "@/components/discovery/WeeklyPickPremiumCard";
@@ -133,7 +132,6 @@ export default async function MonthlyRecapPage({
               ? aiSummary.summary
               : "See how your taste evolved and discover what to play next."}
           </p>
-          <PremiumRotationAdminLine viewer={access.viewer} meta={meta} aiUsed={meta?.sourceSummary?.aiUsed} />
 
           {isGenerated && access.viewer === "admin" ? (
             <div className="mt-6">
@@ -389,7 +387,7 @@ export default async function MonthlyRecapPage({
             title="Built from your activity"
             items={[
               { label: "Steam library", description: "Your played games and playtime shape this recap." },
-              { label: "GamePing DNA", description: "Your taste profile evolves as you discover, save, and track games." },
+              { label: "Taste DNA", description: "Your taste profile evolves as you discover, save, and track games." },
             ]}
           />
         </AppSection>

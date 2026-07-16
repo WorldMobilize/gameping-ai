@@ -1660,7 +1660,7 @@ export default function RecommendPage() {
                           {resolveRecommendFitBody(game.reason)}
                         </p>
                         <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
-                          Based on this search — not your saved Gaming DNA yet.
+                          Based on this search — not your saved Taste DNA yet.
                         </p>
                       </div>
 
@@ -1780,8 +1780,8 @@ export default function RecommendPage() {
                   {!loggedUserId
                     ? "Try GamePing without an account: 3 searches/day."
                     : isPremiumOrAdminPlan(userPlan)
-                      ? "Premium: 50 recommendations/day, 25 saved searches, 50 tracked games, plus your GamePing DNA."
-                      : "Free: 10 recommendations/day, 3 saved searches, 5 tracked games."}
+                      ? "Premium: 50 recommendations/day, 25 saved runs, 50 tracked games, plus your Taste DNA."
+                      : "Free: 10 recommendations/day, 3 saved runs, 5 tracked games."}
                 </p>
               )}
             </div>

@@ -74,7 +74,7 @@ export default function FeatureBento({ className = "" }: { className?: string })
           <Reveal className="md:col-span-2" delay={120}>
             <div className={TILE}>
               <PremiumIcon><Icon>{GLYPH_DNA}</Icon></PremiumIcon>
-              <h3 className={TITLE}>Your GamePing DNA</h3>
+              <h3 className={TITLE}>Your Taste DNA</h3>
               <p className={DESC}>Sync Steam for a taste profile that makes every pick sharper.</p>
             </div>
           </Reveal>

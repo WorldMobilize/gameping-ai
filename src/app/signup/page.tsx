@@ -127,7 +127,7 @@ function SignupForm() {
   return (
     <AuthShell
       title="Create your account"
-      subtitle="Save your game preferences, track prices, and get smart alerts."
+      subtitle="Save your game preferences, track prices, and get price alerts."
       footer={
         <>
           Already have an account?{" "}
@@ -214,7 +214,7 @@ function SignupForm() {
 
 function SignupFallback() {
   return (
-    <AuthShell title="Create your account" subtitle="Save your game preferences and get smart alerts.">
+    <AuthShell title="Create your account" subtitle="Save your game preferences and get price alerts.">
       <div className="flex flex-col gap-4">
         <div className="h-[70px] rounded-xl bg-slate-100 dark:bg-white/[0.04]" />
         <div className="h-[70px] rounded-xl bg-slate-100 dark:bg-white/[0.04]" />

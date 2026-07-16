@@ -75,17 +75,17 @@ export default function BuildGameDnaCard() {
   const copy = {
     anon: {
       body: "Create a free account and connect your Steam library, and GamePing can explain whether each game matches your taste—not just its genre tags.",
-      note: "Your Gaming DNA powers personal fit on every game page.",
+      note: "Your Taste DNA powers personal fit on every game page.",
       cta: { label: "Create an account", href: "/signup" },
     },
     free: {
       body: "Personal fit is a Premium feature. Upgrade to connect your Steam library, and GamePing can explain whether each game matches your taste—not just its genre tags.",
-      note: "Gaming DNA powers fit on game pages. Search recommendations are coming next.",
+      note: "Taste DNA powers fit on game pages. Search recommendations are coming next.",
       cta: { label: "See Premium", href: "/upgrade" },
     },
     can_import: {
       body: "Connect your Steam library and GamePing can explain whether each game matches your taste—not just its genre tags.",
-      note: "Gaming DNA powers fit on game pages. Search recommendations are coming next.",
+      note: "Taste DNA powers fit on game pages. Search recommendations are coming next.",
       cta: { label: "Connect Steam", href: STEAM_SETTINGS_HREF },
     },
     import_unavailable: {

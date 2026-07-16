@@ -307,7 +307,6 @@ export default function HowItWorksDetailView({
       "Save your recommendation runs and revisit them anytime",
       "Track games you're interested in and get price alerts when they drop",
       "Sync your Steam library so picks skip what you already own",
-      "Premium personalization — Weekly Picks, Deals For You, and Monthly Recap from your GamePing DNA",
     ];
     const future = [
       "Weekly Picks — a fresh set of recommendations from your taste profile",
@@ -380,7 +379,7 @@ export default function HowItWorksDetailView({
     ] as const;
     const future = [
       "Personalized picks that skip games you already own",
-      "A sharper GamePing DNA built from your real playtime",
+      "A sharper Taste DNA built from your real playtime",
       "Weekly Picks, Deals For You, and Monthly Recap tuned to your library",
     ];
 
@@ -390,7 +389,7 @@ export default function HowItWorksDetailView({
           <p className={cardEyebrow}>What it does</p>
           <h2 className={`mt-2 ${cardTitle}`}>Connect your Steam library</h2>
           <p className={`mt-3 ${cardBody}`}>
-            Steam Library Sync lets you securely connect your Steam account so GamePing understands
+            Steam Import lets you securely connect your Steam account so GamePing understands
             the games you already own and play. Instead of guessing from one prompt, it learns from
             your real history — making every recommendation more personal.
           </p>
@@ -449,7 +448,7 @@ export default function HowItWorksDetailView({
             ))}
           </ul>
           <p className={`mt-4 text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-            Steam Library Sync is live today — connect it from your account settings to start
+            Steam Import is live today — connect it from your account settings to start
             personalizing your picks, deals, and recap.
           </p>
         </article>
@@ -481,9 +480,9 @@ export default function HowItWorksDetailView({
       <div className="space-y-6">
         <article className={card}>
           <p className={cardEyebrow}>What it does</p>
-          <h2 className={`mt-2 ${cardTitle}`}>Your GamePing DNA, built from how you play</h2>
+          <h2 className={`mt-2 ${cardTitle}`}>Your Taste DNA, built from how you play</h2>
           <p className={`mt-3 ${cardBody}`}>
-            Your GamePing DNA builds a picture of what you enjoy from your Steam library, searches,
+            Your Taste DNA builds a picture of what you enjoy from your Steam library, searches,
             and saved games — so picks feel like they already know you, without you having to
             re-explain yourself every time. The more you use GamePing, the sharper it gets.
           </p>
@@ -533,7 +532,7 @@ export default function HowItWorksDetailView({
               ))}
             </ul>
             <p className={`mt-4 text-sm ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-              Your GamePing DNA is live as part of Premium and sharpens every pick the more you use GamePing.
+              Your Taste DNA is live as part of Premium and sharpens every pick the more you use GamePing.
             </p>
           </article>
         </div>

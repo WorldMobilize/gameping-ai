@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import AdminOnlyPageGate from "@/components/discovery/AdminOnlyPageGate";
 import {
   CREATOR_MILESTONES,
   CREATOR_TIERS,
@@ -61,8 +62,21 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
 ];
 
+/**
+ * Admin-only until the program exists.
+ *
+ * This page publishes concrete earnings figures — "~€200/month", "~€2,775 first-year
+ * potential", 20–30% recurring commission, milestone bonuses — for a referral program
+ * that `lib/creator-program.ts` itself describes as having no referral tracking, no
+ * payouts and no Stripe wiring. It was public, indexable and linked from the footer.
+ *
+ * Promising people money you have no way to pay them is the most exposed thing on the
+ * site, so the page comes down until the program is real. The copy is untouched — it
+ * is the audience that changes.
+ */
 export default function CreatorProgramPage() {
   return (
+    <AdminOnlyPageGate>
     <AppPageShell className="overflow-x-hidden">
       {/* Hero */}
       <AppSection maxWidth="max-w-5xl" className="pt-12">
@@ -215,5 +229,6 @@ export default function CreatorProgramPage() {
         </div>
       </AppSection>
     </AppPageShell>
+    </AdminOnlyPageGate>
   );
 }

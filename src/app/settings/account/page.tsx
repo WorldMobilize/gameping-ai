@@ -416,7 +416,7 @@ export default function AccountSettingsPage() {
             href="/dashboard"
             className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-4 hover:underline"
           >
-            ← Back to dashboard
+            Back to dashboard
           </Link>
         </p>
         </AppSection>

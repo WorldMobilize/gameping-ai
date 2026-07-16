@@ -2,12 +2,12 @@ import Link from "next/link";
 import { AppSection } from "@/components/app/AppPageShell";
 
 /**
- * Placeholder shown on every World Mobilize route while the product is not ready.
+ * Placeholder shown on every WorldMobilize route while the product is not ready.
  *
- * World Mobilize is intentionally locked pre-launch: we don't want visitors (or
+ * WorldMobilize is intentionally locked pre-launch: we don't want visitors (or
  * search engines) to reach half-built territory/claim features. The real views
  * still exist in the codebase — the routes just render this until launch, and
- * every World Mobilize page is noindex. Presentation only; no data, no logic.
+ * every WorldMobilize page is noindex. Presentation only; no data, no logic.
  */
 function LockIcon({ className = "h-7 w-7" }: { className?: string }) {
   return (
@@ -27,7 +27,7 @@ export default function WorldMobilizeComingSoon() {
         </span>
 
         <p className="mt-8 text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
-          World Mobilize
+          WorldMobilize
         </p>
 
         <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white sm:text-5xl gp-home-display">

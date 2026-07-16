@@ -417,6 +417,14 @@ export default function Dashboard() {
                   {" · "}
                 </>
               )}
+              {isPremiumPlan ? (
+                <>
+                  <Link href="/taste-dna" className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-2 hover:underline">
+                    Taste DNA
+                  </Link>
+                  {" · "}
+                </>
+              ) : null}
               <Link href="/settings/account" className="font-semibold text-[color:var(--page-accent-strong)] underline-offset-2 hover:underline">
                 Account &amp; deletion
               </Link>

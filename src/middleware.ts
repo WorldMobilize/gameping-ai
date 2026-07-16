@@ -1,6 +1,10 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
-import { MAINTENANCE_MODE, isMaintenanceExempt } from "@/lib/maintenance"
+import {
+  MAINTENANCE_MODE,
+  isAdminOnlyPath,
+  isMaintenanceExempt,
+} from "@/lib/maintenance"
 import { MAINTENANCE_HEADERS, maintenanceHtml } from "@/lib/maintenance-page"
 
 /**
@@ -93,6 +97,18 @@ export async function middleware(request: NextRequest) {
         headers: MAINTENANCE_HEADERS,
       })
     }
+  }
+
+  /* ── Admin-only pages ──────────────────────────────────────────────────────
+   * Not-ready pages (the Companion installer, Parties, Community Wars, the creator
+   * programme) simply do not exist for anyone else. Rewriting to a path that has no
+   * route makes Next serve the app's own 404 page WITH a 404 status — which the page
+   * tree could not do on its own once streaming had started.
+   */
+  if (isAdminOnlyPath(pathname) && !(await isAdmin(supabase))) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/_not-found"
+    return NextResponse.rewrite(url)
   }
 
   return response

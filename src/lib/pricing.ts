@@ -8,13 +8,15 @@ import { PLAN_QUOTAS } from "@/lib/plan-quotas";
 
 export type BillingInterval = "month" | "year";
 
-export const FREE_PRICE = "€0";
+export const FREE_PRICE = "$0";
 
+// Amounts are in USD. The `_EUR`-suffixed names are kept only to avoid touching
+// the (unshipped) creator-program math that imports them; the numbers are USD.
 export const PREMIUM_MONTHLY_PRICE_EUR = 7.99;
-export const PREMIUM_YEARLY_PRICE_EUR = 69.99;
+export const PREMIUM_YEARLY_PRICE_EUR = 79.99;
 
-export const PREMIUM_MONTHLY_PRICE = "€7.99";
-export const PREMIUM_YEARLY_PRICE = "€69.99";
+export const PREMIUM_MONTHLY_PRICE = "$7.99";
+export const PREMIUM_YEARLY_PRICE = "$79.99";
 
 /** Rounded % saved on yearly vs 12× monthly (for the "save" badge). */
 export const PREMIUM_YEARLY_SAVINGS_PCT = Math.round(
@@ -36,17 +38,20 @@ export function premiumPeriod(interval: BillingInterval): string {
  */
 export const FREE_FEATURES: string[] = [
   "Desktop Companion overlay + text chat",
-  `${PLAN_QUOTAS.freeRecommendDaily} AI searches per day`,
-  `${PLAN_QUOTAS.freeSavedSearches} saved searches · ${PLAN_QUOTAS.freeTrackedGames} tracked games`,
+  `${PLAN_QUOTAS.freeRecommendDaily} recommendations per day`,
+  `${PLAN_QUOTAS.freeSavedSearches} saved runs · ${PLAN_QUOTAS.freeTrackedGames} tracked games`,
   "Price-drop alerts",
   "Build your taste profile over time",
 ];
 
+// Order matters: the landing shows the first 4, so those are balanced across BOTH
+// products — two Companion, two Discovery — instead of one Companion line buried
+// under discovery perks. The full six read on /upgrade.
 export const PREMIUM_FEATURES: string[] = [
   "Unlimited Companion requests + voice chat",
-  `${PLAN_QUOTAS.premiumRecommendDaily} AI searches per day`,
-  `${PLAN_QUOTAS.premiumSavedSearches} saved · ${PLAN_QUOTAS.premiumTrackedGames} tracked games`,
-  "Steam import, taste memory & smart alerts",
+  "Companion memory & resume sessions across games",
+  `${PLAN_QUOTAS.premiumRecommendDaily} recommendations per day`,
   "Weekly Picks, Deals For You & Monthly Recap",
-  "Companion memory & resume sessions",
+  "Steam Import & Taste DNA",
+  `${PLAN_QUOTAS.premiumSavedSearches} saved runs · ${PLAN_QUOTAS.premiumTrackedGames} tracked games`,
 ];

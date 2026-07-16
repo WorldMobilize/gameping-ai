@@ -69,15 +69,13 @@ const COMPARISON_GROUPS: { title: string; rows: Row[] }[] = [
   {
     title: "GamePing",
     rows: [
-      { label: "AI searches per day", free: `${PLAN_QUOTAS.freeRecommendDaily}`, premium: `${PLAN_QUOTAS.premiumRecommendDaily}` },
-      { label: "Saved searches", free: `${PLAN_QUOTAS.freeSavedSearches}`, premium: `${PLAN_QUOTAS.premiumSavedSearches}` },
+      { label: "Recommendations per day", free: `${PLAN_QUOTAS.freeRecommendDaily}`, premium: `${PLAN_QUOTAS.premiumRecommendDaily}` },
+      { label: "Saved runs", free: `${PLAN_QUOTAS.freeSavedSearches}`, premium: `${PLAN_QUOTAS.premiumSavedSearches}` },
       { label: "Tracked games", free: `${PLAN_QUOTAS.freeTrackedGames}`, premium: `${PLAN_QUOTAS.premiumTrackedGames}` },
       { label: "Price-drop alerts", free: true, premium: true },
-      { label: "Taste memory", free: false, premium: true },
-      { label: "Steam library import", free: false, premium: true },
-      { label: "Smart taste alerts", free: false, premium: true },
+      { label: "Taste DNA", free: false, premium: true },
+      { label: "Steam Import", free: false, premium: true },
       { label: "Monthly gaming recap", free: false, premium: true },
-      { label: "Advanced discovery", free: false, premium: true },
       { label: "Early access to new features", free: false, premium: true },
     ],
   },
@@ -137,8 +135,8 @@ function ComparisonTable() {
 /* ── FAQ (native accordion) ─────────────────────────────────── */
 const FAQ: { q: string; a: ReactNode }[] = [
   {
-    q: "What is a saved search?",
-    a: "A saved search stores a recommendation run — your prompt and filters — so you can revisit it from your dashboard. Price-drop alerts come from tracking individual games on their game pages.",
+    q: "What is a saved run?",
+    a: "A saved run stores a recommendation — your prompt and filters — so you can revisit it from your dashboard. Price-drop alerts come from tracking individual games on their game pages.",
   },
   {
     q: "How do price alerts work?",
@@ -316,6 +314,38 @@ function UpgradeContent() {
             {profilePlan === "premium" ? <ManageBillingButton /> : null}
           </div>
         </div>
+
+        {/* For Creators — admin-only. Admins land on this "full access" panel instead
+            of the pricing grid, so the creator card lives here rather than among the
+            Free/Premium upsell cards (which make no sense for an account that already
+            has everything). Hidden from the public until the programme can pay:
+            no referral tracking / payouts yet, /creators is admin-gated in middleware. */}
+        {profilePlan === "admin" ? (
+          <div className={`relative mt-5 flex flex-col rounded-3xl border p-7 ring-1 ring-blue-400/20 md:p-8 ${CARD}`}>
+            <div aria-hidden className="pointer-events-none absolute -inset-2 -z-10 rounded-[1.75rem] bg-blue-500/10 blur-xl" />
+            <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${BODY}`}>For Creators</p>
+            <div className="mt-4 flex items-baseline gap-1.5">
+              <span className={`text-4xl font-semibold tracking-tight ${HEADING}`}>Earn</span>
+              <span className={`text-sm ${BODY}`}>with your audience</span>
+            </div>
+            <p className={`mt-3 text-sm ${BODY}`}>
+              Share GamePing with your community and earn recurring commission while referred members stay Premium.
+            </p>
+            <Link href="/creators" className="mt-6 block sm:w-auto"><span className={`${GHOST_CTA} sm:w-auto sm:px-6`}>Explore the creator program</span></Link>
+            <ul className="mt-7 flex flex-col gap-3">
+              {[
+                `${CREATOR_BASE_COMMISSION_PCT}% recurring commission to start`,
+                "Higher tiers as your community grows",
+                "One-time milestone bonuses",
+              ].map((f) => (
+                <li key={f} className={`flex items-start gap-2.5 text-sm ${BODY}`}>
+                  <Check className="text-slate-400 dark:text-slate-500" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </>
     );
   }
@@ -352,8 +382,8 @@ function UpgradeContent() {
         </div>
       </div>
 
-      {/* Plan cards */}
-      <div className="mt-8 grid items-stretch gap-5 lg:grid-cols-3">
+      {/* Plan cards — two, not three: the creator card is out until the programme exists. */}
+      <div className="mx-auto mt-8 grid max-w-3xl items-stretch gap-5 lg:grid-cols-2">
         {/* Free */}
         <div className={`flex h-full flex-col rounded-3xl border p-7 md:p-8 ${CARD}`}>
           <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${BODY}`}>Free</p>
@@ -414,31 +444,11 @@ function UpgradeContent() {
           </ul>
         </div>
 
-        {/* For Creators — mid prominence (more than Free, less than Premium) */}
-        <div className={`relative flex h-full flex-col rounded-3xl border p-7 ring-1 ring-blue-400/20 md:p-8 ${CARD}`}>
-          <div aria-hidden className="pointer-events-none absolute -inset-2 -z-10 rounded-[1.75rem] bg-blue-500/10 blur-xl" />
-          <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${BODY}`}>For Creators</p>
-          <div className="mt-4 flex items-baseline gap-1.5">
-            <span className={`text-4xl font-semibold tracking-tight ${HEADING}`}>Earn</span>
-            <span className={`text-sm ${BODY}`}>with your audience</span>
-          </div>
-          <p className={`mt-3 text-sm ${BODY}`}>
-            Share GamePing with your community and earn recurring commission while referred members stay Premium.
-          </p>
-          <Link href="/creators" className="mt-6 block"><span className={GHOST_CTA}>Explore the creator program</span></Link>
-          <ul className="mt-7 flex flex-col gap-3">
-            {[
-              `${CREATOR_BASE_COMMISSION_PCT}% recurring commission to start`,
-              "Higher tiers as your community grows",
-              "One-time milestone bonuses",
-            ].map((f) => (
-              <li key={f} className={`flex items-start gap-2.5 text-sm ${BODY}`}>
-                <Check className="text-slate-400 dark:text-slate-500" />
-                {f}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {/* The "For Creators" card lived here — same promise as on the landing, same
+            problem: recurring commission and milestone bonuses for a programme with
+            no referral tracking and no payouts. /creators is admin-only until it can
+            pay, so this card would link to a 404 and, worse, sell something we do not
+            have. Bring it back (and the grid to three columns) when it is real. */}
       </div>
     </>
   );

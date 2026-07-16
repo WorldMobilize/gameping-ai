@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { AppSection } from "@/components/app/AppPageShell";
 import PageBreadcrumbs from "@/components/PageBreadcrumbs";
 import type { GameBreadcrumbItem } from "@/lib/seo/game-page";
@@ -18,10 +17,8 @@ import DiscoveryRotationMeta, {
 } from "@/components/discovery/DiscoveryRotationMeta";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import {
-  HIDDEN_GEM_CATEGORIES,
   HIDDEN_GEM_FEATURED,
   HIDDEN_GEM_PICKS,
-  type HiddenGemCategory,
   type HiddenGemPick,
 } from "@/lib/discovery/curated-picks";
 
@@ -31,16 +28,6 @@ const ACCENT_BADGE =
 // Borderless tag pill — frosted fill only, no outline.
 const VIBE_TAG =
   "inline-flex items-center whitespace-nowrap rounded-full bg-slate-100/80 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-white/[0.06] dark:text-slate-300";
-
-// Borderless filter chips: frosted glass surface + soft shadow for depth (no
-// outline in any state). Selected = page-accent fill + accent glow + bolder text.
-// Keyboard focus ring is kept (accessibility, not a decorative border).
-function chipClass(active: boolean) {
-  return active
-    ? "rounded-full bg-[var(--page-accent-soft)] px-4 py-2 text-sm font-bold text-[color:var(--page-accent-text)] shadow-[0_6px_18px_-6px_var(--page-accent-glow)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]"
-    : "rounded-full bg-white/70 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-sm transition hover:bg-white hover:text-[color:var(--page-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.12]";
-}
-
 
 function GemCard({ pick }: { pick: HiddenGemPick }) {
   const href = gameDetailPath(pick.title);
@@ -100,15 +87,7 @@ export default function HiddenGemsView({
   /** Public breadcrumb (visible + BreadcrumbList JSON-LD). */
   breadcrumbs?: GameBreadcrumbItem[];
 } = {}) {
-  const [active, setActive] = useState<HiddenGemCategory | "All">("All");
-
-  const visible = useMemo(
-    () =>
-      active === "All"
-        ? picks
-        : picks.filter((p) => p.discoveryCategory === active),
-    [active, picks]
-  );
+  const visible = picks;
 
   const featuredHref = gameDetailPath(featured.title);
 
@@ -140,30 +119,7 @@ export default function HiddenGemsView({
         </Link>
       </div>
 
-      {/* 2 — Discovery categories / filters */}
-      <section className="mt-14" aria-labelledby="hidden-gems-categories">
-        <h2 id="hidden-gems-categories" className="text-sm font-bold uppercase tracking-[0.2em] text-slate-300">
-          Browse by discovery type
-        </h2>
-        <div className="mt-4 flex flex-wrap gap-2.5" role="group" aria-label="Filter hidden gems by category">
-          <button type="button" onClick={() => setActive("All")} className={chipClass(active === "All")} aria-pressed={active === "All"}>
-            All
-          </button>
-          {HIDDEN_GEM_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setActive(cat)}
-              className={chipClass(active === cat)}
-              aria-pressed={active === cat}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* 3 — Featured hidden gem */}
+      {/* 2 — Featured hidden gem */}
       <section className="mt-12" aria-labelledby="hidden-gems-featured">
         <h2 id="hidden-gems-featured" className="text-2xl font-extrabold text-white">
           Featured hidden gem
@@ -213,7 +169,7 @@ export default function HiddenGemsView({
         </article>
       </section>
 
-      {/* 4 — Hidden Gems grid */}
+      {/* 3 — Hidden Gems grid */}
       <section className="mt-12" aria-labelledby="hidden-gems-grid-heading">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="hidden-gems-grid-heading" className="text-2xl font-extrabold text-white">
@@ -221,7 +177,6 @@ export default function HiddenGemsView({
           </h2>
           <p className="text-sm text-slate-300" aria-live="polite">
             {visible.length} pick{visible.length === 1 ? "" : "s"}
-            {active !== "All" ? ` in ${active}` : ""}
           </p>
         </div>
         {visible.length > 0 ? (
@@ -248,19 +203,23 @@ export default function HiddenGemsView({
         )}
       </section>
 
-      {/* 5 — Fresh-discovery note */}
+      {/* 4 — What this page is.
+           Only a generated rotation (`meta`) earns the "we refresh this from store
+           data and AI analysis" line. Without one the page is a hand-picked list
+           that does not change, and it says that instead. */}
       <section className={`mt-12 ${APP_CARD_LG}`} aria-labelledby="hidden-gems-fresh">
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
-            Fresh hidden-gem discovery
+            {meta ? "Fresh hidden-gem discovery" : "Hand-picked hidden gems"}
           </p>
         </div>
         <h2 id="hidden-gems-fresh" className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
           Overlooked games, surfaced for you
         </h2>
         <p className={`mt-3 max-w-2xl ${APP_MUTED}`}>
-          GamePing refreshes this page with overlooked games worth your time, combining store data,
-          player signals, and AI taste analysis.
+          {meta
+            ? "GamePing refreshes this page with overlooked games worth your time, combining store data, player signals, and AI taste analysis."
+            : "These gems are chosen by hand, not generated. Open any game to see its live price and current deals."}
         </p>
       </section>
     </AppSection>

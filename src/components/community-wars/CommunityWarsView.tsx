@@ -12,7 +12,7 @@ import {
 /**
  * Community Wars — ADMIN-ONLY CONCEPT DEMO (static, visual only).
  *
- * The live creator layer of World Mobilize: Twitch streamers rally their
+ * The live creator layer of WorldMobilize: Twitch streamers rally their
  * audiences into factions that push territory momentum during live campaigns.
  * Everything here is hard-coded demo data — NO Twitch integration, NO real
  * voting, NO payments, NO database. The page is admin-gated and noindexed.
@@ -78,7 +78,7 @@ export default function CommunityWarsView() {
       {/* Hero */}
       <div className="flex flex-wrap items-center gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-strong)]">
-          World Mobilize · Live layer
+          WorldMobilize · Live layer
         </p>
         <span className={DEMO_PILL}>Admin-only concept demo</span>
         <span className={ACCENT_BADGE}>Static prototype</span>
@@ -91,14 +91,14 @@ export default function CommunityWarsView() {
       </p>
       <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-200">
         Creator-led battles where Twitch communities rally, push momentum, and fight for
-        territory inside World Mobilize.
+        territory inside WorldMobilize.
       </p>
       <p className={`mt-3 ${APP_MUTED}`}>
         Static prototype — no live Twitch integration yet, no real voting, no payments.
       </p>
       <div className="mt-8">
         <Link href="/worldmobilize" className={APP_PRIMARY_CTA_ACCENT_SM}>
-          Open the World Mobilize map
+          Open the WorldMobilize map
         </Link>
       </div>
 
@@ -266,7 +266,7 @@ export default function CommunityWarsView() {
           Territory impact
         </h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-300">
-          Campaign momentum lands on the World Mobilize map: two communities pushing one region.
+          Campaign momentum lands on the WorldMobilize map: two communities pushing one region.
         </p>
         <div className={`${APP_CARD_LG} mt-6 p-6 md:p-7`}>
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">

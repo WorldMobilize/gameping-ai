@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import { NAVY_CTA_LG, NAVY_OUTLINE } from "@/components/app/app-styles";
+import { supabase } from "@/lib/supabase";
+import { CREATOR_BASE_COMMISSION_PCT } from "@/lib/creator-program";
 import CompanionOverlayDemo from "@/components/home/landing/CompanionOverlayDemo";
 import DiscoveryMorphShowcase from "@/components/home/landing/DiscoveryMorphShowcase";
 import FeatureBento from "@/components/home/landing/FeatureBento";
@@ -24,9 +26,6 @@ import Reveal from "@/components/home/landing/Reveal";
 import TrustStrip from "@/components/home/landing/TrustStrip";
 import WorldMobilizeComingSoonChapter from "@/components/home/landing/WorldMobilizeComingSoonChapter";
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
-import {
-  CREATOR_BASE_COMMISSION_PCT,
-} from "@/lib/creator-program";
 import {
   FREE_FEATURES,
   FREE_PRICE,
@@ -107,12 +106,7 @@ export default function HomeEcosystemLanding() {
         <SpacePlanet />
 
         <div className="relative z-10 mx-auto max-w-4xl px-6 pb-20 pt-32 text-center sm:pb-28 sm:pt-48">
-          <span className="gp-hero-rise inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/70 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-300" style={{ animationDelay: "0ms" }}>
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
-            An ecosystem for gamers
-          </span>
-
-          <h1 className={`gp-hero-rise gp-home-display mt-10 text-[2.5rem] font-bold leading-[1.06] sm:text-[3.5rem] lg:text-[4.75rem] ${heading}`} style={{ animationDelay: "90ms" }}>
+          <h1 className={`gp-hero-rise gp-home-display text-[2.5rem] font-bold leading-[1.06] sm:text-[3.5rem] lg:text-[4.75rem] ${heading}`} style={{ animationDelay: "90ms" }}>
             <span className="block lg:whitespace-nowrap">The home for gamers.</span>
             <span className="block lg:whitespace-nowrap">One connected <span className="text-blue-700 dark:text-blue-400">world</span>.</span>
           </h1>
@@ -195,8 +189,9 @@ export default function HomeEcosystemLanding() {
             ))}
           </div>
 
-          <div className="mt-12 flex justify-center">
-            <Link href="/companion/about" className={NAVY_CTA_LG}>Get Companion</Link>
+          <div className="mt-12 flex flex-col items-center gap-3">
+            <Link href="/companion" className={NAVY_CTA_LG}>Get Companion</Link>
+            <p className={`text-xs font-medium uppercase tracking-[0.18em] ${body}`}>Windows · in alpha</p>
           </div>
         </div>
       </section>
@@ -222,6 +217,39 @@ export default function HomeEcosystemLanding() {
 /* ═══════════ Pricing chapter ═══════════ */
 function PricingChapter({ heading, body, eyebrow, isDark, card }: { heading: string; body: string; eyebrow: string; isDark: boolean; card: string }) {
   const [interval, setInterval] = useState<BillingInterval>("month");
+  // Admin-only: the "For Creators" card promises recurring commission from a
+  // programme with no payouts yet (see lib/creator-program.ts), so it stays
+  // hidden from the public until it can actually pay. Same profiles.plan read
+  // the drawer uses — no new auth.
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAdmin() {
+      const { data } = await supabase.auth.getUser();
+      if (cancelled) return;
+      if (!data.user) {
+        setIsAdmin(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+      if (!cancelled) setIsAdmin(profile?.plan === "admin");
+    }
+
+    void loadAdmin();
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      void loadAdmin();
+    });
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   const premiumCompact = PREMIUM_FEATURES.slice(0, 4);
   const freeCompact = FREE_FEATURES.slice(0, 3);
@@ -256,8 +284,10 @@ function PricingChapter({ heading, body, eyebrow, isDark, card }: { heading: str
           </div>
         </div>
 
-        {/* plans — Free + Premium + For Creators, prices match /upgrade */}
-        <div className="mx-auto mt-10 grid max-w-5xl items-stretch gap-6 md:grid-cols-3">
+        {/* plans — Free + Premium (+ For Creators for admins only, prices match /upgrade).
+            The creator card is admin-gated below; the grid widens to three columns only
+            when it's shown, so the public still sees a balanced two-column layout. */}
+        <div className={`mx-auto mt-10 grid items-stretch gap-6 ${isAdmin ? "max-w-5xl md:grid-cols-3" : "max-w-3xl md:grid-cols-2"}`}>
           {/* Free */}
           <Reveal>
             <div className={`flex h-full flex-col rounded-[1.75rem] border p-7 md:p-8 ${card}`}>
@@ -304,27 +334,31 @@ function PricingChapter({ heading, body, eyebrow, isDark, card }: { heading: str
             </div>
           </Reveal>
 
-          {/* For Creators — mid prominence (more than Free, less than Premium) */}
-          <Reveal delay={180}>
-            <div className={`relative flex h-full flex-col rounded-[1.75rem] border p-7 ring-1 ring-blue-400/20 md:p-8 ${card}`}>
-              <div aria-hidden className="pointer-events-none absolute -inset-2 -z-10 rounded-[1.9rem] bg-blue-500/10 blur-xl" />
-              <p className={`text-[13px] font-semibold uppercase tracking-[0.14em] ${body}`}>For Creators</p>
-              <div className="mt-6 flex items-baseline gap-1.5">
-                <span className={`text-[2.25rem] font-bold leading-none tracking-tight ${heading}`}>Earn</span>
-                <span className={`text-sm ${body}`}>with your audience</span>
+          {/* For Creators — admin-only until the programme can actually pay (no referral
+              tracking / payouts wired up yet; /creators is admin-gated in the middleware).
+              Mid prominence: more than Free, less than Premium. */}
+          {isAdmin ? (
+            <Reveal delay={180}>
+              <div className={`relative flex h-full flex-col rounded-[1.75rem] border p-7 ring-1 ring-blue-400/20 md:p-8 ${card}`}>
+                <div aria-hidden className="pointer-events-none absolute -inset-2 -z-10 rounded-[1.9rem] bg-blue-500/10 blur-xl" />
+                <p className={`text-[13px] font-semibold uppercase tracking-[0.14em] ${body}`}>For Creators</p>
+                <div className="mt-6 flex items-baseline gap-1.5">
+                  <span className={`text-[2.25rem] font-bold leading-none tracking-tight ${heading}`}>Earn</span>
+                  <span className={`text-sm ${body}`}>with your audience</span>
+                </div>
+                <p className={`mt-3 text-sm ${body}`}>Share GamePing with your community and earn recurring commission while referred members stay Premium.</p>
+                <Link href="/creators" className={`mt-7 w-full !px-4 !py-2.5 ${NAVY_OUTLINE}`}>Explore the creator program</Link>
+                <ul className="mt-8 flex flex-col gap-3.5">
+                  {[`${CREATOR_BASE_COMMISSION_PCT}% recurring commission to start`, "Higher tiers as your community grows", "One-time milestone bonuses"].map((f) => (
+                    <li key={f} className="flex items-start gap-2.5 text-sm">
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400"><path d="M5 12l5 5 9-11" /></Icon>
+                      <span className={heading}>{f}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p className={`mt-3 text-sm ${body}`}>Share GamePing with your community and earn recurring commission while referred members stay Premium.</p>
-              <Link href="/creators" className={`mt-7 w-full !px-4 !py-2.5 ${NAVY_OUTLINE}`}>Explore the creator program</Link>
-              <ul className="mt-8 flex flex-col gap-3.5">
-                {[`${CREATOR_BASE_COMMISSION_PCT}% recurring commission to start`, "Higher tiers as your community grows", "One-time milestone bonuses"].map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-sm">
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400"><path d="M5 12l5 5 9-11" /></Icon>
-                    <span className={heading}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Reveal>
+            </Reveal>
+          ) : null}
         </div>
 
         <p className={`mt-8 text-center text-sm ${body}`}>

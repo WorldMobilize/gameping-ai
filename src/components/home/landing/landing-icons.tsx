@@ -158,7 +158,7 @@ export const GLYPH_LIBRARY: ReactNode = (
   </>
 );
 
-/** Your GamePing DNA — a double helix. */
+/** Your Taste DNA — a double helix. */
 export const GLYPH_DNA: ReactNode = (
   <>
     <path d="M9 3Q15 7 9 12 3 17 9 21" />

@@ -6,15 +6,24 @@ import type {
   ProductAnalyticsMetadata,
 } from "./types";
 
+import { hasAnalyticsConsent } from "@/lib/cookie-consent";
+
 const ANON_KEY = "gp_anonymous_id";
 const SESSION_KEY = "gp_session_id";
 const SESSION_STARTED_KEY = "gp_session_started";
-const CONSENT_KEY = "cookie_consent";
 export const PRODUCT_ANALYTICS_EVENT_PATH = "/api/analytics/event";
 
+/**
+ * Consent is OPT-IN, not opt-out, and the rule lives in ONE place (lib/cookie-consent).
+ *
+ * This used to read `!== "rejected"`, which means "track everyone until they say no"
+ * — and on a first visit the banner has not been answered, so that key is absent and
+ * the visitor was tracked before being asked. Under ePrivacy the question is not what
+ * you store but WHEN: nothing goes on the visitor's device, and nothing is sent about
+ * them, until they have actually said yes.
+ */
 function canTrack(): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(CONSENT_KEY) !== "rejected";
+  return hasAnalyticsConsent();
 }
 
 function newId(): string {
@@ -24,8 +33,17 @@ function newId(): string {
   return `gp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/**
+ * The id generators MUST refuse to write without consent, not just the send path.
+ *
+ * Gating only the network call would still leave a persistent identifier sitting in
+ * the visitor's localStorage — and it is the WRITING of that identifier, not the
+ * sending, that ePrivacy asks permission for. So the guard lives here too, where the
+ * storage actually happens, and no caller can bypass it by accident.
+ */
 export function getAnonymousId(): string {
-  if (typeof window === "undefined") return "";
+  if (!canTrack()) return "";
+
   let id = localStorage.getItem(ANON_KEY);
   if (!id) {
     id = newId();
@@ -35,7 +53,8 @@ export function getAnonymousId(): string {
 }
 
 export function getSessionId(): string {
-  if (typeof window === "undefined") return "";
+  if (!canTrack()) return "";
+
   let id = sessionStorage.getItem(SESSION_KEY);
   if (!id) {
     id = newId();

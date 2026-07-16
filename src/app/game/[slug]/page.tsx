@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { notFound } from "next/navigation";
+import { VERIFIED_TITLE_MATCH_MIN, titleMatchQuality } from "@/lib/title-match";
 import AppPageShell from "@/components/app/AppPageShell";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import {
@@ -114,42 +116,75 @@ function derivePricingUiMode(
   return "unavailable";
 }
 
-async function getRawgGame(title: string): Promise<RawgGame | null> {
-  try {
-    const slug = encodeURIComponent(title.trim().toLowerCase());
-    const cached = await getCachedRawgGame<RawgGame>(slug);
-    if (cached) return cached;
+/**
+ * "RAWG has never heard of this game" and "RAWG did not answer" are NOT the same
+ * answer, and the page must not treat them as one.
+ *
+ * The first deserves a 404. The second must never produce one: RAWG rate-limits and
+ * has outages, and a lookup that failed for ten minutes would otherwise 404 every
+ * real game page on the site — long enough for a crawler to notice and start pulling
+ * them out of the index. So a failed lookup renders the page in a degraded state, as
+ * it always did, and only a definitive "no match" 404s.
+ */
+type RawgLookup = { game: RawgGame | null; lookupFailed: boolean };
 
+async function getRawgGame(title: string): Promise<RawgLookup> {
+  const slug = encodeURIComponent(title.trim().toLowerCase());
+
+  try {
+    const cached = await getCachedRawgGame<RawgGame>(slug);
+    if (cached) return { game: cached, lookupFailed: false };
+  } catch {
+    // Cache miss or cache down — fall through to RAWG, which is the source anyway.
+  }
+
+  try {
     const searchRes = await fetch(
       `https://api.rawg.io/api/games?key=${
         process.env.RAWG_API_KEY
-      }&search=${encodeURIComponent(title)}&page_size=1`,
+      }&search=${encodeURIComponent(title)}&page_size=5`,
       { cache: "no-store" }
     );
 
-    const searchData = await searchRes.json();
-    const firstGame = searchData.results?.[0];
+    if (!searchRes.ok) return { game: null, lookupFailed: true };
 
-    if (!firstGame?.id) return null;
+    const searchData = (await searchRes.json()) as {
+      results?: { id?: number; name?: string }[];
+    };
+
+    /* RAWG's search NEVER says "no". Ask it for "zzzqqqxxx-not-a-game" and it returns
+       64,965 results, the first of which is an unrelated game — so taking results[0]
+       on faith meant every made-up URL rendered a real game page for the WRONG game.
+       Same title-match gate the rest of the codebase already uses (collections,
+       pricing): the best candidate has to actually BE the game we asked for. */
+    const best = (searchData.results ?? [])
+      .filter((r): r is { id: number; name: string } =>
+        typeof r?.id === "number" && typeof r?.name === "string"
+      )
+      .map((r) => ({ r, score: titleMatchQuality(title, r.name) }))
+      .sort((a, b) => b.score - a.score)[0];
+
+    // RAWG answered, and nothing it returned is this game. A real 404.
+    if (!best || best.score < VERIFIED_TITLE_MATCH_MIN) {
+      return { game: null, lookupFailed: false };
+    }
 
     const detailRes = await fetch(
-      `https://api.rawg.io/api/games/${firstGame.id}?key=${process.env.RAWG_API_KEY}`,
+      `https://api.rawg.io/api/games/${best.r.id}?key=${process.env.RAWG_API_KEY}`,
       { cache: "no-store" }
     );
 
-    const payload = await detailRes.json();
+    if (!detailRes.ok) return { game: null, lookupFailed: true };
+
+    const payload = (await detailRes.json()) as RawgGame;
 
     try {
-      await setCachedRawgGame({
-        slug,
-        title,
-        rawgPayload: payload,
-      });
+      await setCachedRawgGame({ slug, title, rawgPayload: payload });
     } catch {}
 
-    return payload;
+    return { game: payload, lookupFailed: false };
   } catch {
-    return null;
+    return { game: null, lookupFailed: true };
   }
 }
 
@@ -202,10 +237,22 @@ function parseRecommendFitContext(
   return { reason, matchNote, match, matchTier };
 }
 
+/**
+ * The line shown when the visitor did NOT arrive from a recommendation, so there is
+ * no real match to report.
+ *
+ * It used to read "Often clicks with {genre} fans exploring the catalog" — an
+ * engagement statistic we do not have. No click data is collected anywhere in this
+ * codebase, so the sentence was inventing a fact about other people's behaviour on
+ * every catalog page. It now says what is actually true: the genre, and that a
+ * recommendation is what personalises this.
+ */
 function catalogAudienceLine(genres?: string): string {
   const first = genres?.split(",")[0]?.trim();
-  if (first) return `Often clicks with ${first.toLowerCase()} fans exploring the catalog.`;
-  return "A solid pick to explore before you personalize GamePing with a recommendation search.";
+  if (first) {
+    return `A ${first.toLowerCase()} pick. Run a recommendation to see how well it fits you.`;
+  }
+  return "Run a recommendation to see how well this fits your taste.";
 }
 
 export async function generateMetadata({
@@ -244,7 +291,15 @@ export default async function GameDetailPage({
     nodeEnv: process.env.NODE_ENV,
   });
 
-  const rawg = await getRawgGame(title);
+  const { game: rawg, lookupFailed } = await getRawgGame(title);
+
+  /* RAWG answered and has no such game → 404, which is the truthful answer to
+     "what is /game/asdfgh". Before this, ANY slug rendered a page: the URL
+     title-cased, "No official description available for this game yet", and no
+     data — an indexable soft-404 for every string anyone cared to type.
+     A FAILED lookup is deliberately excluded: see getRawgGame. */
+  if (!rawg && !lookupFailed) notFound();
+
   const gameId = rawg?.id;
 
   const settled = await Promise.allSettled([

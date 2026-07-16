@@ -6,7 +6,6 @@ import PremiumComingNext from "@/components/discovery/PremiumComingNext";
 import PremiumDiscoveryUpsell from "@/components/discovery/PremiumDiscoveryUpsell";
 import PremiumPersonalEmptyState from "@/components/discovery/PremiumPersonalEmptyState";
 import PremiumRefreshButton from "@/components/discovery/PremiumRefreshButton";
-import PremiumRotationAdminLine from "@/components/discovery/PremiumRotationAdminLine";
 import PremiumSignalRefresh from "@/components/discovery/PremiumSignalRefresh";
 import PremiumUpdateStatus from "@/components/discovery/PremiumUpdateStatus";
 import WeeklyPickPremiumCard from "@/components/discovery/WeeklyPickPremiumCard";
@@ -117,7 +116,6 @@ export default async function WeeklyPicksPage({
               ? aiSummary.summary
               : "Fresh recommendations based on your taste, library, and what you might enjoy next."}
           </p>
-          <PremiumRotationAdminLine viewer={access.viewer} meta={meta} aiUsed={meta?.sourceSummary?.aiUsed} />
 
           {/* Admin-only manual refresh (debug). Premium users see a clean
            * "updated weekly" caption — content is curated/scheduled, not on-demand. */}
@@ -180,7 +178,7 @@ export default async function WeeklyPicksPage({
           <PremiumComingNext
             items={[
               { label: "Steam Library", description: "Your played games help GamePing understand your preferences." },
-              { label: "GamePing DNA", description: "Your taste profile evolves as you discover, save, and track games." },
+              { label: "Taste DNA", description: "Your taste profile evolves as you discover, save, and track games." },
             ]}
           />
           <p className={`mt-10 text-xs ${APP_MUTED}`}>

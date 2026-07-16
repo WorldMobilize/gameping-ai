@@ -148,7 +148,7 @@ function buildCards(s: Snapshot): CardModel[] {
             key: "dna",
             title: "Taste DNA",
             desc: "Your play-style fingerprint, built from your Steam library.",
-            href: SETTINGS_STEAM,
+            href: "/taste-dna",
             cta: "View",
             status:
               s.steamGameCount != null
@@ -160,7 +160,7 @@ function buildCards(s: Snapshot): CardModel[] {
               key: "dna",
               title: "Taste DNA",
               desc: "Your play-style fingerprint, built from your Steam library.",
-              href: SETTINGS_STEAM,
+              href: "/taste-dna",
               cta: "Finish setup",
               status: "Steam connected — Taste DNA not built yet",
             }
@@ -168,7 +168,7 @@ function buildCards(s: Snapshot): CardModel[] {
               key: "dna",
               title: "Taste DNA",
               desc: "Your play-style fingerprint, built from your Steam library.",
-              href: SETTINGS_STEAM,
+              href: "/taste-dna",
               cta: "Connect Steam",
               status: "Connect Steam to build your Taste DNA",
             }
@@ -189,7 +189,7 @@ function buildCards(s: Snapshot): CardModel[] {
       s.steamConnected
         ? {
             key: "steam",
-            title: "Steam Library",
+            title: "Steam Import",
             desc: "Your imported library powers your personalized tools.",
             href: SETTINGS_STEAM,
             cta: "Manage",
@@ -200,7 +200,7 @@ function buildCards(s: Snapshot): CardModel[] {
           }
         : {
             key: "steam",
-            title: "Steam Library",
+            title: "Steam Import",
             desc: "Import your library to power your personalized tools.",
             href: SETTINGS_STEAM,
             cta: "Connect Steam",
@@ -210,7 +210,7 @@ function buildCards(s: Snapshot): CardModel[] {
   } else {
     cards.push({
       key: "steam",
-      title: "Steam Library",
+      title: "Steam Import",
       desc: "Powers Weekly Picks, Deals For You, Monthly Recap & Taste DNA.",
       href: PUBLIC_HREF.steam,
       cta: "See how it works",

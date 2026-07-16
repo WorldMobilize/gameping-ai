@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { AppSection } from "@/components/app/AppPageShell";
 import PageBreadcrumbs from "@/components/PageBreadcrumbs";
 import type { GameBreadcrumbItem } from "@/lib/seo/game-page";
@@ -18,10 +17,8 @@ import DiscoveryRotationMeta, {
 } from "@/components/discovery/DiscoveryRotationMeta";
 import { gameDetailPath } from "@/lib/curated/game-links";
 import {
-  WEEKLY_CATEGORIES,
   WEEKLY_FEATURED,
   WEEKLY_GAME_PICKS,
-  type WeeklyCategory,
   type WeeklyGamePick,
 } from "@/lib/discovery/curated-picks";
 
@@ -31,15 +28,6 @@ const ACCENT_BADGE =
 // Savings/deal note — green carries the "you save" meaning regardless of page accent.
 const DEAL_NOTE =
   "inline-flex items-center whitespace-nowrap rounded-full bg-green-50 px-2.5 py-0.5 text-[11px] font-bold text-green-800 ring-1 ring-green-200/80 dark:bg-green-500/15 dark:text-green-200 dark:ring-green-500/25";
-
-// Borderless filter chips: frosted glass surface + soft shadow for depth (no
-// outline in any state). Selected = page-accent fill + accent glow + bolder text.
-// Keyboard focus ring is kept (accessibility, not a decorative border).
-function chipClass(active: boolean) {
-  return active
-    ? "rounded-full bg-[var(--page-accent-soft)] px-4 py-2 text-sm font-bold text-[color:var(--page-accent-text)] shadow-[0_6px_18px_-6px_var(--page-accent-glow)] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)]"
-    : "rounded-full bg-white/70 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur-sm transition hover:bg-white hover:text-[color:var(--page-accent-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--page-accent-border)] dark:bg-white/[0.06] dark:text-slate-200 dark:hover:bg-white/[0.12]";
-}
 
 function WeeklyCard({ pick }: { pick: WeeklyGamePick }) {
   const href = gameDetailPath(pick.title);
@@ -104,15 +92,7 @@ export default function GamesOfWeekView({
    */
   canViewWeeklyPicks?: boolean;
 } = {}) {
-  const [active, setActive] = useState<WeeklyCategory | "All">("All");
-
-  const visible = useMemo(
-    () =>
-      active === "All"
-        ? picks
-        : picks.filter((p) => p.category === active),
-    [active, picks]
-  );
+  const visible = picks;
 
   const featuredHref = gameDetailPath(featured.title);
 
@@ -144,30 +124,7 @@ export default function GamesOfWeekView({
         </Link>
       </div>
 
-      {/* 2 — Weekly categories */}
-      <section className="mt-14" aria-labelledby="gotw-categories">
-        <h2 id="gotw-categories" className="text-sm font-bold uppercase tracking-[0.2em] text-slate-300">
-          Browse by category
-        </h2>
-        <div className="mt-4 flex flex-wrap gap-2.5" role="group" aria-label="Filter weekly picks by category">
-          <button type="button" onClick={() => setActive("All")} className={chipClass(active === "All")} aria-pressed={active === "All"}>
-            All
-          </button>
-          {WEEKLY_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setActive(cat)}
-              className={chipClass(active === cat)}
-              aria-pressed={active === cat}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* 3 — This week's featured pick */}
+      {/* 2 — This week's featured pick */}
       <section className="mt-12" aria-labelledby="gotw-featured">
         <h2 id="gotw-featured" className="text-2xl font-extrabold text-white">
           This week&apos;s featured pick
@@ -214,7 +171,7 @@ export default function GamesOfWeekView({
         </article>
       </section>
 
-      {/* 4 — Weekly grid */}
+      {/* 3 — Weekly grid */}
       <section className="mt-12" aria-labelledby="gotw-grid-heading">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 id="gotw-grid-heading" className="text-2xl font-extrabold text-white">
@@ -222,7 +179,6 @@ export default function GamesOfWeekView({
           </h2>
           <p className="text-sm text-slate-300" aria-live="polite">
             {visible.length} pick{visible.length === 1 ? "" : "s"}
-            {active !== "All" ? ` in ${active}` : ""}
           </p>
         </div>
         {visible.length > 0 ? (
@@ -249,17 +205,23 @@ export default function GamesOfWeekView({
         )}
       </section>
 
-      {/* 5 — Updated-weekly note */}
+      {/* 4 — What this page is.
+           The "refreshed weekly from live signals" claim is only TRUE when a
+           rotation has actually been generated — `meta` is exactly that signal.
+           With no rotation the page is showing a hand-picked static set, and it
+           says so, because promising a weekly refresh over content that never
+           changes is a claim the page cannot keep. */}
       <section className={`mt-12 ${APP_CARD_LG}`} aria-labelledby="gotw-fresh">
         <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">
-          Updated weekly
+          {meta ? "Updated weekly" : "Hand-picked"}
         </p>
         <h2 id="gotw-fresh" className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
-          A rotating set of picks
+          {meta ? "A rotating set of picks" : "A curated set of picks"}
         </h2>
         <p className={`mt-3 max-w-2xl ${APP_MUTED}`}>
-          GamePing refreshes this page every week with new discovery signals, pulling standout
-          deals and overlooked games worth your attention right now.
+          {meta
+            ? "GamePing refreshes this page every week with new discovery signals, pulling standout deals and overlooked games worth your attention right now."
+            : "These picks are chosen by hand, not generated. Open any game to see its live price and current deals."}
         </p>
       </section>
     </AppSection>

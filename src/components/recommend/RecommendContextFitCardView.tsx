@@ -23,7 +23,7 @@ export default function RecommendContextFitCardView({
   theme = "dark",
   density = "page",
   context,
-  transparencyNote = "Based on this search — not your saved Gaming DNA yet.",
+  transparencyNote = "Based on this search — not your saved Taste DNA yet.",
 }: RecommendContextFitCardViewProps) {
   const isLight = theme === "light";
   const isDemo = density === "demo";
