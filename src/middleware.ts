@@ -1,4 +1,5 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
+import { createClient } from "@supabase/supabase-js"
 import { NextResponse, type NextRequest } from "next/server"
 import {
   MAINTENANCE_MODE,
@@ -24,6 +25,61 @@ async function isAdmin(
     const {
       data: { user },
     } = await supabase.auth.getUser()
+    if (!user) return false
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("user_id", user.id)
+      .maybeSingle()
+
+    return profile?.plan === "admin"
+  } catch {
+    return false
+  }
+}
+
+const COMPANION_API_PREFIX = "/api/companion/"
+
+/**
+ * Is this a Companion API call carrying an admin's Bearer token?
+ *
+ * The desktop app authenticates with `Authorization: Bearer <token>` and sends NO
+ * cookies (see src/lib/companion/http.ts), so the cookie-based isAdmin() above can
+ * never see it — during maintenance that answers "not an admin" for everyone and
+ * locks even an admin out of their own app, which is how Companion ends up dead
+ * while the site is down.
+ *
+ * Scoped deliberately narrow: Companion API paths only, admins only. Maintenance
+ * still holds for every other Companion user, so this widens the door by exactly
+ * one person and nothing else.
+ *
+ * Same failure posture as isAdmin(): anything that goes wrong answers "no".
+ */
+async function isCompanionAdminRequest(request: NextRequest): Promise<boolean> {
+  if (!request.nextUrl.pathname.startsWith(COMPANION_API_PREFIX)) return false
+
+  const header = request.headers.get("authorization")?.trim() ?? ""
+  const token = /^Bearer\s+(.+)$/i.exec(header)?.[1]?.trim()
+  if (!token) return false
+
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      }
+    )
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser(token)
     if (!user) return false
 
     const { data: profile } = await supabase
@@ -72,7 +128,10 @@ export async function middleware(request: NextRequest) {
    * lookup below only ever runs while the site is actually down.
    */
   if (MAINTENANCE_MODE && !isMaintenanceExempt(pathname)) {
-    const admin = await isAdmin(supabase)
+    // Two ways to prove you are an admin: the cookie session (browser) or a Bearer
+    // token (the desktop Companion, which has no cookies to offer).
+    const admin =
+      (await isAdmin(supabase)) || (await isCompanionAdminRequest(request))
 
     if (!admin) {
       // An API call must not be answered with an HTML page: the caller is code, and
