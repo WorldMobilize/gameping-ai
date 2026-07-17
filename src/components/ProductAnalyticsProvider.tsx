@@ -15,11 +15,14 @@ import {
 
 const HEARTBEAT_MS = 30_000;
 
-export default function ProductAnalyticsProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+/**
+ * Renders nothing and wraps nothing — it holds no context, it just watches the
+ * route and reports. It used to take `children` and hand them straight back,
+ * which put the whole app inside its Suspense boundary; useSearchParams() bails
+ * out of prerendering, so that boundary took every page's static HTML down with
+ * it (see AppProviders). It is a sibling of the app now, not its parent.
+ */
+export default function ProductAnalyticsProvider() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const lastPathRef = useRef<string | null>(null);
@@ -71,5 +74,5 @@ export default function ProductAnalyticsProvider({
     return () => window.clearInterval(id);
   }, []);
 
-  return children;
+  return null;
 }

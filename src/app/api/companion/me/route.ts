@@ -115,7 +115,13 @@ export async function GET(req: Request) {
         tracked_games: trackedCount,
       },
       entitlements: {
-        price_alerts: isPremium,
+        // Free too, and that is not an oversight: nothing gates alerts by plan.
+        // The cron that mails them (api/cron/route.ts:263) does not even SELECT
+        // profiles.plan, and a premium→free downgrade leaves five tracked games
+        // actively alerting. This flag used to say `isPremium` — matching the
+        // shape of its neighbours rather than the feature — and told the desktop
+        // free users had no alerts while the backend kept emailing them.
+        price_alerts: true,
         weekly_picks: hasPremiumDiscoveryAccess(plan),
         deals_for_you: hasPremiumDiscoveryAccess(plan),
         monthly_recap: hasPremiumDiscoveryAccess(plan),

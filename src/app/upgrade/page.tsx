@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fragment, Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
+import { APP_CALLOUT } from "@/components/app/app-styles";
 import ManageBillingButton from "@/components/ManageBillingButton";
 import UpgradePageAtmosphere from "@/components/upgrade/UpgradePageAtmosphere";
 import { UPGRADE_PAGE_MAX_WIDTH } from "@/components/upgrade/upgrade-plan-styles";
@@ -73,10 +74,22 @@ const COMPARISON_GROUPS: { title: string; rows: Row[] }[] = [
       { label: "Recommendations per day", free: `${PLAN_QUOTAS.freeRecommendDaily}`, premium: `${PLAN_QUOTAS.premiumRecommendDaily}` },
       { label: "Saved runs", free: `${PLAN_QUOTAS.freeSavedSearches}`, premium: `${PLAN_QUOTAS.premiumSavedSearches}` },
       { label: "Tracked games", free: `${PLAN_QUOTAS.freeTrackedGames}`, premium: `${PLAN_QUOTAS.premiumTrackedGames}` },
+      // Free as well — see the entitlement note in api/companion/me: nothing in
+      // the alert path reads the plan, so this row states what actually happens.
       { label: "Price-drop alerts", free: true, premium: true },
+      // The personalised picks. Every row is a real gate, enforced by
+      // resolvePremiumPageAccess / hasPremiumDiscoveryAccess — the Premium card
+      // above already sold these, and the table simply never listed them.
+      // Deliberately NOT a row: "refresh picks on demand". It is real (premium
+      // can regenerate a rotation early) but it is a property of the picks
+      // themselves — someone who has no Weekly Picks has not also lost the
+      // ability to refresh them. A table earns trust by being short and true.
+      { label: "Weekly Picks", free: false, premium: true },
+      { label: "Deals For You", free: false, premium: true },
+      { label: "Monthly gaming recap", free: false, premium: true },
+      { label: "Personalised Games of the Week", free: false, premium: true },
       { label: "Taste DNA", free: false, premium: true },
       { label: "Steam Import", free: false, premium: true },
-      { label: "Monthly gaming recap", free: false, premium: true },
       { label: "Early access to new features", free: false, premium: true },
     ],
   },
@@ -134,14 +147,18 @@ function ComparisonTable() {
 }
 
 /* ── FAQ (native accordion) ─────────────────────────────────── */
+// Premium first: this FAQ sits under the Premium pricing, so it answers what
+// Premium is — not how the free mechanics work. The two questions it used to
+// open with explained saved runs and price alerts, both of which the comparison
+// above marks as Free.
 const FAQ: { q: string; a: ReactNode }[] = [
   {
-    q: "What is a saved run?",
-    a: "A saved run stores a recommendation — your prompt and filters — so you can revisit it from your dashboard. Price-drop alerts come from tracking individual games on their game pages.",
+    q: "What does Premium actually unlock?",
+    a: "The personalised side of GamePing: Weekly Picks, Deals For You, your Monthly Recap, and a Games of the Week list built around you — plus Steam Import and Taste DNA, which are what those picks are built from. The caps rise too: 50 recommendations a day instead of 10, 25 saved runs, and 50 tracked games.",
   },
   {
-    q: "How do price alerts work?",
-    a: "When a tracked game's verified price drops significantly, GamePing notifies you so you never miss a deal on something you want.",
+    q: "What are Steam Import and Taste DNA?",
+    a: "Steam Import connects your Steam library so GamePing learns from the games you own and your playtime — and stops suggesting what you already have. Taste DNA is the profile built from that library plus your searches and saved games, and it is what powers Weekly Picks, Deals For You and your Monthly Recap. The more you use it, the sharper it gets.",
   },
   {
     q: "How does billing work?",
@@ -574,9 +591,16 @@ function UpgradeContent() {
   );
 }
 
+/**
+ * Canceling a checkout is not a problem the reader has to fix, so this stopped
+ * being amber: on a pricing page an alarm colour reads like something went
+ * wrong, when nothing did. APP_CALLOUT is the app's one shared notice style —
+ * the old markup also carried `text-[#6b5210]`, a raw hex found nowhere else in
+ * the codebase, which is why the colour never quite matched anything.
+ */
 function CanceledBanner() {
   return (
-    <div className="mt-8 rounded-2xl border border-amber-300/50 bg-amber-50 px-4 py-3 text-sm text-[#6b5210] dark:border-amber-400/30 dark:bg-amber-500/10 dark:text-amber-100">
+    <div className={`mt-8 ${APP_CALLOUT}`} role="status">
       Checkout was canceled. You can try again whenever you&apos;re ready.
     </div>
   );

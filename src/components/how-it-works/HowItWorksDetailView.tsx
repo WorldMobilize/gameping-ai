@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import PageBreadcrumbs from "@/components/PageBreadcrumbs";
 import type { GameBreadcrumbItem } from "@/lib/seo/game-page";
+import { supabase } from "@/lib/supabase";
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import {
   HOME_DISPLAY_FONT,
@@ -38,6 +40,59 @@ export default function HowItWorksDetailView({
 }) {
   const { theme } = useHomeTheme();
   const isDark = theme === "dark";
+
+  /**
+   * The Premium offer on a Premium explainer: present by default, taken away
+   * only from someone we have positively confirmed already pays.
+   *
+   * Inverted on purpose. The plan can only be read on the client here — this
+   * route is statically generated (generateStaticParams), and resolving it on
+   * the server would turn every "how it works" page dynamic: a real cost on the
+   * pages Google reads, paid for one row of buttons. So the offer belongs to the
+   * page's first render and JS takes it away, rather than the reverse. Starting
+   * hidden meant the buttons popped in a moment later and shoved the article
+   * down — and the people getting shoved would be the free and signed-out
+   * readers this page is written for. A premium visitor sees the offer
+   * disappear instead, and premium visitors barely reach this page at all: the
+   * nav sends them straight to the tool (site-nav.ts, premiumHref).
+   *
+   * Anything that fails leaves the buttons where they are. Only a confirmed
+   * premium/admin plan removes them.
+   */
+  const [viewerIsPremium, setViewerIsPremium] = useState(false);
+  const isPremiumPage = page.kicker === "Premium";
+  const showPremiumOffer = isPremiumPage && !viewerIsPremium;
+
+  useEffect(() => {
+    if (!isPremiumPage) return;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const user = data.user;
+        // Signed out: the offer is exactly what they should see.
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("plan")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        const plan = profile?.plan;
+        if (!cancelled && (plan === "premium" || plan === "admin")) {
+          setViewerIsPremium(true);
+        }
+      } catch {
+        // Leave the offer up. A lookup that broke is no reason to stop offering
+        // Premium to the free readers who are most of this page's audience.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isPremiumPage]);
 
   // Floating "HUD" text over the fixed dark cinematic room stays light in BOTH
   // themes (the room never brightens); only the glass cards adapt to theme.
@@ -94,6 +149,22 @@ export default function HowItWorksDetailView({
               )}
               <h1 className={`mt-4 ${onBgTitle}`}>{page.title}</h1>
               <p className={onBgLead}>{page.description}</p>
+
+              {/* Premium offer. Buttons, not a panel: the chip above already says
+                  "Premium" and the lead already makes the pitch, so a panel here
+                  would restate the sentence sitting directly above it. Before this,
+                  these two pages explained a feature the reader could not have and
+                  then offered only /recommend, which has nothing to do with it. */}
+              {showPremiumOffer ? (
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <Link href="/upgrade" className={HOME_PRIMARY_CTA_LG}>
+                    See Premium
+                  </Link>
+                  <Link href="/recommend" className={homeSecondaryCta(isDark)}>
+                    Try a free recommendation
+                  </Link>
+                </div>
+              ) : null}
             </div>
           </section>
 

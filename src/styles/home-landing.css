@@ -985,15 +985,14 @@
   box-shadow: 0 0 26px rgba(124, 58, 237, 0.42);
 }
 
-.gp-landing > nav a[href="/login"].font-bold:hover,
-.gp-landing > nav a[href="/upgrade"]:hover,
-.gp-landing > nav button.rounded-full:hover {
+/* The Premium pill and the account button are left out of these overrides on
+ * purpose: they own their hover states now (Navbar.tsx — `hover:bg-blue-700` on
+ * the filled pill, `hover:border-blue-600` on the button). Forcing cyan on top
+ * was the last of the retired "cyan landing" identity that page-accent.css
+ * replaced with one blue — and on the pill it repainted white-on-blue text cyan
+ * mid-hover, which is how it got noticed. */
+.gp-landing > nav a[href="/login"].font-bold:hover {
   border-color: var(--gp-border-accent-hover) !important;
-}
-
-.gp-landing > nav a[href="/upgrade"]:hover,
-.gp-landing > nav button.rounded-full:hover {
-  color: var(--gp-cyan) !important;
 }
 
 .gp-landing > nav a[href="/login"].font-bold:hover {

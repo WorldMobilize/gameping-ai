@@ -324,6 +324,9 @@ export default function RecommendPage() {
   const resultsRef = useRef<HTMLDivElement | null>(null);
   const emptyResultsRef = useRef<HTMLDivElement | null>(null);
   const submitBusyRef = useRef(false);
+  /** Its own ref, not submitBusyRef: saving a run and running a search are
+   *  separate actions, and one should not lock out the other. */
+  const saveBusyRef = useRef(false);
   const promptTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [promptScrollable, setPromptScrollable] = useState(false);
 
@@ -348,6 +351,9 @@ export default function RecommendPage() {
   /** When true, user sees budget/tags/platform and backend applies strict filter mode. */
   const [filtersEnabled, setFiltersEnabled] = useState(false);
   const [emailSaved, setEmailSaved] = useState(false);
+  /** Drives the button's disabled/label only — saveBusyRef is what actually
+   *  blocks the double submit. */
+  const [savingRun, setSavingRun] = useState(false);
   const [saveLimitReached, setSaveLimitReached] = useState(false);
   const [saveLimitPlan, setSaveLimitPlan] = useState<string | null>(null);
   const [dailyLimitReached, setDailyLimitReached] = useState(false);
@@ -998,6 +1004,19 @@ export default function RecommendPage() {
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // A second click while the first save is still in flight saved the run
+    // twice: /api/save-search inserts unconditionally and search_profiles has no
+    // unique index, so nothing downstream catches it. Worse than a duplicate
+    // row — the saved-run cap counts ROWS, so on Free (PLAN_QUOTAS
+    // .freeSavedSearches = 3) a stray double-click spends two of the three
+    // slots on one recommendation.
+    //
+    // A ref rather than state, and the same one runRecommendSearch and
+    // handleRefineSubmit already use: setState is async, so two clicks landing
+    // in the same tick would both read the old value and both fire.
+    if (saveBusyRef.current) return;
+
     setSaveLimitReached(false);
     setSaveLimitPlan(null);
 
@@ -1014,6 +1033,8 @@ export default function RecommendPage() {
       return;
     }
 
+    saveBusyRef.current = true;
+    setSavingRun(true);
     try {
       const res = await fetch("/api/save-search", {
         method: "POST",
@@ -1072,6 +1093,9 @@ export default function RecommendPage() {
         variant: "error",
         message: "Couldn’t save your search. Please try again.",
       });
+    } finally {
+      saveBusyRef.current = false;
+      setSavingRun(false);
     }
   }
 
@@ -1756,8 +1780,12 @@ export default function RecommendPage() {
 
                 <div className="mt-6">
                   {loggedUserEmail ? (
-                    <button type="submit" className={APP_SECONDARY_CTA}>
-                      Save recommendations
+                    <button
+                      type="submit"
+                      className={`${APP_SECONDARY_CTA} disabled:cursor-not-allowed disabled:opacity-60`}
+                      disabled={savingRun}
+                    >
+                      {savingRun ? "Saving…" : "Save recommendations"}
                     </button>
                   ) : (
                     <a href="/login?redirect=%2Frecommend" className={APP_PRIMARY_CTA_LG}>
