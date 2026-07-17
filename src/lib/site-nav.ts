@@ -12,19 +12,24 @@ export type SiteNavItem = {
    * locked preview) — the padlock in the nav just sets the expectation first.
    */
   premium?: boolean;
-  /**
-   * Destination for premium/admin users, when it differs from the public one.
-   * Taste DNA and Steam Library are the tool itself for a subscriber and an
-   * explainer page for everyone else — sending a free user to the settings
-   * anchor would land them on a section that isn't rendered for them.
-   */
-  premiumHref?: string;
 };
 
 export const HOME_NAV_ITEM: SiteNavItem = { label: "Home", href: "/" };
 
-/** Where a subscriber actually manages their Steam import / Taste DNA. */
-const STEAM_IMPORT_SETTINGS_HREF = "/settings/account#steam-library-import";
+/**
+ * Where a subscriber actually connects and manages their Steam library, and
+ * where their built Taste DNA lives.
+ *
+ * These are YOUR DATA, so they hang off the account menu (Navbar), next to the
+ * dashboard and billing — not off the drawer below, which explains what the
+ * product is. One label, one destination: the drawer used to send subscribers
+ * to the settings page under a "Taste DNA" label, so the same word meant the
+ * explainer, the Steam settings, or the actual profile depending on where you
+ * clicked it. /taste-dna handles an unconnected library itself ("Not connected"
+ * plus a Connect Steam button), so it is always the right door for Taste DNA.
+ */
+export const STEAM_IMPORT_SETTINGS_HREF = "/settings/account#steam-library-import";
+export const TASTE_DNA_HREF = "/taste-dna";
 
 /**
  * Ecosystem pillars. The hamburger drawer is the full navigation source of
@@ -144,18 +149,20 @@ export const DISCOVERY_CHILD_ITEMS: SiteNavItem[] = [
   { label: "Deals For You", href: "/deals-for-you", matchPrefix: "/deals-for-you", premium: true },
   { label: "Weekly Picks", href: "/weekly-picks", matchPrefix: "/weekly-picks", premium: true },
   { label: "Monthly Recap", href: "/monthly-recap", matchPrefix: "/monthly-recap", premium: true },
+  // Explainers for everyone, whatever they pay — the padlock still marks them
+  // Premium, and a subscriber's own library and profile live on the account menu.
+  // "Steam Import", not "Steam Library": it is what the page explaining it calls
+  // itself, and what Discovery calls it. The drawer was the only holdout.
   {
     label: "Taste DNA",
     href: "/how-it-works/taste-memory",
     matchPrefix: "/how-it-works/taste-memory",
-    premiumHref: STEAM_IMPORT_SETTINGS_HREF,
     premium: true,
   },
   {
-    label: "Steam Library",
+    label: "Steam Import",
     href: "/how-it-works/steam-import",
     matchPrefix: "/how-it-works/steam-import",
-    premiumHref: STEAM_IMPORT_SETTINGS_HREF,
     premium: true,
   },
 ];

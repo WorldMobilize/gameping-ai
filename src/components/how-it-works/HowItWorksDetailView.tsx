@@ -42,26 +42,31 @@ export default function HowItWorksDetailView({
   const isDark = theme === "dark";
 
   /**
-   * The Premium offer on a Premium explainer: present by default, taken away
-   * only from someone we have positively confirmed already pays.
+   * The Premium offer on a Premium explainer — hidden until we know the reader
+   * does not already pay, and rendered at the FOOT of the page. Both halves
+   * matter, and together they cost nothing.
    *
-   * Inverted on purpose. The plan can only be read on the client here — this
-   * route is statically generated (generateStaticParams), and resolving it on
-   * the server would turn every "how it works" page dynamic: a real cost on the
-   * pages Google reads, paid for one row of buttons. So the offer belongs to the
-   * page's first render and JS takes it away, rather than the reverse. Starting
-   * hidden meant the buttons popped in a moment later and shoved the article
-   * down — and the people getting shoved would be the free and signed-out
-   * readers this page is written for. A premium visitor sees the offer
-   * disappear instead, and premium visitors barely reach this page at all: the
-   * nav sends them straight to the tool (site-nav.ts, premiumHref).
+   * The plan can only be read on the client here: the route is statically
+   * generated (generateStaticParams), and resolving it on the server would turn
+   * every "how it works" page dynamic — a real cost on the pages Google reads,
+   * paid for one card. So the answer necessarily arrives a beat late, and at the
+   * top of the page someone always pays for that beat: either free readers watch
+   * the article get shoved down as the card appears, or a subscriber is briefly
+   * offered what they already bought. (The drawer sends subscribers here too —
+   * it explains the feature to everyone, while their own data hangs off the
+   * account menu — so that second case is not rare.)
    *
-   * Anything that fails leaves the buttons where they are. Only a confirmed
-   * premium/admin plan removes them.
+   * Down here it is below the fold. By the time anyone scrolls to it the answer
+   * landed long ago, and nobody sees anything move. The foot is also simply
+   * where the offer belongs: someone who reached the bottom of a page arguing
+   * for Steam Import has read the case for it. That is the moment to ask, not
+   * the moment they walked in.
+   *
+   * Anything that fails leaves it hidden — never pitch Premium at someone who
+   * might already be paying for it.
    */
-  const [viewerIsPremium, setViewerIsPremium] = useState(false);
+  const [showPremiumOffer, setShowPremiumOffer] = useState(false);
   const isPremiumPage = page.kicker === "Premium";
-  const showPremiumOffer = isPremiumPage && !viewerIsPremium;
 
   useEffect(() => {
     if (!isPremiumPage) return;
@@ -71,21 +76,21 @@ export default function HowItWorksDetailView({
       try {
         const { data } = await supabase.auth.getUser();
         const user = data.user;
-        // Signed out: the offer is exactly what they should see.
-        if (!user) return;
+        // Signed out on a Premium explainer: the offer is exactly right for them.
+        if (!user) {
+          if (!cancelled) setShowPremiumOffer(true);
+          return;
+        }
 
         const { data: profile } = await supabase
           .from("profiles")
           .select("plan")
           .eq("user_id", user.id)
           .maybeSingle();
-        const plan = profile?.plan;
-        if (!cancelled && (plan === "premium" || plan === "admin")) {
-          setViewerIsPremium(true);
-        }
+        const plan = profile?.plan ?? "free";
+        if (!cancelled) setShowPremiumOffer(plan !== "premium" && plan !== "admin");
       } catch {
-        // Leave the offer up. A lookup that broke is no reason to stop offering
-        // Premium to the free readers who are most of this page's audience.
+        /* stays hidden */
       }
     })();
 
@@ -150,21 +155,6 @@ export default function HowItWorksDetailView({
               <h1 className={`mt-4 ${onBgTitle}`}>{page.title}</h1>
               <p className={onBgLead}>{page.description}</p>
 
-              {/* Premium offer. Buttons, not a panel: the chip above already says
-                  "Premium" and the lead already makes the pitch, so a panel here
-                  would restate the sentence sitting directly above it. Before this,
-                  these two pages explained a feature the reader could not have and
-                  then offered only /recommend, which has nothing to do with it. */}
-              {showPremiumOffer ? (
-                <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <Link href="/upgrade" className={HOME_PRIMARY_CTA_LG}>
-                    See Premium
-                  </Link>
-                  <Link href="/recommend" className={homeSecondaryCta(isDark)}>
-                    Try a free recommendation
-                  </Link>
-                </div>
-              ) : null}
             </div>
           </section>
 
@@ -183,6 +173,28 @@ export default function HowItWorksDetailView({
               <FallbackContent body={page.body} />
             )}
           </div>
+
+          {/* Premium offer — see the note on showPremiumOffer for why it lives at
+              the foot and not up in the hero. Not PremiumDiscoveryUpsell: that
+              panel announces "you're viewing a demo, everything here is example
+              data", true on the discovery pages and false here, and it brings its
+              own <h1>. */}
+          {showPremiumOffer ? (
+            <section className="relative z-10 px-6 pt-14 md:pt-16">
+              <div className={`mx-auto max-w-3xl ${card}`}>
+                <p className={cardEyebrow}>Premium</p>
+                <h2 className={`mt-3 ${sectionTitle} ${isDark ? "" : "!text-slate-900"}`}>
+                  {page.title} is a Premium feature
+                </h2>
+                <p className={`mt-3 max-w-2xl ${cardBody}`}>{page.description}</p>
+                <div className="mt-7">
+                  <Link href="/upgrade" className={HOME_PRIMARY_CTA_LG}>
+                    See Premium
+                  </Link>
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           {/* Closing CTA — standard landing primary style. */}
           <section className="relative z-10 px-6 py-16 md:py-20">

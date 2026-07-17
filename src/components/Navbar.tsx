@@ -11,8 +11,11 @@ import NavDrawer from "@/components/NavDrawer";
 import {
   COMPANION_NAV_ITEM,
   DISCOVER_HUB_NAV_ITEM,
+  STEAM_IMPORT_SETTINGS_HREF,
+  TASTE_DNA_HREF,
   WORLDMOBILIZE_NAV_ITEM,
 } from "@/lib/site-nav";
+import { isPremiumOrAdminPlan } from "@/lib/product-copy";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -143,6 +146,7 @@ export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
   const [emailUnverified, setEmailUnverified] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
@@ -153,9 +157,14 @@ export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
   useEffect(() => {
     let cancelled = false;
 
-    const loadAdmin = async (userId: string | undefined) => {
+    // One read, both answers: the menu shows admin tools to admins and personal
+    // data (Taste DNA, Steam Import) to anyone who pays — admins included.
+    const loadPlan = async (userId: string | undefined) => {
       if (!userId) {
-        if (!cancelled) setIsAdmin(false);
+        if (!cancelled) {
+          setIsAdmin(false);
+          setIsPremium(false);
+        }
         return;
       }
       const { data: profile } = await supabase
@@ -163,7 +172,10 @@ export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
         .select("plan")
         .eq("user_id", userId)
         .maybeSingle();
-      if (!cancelled) setIsAdmin(profile?.plan === "admin");
+      if (!cancelled) {
+        setIsAdmin(profile?.plan === "admin");
+        setIsPremium(isPremiumOrAdminPlan(profile?.plan));
+      }
     };
 
     const getUser = async () => {
@@ -172,7 +184,7 @@ export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
       setUserEmail(user?.email ?? null);
       setEmailUnverified(!!user && !isEmailVerified(user));
       setUserDisplayName(displayNameFromMetadata(user?.user_metadata));
-      void loadAdmin(user?.id);
+      void loadPlan(user?.id);
     };
 
     void getUser();
@@ -182,7 +194,7 @@ export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
       setUserEmail(user?.email ?? null);
       setEmailUnverified(!!user && !isEmailVerified(user));
       setUserDisplayName(displayNameFromMetadata(user?.user_metadata));
-      void loadAdmin(user?.id);
+      void loadPlan(user?.id);
     });
 
     return () => {
@@ -341,6 +353,40 @@ export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
           >
             Premium / Billing
           </Link>
+
+          {/* Your data, which is what this menu is for — the drawer explains what
+              Taste DNA and Steam Import ARE, the same page for everyone; these two
+              are where yours actually live. Subscribers only: a free account has
+              nothing behind either link, and the drawer already offers it the
+              explainer with a padlock. */}
+          {isPremium ? (
+            <>
+              <Link
+                href={TASTE_DNA_HREF}
+                role="menuitem"
+                className={`flex w-full items-center px-4 py-3 text-sm font-bold no-underline transition focus-visible:outline-none ${
+                  isLight
+                    ? "text-slate-800 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white focus-visible:bg-slate-100 dark:focus-visible:bg-white/[0.06]"
+                    : "text-white/90 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white focus-visible:bg-slate-100 dark:focus-visible:bg-white/[0.06]"
+                }`}
+                onClick={closeAccountMenu}
+              >
+                Taste DNA
+              </Link>
+              <Link
+                href={STEAM_IMPORT_SETTINGS_HREF}
+                role="menuitem"
+                className={`flex w-full items-center px-4 py-3 text-sm font-bold no-underline transition focus-visible:outline-none ${
+                  isLight
+                    ? "text-slate-800 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white focus-visible:bg-slate-100 dark:focus-visible:bg-white/[0.06]"
+                    : "text-white/90 hover:bg-slate-100 dark:hover:bg-white/[0.06] hover:text-slate-900 dark:hover:text-white focus-visible:bg-slate-100 dark:focus-visible:bg-white/[0.06]"
+                }`}
+                onClick={closeAccountMenu}
+              >
+                Steam Import
+              </Link>
+            </>
+          ) : null}
 
           {isAdmin ? (
             <>
