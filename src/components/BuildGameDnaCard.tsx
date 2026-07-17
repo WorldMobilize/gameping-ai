@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { APP_PRIMARY_CTA_SM } from "@/components/app/app-styles";
 import { supabase } from "@/lib/supabase";
 
-const STEAM_SETTINGS_HREF = "/settings/account#steam-library-import";
+const STEAM_IMPORT_HREF = "/steam-import";
 
 /**
  * Shown on game pages when the viewer has no Taste DNA yet. The right call to
@@ -86,7 +86,7 @@ export default function BuildGameDnaCard() {
     can_import: {
       body: "Connect your Steam library and GamePing can explain whether each game matches your taste—not just its genre tags.",
       note: "Taste DNA powers fit on game pages. Search recommendations are coming next.",
-      cta: { label: "Connect Steam", href: STEAM_SETTINGS_HREF },
+      cta: { label: "Connect Steam", href: STEAM_IMPORT_HREF },
     },
     import_unavailable: {
       body: "Personal fit reads your Steam library to explain whether each game matches your taste—not just its genre tags.",

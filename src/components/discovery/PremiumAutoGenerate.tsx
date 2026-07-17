@@ -120,7 +120,7 @@ export default function PremiumAutoGenerate({
         </button>
         {phase === "insufficient" ? (
           <>
-            <Link href="/settings/account#steam-library-import" className={APP_SECONDARY_CTA}>
+            <Link href="/steam-import" className={APP_SECONDARY_CTA}>
               Import Steam library
             </Link>
             <Link href="/recommend" className={APP_SECONDARY_CTA}>

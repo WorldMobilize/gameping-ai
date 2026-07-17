@@ -13,7 +13,6 @@ import {
 } from "@/components/app/app-styles";
 import EmailVerificationNotice from "@/components/EmailVerificationNotice";
 import ManageBillingButton from "@/components/ManageBillingButton";
-import SteamLibraryImportSection from "@/components/SteamLibraryImportSection";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ToastProvider";
 
@@ -364,7 +363,11 @@ export default function AccountSettingsPage() {
             ) : null}
           </section>
 
-          <SteamLibraryImportSection />
+          {/* Steam Import moved out to /steam-import. Connecting a library is a
+              Premium feature, not a preference like a password — and living here
+              made the name mean two things at once: an explainer from one menu, a
+              settings anchor from another. It is a page of its own now, twinned
+              with /taste-dna, and nothing links back to settings for it. */}
 
           <section className={`${APP_CARD} p-8`}>
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[color:var(--page-accent-text)]">

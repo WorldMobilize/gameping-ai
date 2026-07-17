@@ -21,7 +21,7 @@ import {
 } from "@/lib/steam-library/taste-dna-types";
 import { supabase } from "@/lib/supabase";
 
-const STEAM_SETTINGS_HREF = "/settings/account#steam-library-import";
+const STEAM_IMPORT_HREF = "/steam-import";
 
 type SavedRun = {
   id: string;
@@ -343,7 +343,7 @@ export default function TasteDnaPage() {
                         : "Import your Steam library and GamePing reads your owned games and playtime to build a personal play-style fingerprint."}
                     </p>
                     <div className="mt-6">
-                      <Link href={STEAM_SETTINGS_HREF} className={APP_PRIMARY_CTA_ACCENT_SM}>
+                      <Link href={STEAM_IMPORT_HREF} className={APP_PRIMARY_CTA_ACCENT_SM}>
                         {steam.connected ? "Manage Steam library" : "Connect Steam"}
                       </Link>
                     </div>
@@ -374,7 +374,7 @@ export default function TasteDnaPage() {
                       {steam.connected ? "Games imported" : "Not connected"}
                     </p>
                     <Link
-                      href={STEAM_SETTINGS_HREF}
+                      href={STEAM_IMPORT_HREF}
                       className="mt-4 inline-flex text-sm font-semibold text-[color:var(--page-accent-text)] underline-offset-2 hover:underline"
                     >
                       {steam.connected ? "Manage" : "Connect Steam"}

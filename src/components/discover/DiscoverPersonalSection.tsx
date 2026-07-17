@@ -45,7 +45,7 @@ const CARD = "border-slate-200/80 bg-white/70 dark:border-white/[0.08] dark:bg-w
 const HEADING = "text-slate-900 dark:text-white";
 const BODY = "text-slate-600 dark:text-slate-400";
 
-const SETTINGS_STEAM = "/settings/account#steam-library-import";
+const STEAM_IMPORT_HREF = "/steam-import";
 
 type Tier = "anon" | "free" | "premium";
 
@@ -191,7 +191,7 @@ function buildCards(s: Snapshot): CardModel[] {
             key: "steam",
             title: "Steam Import",
             desc: "Your imported library powers your personalized tools.",
-            href: SETTINGS_STEAM,
+            href: STEAM_IMPORT_HREF,
             cta: "Manage",
             status:
               s.steamGameCount != null
@@ -202,7 +202,7 @@ function buildCards(s: Snapshot): CardModel[] {
             key: "steam",
             title: "Steam Import",
             desc: "Import your library to power your personalized tools.",
-            href: SETTINGS_STEAM,
+            href: STEAM_IMPORT_HREF,
             cta: "Connect Steam",
             status: "Not connected",
           }

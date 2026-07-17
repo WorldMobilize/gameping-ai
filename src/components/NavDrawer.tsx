@@ -166,11 +166,8 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
         // Padlock only — the link still works. Premium pages show their own
         // locked preview; the icon just sets the expectation beforehand.
         const locked = child.premium === true && !isPremium;
-        // One label, one destination, whatever you pay. The drawer explains what
-        // things ARE; a subscriber's own Taste DNA and Steam library hang off the
-        // account menu instead. This used to fork on a premiumHref, so "Taste DNA"
-        // meant the explainer or the Steam settings depending on who clicked it.
-        const href = child.href;
+        // Subscribers go to the feature; everyone else to the page that sells it.
+        const href = isPremium && child.premiumHref ? child.premiumHref : child.href;
         return (
           <Link
             key={child.label}
