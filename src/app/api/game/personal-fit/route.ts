@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPersonalGameFitForUser } from "@/lib/personal-game-fit/get-personal-game-fit";
-import { requireVerifiedUser } from "@/lib/require-verified-email";
+import { requireSteamImportAccess } from "@/lib/steam-library/require-steam-import";
 import { getTasteDnaForUser } from "@/lib/steam-library/get-taste-dna";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,7 +15,14 @@ function parseRawgId(value: string | null): number | null {
 export async function GET(req: Request) {
   try {
     const supabase = await createClient();
-    const auth = await requireVerifiedUser(supabase);
+    // Plan-gated, not merely signed-in-gated. A personal fit is not a lookup of
+    // something the caller already owns: on a cache miss this route GENERATES
+    // one with the AI (get-personal-game-fit.ts:70). Checking only for a
+    // verified user meant a lapsed subscriber — whose Taste DNA survives the
+    // downgrade untouched — could keep spending our AI budget one game at a
+    // time, indefinitely. Same gate as the rest of the Steam/Taste DNA surface,
+    // and it fails closed: no profile row reads as "free".
+    const auth = await requireSteamImportAccess(supabase);
     if (!auth.ok) return auth.response;
 
     const url = new URL(req.url);
