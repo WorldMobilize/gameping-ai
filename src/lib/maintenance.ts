@@ -23,6 +23,42 @@ export const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === "true";
 export const MAINTENANCE_PATH = "/maintenance";
 
 /**
+ * Supabase user ids let past maintenance WITHOUT being admins — the free and
+ * premium test accounts, so the site can be smoke-tested while it stays down for
+ * everyone else.
+ *
+ *   MAINTENANCE_ALLOWLIST_USER_IDS=<uuid>,<uuid>
+ *
+ * This buys a way past the closed door and NOTHING else. It is deliberately not
+ * wired into the admin check: an allowlisted free account still gets a 404 on
+ * /admin, still hits the free daily limits, still sees premium pages refuse it.
+ * That is the entire point — an escape hatch that also handed out privileges
+ * would test a user who does not exist.
+ *
+ * Ids, not emails: the session carries the id anyway, and an email in an env var
+ * is PII sitting somewhere it does not need to be. Server-side only (no
+ * NEXT_PUBLIC_) for the same reason MAINTENANCE_MODE is — a flag shipped to the
+ * browser is advisory, and this one decides who gets in.
+ *
+ * Unset or empty = nobody. Clearing the var closes the hatch with no deploy of
+ * code, and leaving it set past the test is the mistake to watch for.
+ */
+const MAINTENANCE_ALLOWLIST_USER_IDS: readonly string[] = (
+  process.env.MAINTENANCE_ALLOWLIST_USER_IDS ?? ""
+)
+  .split(",")
+  .map((id) => id.trim().toLowerCase())
+  .filter((id) => id.length > 0);
+
+/** True when this user id is on the maintenance allowlist. Never implies admin. */
+export function isMaintenanceAllowlistedUser(
+  userId: string | null | undefined
+): boolean {
+  if (!userId) return false;
+  return MAINTENANCE_ALLOWLIST_USER_IDS.includes(userId.trim().toLowerCase());
+}
+
+/**
  * The only paths that stay reachable while maintenance is on.
  *
  * The login flow HAS to be here. An admin arriving signed-out must be able to sign

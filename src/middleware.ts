@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import {
   MAINTENANCE_MODE,
   isAdminOnlyPath,
+  isMaintenanceAllowlistedUser,
   isMaintenanceExempt,
 } from "@/lib/maintenance"
 import { MAINTENANCE_HEADERS, maintenanceHtml } from "@/lib/maintenance-page"
@@ -39,24 +40,62 @@ async function isAdmin(
   }
 }
 
+/**
+ * May this cookie session through the maintenance door?
+ *
+ * Two ways in, and they are not the same thing: an admin (profiles.plan =
+ * "admin"), or a user id on the maintenance allowlist — the free / premium test
+ * accounts. The allowlist stops here: it is never consulted by the admin-only
+ * check below, so a test account gets past the door and no further.
+ *
+ * The allowlist is checked BEFORE the profiles lookup because it is a string
+ * comparison against an env var — no round trip, and it cannot fail.
+ *
+ * Same failure posture as isAdmin(): anything that breaks answers "no". While the
+ * site is down the safe default is to keep someone out, never to let them in
+ * because a lookup broke.
+ */
+async function passesMaintenanceGate(
+  supabase: ReturnType<typeof createServerClient>
+): Promise<boolean> {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return false
+
+    if (isMaintenanceAllowlistedUser(user.id)) return true
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("user_id", user.id)
+      .maybeSingle()
+
+    return profile?.plan === "admin"
+  } catch {
+    return false
+  }
+}
+
 const COMPANION_API_PREFIX = "/api/companion/"
 
 /**
- * Is this a Companion API call carrying an admin's Bearer token?
+ * May this Companion API call through the maintenance door?
  *
  * The desktop app authenticates with `Authorization: Bearer <token>` and sends NO
- * cookies (see src/lib/companion/http.ts), so the cookie-based isAdmin() above can
- * never see it — during maintenance that answers "not an admin" for everyone and
+ * cookies (see src/lib/companion/http.ts), so passesMaintenanceGate() above can
+ * never see it — during maintenance that answers "not allowed" for everyone and
  * locks even an admin out of their own app, which is how Companion ends up dead
  * while the site is down.
  *
- * Scoped deliberately narrow: Companion API paths only, admins only. Maintenance
- * still holds for every other Companion user, so this widens the door by exactly
- * one person and nothing else.
+ * Same two keys as the cookie door — admin, or an allowlisted test account — so
+ * Companion can be tested as a free / premium user too, not only as an admin.
+ * Scoped to Companion API paths: every other Companion user still gets the 503.
  *
  * Same failure posture as isAdmin(): anything that goes wrong answers "no".
  */
-async function isCompanionAdminRequest(request: NextRequest): Promise<boolean> {
+async function isCompanionRequestAllowed(request: NextRequest): Promise<boolean> {
   if (!request.nextUrl.pathname.startsWith(COMPANION_API_PREFIX)) return false
 
   const header = request.headers.get("authorization")?.trim() ?? ""
@@ -81,6 +120,8 @@ async function isCompanionAdminRequest(request: NextRequest): Promise<boolean> {
       data: { user },
     } = await supabase.auth.getUser(token)
     if (!user) return false
+
+    if (isMaintenanceAllowlistedUser(user.id)) return true
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -128,12 +169,17 @@ export async function middleware(request: NextRequest) {
    * lookup below only ever runs while the site is actually down.
    */
   if (MAINTENANCE_MODE && !isMaintenanceExempt(pathname)) {
-    // Two ways to prove you are an admin: the cookie session (browser) or a Bearer
-    // token (the desktop Companion, which has no cookies to offer).
-    const admin =
-      (await isAdmin(supabase)) || (await isCompanionAdminRequest(request))
+    // Two doors, same rule: a cookie session (browser) or a Bearer token (the
+    // desktop Companion, which has no cookies to offer). Either lets through an
+    // admin or an allowlisted test account — and note this decides ONLY whether
+    // the site is visible. Being let in here says nothing about being an admin;
+    // the admin-only check below asks that question separately, and a test
+    // account fails it.
+    const allowed =
+      (await passesMaintenanceGate(supabase)) ||
+      (await isCompanionRequestAllowed(request))
 
-    if (!admin) {
+    if (!allowed) {
       // An API call must not be answered with an HTML page: the caller is code, and
       // it deserves a status it can act on.
       if (pathname.startsWith("/api/")) {
