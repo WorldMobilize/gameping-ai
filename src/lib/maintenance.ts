@@ -61,9 +61,22 @@ export function isMaintenanceExempt(pathname: string): boolean {
 }
 
 /**
- * Pages that are built but NOT ready for the public: they describe features that do
- * not exist, ship fake demo data, hand out an alpha installer, or promise money from
- * a referral programme that cannot pay anyone. Admins only, until they are real.
+ * Pages that do not exist for the public. Two kinds, and they are here for different
+ * reasons:
+ *
+ *  * NOT REAL YET — a concept demo (/community-wars) and a feature that does not
+ *    exist (/parties). Shipping them would sell something we do not have. They come
+ *    off this list when they are real, not when they look ready.
+ *  * ADMIN TOOLS — the analytics and creator-earnings dashboards. Not unfinished:
+ *    simply nobody else's business. They read other people's emails and accounting.
+ *
+ * /creators is deliberately NOT here any more: the creator programme can now issue
+ * codes and accrue commission, so the page no longer promises money it cannot pay.
+ *
+ * /worldmobilize is not here either, and that is not an oversight: the route already
+ * renders a Coming Soon placeholder rather than the live claim map, so the real thing
+ * is closed without a 404. Its nav item is a working link with a padlock — gate the
+ * route and that padlock starts promising a page that does not exist.
  *
  * Enforced in the middleware, and that is not an implementation detail. The gate used
  * to live in the page tree (`AdminOnlyPageGate`), which blocks the CONTENT but cannot
@@ -71,11 +84,14 @@ export function isMaintenanceExempt(pathname: string): boolean {
  * notFound(), the 200 has already gone out, and the page becomes a soft-404 — a page
  * that tells Google "here I am, all fine" while showing a not-found body. Deciding in
  * the middleware means nothing has been sent yet, so a real 404 is still possible.
+ * The admin dashboards still keep their own in-page notFound() as a second lock: this
+ * list decides what is REACHABLE, the page decides what it will SERVE.
  */
 const ADMIN_ONLY_PREFIXES = [
   "/community-wars",
   "/parties",
-  "/creators",
+  "/admin",
+  "/creators/admin",
 ];
 
 /**

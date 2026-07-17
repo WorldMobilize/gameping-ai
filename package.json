@@ -19,7 +19,8 @@
     "generate:directory-additions": "node --import tsx scripts/generate-directory-additions.mts",
     "generate:instagram-highlights": "node --import tsx scripts/generate-instagram-highlights/generate.mts",
     "test:steam-library": "node --import tsx --test src/lib/steam-library/access.test.ts src/lib/steam-library/parse-steam-input.test.ts src/lib/steam-library/build-taste-dna.test.ts src/lib/steam-library/synthesize-taste-dna.test.ts",
-    "test:personal-game-fit": "node --import tsx --test src/lib/personal-game-fit/parse-personal-game-fit.test.ts src/lib/personal-game-fit/taste-dna-hash.test.ts src/lib/personal-game-fit/build-game-fit-prompt.test.ts"
+    "test:personal-game-fit": "node --import tsx --test src/lib/personal-game-fit/parse-personal-game-fit.test.ts src/lib/personal-game-fit/taste-dna-hash.test.ts src/lib/personal-game-fit/build-game-fit-prompt.test.ts",
+    "test:creator": "node --import tsx --test src/lib/creator-commissions.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

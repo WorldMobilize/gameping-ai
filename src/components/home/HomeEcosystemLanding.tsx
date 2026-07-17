@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useState, type ReactNode } from "react";
 import { NAVY_CTA_LG, NAVY_OUTLINE } from "@/components/app/app-styles";
-import { supabase } from "@/lib/supabase";
 import { CREATOR_BASE_COMMISSION_PCT } from "@/lib/creator-program";
 import CompanionOverlayDemo from "@/components/home/landing/CompanionOverlayDemo";
+import LandingRedeemCard from "@/components/home/landing/LandingRedeemCard";
 import DiscoveryMorphShowcase from "@/components/home/landing/DiscoveryMorphShowcase";
 import FeatureBento from "@/components/home/landing/FeatureBento";
 import FinalCta from "@/components/home/landing/FinalCta";
@@ -27,6 +27,7 @@ import TrustStrip from "@/components/home/landing/TrustStrip";
 import WorldMobilizeComingSoonChapter from "@/components/home/landing/WorldMobilizeComingSoonChapter";
 import { useHomeTheme } from "@/components/home/HomeThemeProvider";
 import {
+  discountedPremiumPrice,
   FREE_FEATURES,
   FREE_PRICE,
   PREMIUM_FEATURES,
@@ -217,39 +218,32 @@ export default function HomeEcosystemLanding() {
 /* ═══════════ Pricing chapter ═══════════ */
 function PricingChapter({ heading, body, eyebrow, isDark, card }: { heading: string; body: string; eyebrow: string; isDark: boolean; card: string }) {
   const [interval, setInterval] = useState<BillingInterval>("month");
-  // Admin-only: the "For Creators" card promises recurring commission from a
-  // programme with no payouts yet (see lib/creator-program.ts), so it stays
-  // hidden from the public until it can actually pay. Same profiles.plan read
-  // the drawer uses — no new auth.
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [code, setCode] = useState("");
+  const [codeInfo, setCodeInfo] = useState<{ valid: boolean; type?: string } | null>(null);
+  const [checkingCode, setCheckingCode] = useState(false);
+  const discountApplied = codeInfo?.valid === true && codeInfo.type === "discount";
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadAdmin() {
-      const { data } = await supabase.auth.getUser();
-      if (cancelled) return;
-      if (!data.user) {
-        setIsAdmin(false);
-        return;
-      }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("plan")
-        .eq("user_id", data.user.id)
-        .maybeSingle();
-      if (!cancelled) setIsAdmin(profile?.plan === "admin");
+  const validateCode = useCallback(async (raw: string) => {
+    const c = raw.trim();
+    if (!c) {
+      setCodeInfo(null);
+      return;
     }
-
-    void loadAdmin();
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      void loadAdmin();
-    });
-    return () => {
-      cancelled = true;
-      listener.subscription.unsubscribe();
-    };
+    setCheckingCode(true);
+    try {
+      const res = await fetch(`/api/creator/redeem?code=${encodeURIComponent(c)}`);
+      const d = (await res.json().catch(() => ({}))) as { valid?: boolean; type?: string };
+      setCodeInfo(res.ok ? { valid: Boolean(d.valid), type: d.type } : { valid: false });
+    } catch {
+      setCodeInfo({ valid: false });
+    } finally {
+      setCheckingCode(false);
+    }
   }, []);
+
+  const premiumHref = codeInfo?.valid
+    ? `/upgrade?ref=${encodeURIComponent(code.trim())}`
+    : "/upgrade";
 
   const premiumCompact = PREMIUM_FEATURES.slice(0, 4);
   const freeCompact = FREE_FEATURES.slice(0, 3);
@@ -287,7 +281,7 @@ function PricingChapter({ heading, body, eyebrow, isDark, card }: { heading: str
         {/* plans — Free + Premium (+ For Creators for admins only, prices match /upgrade).
             The creator card is admin-gated below; the grid widens to three columns only
             when it's shown, so the public still sees a balanced two-column layout. */}
-        <div className={`mx-auto mt-10 grid items-stretch gap-6 ${isAdmin ? "max-w-5xl md:grid-cols-3" : "max-w-3xl md:grid-cols-2"}`}>
+        <div className="mx-auto mt-10 grid max-w-5xl items-stretch gap-6 md:grid-cols-3">
           {/* Free */}
           <Reveal>
             <div className={`flex h-full flex-col rounded-[1.75rem] border p-7 md:p-8 ${card}`}>
@@ -317,12 +311,25 @@ function PricingChapter({ heading, body, eyebrow, isDark, card }: { heading: str
                 <p className={`text-[13px] font-semibold uppercase tracking-[0.14em] ${body}`}>Premium</p>
                 <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white">Popular</span>
               </div>
-              <div className="mt-6 flex items-baseline gap-1.5">
-                <span className={`text-[2.75rem] font-bold leading-none tracking-tight ${heading}`}>{premiumPrice(interval)}</span>
-                <span className={`text-sm ${body}`}>{premiumPeriod(interval)}</span>
-              </div>
-              <p className={`mt-3 text-sm ${body}`}>{interval === "year" ? `Billed yearly — save ${PREMIUM_YEARLY_SAVINGS_PCT}% vs monthly.` : "Billed monthly — cancel anytime."}</p>
-              <Link href="/upgrade" className={`mt-7 w-full !px-4 !py-2.5 ${NAVY_CTA_LG}`}>Go Premium</Link>
+              {discountApplied ? (
+                <>
+                  <div className="mt-6 flex items-baseline gap-2">
+                    <span className={`text-lg font-semibold line-through ${body}`}>{premiumPrice(interval)}</span>
+                    <span className={`text-[2.75rem] font-bold leading-none tracking-tight ${heading}`}>{discountedPremiumPrice(interval)}</span>
+                    <span className={`text-sm ${body}`}>{premiumPeriod(interval)}</span>
+                  </div>
+                  <p className={`mt-3 text-sm ${body}`}>{discountedPremiumPrice(interval)} the first {interval === "year" ? "year" : "month"}, then {premiumPrice(interval)}{premiumPeriod(interval)}.</p>
+                </>
+              ) : (
+                <>
+                  <div className="mt-6 flex items-baseline gap-1.5">
+                    <span className={`text-[2.75rem] font-bold leading-none tracking-tight ${heading}`}>{premiumPrice(interval)}</span>
+                    <span className={`text-sm ${body}`}>{premiumPeriod(interval)}</span>
+                  </div>
+                  <p className={`mt-3 text-sm ${body}`}>{interval === "year" ? `Billed yearly — save ${PREMIUM_YEARLY_SAVINGS_PCT}% vs monthly.` : "Billed monthly — cancel anytime."}</p>
+                </>
+              )}
+              <Link href={premiumHref} className={`mt-7 w-full !px-4 !py-2.5 ${NAVY_CTA_LG}`}>Go Premium</Link>
               <ul className="mt-8 flex flex-col gap-3.5">
                 {premiumCompact.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm">
@@ -337,7 +344,6 @@ function PricingChapter({ heading, body, eyebrow, isDark, card }: { heading: str
           {/* For Creators — admin-only until the programme can actually pay (no referral
               tracking / payouts wired up yet; /creators is admin-gated in the middleware).
               Mid prominence: more than Free, less than Premium. */}
-          {isAdmin ? (
             <Reveal delay={180}>
               <div className={`relative flex h-full flex-col rounded-[1.75rem] border p-7 ring-1 ring-blue-400/20 md:p-8 ${card}`}>
                 <div aria-hidden className="pointer-events-none absolute -inset-2 -z-10 rounded-[1.9rem] bg-blue-500/10 blur-xl" />
@@ -358,12 +364,25 @@ function PricingChapter({ heading, body, eyebrow, isDark, card }: { heading: str
                 </ul>
               </div>
             </Reveal>
-          ) : null}
         </div>
 
-        <p className={`mt-8 text-center text-sm ${body}`}>
+        <p className={`mt-12 text-center text-sm ${body}`}>
           <Link href="/upgrade" className={`font-semibold underline underline-offset-4 ${heading}`}>See full Premium details</Link> — everything Free includes, and more.
         </p>
+
+        <LandingRedeemCard
+          card={card}
+          heading={heading}
+          body={body}
+          value={code}
+          onChange={(v) => {
+            setCode(v);
+            setCodeInfo(null);
+          }}
+          onApply={() => validateCode(code)}
+          codeInfo={codeInfo}
+          busy={checkingCode}
+        />
       </div>
     </section>
   );

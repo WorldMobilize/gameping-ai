@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import type { ReactNode } from "react";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
-import AdminOnlyPageGate from "@/components/discovery/AdminOnlyPageGate";
+import CreatorCodePanel from "@/components/creators/CreatorCodePanel";
 import {
   CREATOR_MILESTONES,
   CREATOR_TIERS,
@@ -22,8 +21,6 @@ const BODY = "text-slate-600 dark:text-slate-300";
 const MUTED = "text-slate-500 dark:text-slate-400";
 const CARD = "rounded-3xl border border-slate-200/80 bg-white/70 dark:border-white/[0.08] dark:bg-white/[0.03]";
 const EYEBROW = "text-xs font-semibold uppercase tracking-[0.28em] text-blue-700 dark:text-blue-400";
-const CTA =
-  "inline-flex items-center justify-center gap-2 rounded-full bg-blue-800 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
 
 const euro = (n: number) => `€${Math.round(n)}`;
 const euroFull = (n: number) => `€${Math.round(n).toLocaleString("en-US")}`;
@@ -76,7 +73,6 @@ const FAQ: { q: string; a: ReactNode }[] = [
  */
 export default function CreatorProgramPage() {
   return (
-    <AdminOnlyPageGate>
     <AppPageShell className="overflow-x-hidden">
       {/* Hero */}
       <AppSection maxWidth="max-w-5xl" className="pt-12">
@@ -90,10 +86,7 @@ export default function CreatorProgramPage() {
             paid every month they stay subscribed, not just once. The bigger your community grows, the
             higher your rate.
           </p>
-          <div className="mt-8 flex flex-col items-start gap-3">
-            <Link href="/contact" className={CTA}>Apply / join waitlist</Link>
-            <span className={`text-xs ${MUTED}`}>Applications open soon — join the waitlist to be first in line.</span>
-          </div>
+          <CreatorCodePanel />
         </div>
       </AppSection>
 
@@ -220,15 +213,7 @@ export default function CreatorProgramPage() {
           ))}
         </div>
 
-        <div className={`mt-10 flex flex-col items-start gap-4 p-7 sm:flex-row sm:items-center sm:justify-between ${CARD}`}>
-          <div>
-            <p className={`text-lg font-semibold ${HEADING}`}>Ready to grow with GamePing?</p>
-            <p className={`mt-1 text-sm ${BODY}`}>Join the waitlist and we&apos;ll reach out as the program opens.</p>
-          </div>
-          <Link href="/contact" className={`${CTA} shrink-0`}>Apply / join waitlist</Link>
-        </div>
       </AppSection>
     </AppPageShell>
-    </AdminOnlyPageGate>
   );
 }

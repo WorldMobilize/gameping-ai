@@ -281,9 +281,25 @@ export default function NavDrawer({ open, onClose, theme = "light" }: Props) {
           <div className={sectionClass}>
             {sectionHeading("More")}
             {DRAWER_MORE_ITEMS.map((item) => renderNavItem(item))}
-            {/* Creator program — admin-only until it can actually pay people. */}
-            {isAdmin ? renderNavItem(CREATORS_NAV_ITEM) : null}
+            {renderNavItem(CREATORS_NAV_ITEM)}
           </div>
+
+          {/* Admin — separate section, admin-only (creator earnings / payouts). */}
+          {isAdmin ? (
+            <div className={sectionClass}>
+              {sectionHeading("Admin")}
+              {renderNavItem({
+                label: "Site analytics",
+                href: "/admin/analytics",
+                matchPrefix: "/admin/analytics",
+              })}
+              {renderNavItem({
+                label: "Creator earnings",
+                href: "/creators/admin",
+                matchPrefix: "/creators/admin",
+              })}
+            </div>
+          ) : null}
         </nav>
 
         {/* Account & settings — separated bottom area (border + background). */}

@@ -142,6 +142,7 @@ export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [emailUnverified, setEmailUnverified] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
@@ -150,12 +151,28 @@ export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
   const accountMenuPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadAdmin = async (userId: string | undefined) => {
+      if (!userId) {
+        if (!cancelled) setIsAdmin(false);
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!cancelled) setIsAdmin(profile?.plan === "admin");
+    };
+
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
       const user = data.user;
       setUserEmail(user?.email ?? null);
       setEmailUnverified(!!user && !isEmailVerified(user));
       setUserDisplayName(displayNameFromMetadata(user?.user_metadata));
+      void loadAdmin(user?.id);
     };
 
     void getUser();
@@ -165,9 +182,11 @@ export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
       setUserEmail(user?.email ?? null);
       setEmailUnverified(!!user && !isEmailVerified(user));
       setUserDisplayName(displayNameFromMetadata(user?.user_metadata));
+      void loadAdmin(user?.id);
     });
 
     return () => {
+      cancelled = true;
       listener.subscription.unsubscribe();
     };
   }, []);
@@ -322,6 +341,35 @@ export default function Navbar({ ctaLabel, ctaHref }: NavbarProps) {
           >
             Premium / Billing
           </Link>
+
+          {isAdmin ? (
+            <>
+              <Link
+                href="/admin/analytics"
+                role="menuitem"
+                className={`flex w-full items-center px-4 py-3 text-sm font-bold no-underline transition focus-visible:outline-none ${
+                  isLight
+                    ? "text-slate-800 hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100"
+                    : "text-white/90 hover:bg-white/[0.06] hover:text-white focus-visible:bg-white/[0.06]"
+                }`}
+                onClick={closeAccountMenu}
+              >
+                Site analytics
+              </Link>
+              <Link
+                href="/creators/admin"
+                role="menuitem"
+                className={`flex w-full items-center px-4 py-3 text-sm font-bold no-underline transition focus-visible:outline-none ${
+                  isLight
+                    ? "text-slate-800 hover:bg-slate-100 hover:text-slate-900 focus-visible:bg-slate-100"
+                    : "text-white/90 hover:bg-white/[0.06] hover:text-white focus-visible:bg-white/[0.06]"
+                }`}
+                onClick={closeAccountMenu}
+              >
+                Creator earnings
+              </Link>
+            </>
+          ) : null}
 
           <div
             className={`my-1 border-t ${isLight ? "border-slate-200/80" : "border-white/10"}`}

@@ -3,9 +3,26 @@ import type Stripe from "stripe";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { enforceFreePlanActiveCaps } from "@/lib/plan-enforcement";
 import { getStripe } from "@/lib/stripe";
+import {
+  accrueCommissionFromInvoice,
+  recordReferralFromSubscription,
+} from "@/lib/creator-referrals";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * Record a creator referral without ever breaking plan sync: a referral-write
+ * failure must not fail the webhook (Stripe would retry and could delay premium
+ * activation). Logged and swallowed.
+ */
+async function safeRecordReferral(sub: Stripe.Subscription): Promise<void> {
+  try {
+    await recordReferralFromSubscription(sub);
+  } catch (err) {
+    console.error("[stripe webhook] record referral failed", err);
+  }
+}
 
 function logSupabaseEnvPresence(): void {
   const hasUrl = Boolean(process.env.SUPABASE_URL?.trim());
@@ -455,6 +472,11 @@ export async function POST(req: Request) {
         }
         break;
       }
+      case "customer.subscription.created": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await safeRecordReferral(subscription);
+        break;
+      }
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
         await syncProfilePlanFromSubscription(
@@ -462,11 +484,22 @@ export async function POST(req: Request) {
           subscription,
           event.type
         );
+        await safeRecordReferral(subscription);
         break;
       }
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         await handleSubscriptionDeleted(supabase, subscription);
+        await safeRecordReferral(subscription);
+        break;
+      }
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        try {
+          await accrueCommissionFromInvoice(invoice, stripe);
+        } catch (err) {
+          console.error("[stripe webhook] accrue commission failed", err);
+        }
         break;
       }
       default:

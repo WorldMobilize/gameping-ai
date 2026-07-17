@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, Suspense, useEffect, useState, type ReactNode } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import AppPageShell, { AppSection } from "@/components/app/AppPageShell";
 import ManageBillingButton from "@/components/ManageBillingButton";
@@ -11,6 +11,7 @@ import { PLAN_QUOTAS } from "@/lib/plan-quotas";
 import { EARLY_ACCESS_NOTICE } from "@/lib/product-copy";
 import { CREATOR_BASE_COMMISSION_PCT } from "@/lib/creator-program";
 import {
+  discountedPremiumPrice,
   FREE_FEATURES,
   FREE_PRICE,
   PREMIUM_FEATURES,
@@ -179,6 +180,9 @@ function UpgradeContent() {
   const [billingInterval, setBillingInterval] = useState<"month" | "year">("month");
   const [planLoading, setPlanLoading] = useState(true);
   const [profilePlan, setProfilePlan] = useState<LoadedPlan>(null);
+  const [referralCode, setReferralCode] = useState("");
+  const [codeInfo, setCodeInfo] = useState<{ valid: boolean; type?: string } | null>(null);
+  const [checkingCode, setCheckingCode] = useState(false);
 
   const canceled = searchParams.get("canceled") === "true";
 
@@ -226,6 +230,39 @@ function UpgradeContent() {
     };
   }, []);
 
+  const validateCode = useCallback(async (raw: string) => {
+    const code = raw.trim();
+    if (!code) {
+      setCodeInfo(null);
+      return;
+    }
+    setCheckingCode(true);
+    try {
+      const res = await fetch(
+        `/api/creator/redeem?code=${encodeURIComponent(code)}`,
+        { credentials: "include" }
+      );
+      const d = (await res.json().catch(() => ({}))) as {
+        valid?: boolean;
+        type?: string;
+      };
+      setCodeInfo(res.ok ? { valid: Boolean(d.valid), type: d.type } : { valid: false });
+    } catch {
+      setCodeInfo({ valid: false });
+    } finally {
+      setCheckingCode(false);
+    }
+  }, []);
+
+  // Pre-fill + validate a code arriving via a shared link (?ref=CODE).
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      setReferralCode(ref.toUpperCase());
+      void validateCode(ref);
+    }
+  }, [searchParams, validateCode]);
+
   async function startCheckout() {
     if (profilePlan === "premium" || profilePlan === "admin") {
       return;
@@ -243,11 +280,18 @@ function UpgradeContent() {
         return;
       }
 
+      // Creator referral: pass the entered code through. Ignored by the server
+      // unless the program is enabled and the code is valid + not self-referral.
+      const trimmedCode = referralCode.trim();
+
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interval: billingInterval }),
+        body: JSON.stringify({
+          interval: billingInterval,
+          ...(trimmedCode ? { code: trimmedCode } : {}),
+        }),
       });
 
       const body = await res.json().catch(() => ({}));
@@ -382,8 +426,8 @@ function UpgradeContent() {
         </div>
       </div>
 
-      {/* Plan cards — two, not three: the creator card is out until the programme exists. */}
-      <div className="mx-auto mt-8 grid max-w-3xl items-stretch gap-5 lg:grid-cols-2">
+      {/* Plan cards — Free, Premium, and the creator "Earn" pillar. */}
+      <div className="mx-auto mt-8 grid max-w-5xl items-stretch gap-5 lg:grid-cols-3">
         {/* Free */}
         <div className={`flex h-full flex-col rounded-3xl border p-7 md:p-8 ${CARD}`}>
           <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${BODY}`}>Free</p>
@@ -412,15 +456,30 @@ function UpgradeContent() {
               Popular
             </span>
           </div>
-          <div className="mt-4 flex items-baseline gap-1.5">
-            <span className={`text-4xl font-semibold tracking-tight ${HEADING}`}>{priceNow}</span>
-            <span className={`text-sm ${BODY}`}>{period}</span>
-          </div>
-          <p className={`mt-1 text-xs ${BODY}`}>
-            {billingInterval === "year"
-              ? `Billed yearly — save ${PREMIUM_YEARLY_SAVINGS_PCT}% vs monthly`
-              : "Billed monthly — cancel anytime"}
-          </p>
+          {codeInfo?.valid && codeInfo.type === "discount" ? (
+            <>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className={`text-lg font-semibold line-through ${BODY}`}>{priceNow}</span>
+                <span className={`text-4xl font-semibold tracking-tight ${HEADING}`}>{discountedPremiumPrice(billingInterval)}</span>
+                <span className={`text-sm ${BODY}`}>{period}</span>
+              </div>
+              <p className={`mt-1 text-xs ${BODY}`}>
+                {discountedPremiumPrice(billingInterval)} the first {billingInterval === "year" ? "year" : "month"}, then {priceNow}{period}.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="mt-4 flex items-baseline gap-1.5">
+                <span className={`text-4xl font-semibold tracking-tight ${HEADING}`}>{priceNow}</span>
+                <span className={`text-sm ${BODY}`}>{period}</span>
+              </div>
+              <p className={`mt-1 text-xs ${BODY}`}>
+                {billingInterval === "year"
+                  ? `Billed yearly — save ${PREMIUM_YEARLY_SAVINGS_PCT}% vs monthly`
+                  : "Billed monthly — cancel anytime"}
+              </p>
+            </>
+          )}
           <p className={`mt-3 text-sm ${BODY}`}>Deeper discovery, deal tracking, and personalization that learns your taste.</p>
 
           <button
@@ -444,11 +503,72 @@ function UpgradeContent() {
           </ul>
         </div>
 
-        {/* The "For Creators" card lived here — same promise as on the landing, same
-            problem: recurring commission and milestone bonuses for a programme with
-            no referral tracking and no payouts. /creators is admin-only until it can
-            pay, so this card would link to a 404 and, worse, sell something we do not
-            have. Bring it back (and the grid to three columns) when it is real. */}
+        {/* For Creators — the Earn pillar. */}
+        <div className={`flex h-full flex-col rounded-3xl border p-7 md:p-8 ${CARD}`}>
+          <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${BODY}`}>For Creators</p>
+          <div className="mt-4 flex items-baseline gap-1.5">
+            <span className={`text-4xl font-semibold tracking-tight ${HEADING}`}>Earn</span>
+            <span className={`text-sm ${BODY}`}>with your audience</span>
+          </div>
+          <p className={`mt-3 text-sm ${BODY}`}>Share GamePing with your community and earn recurring commission while referred members stay Premium.</p>
+          <Link href="/creators" className="mt-6 block"><span className={GHOST_CTA}>Explore Earn</span></Link>
+          <ul className="mt-7 flex flex-col gap-3">
+            {["20% commission to start", "Higher tiers as you grow", "One-time milestone bonuses"].map((f) => (
+              <li key={f} className={`flex items-start gap-2.5 text-sm ${BODY}`}>
+                <Check className="text-slate-400 dark:text-slate-500" />
+                {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Redeem a creator code — horizontal, below the plans */}
+      <div className={`mx-auto mt-12 max-w-5xl rounded-3xl border p-6 md:flex md:items-center md:justify-between md:gap-6 ${CARD}`}>
+        <div>
+          <p className={`text-sm font-bold ${HEADING}`}>Have a creator code?</p>
+          <p className={`mt-1 text-sm ${BODY}`}>Enter it here, then pick Premium above — your discount or free trial applies at checkout.</p>
+        </div>
+        <div className="mt-4 md:mt-0 md:w-80">
+          <div className="flex gap-2">
+            <input
+              id="ref-code"
+              type="text"
+              value={referralCode}
+              onChange={(e) => {
+                setReferralCode(e.target.value.toUpperCase());
+                setCodeInfo(null);
+              }}
+              onBlur={() => validateCode(referralCode)}
+              placeholder="e.g. K7QP2M"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-mono uppercase tracking-widest text-slate-900 placeholder:font-sans placeholder:tracking-normal placeholder:text-slate-400 focus:border-blue-400 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            />
+            <button
+              type="button"
+              onClick={() => validateCode(referralCode)}
+              disabled={checkingCode || !referralCode.trim()}
+              className="shrink-0 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-white/5"
+            >
+              {checkingCode ? "…" : "Apply"}
+            </button>
+          </div>
+          {codeInfo ? (
+            codeInfo.valid ? (
+              <p className="mt-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                ✓{" "}
+                {codeInfo.type === "discount"
+                  ? "20% off applied at checkout"
+                  : codeInfo.type === "trial"
+                    ? "7-day free trial applied"
+                    : "Creator code applied"}
+              </p>
+            ) : (
+              <p className="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-400">
+                That code isn&apos;t valid.
+              </p>
+            )
+          ) : null}
+        </div>
       </div>
     </>
   );

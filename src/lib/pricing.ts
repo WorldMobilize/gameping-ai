@@ -31,6 +31,18 @@ export function premiumPeriod(interval: BillingInterval): string {
   return interval === "year" ? "/year" : "/month";
 }
 
+/** The creator "discount" code = this % off the first payment (Stripe coupon). */
+export const CREATOR_DISCOUNT_PCT = 20;
+
+/** Premium price with the creator discount applied (first payment only). */
+export function discountedPremiumPrice(interval: BillingInterval): string {
+  const base =
+    interval === "year" ? PREMIUM_YEARLY_PRICE_EUR : PREMIUM_MONTHLY_PRICE_EUR;
+  const discounted =
+    Math.round(base * (1 - CREATOR_DISCOUNT_PCT / 100) * 100) / 100;
+  return `$${discounted.toFixed(2)}`;
+}
+
 /**
  * Marketing feature lists — the essential set spanning BOTH products (Companion
  * + GamePing). The landing shows a compact slice; the full comparison lives on

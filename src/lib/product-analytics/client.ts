@@ -22,7 +22,24 @@ export const PRODUCT_ANALYTICS_EVENT_PATH = "/api/analytics/event";
  * you store but WHEN: nothing goes on the visitor's device, and nothing is sent about
  * them, until they have actually said yes.
  */
+/**
+ * Never track from local development / localhost — keeps test traffic out of the
+ * production analytics tables (the dev server talks to the same Supabase). The
+ * live site (NODE_ENV=production, real hostname) is unaffected.
+ */
+function isAnalyticsEnvExcluded(): boolean {
+  if (process.env.NODE_ENV !== "production") return true;
+  if (typeof window !== "undefined") {
+    const h = window.location.hostname;
+    if (h === "localhost" || h === "127.0.0.1" || h === "::1" || h.endsWith(".local")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function canTrack(): boolean {
+  if (isAnalyticsEnvExcluded()) return false;
   return hasAnalyticsConsent();
 }
 

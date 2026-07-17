@@ -1,5 +1,4 @@
 import Link from "next/link";
-import AdminCreatorFooterLink from "@/components/AdminCreatorFooterLink";
 import FeedbackButton from "@/components/FeedbackButton";
 import SocialPlatformIcon from "@/components/SocialPlatformIcon";
 import { EARLY_ACCESS_NOTICE } from "@/lib/product-copy";
@@ -171,10 +170,9 @@ export default function Footer({ theme = "dark", accent = "default" }: FooterPro
                 <Link href="/about" className={linkClass}>
                   About
                 </Link>
-                {/* Creator program is admin-only until it can actually pay people —
-                    see the note on /creators. Rendered only for admins (client child),
-                    hidden from the public whose link would 404. */}
-                <AdminCreatorFooterLink className={linkClass} />
+                <Link href="/creators" className={linkClass}>
+                  Earn
+                </Link>
                 <Link href="/contact" className={linkClass}>
                   Contact
                 </Link>
